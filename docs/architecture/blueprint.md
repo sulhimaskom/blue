@@ -1,0 +1,211 @@
+# Blueprint: The Architect Platform
+
+> **Vision**: An AI-powered platform acting as a "CTO-as-a-Service". Users input a simple idea, and the platform researches, architects, and generates a production-ready software repository with a clear monetization strategy.
+
+---
+
+## 1. Project Info
+
+| Key | Value |
+|-----|-------|
+| **Project Name** | The Architect Platform |
+| **Description** | AI-driven SaaS that creates comprehensive software blueprints and deploys repositories from simple user prompts. |
+| **Package Manager** | `pnpm` |
+| **Package Manager** | `pnpm` |
+| **Version** | 1.0.0 (Alpha) |
+| **License** | MIT |
+
+---
+
+## 2. Tech Stack Setup
+
+> **Rationale**: Chosen for maximum Type Safety, Serverless stability, and AI integration speed.
+
+| Component | Technology | Reasoning |
+|-----------|------------|-----------|
+| **Runtime** | Node.js 20+ | Standard stable LTS. |
+| **Framework** | Next.js 15 (App Router) | Best-in-class React framework with Server Actions. |
+| **Language** | TypeScript 5.5+ | Strict typing is critical for reliable schema generation. |
+| **Database** | Neon (PostgreSQL 16) | Serverless scaling, branching support for dev environments. |
+| **ORM** | Drizzle ORM | Zero-runtime overhead, SQL-like, type-safe. |
+| **AI SDK** | Vercel AI SDK (Core + RAG) | Standardized API for switching models (OpenAI/Anthropic). |
+| **LLM (Reasoning)** | IFlow (models.dev) | **The Brain**: Free & Unlimited (via `iflow.cn` / OpenAI Compatible). |
+| **LLM (Fast)** | IFlow (models.dev) | **The Mouth**: Fast responses using IFlow models. |
+| **Research Tool** | Tavily / Perplexity API | **The Eyes**: External search tool to provide "grounded" facts to the Brain. |
+| **Auth** | Clerk | Best developer experience for auth & user management. |
+| **Payments** | Stripe | Robust subscription & credit billing. |
+| **Repo Mgmt** | GitHub App API | Higher rate limits than Personal Access Tokens. |
+
+---
+
+## 3. Architecture & Workflows
+
+### 3.1 The "Architect" Pipeline (MCP-Style Architecture)
+This logic follows the **Model Context Protocol (MCP)** concept, where the "Brain" (LLM) uses "Tools" (Search, Repo Forge) to interact with the world.
+
+1.  **Phase 1: Discovery (Research Tool)**
+    *   **User Action**: Enters "I want a marketplace for rare sneakers."
+    *   **System Action**: 
+        *   Checks User Credits.
+        *   **Brain**: "I need data on sneaker marketplaces." -> Calls **Tool**: `search_market_trends` (via Tavily/MCP).
+        *   **Output**: `research_summary.json` (Market gaps, Feature requirements).
+
+2.  **Phase 2: Blueprinting (Reasoning)**
+    *   **System Action**:
+        *   **Agent (Architect)**: Consumes `research_summary.json`.
+        *   **Task**: "Design a system to solve these pain points. Use the `blueprint.md` template."
+        *   **Validation**: Agent self-reflects "Is this stack scalable? Is the monetization clear?".
+        *   **Output**: `blueprint_draft.md` and `schema_draft.json`.
+
+3.  **Phase 3: Refinement (Interaction)**
+    *   **User Action**: Views the "Blueprint Dashboard". 
+    *   **Interaction**: User clicks "Add Mobile App".
+    *   **Brain**: Calls **Tool**: `update_blueprint_schema` to inject React Native modules safely.
+    *   **System Action**: Saves versioned snapshots of the blueprint.
+
+4.  **Phase 4: Fabrication (Delivery)**
+    *   **User Action**: Clicks "Deploy Repository".
+    *   **System Action**:
+        *   Authenticates via GitHub App.
+        *   Creates `user-org/sneaker-market`.
+        *   Copies `repo-creator` template code.
+        *   Injects final `blueprint.md` into `docs/architecture/blueprint.md`.
+        *   Commits & Pushes.
+    *   **Notification**: Sends email/webhook "Your Empire is Ready".
+
+### 3.2 Database Schema (Critical Tables)
+
+```sql
+-- User Management is handled by Clerk (external)
+-- We map internal IDs to Clerk User IDs
+
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  clerk_id TEXT UNIQUE NOT NULL,
+  email TEXT NOT NULL,
+  credits INT DEFAULT 0,
+  subscription_tier TEXT DEFAULT 'free', -- free, pro, enterprise
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id INT REFERENCES users(id),
+  name TEXT NOT NULL,
+  description TEXT,
+  status TEXT DEFAULT 'draft', -- draft, generating, completed, deployed
+  repo_url TEXT, -- GitHub URL if deployed
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE blueprints (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  version INT NOT NULL,
+  
+  -- The Holy Grail
+  content_markdown TEXT NOT NULL,
+  structured_data JSONB NOT NULL, -- { "stack": ..., "models": ... }
+  
+  market_research JSONB, -- The research data backing this blueprint
+  
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id INT REFERENCES users(id),
+  amount INT NOT NULL, -- In cents
+  credits_added INT,
+  stripe_payment_id TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+---
+
+## 4. API & Integration Routes
+
+### 4.1 Internal API (Server Actions)
+*   `generateBlueprint(input: string)`: Triggers long-running AI job.
+*   `refineBlueprint(id: string, feedback: string)`: Updates existing draft.
+*   `deployRepo(id: string)`: Triggers GitHub integration.
+
+### 4.2 Webhooks
+*   `/api/webhooks/clerk`: Sync user creation.
+*   `/api/webhooks/stripe`: Handle subscription updates.
+*   `/api/webhooks/github`: Listen for deployment success (optional).
+
+---
+
+## 5. Security Protocols
+
+1.  **AI Cost Control**:
+    *   Strict timeouts on AI functions (max 60s).
+    *   Rate limiting per user tier (Free: 3/day, Pro: Unlimited).
+    *   **Standardized Tools**: All connections (Search, GitHub) are wrapped as typed functions (MCP standard compliant logic).
+    *   Token usage tracking per generation in DB.
+
+2.  **Code Injection Prevention**:
+    *   The "Fabricator" must STRICTLY use the trusted template.
+    *   User input never executes directly; it only fills Markdown/JSON templates.
+
+3.  **Data Privacy**:
+    *   Blueprints are private by default.
+    *   "Market Research" data cached but anonymized.
+
+---
+
+---
+
+## 6. Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `DATABASE_URL` | Neon Postgres Connection String | ✅ Yes |
+| `IFLOW_API_KEY` | For IFlow (models.dev) Access | ✅ Yes |
+| `IFLOW_BASE_URL` | Custom Endpoint `https://api.models.dev/v1` (or similar) | ✅ Yes |
+| `TAVILY_API_KEY` | For Research Agent (Search) | ✅ Yes |
+| `GITHUB_ACCESS_TOKEN` | For Repo Creation (System Level) | ✅ Yes |
+| `NEXT_PUBLIC_CLERK_KEY` | Auth Public Key | ✅ Yes |
+| `CLERK_SECRET_KEY` | Auth Secret Key | ✅ Yes |
+| `STRIPE_SECRET_KEY` | Payments | ✅ Yes |
+
+---
+
+## 7. Implementation Priorities
+
+1.  **Core**: Blueprint Generation Engine (Prompt Engineering).
+2.  **Integration**: GitHub App "Repo Creator" logic.
+3.  **Platform**: Dashboard UI & Auth.
+4.  **Monetization**: Credit system & Stripe.
+
+---
+
+## 8. Development Principles (Strict)
+
+Agens must strictly follow these principles when generating code:
+
+### 8.1 Modularity & Reusability
+*   **Atomic Design**: UI components must be atomic (shadcn/ui), decoupled from business logic.
+*   **Service Layer**: All business logic implies dedicated `services/` or `actions/` files. Never inside UI components.
+*   **DRY (Don't Repeat Yourself)**: Extract common logic into `lib/utils` or custom hooks.
+
+### 8.2 Flexibility & Hardcoding
+*   **NO HARDCODED STRINGS**: Labels, error messages, and config must be in `constants.ts` or `en.json`.
+*   **Environment Adapter**: Do not use `process.env` directly in UI components. Use a type-safe wrapper (like `t3-env` or `src/env.mjs`) to validate keys. This ensures compatibility with Vercel, Cloudflare, or Netlify by abstracting the source.
+*   **Themeable**: Styles must use CSS variables (Tailwind Config), not arbitrary hex values.
+
+### 8.3 Standardization
+*   **Linter**: Strict ESLint + Prettier configuration.
+*   **Commits**: Conventional Commits (`feat:`, `fix:`, `chore:`) required.
+*   **Type Safety**: `no-explicit-any` is strictly enforced.
+
+---
+
+## 9. Agent "System Prompt" Directives
+
+> **Role**: Information Architect & Solutions Engineer.
+> **Constraint 1**: "Stability over Novelty". Recommend stacks that *work* (Postgres, Redis), not just trending ones.
+> **Constraint 2**: "Actionable Docs". Never say "Set up a database". Say "Provision a Neon Postgres instance and set `DATABASE_URL`".
+> **Constraint 3**: "Business Mindset". Every blueprint MUST have a section on "Monetization Strategy" for that specific idea.
