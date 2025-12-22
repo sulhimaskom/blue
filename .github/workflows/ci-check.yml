@@ -1,0 +1,105 @@
+name: CI Check
+
+on:
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: oc-agent
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: CI Check
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Detect Package Manager
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "pm=pnpm" >> $GITHUB_OUTPUT
+            echo "install=pnpm install --frozen-lockfile" >> $GITHUB_OUTPUT
+          elif [ -f "yarn.lock" ]; then
+            echo "pm=yarn" >> $GITHUB_OUTPUT
+            echo "install=yarn install --frozen-lockfile" >> $GITHUB_OUTPUT
+          elif [ -f "bun.lockb" ]; then
+            echo "pm=bun" >> $GITHUB_OUTPUT
+            echo "install=bun install --frozen-lockfile" >> $GITHUB_OUTPUT
+          else
+            echo "pm=npm" >> $GITHUB_OUTPUT
+            echo "install=npm ci" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup
+        if: steps.detect-pm.outputs.pm == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pnpm-store
+            ~/.npm
+            **/node_modules
+          key: ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-
+
+      - name: Install Dependencies
+        run: ${{ steps.detect-pm.outputs.install }}
+
+      - name: Lint
+        id: lint
+        continue-on-error: true
+        run: ${{ steps.detect-pm.outputs.pm }} run lint --if-present
+
+      - name: Test
+        id: test
+        continue-on-error: true
+        run: ${{ steps.detect-pm.outputs.pm }} test --if-present
+
+      - name: Build
+        id: build
+        continue-on-error: true
+        run: ${{ steps.detect-pm.outputs.pm }} run build --if-present
+
+      - name: Check Results
+        run: |
+          if [[ "${{ steps.lint.outcome }}" == "failure" || "${{ steps.test.outcome }}" == "failure" || "${{ steps.build.outcome }}" == "failure" ]]; then
+            echo "❌ CI Check failed"
+            echo "  Lint: ${{ steps.lint.outcome }}"
+            echo "  Test: ${{ steps.test.outcome }}"
+            echo "  Build: ${{ steps.build.outcome }}"
+            echo "CHECKS_FAILED=true" >> $GITHUB_ENV
+          else
+            echo "✅ All checks passed"
+          fi
+
+      - name: Trigger oc smart-ci
+        if: env.CHECKS_FAILED == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "🚀 Triggering oc smart-ci to auto-fix..."
+          gh workflow run "oc smart-ci.yml" --ref ${{ github.head_ref || github.ref_name }}
+
+      - name: Fail if checks failed
+        if: env.CHECKS_FAILED == 'true'
+        run: exit 1

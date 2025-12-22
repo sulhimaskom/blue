@@ -1,0 +1,191 @@
+name: oc standarizer
+
+# Continuous Cycle: Analyzer → PR → Standarizer → PR → Analyzer
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["oc analyzer"]
+    types: [completed]
+    branches: [dev]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read # Needed for turnstyle
+
+concurrency:
+  group: oc-agent
+  cancel-in-progress: false
+
+jobs:
+  standardize:
+    name: Pick and Execute Task
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      IFLOW_API_KEY: ${{ secrets.IFLOW_API_KEY }}
+
+    steps:
+      - name: Wait in Queue
+        uses: softprops/turnstyle@v2
+        with:
+          poll-interval-seconds: 30
+          same-branch-only: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Detect Package Manager
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "pm=pnpm" >> $GITHUB_OUTPUT
+            echo "install=pnpm install --no-frozen-lockfile" >> $GITHUB_OUTPUT
+          elif [ -f "yarn.lock" ]; then
+            echo "pm=yarn" >> $GITHUB_OUTPUT
+            echo "install=yarn install" >> $GITHUB_OUTPUT
+          elif [ -f "bun.lockb" ]; then
+            echo "pm=bun" >> $GITHUB_OUTPUT
+            echo "install=bun install" >> $GITHUB_OUTPUT
+          else
+            echo "pm=npm" >> $GITHUB_OUTPUT
+            echo "install=npm install" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup pnpm
+        if: steps.detect-pm.outputs.pm == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pnpm-store
+            ~/.npm
+            **/node_modules
+            ~/.opencode
+          key: ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-
+
+      - name: Install Dependencies
+        run: ${{ steps.detect-pm.outputs.install }}
+
+      - name: Machine Diagnostics
+        id: diagnostics
+        continue-on-error: true
+        run: |
+          echo "MACHINE_CONTEXT<<EOF" >> $GITHUB_ENV
+          echo "### 🚩 MACHINE DIAGNOSTICS REPORT ###" >> $GITHUB_ENV
+          echo "Package Manager: ${{ steps.detect-pm.outputs.pm }}" >> $GITHUB_ENV
+          echo "Checked at: $(date)" >> $GITHUB_ENV
+          echo -e "\n--- LINT STATUS ---" >> $GITHUB_ENV
+          ${{ steps.detect-pm.outputs.pm }} run lint --if-present > lint.log 2>&1 || (echo "FAILED:" && tail -n 20 lint.log) >> $GITHUB_ENV
+          echo -e "\n--- BUILD STATUS ---" >> $GITHUB_ENV
+          ${{ steps.detect-pm.outputs.pm }} run build --if-present > build.log 2>&1 || (echo "FAILED:" && tail -n 20 build.log) >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+
+      - name: Install OpenCode
+        run: |
+          if [ ! -f "$HOME/.opencode/bin/opencode" ]; then
+            curl -fsSL https://opencode.ai/install | bash
+          fi
+          echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+
+      - name: Execute
+        run: |
+          # Inject context into the prompt file temporarily or use sed/envsubst if needed.
+          # For simplicity with multiline env vars, we can concatenate:
+          echo "Your Machine Diagnostics:" > context_injection.txt
+          echo "${{ env.MACHINE_CONTEXT }}" >> context_injection.txt
+          
+          # We use a simple concatenation for now, assuming the prompt file has a placeholder or we just append/prepend.
+          # But better: use awk/sed to replace a placeholder {{MACHINE_CONTEXT}} in the file.
+          
+          # Create a temporary prompt file with the context replaced
+          cat .github/prompts/standarizer-main.md | sed -e "s|{{MACHINE_CONTEXT}}|$(echo "${{ env.MACHINE_CONTEXT }}" | sed 's/&/\\&/g; s/|/\\|/g' | tr '\n' '@' | sed 's/@/\\n/g')|g" > final_prompt.md
+          
+          # Actually, simpler: just pass the content as an env var to opencode if supported, OR:
+          # Use string interpolation in a safer way.
+          # Let's try flexible replacement or just catting them together if the prompt allows.
+          
+          # Simplest robust way: 
+          PROMPT_CONTENT=$(cat .github/prompts/standarizer-main.md)
+          PROMPT_CONTENT="${PROMPT_CONTENT//\{\{MACHINE_CONTEXT\}\}/${{ env.MACHINE_CONTEXT }}}"
+
+          opencode run "$PROMPT_CONTENT" \
+            --model iflowcn/glm-4.6 \
+            --share false \
+
+      - name: Run OpenCode - Bug Fix
+        id: run_oc1
+        timeout-minutes: 60
+        run: |
+          PROMPT_CONTENT=$(cat .github/prompts/standarizer-bugfix.md)
+          PROMPT_CONTENT="${PROMPT_CONTENT//\{\{MACHINE_CONTEXT\}\}/${{ env.MACHINE_CONTEXT }}}"
+
+          opencode run "$PROMPT_CONTENT" \
+            --model iflowcn/glm-4.6 \
+            --share false \
+
+      - name: Run OpenCode - Improvement
+        id: run_oc2
+        timeout-minutes: 60
+        run: |
+          PROMPT_CONTENT=$(cat .github/prompts/standarizer-improvement.md)
+          PROMPT_CONTENT="${PROMPT_CONTENT//\{\{MACHINE_CONTEXT\}\}/${{ env.MACHINE_CONTEXT }}}"
+
+          opencode run "$PROMPT_CONTENT" \
+            --model iflowcn/glm-4.6 \
+            --share false \
+
+      - name: Run OpenCode - Modularization
+        id: run_oc3
+        timeout-minutes: 60
+        run: |
+          PROMPT_CONTENT=$(cat .github/prompts/standarizer-modularization.md)
+          PROMPT_CONTENT="${PROMPT_CONTENT//\{\{MACHINE_CONTEXT\}\}/${{ env.MACHINE_CONTEXT }}}"
+
+          opencode run "$PROMPT_CONTENT" \
+            --model iflowcn/glm-4.6 \
+            --share false \
+
+      - name: Fallback on Failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "⚠️ Agent workflow failed. Creating issue for manual review."
+          gh issue create \
+            --title "🤖 Agent Workflow Failed - $(date +%Y-%m-%d)" \
+            --body "## Agent Failure Report
+
+          **Workflow**: oc standarizer
+          **Run ID**: ${{ github.run_id }}
+          **Time**: $(date)
+
+          ### Action Required
+          Please review the workflow logs and manually address any issues.
+
+          ---
+          *This issue was auto-generated.*" \
+            --label "bug" || echo "Could not create issue"

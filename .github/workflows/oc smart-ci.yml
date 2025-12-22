@@ -1,0 +1,163 @@
+name: oc smart-ci
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["oc standarizer", "CI Check"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: oc-agent
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: Smart CI
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    # Skip if triggered by CI Check that passed (only run for failures)
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.name == 'oc standarizer' ||
+      (github.event.workflow_run.name == 'CI Check' && github.event.workflow_run.conclusion == 'failure')
+
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      IFLOW_API_KEY: ${{ secrets.IFLOW_API_KEY }}
+
+    steps:
+      - name: Wait in Queue
+        uses: softprops/turnstyle@v2
+        with:
+          poll-interval-seconds: 30
+          same-branch-only: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Detect Package Manager
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "pm=pnpm" >> $GITHUB_OUTPUT
+            echo "install=pnpm install --frozen-lockfile" >> $GITHUB_OUTPUT
+          elif [ -f "yarn.lock" ]; then
+            echo "pm=yarn" >> $GITHUB_OUTPUT
+            echo "install=yarn install --frozen-lockfile" >> $GITHUB_OUTPUT
+          elif [ -f "bun.lockb" ]; then
+            echo "pm=bun" >> $GITHUB_OUTPUT
+            echo "install=bun install --frozen-lockfile" >> $GITHUB_OUTPUT
+          else
+            echo "pm=npm" >> $GITHUB_OUTPUT
+            echo "install=npm ci" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup pnpm
+        if: steps.detect-pm.outputs.pm == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pnpm-store
+            ~/.npm
+            **/node_modules
+            ~/.opencode
+          key: ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+
+      - name: Branch Management
+        run: |
+          git fetch --all
+          if git branch -r | grep "origin/agent-workspace"; then
+            git checkout agent-workspace
+            git pull origin agent-workspace
+          else
+            git checkout -b agent-workspace
+          fi
+          git merge origin/dev --no-edit || echo "Merge conflict or already up to date"
+
+      - name: Install Dependencies
+        run: ${{ steps.detect-pm.outputs.install }}
+
+      - name: Lint
+        id: lint
+        continue-on-error: true
+        run: ${{ steps.detect-pm.outputs.pm }} run lint --if-present > lint.log 2>&1 || (echo "FAILED:" && tail -n 20 lint.log)
+
+      - name: Test
+        id: test
+        continue-on-error: true
+        run: ${{ steps.detect-pm.outputs.pm }} test --if-present
+
+      - name: Build
+        id: build
+        continue-on-error: true
+        run: ${{ steps.detect-pm.outputs.pm }} run build --if-present > build.log 2>&1 || (echo "FAILED:" && tail -n 20 build.log)
+
+      - name: Install OpenCode CLI
+        if: steps.lint.outcome == 'failure' || steps.test.outcome == 'failure' || steps.build.outcome == 'failure'
+        run: |
+          curl -fsSL https://opencode.ai/install | bash
+          echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+
+      - name: Auto-fix CI Failures
+        if: steps.lint.outcome == 'failure' || steps.test.outcome == 'failure' || steps.build.outcome == 'failure'
+        env:
+          LINT_STATUS: ${{ steps.lint.outcome }}
+          TEST_STATUS: ${{ steps.test.outcome }}
+          BUILD_STATUS: ${{ steps.build.outcome }}
+        run: |
+          # Substitute variables in the prompt
+          # We use simple string replacement since env vars like statuses are simple strings/words
+          
+          # Read prompt from file
+          PROMPT_CONTENT=$(cat .github/prompts/smart-ci.md)
+          
+          # Replace placeholders
+          PROMPT_CONTENT="${PROMPT_CONTENT//\{\{LINT_STATUS\}\}/$LINT_STATUS}"
+          PROMPT_CONTENT="${PROMPT_CONTENT//\{\{TEST_STATUS\}\}/$TEST_STATUS}"
+          PROMPT_CONTENT="${PROMPT_CONTENT//\{\{BUILD_STATUS\}\}/$BUILD_STATUS}"
+          
+          opencode run "$PROMPT_CONTENT" \
+            --model iflowcn/glm-4.6 \
+            --share false \
+      - name: Auto-merge and Finalize
+        if: steps.lint.outcome == 'success' && steps.test.outcome == 'success' && steps.build.outcome == 'success'
+        run: |
+          echo "✅ All checks passed on agent-workspace."
+          # Find the PR from agent-workspace to dev
+          PR_URL=$(gh pr list --head agent-workspace --base dev --json url --jq '.[0].url')
+          
+          if [ -n "$PR_URL" ]; then
+            echo "Merging PR: $PR_URL"
+            gh pr merge "$PR_URL" --merge --admin || gh pr merge "$PR_URL" --auto --merge
+            echo "🚀 PR merged/auto-merge enabled. This will trigger the next Analyzer run on dev."
+          else
+            echo "⚠️ No open PR found for agent-workspace to dev. Check if changes were actually pushed."
+          fi
+

@@ -1,0 +1,92 @@
+name: oc analyzer
+
+# Continuous Cycle: Analyzer → PR → Standarizer → PR → Analyzer
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+    paths-ignore:
+      - 'docs/**'
+      - '.github/workflows/**'
+      - 'README.md'
+      - 'AGENTS.md'
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read # Needed for turnstyle
+
+concurrency:
+  group: oc-agent
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    name: Analyze Codebase
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      IFLOW_API_KEY: ${{ secrets.IFLOW_API_KEY }}
+
+    steps:
+      - name: Wait in Queue
+        uses: softprops/turnstyle@v2
+        with:
+          poll-interval-seconds: 30
+          same-branch-only: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Setup Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.opencode
+          key: ${{ runner.os }}-opencode-v1
+          restore-keys: |
+            ${{ runner.os }}-opencode-
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+
+      - name: Install OpenCode
+        run: |
+          curl -fsSL https://opencode.ai/install | bash
+          echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+
+      - name: Execute
+        run: |
+          opencode run "$(cat .github/prompts/analyzer-system.md)" \
+            --model iflowcn/glm-4.6 \
+            --share false \
+
+      - name: Fallback on Failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "⚠️ Analyzer workflow failed. Creating issue for manual review."
+          gh issue create \
+            --title "🤖 Analyzer Failed - $(date +%Y-%m-%d)" \
+            --body "## Analyzer Failure Report
+
+          **Workflow**: oc analyzer
+          **Run ID**: ${{ github.run_id }}
+          **Time**: $(date)
+
+          ### Action Required
+          Please review the workflow logs and manually address any issues.
+
+          ---
+          *This issue was auto-generated.*" \
+            --label "bug" || echo "Could not create issue"

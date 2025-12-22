@@ -1,0 +1,112 @@
+name: Initialize Repository
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/architecture/blueprint.md'
+  workflow_dispatch:
+    inputs:
+      force_init:
+        description: 'Force re-initialization'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  init:
+    name: Initialize Project
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Check if Already Initialized
+        id: check
+        run: |
+          if [ -f ".initialized" ] && [ "${{ inputs.force_init }}" != "true" ]; then
+            echo "already_init=true" >> $GITHUB_OUTPUT
+            echo "Repository already initialized. Skipping."
+          else
+            echo "already_init=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate Blueprint
+        if: steps.check.outputs.already_init == 'false'
+        run: |
+          if grep -q "{{PROJECT_NAME}}" docs/architecture/blueprint.md; then
+            echo "❌ Blueprint not configured. Please fill in all {{PLACEHOLDER}} values."
+            exit 1
+          fi
+          echo "✅ Blueprint configured"
+
+      - name: Setup Git
+        if: steps.check.outputs.already_init == 'false'
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+
+      - name: Create Dev Branch
+        if: steps.check.outputs.already_init == 'false'
+        run: |
+          if ! git branch -r | grep "origin/dev"; then
+            git checkout -b dev
+            git push -u origin dev
+            echo "✅ Created dev branch"
+          else
+            echo "Dev branch already exists"
+          fi
+
+      - name: Create Agent Workspace Branch
+        if: steps.check.outputs.already_init == 'false'
+        run: |
+          if ! git branch -r | grep "origin/agent-workspace"; then
+            git checkout -b agent-workspace
+            git push -u origin agent-workspace
+            echo "✅ Created agent-workspace branch"
+          else
+            echo "Agent workspace branch already exists"
+          fi
+
+      - name: Mark as Initialized
+        if: steps.check.outputs.already_init == 'false'
+        run: |
+          git checkout main
+          echo "Initialized on $(date)" > .initialized
+          git add .initialized
+          git commit -m "chore: mark repository as initialized"
+          git push origin main
+
+      - name: Trigger Analyzer
+        if: steps.check.outputs.already_init == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "🚀 Triggering initial analysis..."
+          gh workflow run "oc analyzer.yml" --ref dev
+          echo "✅ Repository initialized! Analyzer workflow triggered."
+
+      - name: Summary
+        run: |
+          echo "## 🎉 Repository Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check.outputs.already_init }}" == "true" ]; then
+            echo "Repository was already initialized." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Branches created: main, dev, agent-workspace" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Initial analyzer triggered" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "1. Check the Actions tab for analyzer progress" >> $GITHUB_STEP_SUMMARY
+            echo "2. Review the generated evaluation report" >> $GITHUB_STEP_SUMMARY
+            echo "3. Merge PRs from agent-workspace to dev" >> $GITHUB_STEP_SUMMARY
+          fi
