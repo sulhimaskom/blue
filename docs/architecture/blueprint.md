@@ -28,7 +28,6 @@
 | **Language** | TypeScript 5.5+ | Strict typing is critical for reliable schema generation. |
 | **Database** | Neon (PostgreSQL 16) | Serverless scaling, branching support for dev environments. |
 | **ORM** | Drizzle ORM | Zero-runtime overhead, SQL-like, type-safe. |
-| **AI SDK** | Vercel AI SDK (Core + RAG) | Standardized API for switching models (OpenAI/Anthropic). |
 | **LLM (Reasoning)** | IFlow (models.dev) | **The Brain**: Free & Unlimited (via `iflow.cn` / OpenAI Compatible). |
 | **LLM (Fast)** | IFlow (models.dev) | **The Mouth**: Fast responses using IFlow models. |
 | **Research Tool** | Tavily / Perplexity API | **The Eyes**: External search tool to provide "grounded" facts to the Brain. |
@@ -209,3 +208,4 @@ Agens must strictly follow these principles when generating code:
 > **Constraint 1**: "Stability over Novelty". Recommend stacks that *work* (Postgres, Redis), not just trending ones.
 > **Constraint 2**: "Actionable Docs". Never say "Set up a database". Say "Provision a Neon Postgres instance and set `DATABASE_URL`".
 > **Constraint 3**: "Business Mindset". Every blueprint MUST have a section on "Monetization Strategy" for that specific idea.
+
