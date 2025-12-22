@@ -42,62 +42,62 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      #- name: Setup Node.js
+      #  uses: actions/setup-node@v4
+      #  with:
+      #   node-version: 20
 
-      - name: Detect Package Manager
-        id: detect-pm
-        run: |
-          if [ -f "pnpm-lock.yaml" ]; then
-            echo "pm=pnpm" >> $GITHUB_OUTPUT
-            echo "install=pnpm install --no-frozen-lockfile" >> $GITHUB_OUTPUT
-          elif [ -f "yarn.lock" ]; then
-            echo "pm=yarn" >> $GITHUB_OUTPUT
-            echo "install=yarn install" >> $GITHUB_OUTPUT
-          elif [ -f "bun.lockb" ]; then
-            echo "pm=bun" >> $GITHUB_OUTPUT
-            echo "install=bun install" >> $GITHUB_OUTPUT
-          else
-            echo "pm=npm" >> $GITHUB_OUTPUT
-            echo "install=npm install" >> $GITHUB_OUTPUT
-          fi
+      #- name: Detect Package Manager
+      #  id: detect-pm
+      #  run: |
+      #    if [ -f "pnpm-lock.yaml" ]; then
+      #      echo "pm=pnpm" >> $GITHUB_OUTPUT
+      #      echo "install=pnpm install --no-frozen-lockfile" >> $GITHUB_OUTPUT
+      #    elif [ -f "yarn.lock" ]; then
+      #      echo "pm=yarn" >> $GITHUB_OUTPUT
+      #      echo "install=yarn install" >> $GITHUB_OUTPUT
+      #    elif [ -f "bun.lockb" ]; then
+      #      echo "pm=bun" >> $GITHUB_OUTPUT
+      #      echo "install=bun install" >> $GITHUB_OUTPUT
+      #    else
+      #      echo "pm=npm" >> $GITHUB_OUTPUT
+      #      echo "install=npm install" >> $GITHUB_OUTPUT
+      #    fi
 
-      - name: Setup pnpm
-        if: steps.detect-pm.outputs.pm == 'pnpm'
-        uses: pnpm/action-setup@v4
-        with:
-          run_install: false
+      #- name: Setup pnpm
+      #  if: steps.detect-pm.outputs.pm == 'pnpm'
+      #  uses: pnpm/action-setup@v4
+      #  with:
+      #    run_install: false
 
-      - name: Setup Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pnpm-store
-            ~/.npm
-            **/node_modules
-            ~/.opencode
-          key: ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-
+      #- name: Setup Cache
+      #  uses: actions/cache@v4
+      #  with:
+      #    path: |
+      #      ~/.pnpm-store
+      #      ~/.npm
+      #      **/node_modules
+      #      ~/.opencode
+      #    key: ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock') }}
+      #    restore-keys: |
+      #      ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-
 
-      - name: Install Dependencies
-        run: ${{ steps.detect-pm.outputs.install }}
+      #- name: Install Dependencies
+      #  run: ${{ steps.detect-pm.outputs.install }}
 
-      - name: Machine Diagnostics
-        id: diagnostics
-        continue-on-error: true
-        run: |
-          echo "MACHINE_CONTEXT<<EOF" >> $GITHUB_ENV
-          echo "### 🚩 MACHINE DIAGNOSTICS REPORT ###" >> $GITHUB_ENV
-          echo "Package Manager: ${{ steps.detect-pm.outputs.pm }}" >> $GITHUB_ENV
-          echo "Checked at: $(date)" >> $GITHUB_ENV
-          echo -e "\n--- LINT STATUS ---" >> $GITHUB_ENV
-          ${{ steps.detect-pm.outputs.pm }} run lint --if-present > lint.log 2>&1 || (echo "FAILED:" && tail -n 20 lint.log) >> $GITHUB_ENV
-          echo -e "\n--- BUILD STATUS ---" >> $GITHUB_ENV
-          ${{ steps.detect-pm.outputs.pm }} run build --if-present > build.log 2>&1 || (echo "FAILED:" && tail -n 20 build.log) >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+      #- name: Machine Diagnostics
+      #  id: diagnostics
+      #  continue-on-error: true
+      #  run: |
+      #    echo "MACHINE_CONTEXT<<EOF" >> $GITHUB_ENV
+      #    echo "### 🚩 MACHINE DIAGNOSTICS REPORT ###" >> $GITHUB_ENV
+      #    echo "Package Manager: ${{ steps.detect-pm.outputs.pm }}" >> $GITHUB_ENV
+      #    echo "Checked at: $(date)" >> $GITHUB_ENV
+      #    echo -e "\n--- LINT STATUS ---" >> $GITHUB_ENV
+      #    ${{ steps.detect-pm.outputs.pm }} run lint --if-present > lint.log 2>&1 || (echo "FAILED:" && tail -n 20 lint.log) >> $GITHUB_ENV
+      #    echo -e "\n--- BUILD STATUS ---" >> $GITHUB_ENV
+      #    ${{ steps.detect-pm.outputs.pm }} run build --if-present > build.log 2>&1 || (echo "FAILED:" && tail -n 20 build.log) >> $GITHUB_ENV
+      #    echo "EOF" >> $GITHUB_ENV
 
       - name: Configure Git
         run: |
@@ -189,3 +189,4 @@ jobs:
           ---
           *This issue was auto-generated.*" \
             --label "bug" || echo "Could not create issue"
+
