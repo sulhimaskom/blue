@@ -13,6 +13,7 @@ import { eq, count } from "drizzle-orm";
 import { z } from "zod";
 import { logger, createRequestContext } from "@/lib/logger";
 import { UserService } from "@/lib/services/user-service";
+import { blueprintEngine } from "@/lib/services/blueprint-engine";
 
 // Rate limiting: 3 requests per minute for blueprint generation
 const blueprintRateLimiter = RateLimiter(3, 60 * 1000);
@@ -82,68 +83,44 @@ export async function POST(req: NextRequest) {
 
     const { input, projectName } = validation.data;
 
-    const database = db();
+    // Generate blueprint using AI engine (Phase 3 Integration)
+    logger.info("Initiating AI blueprint generation", {
+      requestId: context.requestId,
+      userId: authenticatedUser.clerkId,
+      input: input.substring(0, 100),
+      projectName,
+    });
 
-    // Create project
-    const [newProject] = await database
-      .insert(projects)
-      .values({
-        ownerId: authenticatedUser.id,
-        name: projectName,
-        description: `AI-generated blueprint: ${input.substring(0, 100)}...`,
-        status: "generating",
-      })
-      .returning();
-
-    if (!newProject) {
-      logger.error("Project creation failed", {
-        requestId: context.requestId,
-        userId: authenticatedUser.clerkId,
-        projectName,
-        input: input.substring(0, 100),
-      });
-      throw new DatabaseError("Failed to create project");
-    }
-
-    // TODO: In Phase 3, this will trigger the AI generation pipeline
-    // For now, we'll create a placeholder blueprint entry
-    const [placeholderBlueprint] = await database
-      .insert(blueprints)
-      .values({
-        projectId: newProject.id,
-        version: 1,
-        contentMarkdown: `# Placeholder Blueprint\n\nProject: ${projectName}\nInput: ${input}\n\n*This blueprint will be enhanced with AI-generated content in Phase 3.*`,
-        structuredData: {
-          status: "placeholder",
-          projectName,
-          userInput: input,
-          phase: "pre-ai-integration",
-        },
-        marketResearch: null,
-      })
-      .returning();
+    const generationResult = await blueprintEngine.generateBlueprint({
+      userId: authenticatedUser.id,
+      input,
+      projectName,
+      projectDescription: `AI-generated blueprint from: ${input.substring(0, 100)}...`,
+    });
 
     // Deduct credit for blueprint generation using service
     await UserService.updateUserCredits(authenticatedUser.id, -1, context);
 
     logger.userAction(
-      "Blueprint generation initiated",
+      "AI blueprint generation completed",
       authenticatedUser.clerkId,
       {
         requestId: context.requestId,
-        projectId: newProject.id,
-        blueprintId: placeholderBlueprint.id,
+        projectId: generationResult.projectId,
+        blueprintId: generationResult.blueprintId,
         creditsDeducted: 1,
         remainingCredits: authenticatedUser.credits - 1,
+        generationTime: `${generationResult.estimatedDuration}ms`,
       },
     );
 
     return formatSuccessResponse({
-      projectId: newProject.id,
-      blueprintId: placeholderBlueprint.id,
-      status: "generating",
+      projectId: generationResult.projectId,
+      blueprintId: generationResult.blueprintId,
+      status: generationResult.status,
+      estimatedDuration: generationResult.estimatedDuration,
       message:
-        "Blueprint generation initiated. Current implementation creates a placeholder until AI integration in Phase 3.",
+        "Blueprint successfully generated using AI analysis and market research.",
     });
   } catch (error) {
     logger.apiError(
@@ -154,6 +131,14 @@ export async function POST(req: NextRequest) {
         userId: authenticatedUser?.clerkId,
         endpoint: "/api/blueprints",
       },
+    );
+
+    if (error instanceof ValidationError || error instanceof DatabaseError) {
+      return formatErrorResponse(error);
+    }
+
+    return formatErrorResponse(
+      new DatabaseError("Blueprint generation failed"),
     );
   }
 }
