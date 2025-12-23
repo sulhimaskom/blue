@@ -57,19 +57,60 @@
 
 ## Critical Production Issues 🔴 (From 85/100 Audit - MUST FIX BEFORE AI INTEGRATION)
 
-- [ ] **CRITICAL**: Implement structured logging (replace 11 console.\* statements in API routes)
-  - **Impact**: Security risk, production standard violation
-  - **Files**: All API routes contain console.error statements
-  - **Effort**: 4 hours
-- [ ] **HIGH**: Add Redis-based distributed rate limiting (replace in-memory Map in lib/api-utils.ts:70-93)
-  - **Impact**: Cannot scale horizontally, vulnerable to distributed attacks
-  - **Current**: Map-based rate limiting resets on server restart
-  - **Effort**: 6 hours
-- [ ] **HIGH**: Add comprehensive API integration test coverage (currently only 2 basic component tests)
-  - **Impact**: Regression risk, limited confidence in API functionality
-  - **Current**: 2/2 tests passing (component rendering only)
-  - **Target**: API routes, database operations, auth middleware tests
-  - **Effort**: 12 hours
+### BLOCKER #1: Production Logging Infrastructure (CRITICAL - 4 hours)
+
+- [ ] **TASK**: Implement structured logging to replace 11 console statements
+- **Risk**: HIGH - Security information leakage, production compliance violation
+- **Evidence**: Console.error statements in all API routes (audit found 11 violations)
+- **Files Required to Fix**:
+  - `app/api/blueprints/route.ts:131,194`
+  - `app/api/credits/route.ts:94,158`
+  - `app/api/deploy/[id]/route.ts:98,159`
+  - `app/api/webhooks/clerk/route.ts:41,65,74,88,94,99`
+  - `app/api/webhooks/stripe/route.ts:64,74,79,84`
+- **Implementation Plan**:
+  1. Create `lib/logger.ts` with Pino structured logging
+  2. Add log levels (error, warn, info, debug)
+  3. Implement correlation IDs for request tracing
+  4. Replace all console.\* statements with logger calls
+- **Dependencies**: `npm install pino @types/pino`
+
+### BLOCKER #2: Distributed Rate Limiting (HIGH - 6 hours)
+
+- [ ] **TASK**: Replace in-memory Map with Redis-based distributed rate limiting
+- **Risk**: HIGH - Cannot scale horizontally, vulnerable to distributed attacks
+- **Evidence**: Current implementation at `lib/api-utils.ts:70-93` uses in-memory Map
+- **Issues with Current Implementation**:
+  - Resets on server restart/d redeploy
+  - Cannot share state across multiple instances
+  - Vulnerable to coordinated attacks from multiple IPs
+- **Implementation Plan**:
+  1. Set up Redis connection management
+  2. Replace Map with Redis store for rate limit tracking
+  3. Add circuit breaker patterns for Redis failures
+  4. Implement cluster-aware rate limiting
+- **Dependencies**: `npm install redis @types/redis`
+
+### BLOCKER #3: API Integration Test Coverage (HIGH - 12 hours)
+
+- [ ] **TASK**: Add comprehensive API integration testing suite
+- **Risk**: MEDIUM - Regression risk, limited confidence in business logic
+- **Evidence**: Only 2 basic component tests exist, zero API integration tests
+- **Current Coverage**: 2/2 tests passing (component rendering only)
+- **Target Coverage**: 15+ comprehensive tests including:
+  - All API route endpoints (6 routes = 12+ tests)
+  - Database operation tests (CRUD operations)
+  - Authentication middleware tests
+  - Error handling scenarios
+- **Implementation Plan**:
+  1. Create `__tests__/api/` directory structure
+  2. Set up test database environment
+  3. Write integration tests for each API route
+  4. Test error scenarios and edge cases
+  5. Add database transaction rollback tests
+- **Dependencies**: `npm install supertest @types/supertest`
+
+**Total Estimated Effort**: 22 hours of critical production fixes
 
 ## Medium Priority Improvements 🟡 (Post-AI Integration)
 
