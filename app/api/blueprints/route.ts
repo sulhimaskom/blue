@@ -1,19 +1,18 @@
 import { NextRequest } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
 import {
   validateRequest,
   formatSuccessResponse,
   formatErrorResponse,
   ValidationError,
-  AuthenticationError,
   DatabaseError,
   RateLimiter,
 } from "@/lib/api-utils";
 import { db } from "@/lib/db";
-import { users, projects, blueprints } from "@/lib/db/schema";
+import { projects, blueprints } from "@/lib/db/schema";
 import { eq, count } from "drizzle-orm";
 import { z } from "zod";
 import { logger, createRequestContext } from "@/lib/logger";
+import { UserService } from "@/lib/services/user-service";
 
 // Rate limiting: 3 requests per minute for blueprint generation
 const blueprintRateLimiter = RateLimiter(3, 60 * 1000);
@@ -31,17 +30,13 @@ const generateBlueprintSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const context = createRequestContext();
-  let user: { id: string } | null = null;
+  let authenticatedUser:
+    | import("@/lib/services/user-service").AuthenticatedUser
+    | null = null;
 
   try {
-    // Authentication check
-    user = await currentUser();
-    if (!user?.id) {
-      logger.security("Authentication failed - missing user", {
-        requestId: context.requestId,
-      });
-      throw new AuthenticationError("Authentication required");
-    }
+    // Authentication and user record fetch
+    authenticatedUser = await UserService.getAuthenticatedUser(context);
 
     // Rate limiting check
     const clientIp =
@@ -49,12 +44,12 @@ export async function POST(req: NextRequest) {
       req.headers.get("x-real-ip") ||
       "unknown";
     const rateLimitCheck = await blueprintRateLimiter(
-      `blueprint:${user.id}:${clientIp}`,
+      `blueprint:${authenticatedUser.clerkId}:${clientIp}`,
     );
     if (!rateLimitCheck.allowed) {
       logger.security("Blueprint generation rate limit exceeded", {
         requestId: context.requestId,
-        userId: user.id,
+        userId: authenticatedUser.clerkId,
         clientIp,
         resetTime: rateLimitCheck.resetTime,
       });
@@ -73,24 +68,12 @@ export async function POST(req: NextRequest) {
       throw new ValidationError(validation.error);
     }
 
-    const database = db();
-
-    // Check user credits (require at least 1 credit)
-    const [userRecord] = await database
-      .select()
-      .from(users)
-      .where(eq(users.clerkId, user.id))
-      .limit(1);
-
-    if (!userRecord) {
-      throw new AuthenticationError("User not found");
-    }
-
-    if (userRecord.credits < 1) {
+    // Check user credits using service
+    if (!UserService.hasSufficientCredits(authenticatedUser, 1)) {
       logger.warn("Blueprint generation blocked - insufficient credits", {
         requestId: context.requestId,
-        userId: user.id,
-        currentCredits: userRecord.credits,
+        userId: authenticatedUser.clerkId,
+        currentCredits: authenticatedUser.credits,
       });
       throw new ValidationError(
         "Insufficient credits. Please upgrade your plan.",
@@ -99,11 +82,13 @@ export async function POST(req: NextRequest) {
 
     const { input, projectName } = validation.data;
 
+    const database = db();
+
     // Create project
     const [newProject] = await database
       .insert(projects)
       .values({
-        ownerId: userRecord.id,
+        ownerId: authenticatedUser.id,
         name: projectName,
         description: `AI-generated blueprint: ${input.substring(0, 100)}...`,
         status: "generating",
@@ -113,7 +98,7 @@ export async function POST(req: NextRequest) {
     if (!newProject) {
       logger.error("Project creation failed", {
         requestId: context.requestId,
-        userId: user.id,
+        userId: authenticatedUser.clerkId,
         projectName,
         input: input.substring(0, 100),
       });
@@ -138,19 +123,20 @@ export async function POST(req: NextRequest) {
       })
       .returning();
 
-    // Deduct credit for blueprint generation
-    await database
-      .update(users)
-      .set({ credits: userRecord.credits - 1 })
-      .where(eq(users.clerkId, user.id));
+    // Deduct credit for blueprint generation using service
+    await UserService.updateUserCredits(authenticatedUser.id, -1, context);
 
-    logger.userAction("Blueprint generation initiated", user!.id, {
-      requestId: context.requestId,
-      projectId: newProject.id,
-      blueprintId: placeholderBlueprint.id,
-      creditsDeducted: 1,
-      remainingCredits: userRecord.credits - 1,
-    });
+    logger.userAction(
+      "Blueprint generation initiated",
+      authenticatedUser.clerkId,
+      {
+        requestId: context.requestId,
+        projectId: newProject.id,
+        blueprintId: placeholderBlueprint.id,
+        creditsDeducted: 1,
+        remainingCredits: authenticatedUser.credits - 1,
+      },
+    );
 
     return formatSuccessResponse({
       projectId: newProject.id,
@@ -165,55 +151,30 @@ export async function POST(req: NextRequest) {
       context.requestId,
       error as Error,
       {
-        userId: user?.id,
+        userId: authenticatedUser?.clerkId,
         endpoint: "/api/blueprints",
       },
-    );
-
-    if (
-      error instanceof ValidationError ||
-      error instanceof AuthenticationError ||
-      error instanceof DatabaseError
-    ) {
-      return formatErrorResponse(error);
-    }
-
-    return formatErrorResponse(
-      new DatabaseError("Unexpected error in blueprint generation"),
     );
   }
 }
 
 export async function GET() {
   const context = createRequestContext();
-  let user: { id: string } | null = null;
+  let authenticatedUser:
+    | import("@/lib/services/user-service").AuthenticatedUser
+    | null = null;
 
   try {
-    user = await currentUser();
-    if (!user?.id) {
-      logger.security("Authentication failed for projects fetch", {
-        requestId: context.requestId,
-      });
-      throw new AuthenticationError("Authentication required");
-    }
+    // Authentication and user record fetch
+    authenticatedUser = await UserService.getAuthenticatedUser(context);
 
     const database = db();
-
-    const userRecord = await database
-      .select()
-      .from(users)
-      .where(eq(users.clerkId, user.id))
-      .limit(1);
-
-    if (!userRecord.length) {
-      throw new AuthenticationError("User not found");
-    }
 
     // Get all projects for the user
     const userProjects = await database
       .select()
       .from(projects)
-      .where(eq(projects.ownerId, userRecord[0].id))
+      .where(eq(projects.ownerId, authenticatedUser.id))
       .orderBy(projects.createdAt);
 
     // Get blueprint counts for each project
@@ -231,23 +192,23 @@ export async function GET() {
       }),
     );
 
-    logger.userAction("Projects fetched", user!.id, {
+    logger.userAction("Projects fetched", authenticatedUser.clerkId, {
       requestId: context.requestId,
       projectCount: projectsWithBlueprints.length,
     });
 
     return formatSuccessResponse({
       projects: projectsWithBlueprints,
-      credits: userRecord[0].credits,
-      subscriptionTier: userRecord[0].subscriptionTier,
+      credits: authenticatedUser.credits,
+      subscriptionTier: authenticatedUser.subscriptionTier,
     });
   } catch (error) {
     logger.apiError("Projects fetch error", context.requestId, error as Error, {
-      userId: user?.id,
+      userId: authenticatedUser?.clerkId,
       endpoint: "/api/blueprints",
     });
 
-    if (error instanceof AuthenticationError) {
+    if (error instanceof DatabaseError) {
       return formatErrorResponse(error);
     }
 

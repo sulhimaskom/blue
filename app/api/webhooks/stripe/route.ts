@@ -93,20 +93,27 @@ export async function POST(req: NextRequest) {
 
       return formatSuccessResponse({ received: true });
     } catch (error) {
+      // Defensive: Ensure context is available even in unexpected error scenarios
+      const requestId = context?.requestId || "unknown";
+      const eventType = event?.type || "unknown";
+
       logger.apiError(
         "Stripe webhook processing failed",
-        context.requestId,
+        requestId,
         error as Error,
         {
           endpoint: "/api/webhooks/stripe",
-          eventType: event?.type,
+          eventType,
         },
       );
       const errorResponse = new DatabaseError("Invalid webhook payload");
       return formatErrorResponse(errorResponse);
     }
   } catch (error) {
-    logger.apiError("Stripe webhook error", context.requestId, error as Error, {
+    // Defensive: Ensure context is available even in unexpected error scenarios
+    const requestId = context?.requestId || "unknown";
+
+    logger.apiError("Stripe webhook error", requestId, error as Error, {
       endpoint: "/api/webhooks/stripe",
     });
     return formatErrorResponse(new DatabaseError("Webhook processing failed"));

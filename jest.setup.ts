@@ -1,6 +1,9 @@
 /// <reference types="@types/jest" />
 import "@testing-library/jest-dom";
 
+// Import polyfills for Web APIs
+require("./jest.polyfills");
+
 declare global {
   namespace jest {
     interface Matchers<R> {
