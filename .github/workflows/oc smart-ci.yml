@@ -1,4 +1,4 @@
-name: oc smart-ci
+name: smart-ci
 
 on:
   workflow_dispatch:
@@ -165,6 +165,7 @@ jobs:
           else
             echo "⚠️ No open PR found for agent-workspace to dev. Check if changes were actually pushed."
           fi
+
 
 
 
