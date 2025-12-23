@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { monitoringService } from "@/lib/monitoring";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
+import { circuitBreakerRegistry } from "@/lib/circuit-breaker";
 
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: false,
@@ -45,6 +46,29 @@ export const GET = APIRouteHandler.createGETHandler({
         metadata: {
           configured: !!process.env.STRIPE_SECRET_KEY,
           provider: "stripe",
+        },
+      },
+
+      // Circuit breaker health checks
+      circuitBreakers: {
+        service: "circuit-breakers",
+        status: (() => {
+          const openCircuits = circuitBreakerRegistry.getOpenCircuits();
+          const totalCircuits = Object.keys(
+            circuitBreakerRegistry.getAllMetrics(),
+          ).length;
+          const healthyCount = totalCircuits - openCircuits.length;
+
+          if (openCircuits.length === 0) return "healthy" as const;
+          if (healthyCount >= totalCircuits * 0.7) return "degraded" as const;
+          return "unhealthy" as const;
+        })(),
+        responseTime: 0,
+        metadata: {
+          totalCircuits: Object.keys(circuitBreakerRegistry.getAllMetrics())
+            .length,
+          openCircuits: circuitBreakerRegistry.getOpenCircuits(),
+          circuitBreakerStates: circuitBreakerRegistry.getAllMetrics(),
         },
       },
     };
