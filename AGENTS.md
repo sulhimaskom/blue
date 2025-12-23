@@ -9,6 +9,7 @@
 > These 7 principles apply to ALL projects, regardless of tech stack.
 
 ### 1. MODULARITY
+
 ```
 Every piece of logic must be isolated and reusable.
 - Extract repeated code into functions/components
@@ -18,6 +19,7 @@ Every piece of logic must be isolated and reusable.
 ```
 
 ### 2. FLEXIBILITY
+
 ```
 Zero hardcoded values in the codebase.
 - All configuration via environment variables or config files
@@ -27,6 +29,7 @@ Zero hardcoded values in the codebase.
 ```
 
 ### 3. SCALABILITY
+
 ```
 Clean architecture with proper separation of concerns.
 - UI → Services → Data Access (layered)
@@ -36,6 +39,7 @@ Clean architecture with proper separation of concerns.
 ```
 
 ### 4. STABILITY
+
 ```
 Defensive coding with comprehensive error handling.
 - Handle all edge cases
@@ -46,6 +50,7 @@ Defensive coding with comprehensive error handling.
 ```
 
 ### 5. SECURITY
+
 ```
 Secure by default, following OWASP principles.
 - Never expose secrets in code
@@ -56,6 +61,7 @@ Secure by default, following OWASP principles.
 ```
 
 ### 6. CONSISTENCY
+
 ```
 Follow existing patterns and conventions.
 - Match existing code style
@@ -65,6 +71,7 @@ Follow existing patterns and conventions.
 ```
 
 ### 7. AUTOMATION
+
 ```
 Design for automated workflows.
 - CI/CD friendly code structure
@@ -78,12 +85,14 @@ Design for automated workflows.
 ## 🔴 CRITICAL RULES (VIOLATION = FAILURE)
 
 ### 1. Source of Truth
+
 ```
 ALWAYS read docs/architecture/blueprint.md FIRST before any action.
 Blueprint defines: tech stack, commands, folder structure, coding standards.
 ```
 
 ### 2. Branch Protocol
+
 ```
 NEVER commit directly to main or dev.
 ALWAYS work on agent-workspace branch.
@@ -91,6 +100,7 @@ ALWAYS create Pull Request for review.
 ```
 
 ### 3. No Assumptions
+
 ```
 NEVER assume tech stack     → READ blueprint.md
 NEVER assume folder structure → READ blueprint.md
@@ -99,6 +109,7 @@ NEVER assume coding style     → READ existing codebase
 ```
 
 ### 4. Conventional Commits
+
 ```
 ALWAYS use format: type(scope): description
 
@@ -113,6 +124,7 @@ Example: docs(readme): update setup instructions
 ## 🟡 EXECUTION PROTOCOL
 
 ### Before Coding
+
 1. `git fetch --all`
 2. Switch to `agent-workspace` branch
 3. `git pull origin agent-workspace`
@@ -126,6 +138,7 @@ Example: docs(readme): update setup instructions
 7. Read existing code to understand patterns
 
 ### During Coding
+
 1. Apply the 7 Universal Principles above
 2. Make atomic, focused changes
 3. Follow patterns in existing codebase
@@ -133,6 +146,7 @@ Example: docs(readme): update setup instructions
 5. Do NOT refactor unrelated code
 
 ### After Coding
+
 1. Run lint command (from blueprint.md or package.json)
 2. Run build command (from blueprint.md or package.json)
 3. Run test command if exists
@@ -148,25 +162,27 @@ Example: docs(readme): update setup instructions
 
 ## 🔒 SECURITY RULES (Universal)
 
-| Rule | Enforcement |
-|------|-------------|
-| No secrets/credentials in code | ABSOLUTE |
-| No debug logs in production | REQUIRED |
-| Input validation on all inputs | REQUIRED |
-| Generic error messages to users | REQUIRED |
-| Parameterized queries for DB | ABSOLUTE |
-| Sanitize user-generated content | REQUIRED |
+| Rule                            | Enforcement |
+| ------------------------------- | ----------- |
+| No secrets/credentials in code  | ABSOLUTE    |
+| No debug logs in production     | REQUIRED    |
+| Input validation on all inputs  | REQUIRED    |
+| Generic error messages to users | REQUIRED    |
+| Parameterized queries for DB    | ABSOLUTE    |
+| Sanitize user-generated content | REQUIRED    |
 
 ---
 
 ## 📁 FILE MODIFICATION RULES
 
 ### CAN Modify (After Reading Blueprint)
+
 - Source code files (as defined in blueprint.md)
 - Documentation in `docs/`
 - Test files
 
 ### CANNOT Modify Without Approval
+
 - Dependency files (package.json, requirements.txt, etc.)
 - Configuration files (tsconfig, eslint, etc.)
 - `.github/workflows/*`
@@ -174,6 +190,7 @@ Example: docs(readme): update setup instructions
 - `blueprint.md` architecture section
 
 ### NEVER Modify
+
 - `.env*` files
 - Secrets or credentials
 - License files
@@ -237,49 +254,79 @@ Agent run is considered **FAILED** if:
 ## 🟨 TEMPLATE-SPECIFIC RULES (Architect Platform)
 
 ### Project Context Awareness
+
 ```yaml
 Project Type: "AI Software Generation Platform Template"
-Current State: "Architecture Documentation Only"
-Immediate Priority: "Begin Phase 1 Implementation"
-Critical Gap: "No functional source code exists"
+Current State: "Phase 1 Complete - Foundation Ready"
+Immediate Priority: "Begin Phase 2 Security Implementation"
+Critical Gap: "Security vulnerabilities require immediate patches"
+Audit Score: 42/100 - Critical gaps identified 2025-12-23
 ```
 
 ### New Agent Engagement Rules
-1. **Template Implementation Mode**:
-   - All agents must recognize this is a TEMPLATE project
-   - Priority is implementing the documented architecture
-   - Create MVP code before advanced features
 
-2. **Build System Validation**:
-   - CI/CD workflows must be tested with real code
-   - Never commit code without running actual build/lint
-   - Use `npm run build` or equivalent before each commit
+1. **Security-First Implementation Mode**:
+   - ALL agents must run `npm audit` before any code changes
+   - Address critical CVEs immediately (Next.js 15.0.3 → 15.5.9+)
+   - Never commit code with known security vulnerabilities
 
-3. **Security-First Implementation**:
-   - Implement auth, RLS, and input validation before features
-   - Never push code with exposed secrets or debug logs
-   - Follow OWASP guidelines from day one
+2. **Authentication Implementation Priority**:
+   - Clerk integration is MANDATORY before any feature development
+   - Implement middleware for protected routes immediately
+   - Add authentication providers to layout.tsx
 
-4. **Documentation Synchronization**:
+3. **Database Implementation Sequence**:
+   - Create Drizzle schema following blueprint.md:76-123
+   - Implement connection management before business logic
+   - Add proper database error handling and timeouts
+
+4. **Build System Validation**:
+   - Run `npm run build` after EVERY significant change
+   - Run `npm run lint` before committing
+   - Run `npm run typecheck` before committing
+   - Fix all build errors before proceeding
+
+5. **Documentation Synchronization**:
    - Update `blueprint.md` if architecture changes during implementation
    - Keep `roadmap.md` updated with actual progress
    - Mark completed tasks in `task.md` immediately
 
-### Implementation Priorities (Mandatory Order)
-1. **Setup Phase**: Environment variables + Basic project structure
-2. **Foundation Phase**: Auth + Database + Basic API
-3. **Core Phase**: Blueprint Generation Engine
-4. **Integration Phase**: GitHub App + AI APIs
-5. **Production Phase**: Testing + Deployment + Monitoring
+### Implementation Priorities (Updated Mandatory Order)
+
+1. **Security Patch Phase**: Upgrade dependencies, fix CVEs
+2. **Authentication Phase**: Clerk integration + middleware
+3. **Database Phase**: Drizzle schema + connection management
+4. **Foundation Phase**: API routes + error handling
+5. **Integration Phase**: GitHub App + AI APIs
+6. **Production Phase**: Testing + Deployment + Monitoring
+
+### Security Implementation Warnings
+
+⚠️ **CRITICAL**: Next.js 15.0.3 has multiple CVEs requiring immediate upgrade  
+⚠️ **HIGH**: No authentication layer - implement Clerk immediately  
+⚠️ **MEDIUM**: No input validation middleware - add before API routes  
+⚠️ **LOW**: Database security policies not implemented - add after schema
 
 ### Warning Indicators
+
 ⚠️ **High Risk**: Adding features without basic auth implementation  
 ⚠️ **High Risk**: Implementing AI logic before database schema  
+⚠️ **High Risk**: Ignoring security vulnerabilities in dependencies  
 ⚠️ **Medium Risk**: Changing architecture without updating blueprint.md  
 ⚠️ **Medium Risk**: Building UI components before service layer
 
+### Agent Health Check Requirements
+
+Before starting ANY work, agents must:
+
+1. Run `npm audit` and confirm no critical vulnerabilities
+2. Verify build passes with `npm run build`
+3. Check authentication status in layout.tsx
+4. Confirm database schema exists if working with data
+
 ---
 
-**Version**: 2.1.0  
-**Last Updated**: 2025-12-22  
-**Context**: Architect Platform Template - Implementation Phase Required
+**Version**: 2.2.0  
+**Last Updated**: 2025-12-23 (Post-Audit)  
+**Context**: Architect Platform - Security Phase Required  
+**Audit Score**: 42/100 - Critical security gaps identified
