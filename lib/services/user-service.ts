@@ -4,6 +4,7 @@ import { users } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 import { AuthenticationError, DatabaseError } from "@/lib/api-utils";
+import { setRLSContext } from "@/lib/db/rls-policies";
 
 export interface AuthenticatedUser {
   clerkId: string;
@@ -46,6 +47,9 @@ export class UserService {
       }
 
       const database = db();
+
+      // Set RLS context for multi-tenant security
+      await setRLSContext(clerkUser.id);
 
       // Fetch user from database
       const [userRecord] = await database
@@ -106,6 +110,17 @@ export class UserService {
   ): Promise<AuthenticatedUser> {
     try {
       const database = db();
+
+      // Set RLS context for multi-tenant security
+      const [currentUser] = await database
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (currentUser) {
+        await setRLSContext(currentUser.clerkId);
+      }
 
       const [updatedUser] = await database
         .update(users)
@@ -178,6 +193,17 @@ export class UserService {
   ): Promise<void> {
     try {
       const database = db();
+
+      // Set RLS context for multi-tenant security
+      const [currentUser] = await database
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (currentUser) {
+        await setRLSContext(currentUser.clerkId);
+      }
 
       // Upgrade to pro tier if 500+ credits total purchased in single transaction
       if (creditsAdded >= 500) {
