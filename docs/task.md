@@ -12,8 +12,8 @@
 - [x] **COMPLETED**: Run `npm audit fix --force` to address critical CVEs (5 → 4 moderate remaining)
 - [x] **COMPLETED**: Verify build passes after security patches (npm run build ✓)
 - [x] **COMPLETED**: Re-run security audit to confirm critical CVEs resolved
-- [ ] Implement Clerk authentication foundations (app/layout.tsx)
-- [ ] Add authentication middleware for protected routes
+- [x] **COMPLETED**: Implement Clerk authentication foundations (app/layout.tsx)
+- [x] **COMPLETED**: Add authentication middleware for protected routes
 - [ ] Setup Neon PostgreSQL + Drizzle ORM schema
 - [ ] Implement input validation middleware (Zod)
 

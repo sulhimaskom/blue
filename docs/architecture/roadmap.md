@@ -17,8 +17,8 @@
 - [x] 🔴 **COMPLETED**: Run `npm audit fix --force` - addressed critical CVEs (4 moderate remain)
 - [x] 🔴 **COMPLETED**: Verify build passes after security patches (BUILD: PASS)
 - [x] 🔴 **COMPLETED**: Re-run security audit to confirm critical CVEs resolved
-- [ ] 🔴 **CRITICAL**: Implement Clerk authentication system (app/layout.tsx integration)
-- [ ] 🔴 **CRITICAL**: Add authentication middleware for protected routes
+- [x] 🔴 **COMPLETED**: Implement Clerk authentication system (app/layout.tsx integration)
+- [x] 🔴 **COMPLETED**: Add authentication middleware for protected routes
 - [ ] 🔴 **CRITICAL**: Setup Neon PostgreSQL database with Drizzle ORM
 - [ ] 🔴 **CRITICAL**: Create database schema blueprint.md:76-123 (users, projects, blueprints, transactions)
 - [ ] 🔴 **HIGH**: Implement Row Level Security (RLS) policies
