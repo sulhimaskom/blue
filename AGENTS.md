@@ -232,5 +232,54 @@ Agent run is considered **FAILED** if:
 
 ---
 
-**Version**: 2.0.0  
-**Last Updated**: 2025-12-20
+---
+
+## 🟨 TEMPLATE-SPECIFIC RULES (Architect Platform)
+
+### Project Context Awareness
+```yaml
+Project Type: "AI Software Generation Platform Template"
+Current State: "Architecture Documentation Only"
+Immediate Priority: "Begin Phase 1 Implementation"
+Critical Gap: "No functional source code exists"
+```
+
+### New Agent Engagement Rules
+1. **Template Implementation Mode**:
+   - All agents must recognize this is a TEMPLATE project
+   - Priority is implementing the documented architecture
+   - Create MVP code before advanced features
+
+2. **Build System Validation**:
+   - CI/CD workflows must be tested with real code
+   - Never commit code without running actual build/lint
+   - Use `npm run build` or equivalent before each commit
+
+3. **Security-First Implementation**:
+   - Implement auth, RLS, and input validation before features
+   - Never push code with exposed secrets or debug logs
+   - Follow OWASP guidelines from day one
+
+4. **Documentation Synchronization**:
+   - Update `blueprint.md` if architecture changes during implementation
+   - Keep `roadmap.md` updated with actual progress
+   - Mark completed tasks in `task.md` immediately
+
+### Implementation Priorities (Mandatory Order)
+1. **Setup Phase**: Environment variables + Basic project structure
+2. **Foundation Phase**: Auth + Database + Basic API
+3. **Core Phase**: Blueprint Generation Engine
+4. **Integration Phase**: GitHub App + AI APIs
+5. **Production Phase**: Testing + Deployment + Monitoring
+
+### Warning Indicators
+⚠️ **High Risk**: Adding features without basic auth implementation  
+⚠️ **High Risk**: Implementing AI logic before database schema  
+⚠️ **Medium Risk**: Changing architecture without updating blueprint.md  
+⚠️ **Medium Risk**: Building UI components before service layer
+
+---
+
+**Version**: 2.1.0  
+**Last Updated**: 2025-12-22  
+**Context**: Architect Platform Template - Implementation Phase Required
