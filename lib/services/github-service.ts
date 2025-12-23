@@ -1,4 +1,5 @@
 import { logger, createRequestContext } from "@/lib/logger";
+import { monitoringService } from "@/lib/monitoring";
 
 /**
  * GitHub App Service
@@ -166,6 +167,7 @@ class GitHubService {
     config: GitHubRepoConfig,
   ): Promise<GitHubCreateRepoResponse> {
     const context = createRequestContext();
+    const startTime = Date.now();
 
     try {
       // For now, use personal access token as fallback
@@ -230,6 +232,8 @@ class GitHubService {
       // Create initial commit with blueprint
       await this.createBlueprintCommit(repo, config, token);
 
+      const duration = Date.now() - startTime;
+
       logger.userAction("GitHub repository created", "system", {
         requestId: context.requestId,
         repoId: repo.id,
@@ -237,14 +241,41 @@ class GitHubService {
         htmlUrl: repo.html_url,
       });
 
+      // Track successful GitHub operation
+      monitoringService.trackGitHubOperation(
+        "create-repository",
+        true,
+        duration,
+        {
+          repoName: repo.full_name,
+          isPrivate: repo.private,
+          org: config.org,
+        },
+      );
+
       return repo;
     } catch (error) {
+      const duration = Date.now() - startTime;
+
       logger.apiError(
         "Repository creation error",
         context.requestId,
         error as Error,
         { org: config.org, name: config.name },
       );
+
+      // Track failed GitHub operation
+      monitoringService.trackGitHubOperation(
+        "create-repository",
+        false,
+        duration,
+        {
+          org: config.org,
+          repoName: config.name,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+
       throw error;
     }
   }

@@ -9,6 +9,7 @@ import {
 } from "@/lib/api-utils";
 import { logger, createRequestContext } from "@/lib/logger";
 import { UserService } from "@/lib/services/user-service";
+import { monitoringService } from "@/lib/monitoring";
 
 export interface APIHandlerConfig<TInput = any> {
   schema?: z.ZodSchema<TInput>;
@@ -43,11 +44,13 @@ class APIRouteHandler {
    */
   static createPOSTHandler<TInput = any>(config: APIHandlerConfig<TInput>) {
     return async (req: NextRequest) => {
+      const startTime = Date.now();
       const context = createRequestContext();
       let authenticatedUser:
         | import("@/lib/services/user-service").AuthenticatedUser
         | null = null;
       let validationData: TInput | undefined;
+      const url = new URL(req.url);
 
       try {
         // Authentication if required
@@ -117,6 +120,9 @@ class APIRouteHandler {
           data: validationData,
         });
 
+        const duration = Date.now() - startTime;
+
+        // Log successful request
         logger.apiRequest(
           "POST",
           req.url,
@@ -124,8 +130,22 @@ class APIRouteHandler {
           authenticatedUser?.clerkId,
         );
 
+        // Track performance metrics
+        monitoringService.trackApiRequest(
+          "POST",
+          url.pathname,
+          200,
+          duration,
+          authenticatedUser?.clerkId,
+        );
+
         return formatSuccessResponse(result);
       } catch (error) {
+        const duration = Date.now() - startTime;
+        const statusCode =
+          error instanceof ValidationError ? error.statusCode : 500;
+
+        // Log error
         logger.apiError(
           "API POST request failed",
           context.requestId,
@@ -135,6 +155,15 @@ class APIRouteHandler {
             endpoint: req.url,
             hasValidationData: !!validationData,
           },
+        );
+
+        // Track error metrics
+        monitoringService.trackApiRequest(
+          "POST",
+          url.pathname,
+          statusCode,
+          duration,
+          authenticatedUser?.clerkId,
         );
 
         if (
@@ -156,10 +185,12 @@ class APIRouteHandler {
     config: Omit<APIHandlerConfig<TInput>, "schema" | "requireCredits">,
   ) {
     return async (req: NextRequest) => {
+      const startTime = Date.now();
       const context = createRequestContext();
       let authenticatedUser:
         | import("@/lib/services/user-service").AuthenticatedUser
         | null = null;
+      const url = new URL(req.url);
 
       try {
         // Authentication if required
@@ -174,6 +205,9 @@ class APIRouteHandler {
           user: authenticatedUser || undefined,
         });
 
+        const duration = Date.now() - startTime;
+
+        // Log successful request
         logger.apiRequest(
           "GET",
           req.url,
@@ -181,8 +215,21 @@ class APIRouteHandler {
           authenticatedUser?.clerkId,
         );
 
+        // Track performance metrics
+        monitoringService.trackApiRequest(
+          "GET",
+          url.pathname,
+          200,
+          duration,
+          authenticatedUser?.clerkId,
+        );
+
         return formatSuccessResponse(result);
       } catch (error) {
+        const duration = Date.now() - startTime;
+        const url = new URL(req.url);
+
+        // Log error
         logger.apiError(
           "API GET request failed",
           context.requestId,
@@ -191,6 +238,15 @@ class APIRouteHandler {
             userId: authenticatedUser?.clerkId,
             endpoint: req.url,
           },
+        );
+
+        // Track error metrics
+        monitoringService.trackApiRequest(
+          "GET",
+          url.pathname,
+          500,
+          duration,
+          authenticatedUser?.clerkId,
         );
 
         if (error instanceof DatabaseError) {

@@ -1,5 +1,7 @@
 import { env } from "../env";
 import { logger } from "../logger";
+import { monitoringService } from "../monitoring";
+import { AIErrorReporter } from "./ai-error-reporter";
 
 export interface AIModel {
   id: string;
@@ -76,6 +78,7 @@ class AIService {
     request: AICompletionRequest,
   ): Promise<AICompletionResponse> {
     const startTime = Date.now();
+    const context = { requestId: `req_${Date.now().toString(36)}` };
 
     try {
       // Default to reasoning model for complex tasks
@@ -141,6 +144,21 @@ class AIService {
         ),
       });
 
+      // Track AI operation metrics
+      monitoringService.trackAIOperation("completion", duration, true, {
+        model: completion.model,
+        promptTokens: completion.usage.promptTokens,
+        completionTokens: completion.usage.completionTokens,
+        totalTokens: completion.usage.totalTokens,
+      });
+
+      // Report structured success for enhanced monitoring
+      AIErrorReporter.reportSuccess("completion", {
+        model: completion.model,
+        responseTime: duration,
+        tokens: completion.usage.totalTokens,
+      });
+
       return completion;
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -150,6 +168,17 @@ class AIService {
         model: request.model?.id || "unknown",
         duration: `${duration}ms`,
       });
+
+      // Report structured error for enhanced monitoring
+      AIErrorReporter.reportCompletionError(
+        error instanceof Error ? error.message : String(error),
+        {
+          model: request.model?.id,
+          promptLength: request.prompt.length,
+          responseTime: duration,
+          requestId: context.requestId,
+        },
+      );
 
       throw new Error(
         `AI completion failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -163,6 +192,7 @@ class AIService {
    */
   async conductResearch(request: ResearchRequest): Promise<ResearchResult> {
     const startTime = Date.now();
+    const context = { requestId: `req_${Date.now().toString(36)}` };
 
     try {
       logger.info("Market research initiated", {
@@ -211,6 +241,18 @@ class AIService {
         duration: `${duration}ms`,
       });
 
+      // Track research operation metrics
+      monitoringService.trackAIOperation("research", duration, true, {
+        query: request.query,
+        resultCount: result.results.length,
+        hasAnswer: Boolean(result.answer),
+      });
+
+      // Report structured success for enhanced monitoring
+      AIErrorReporter.reportSuccess("research", {
+        responseTime: duration,
+      });
+
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -220,6 +262,17 @@ class AIService {
         error: error instanceof Error ? error.message : String(error),
         duration: `${duration}ms`,
       });
+
+      // Report structured error for enhanced monitoring
+      AIErrorReporter.reportResearchError(
+        error instanceof Error ? error.message : String(error),
+        {
+          query: request.query,
+          responseTime: duration,
+          resultCount: 0,
+          requestId: context.requestId,
+        },
+      );
 
       throw new Error(
         `Market research failed: ${error instanceof Error ? error.message : String(error)}`,
