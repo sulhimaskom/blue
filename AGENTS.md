@@ -319,10 +319,22 @@ Audit Score: 42/100 - Critical gaps identified 2025-12-23
 
 Before starting ANY work, agents must:
 
-1. Run `npm audit` and confirm no critical vulnerabilities
-2. Verify build passes with `npm run build`
-3. Check authentication status in layout.tsx
-4. Confirm database schema exists if working with data
+1. **MANDATORY**: Run `npm audit` and confirm no critical vulnerabilities
+2. **MANDATORY**: Verify build passes with `npm run build`
+3. **MANDATORY**: Run `npm run lint` and `npm run typecheck`
+4. Check authentication status in layout.tsx (Clerk integration)
+5. Confirm database schema exists if working with data
+6. **SECURITY FIRST**: Never commit code with known CVEs
+
+### Updated Security Implementation Rules (Post-Audit)
+
+Based on evaluation score 42/100 with critical security gaps:
+
+1. **Security-Patch Mode**: ALL agents must address CVEs before feature work
+2. **Authentication-First**: Clerk integration is mandatory before any APIs
+3. **Database-Ready**: Drizzle schema must exist before business logic
+4. **Build-Validation**: Run `npm run build` after every significant change
+5. **Zero-Tolerance**: No hardcoded secrets, no debug logs in production
 
 ---
 
