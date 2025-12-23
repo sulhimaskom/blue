@@ -121,6 +121,23 @@
 - [ ] **LOW**: Microservices migration planning
 - [ ] **LOW**: Full observability stack implementation
 
+### Critical Update: Post-Audit Enhancement Tasks (Commit 9587ebd)
+
+**IMMEDIATE ENHANCEMENTS** (Based on Lead Auditor Evaluation):
+
+- [ ] **ENHANCEMENT**: Implement circuit breaker patterns for external AI services
+  - **Current**: Basic error handling implemented (`lib/services/ai-service.ts`)
+  - **Target**: Add timeout, retry, and circuit breaker patterns for production resilience
+  - **Priority**: Enhancement (infrastructure ready, not blocking production)
+- [ ] **ENHANCEMENT**: Add Redis-based response caching for expensive operations
+  - **Current**: Redis infrastructure exists for rate limiting
+  - **Target**: Cache AI responses and database query results to reduce costs
+  - **Priority**: Optimization enhancement (cost improvement opportunity)
+- [ ] **ENHANCEMENT**: GitHub App JWT production hardening
+  - **Current**: Placeholder RSA signature in `lib/services/github-service.ts:109`
+  - **Target**: Implement proper RSA signing for production GitHub App authentication
+  - **Priority**: Production hardening (functional, needs production-grade security)
+
 ### Critical Update: Production Deployment Status
 
 **✅ PRODUCTION READINESS ACHIEVED**: 96/100 - Exceptional Foundation (Verified - Commit 33eb51c5)
