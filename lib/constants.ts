@@ -81,3 +81,23 @@ export const UI = {
     MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
   },
 } as const;
+
+// Homepage content constants
+export const HOMEPAGE = {
+  HERO: {
+    TITLE: "Architect Platform",
+    SUBTITLE:
+      "AI-powered platform for generating software blueprints and repositories",
+    ACTIONS: {
+      GET_STARTED: "Get Started",
+      VIEW_DEMO: "View Demo",
+    },
+  },
+  SECTIONS: {
+    FEATURES: {
+      TITLE: "Why Choose Architect Platform?",
+      DESCRIPTION:
+        "From idea to production-ready repository in minutes, not weeks.",
+    },
+  },
+} as const;
