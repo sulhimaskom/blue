@@ -14,7 +14,14 @@ const customJestConfig = {
     "^@clerk/backend$": "<rootDir>/__tests__/mocks/clerk-backend.js",
   },
   testEnvironment: "jest-environment-jsdom",
-  testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
+  testPathIgnorePatterns: [
+    "<rootDir>/.next/",
+    "<rootDir>/node_modules/",
+    "<rootDir>/__tests__/factories/",
+    "<rootDir>/__tests__/builders/",
+    "<rootDir>/__tests__/setup/",
+    "<rootDir>/__tests__/helpers/",
+  ],
   transform: {
     "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }],
   },

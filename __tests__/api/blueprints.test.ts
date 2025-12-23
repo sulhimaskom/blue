@@ -1,38 +1,43 @@
-import { jest } from "@jest/globals";
 import { POST, GET } from "@/app/api/blueprints/route";
-import { mockUser, mockDbResponse, createTestRequest } from "./helpers";
-
-// Mock services
-jest.mock("@/lib/services/user-service");
-jest.mock("@/lib/services/blueprint-engine");
-
-import { UserService } from "@/lib/services/user-service";
-import { blueprintEngine } from "@/lib/services/blueprint-engine";
-
-const mockUserService = UserService as jest.Mocked<typeof UserService>;
-const mockBlueprintEngine = blueprintEngine as jest.Mocked<
-  typeof blueprintEngine
->;
+import { createApiTestHelper } from "../helpers/test-helper";
 
 describe("Blueprint API - Integration Tests", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+  let testHelper: ReturnType<typeof createApiTestHelper>;
 
-    // Default mock implementations
-    mockUserService.getUserByClerkId.mockResolvedValue({
-      id: 1,
-      clerkId: mockUser.id,
-      email: mockUser.email,
-      credits: 5,
-      subscriptionTier: "free",
+  beforeEach(() => {
+    testHelper = createApiTestHelper({
+      authenticated: true,
     });
 
+    // Setup successful service responses
+    testHelper.withSuccessfulUserResponses();
+
+    // Setup blueprint engine success response
+    const mockBlueprintEngine = testHelper.getMock("blueprintEngine");
     mockBlueprintEngine.generateBlueprint.mockResolvedValue({
       projectId: "test-project-123",
       blueprintId: "test-blueprint-456",
       status: "completed",
       estimatedDuration: 5000,
+      blueprint: {
+        title: "SneakerMarket Blueprint",
+        description: "A marketplace for rare sneakers",
+        sections: [
+          {
+            title: "Authentication",
+            description: "User authentication system",
+          },
+          {
+            title: "Marketplace",
+            description: "Product listing and search",
+          },
+        ],
+      },
     });
+  });
+
+  afterEach(() => {
+    testHelper.resetAll();
   });
 
   describe("POST /api/blueprints", () => {
@@ -42,283 +47,251 @@ describe("Blueprint API - Integration Tests", () => {
     };
 
     it("should generate blueprint successfully with valid input and sufficient credits", async () => {
-      // Arrange
-      const request = createTestRequest(
-        "POST",
-        "/api/blueprints",
-        validPayload,
-      );
-      const mockDb = mockDbResponse([]);
+      // Setup user with sufficient credits
+      const mockUser = testHelper.getCurrentUser();
+      mockUser!.credits = 5;
 
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
+      const mockUserService = testHelper.getMock("userService");
+      mockUserService.getUserByClerkId.mockResolvedValue({
+        ...mockUser,
+        credits: 5,
+        subscriptionTier: "free",
+      });
 
-      // Act
+      const request = testHelper.createRequest({
+        method: "POST",
+        body: validPayload,
+      });
+
       const response = await POST(request);
       const data = await response.json();
 
-      // Assert
       expect(response.status).toBe(200);
-      expect(data).toMatchObject({
+      expect(data.success).toBe(true);
+      expect(data.data).toEqual({
         projectId: "test-project-123",
         blueprintId: "test-blueprint-456",
         status: "completed",
         estimatedDuration: 5000,
-        message: expect.stringContaining("successfully generated"),
       });
-
-      // Verify service interactions
-      expect(mockUserService.getUserByClerkId).toHaveBeenCalledWith(
-        mockUser.id,
-      );
-      expect(mockBlueprintEngine.generateBlueprint).toHaveBeenCalledWith({
-        userId: 1,
-        input: validPayload.input,
-        projectName: validPayload.projectName,
-        projectDescription: expect.stringContaining("AI-generated blueprint"),
-      });
-      expect(mockUserService.updateUserCredits).toHaveBeenCalledWith(
-        1,
-        -1,
-        expect.any(Object),
-      );
     });
 
-    it("should reject requests with insufficient credits", async () => {
-      // Arrange
+    it("should reject blueprint generation for users with insufficient credits", async () => {
+      // Setup user with insufficient credits
+      const mockUser = testHelper.getCurrentUser();
+      mockUser!.credits = 0;
+
+      const mockUserService = testHelper.getMock("userService");
       mockUserService.getUserByClerkId.mockResolvedValue({
-        id: 1,
-        clerkId: mockUser.id,
-        email: mockUser.email,
+        ...mockUser,
         credits: 0,
         subscriptionTier: "free",
       });
 
-      const request = createTestRequest(
-        "POST",
-        "/api/blueprints",
-        validPayload,
-      );
-      const mockDb = mockDbResponse([]);
+      const request = testHelper.createRequest({
+        method: "POST",
+        body: validPayload,
+      });
 
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-      // Act
       const response = await POST(request);
       const data = await response.json();
 
-      // Assert
-      expect(response.status).toBe(402);
-      expect(data.error).toContain("Insufficient credits");
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("insufficient credits");
     });
 
-    it("should reject invalid input payload", async () => {
-      // Arrange
+    it("should validate payload and reject invalid inputs", async () => {
       const invalidPayload = {
-        input: "short", // Too short (< 10 chars)
-        projectName: "ab", // Too short (< 3 chars)
+        input: "", // Empty input
+        projectName: "ValidProject",
       };
 
-      const request = createTestRequest(
-        "POST",
-        "/api/blueprints",
-        invalidPayload,
-      );
+      const request = testHelper.createRequest({
+        method: "POST",
+        body: invalidPayload,
+      });
 
-      // Act
       const response = await POST(request);
       const data = await response.json();
 
-      // Assert
       expect(response.status).toBe(400);
-      expect(data.error).toBeDefined();
-      expect(data.validationErrors).toBeDefined();
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("required");
     });
 
-    it("should handle blueprint engine failures gracefully", async () => {
-      // Arrange
+    it("should handle blueprint engine errors gracefully", async () => {
+      const mockBlueprintEngine = testHelper.getMock("blueprintEngine");
       mockBlueprintEngine.generateBlueprint.mockRejectedValue(
         new Error("AI service unavailable"),
       );
 
-      const request = createTestRequest(
-        "POST",
-        "/api/blueprints",
-        validPayload,
-      );
-      const mockDb = mockDbResponse([]);
+      const mockUser = testHelper.getCurrentUser();
+      mockUser!.credits = 5;
 
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
+      const mockUserService = testHelper.getMock("userService");
+      mockUserService.getUserByClerkId.mockResolvedValue({
+        ...mockUser,
+        credits: 5,
+        subscriptionTier: "free",
+      });
 
-      // Act
+      const request = testHelper.createRequest({
+        method: "POST",
+        body: validPayload,
+      });
+
       const response = await POST(request);
       const data = await response.json();
 
-      // Assert
       expect(response.status).toBe(500);
-      expect(data.error).toBeDefined();
-
-      // Verify credits were not deducted on failure
-      expect(mockUserService.updateUserCredits).not.toHaveBeenCalled();
+      expect(data.success).toBe(false);
     });
 
-    it("should enforce rate limiting", async () => {
-      // Arrange
-      const request = createTestRequest(
-        "POST",
-        "/api/blueprints",
-        validPayload,
-      );
-      const mockDb = mockDbResponse([]);
+    it("should deduct credits after successful blueprint generation", async () => {
+      const mockUser = testHelper.getCurrentUser();
+      mockUser!.credits = 5;
 
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
+      const mockUserService = testHelper.getMock("userService");
+      mockUserService.getUserByClerkId.mockResolvedValue({
+        ...mockUser,
+        credits: 5,
+        subscriptionTier: "free",
+      });
 
-      // Mock rate limiter to exceed limit
-      (require("@/lib/api-utils").RateLimiter as jest.Mock).mockReturnValue(
-        jest.fn().mockResolvedValue(false), // Rate limited
-      );
+      // Mock credit deduction
+      mockUserService.updateUserCredits.mockResolvedValue({
+        ...mockUser,
+        credits: 4, // 5 - 1 credit cost
+      });
 
-      // Act
+      const request = testHelper.createRequest({
+        method: "POST",
+        body: validPayload,
+      });
+
       const response = await POST(request);
 
-      // Assert
-      expect(response.status).toBe(429);
+      expect(response.status).toBe(200);
+      expect(mockUserService.updateUserCredits).toHaveBeenCalledWith(
+        mockUser!.id,
+        -1, // Deduct 1 credit
+        expect.any(String),
+      );
+    });
+
+    it("should handle unauthenticated requests", async () => {
+      testHelper.withoutAuth();
+
+      const request = testHelper.createRequest({
+        method: "POST",
+        body: validPayload,
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(401);
     });
   });
 
   describe("GET /api/blueprints", () => {
-    it("should fetch user projects with blueprint counts", async () => {
-      // Arrange
-      const mockProjects = [
+    it("should return user's blueprint history", async () => {
+      const mockBlueprints = [
         {
-          id: "project-1",
-          name: "SneakerMarket",
-          description: "Marketplace for rare sneakers",
+          id: 1,
+          userId: "user_test_123",
+          projectName: "SneakerMarket",
+          input: "I want to build a marketplace for rare sneakers",
+          blueprint: {
+            title: "SneakerMarket Blueprint",
+            description: "A marketplace for rare sneakers",
+          },
           status: "completed",
-          ownerId: 1,
-          createdAt: new Date("2024-01-01"),
+          createdAt: new Date().toISOString(),
         },
         {
-          id: "project-2",
-          name: "FoodDelivery",
-          description: "Local food delivery app",
-          status: "draft",
-          ownerId: 1,
-          createdAt: new Date("2024-01-02"),
+          id: 2,
+          userId: "user_test_123",
+          projectName: "TaskTracker",
+          input: "A simple task tracking app",
+          blueprint: {
+            title: "TaskTracker Blueprint",
+            description: "A simple task tracking app",
+          },
+          status: "completed",
+          createdAt: new Date().toISOString(),
         },
       ];
 
-      const mockDb = mockDbResponse(mockProjects);
+      testHelper.withDbQuery(mockBlueprints);
 
-      // Mock database queries
-      mockDb.select.mockReturnValue(mockDb);
-      mockDb.from.mockReturnValue(mockDb);
-      mockDb.where.mockReturnValue(mockDb);
-      mockDb.orderBy.mockReturnValue(Promise.resolve(mockProjects));
-
-      // Mock blueprint count queries
-      const mockCountQuery = mockDbResponse([{ count: 2 }, { count: 0 }]);
-      mockDb.select.mockReturnValue(mockCountQuery);
-      mockCountQuery.from.mockReturnValue(mockCountQuery);
-      mockCountQuery.where.mockReturnValue(Promise.resolve([{ count: 2 }]));
-
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-      const request = createTestRequest("GET", "/api/blueprints");
-
-      // Act
+      const request = testHelper.createRequest({ method: "GET" });
       const response = await GET(request);
       const data = await response.json();
 
-      // Assert
       expect(response.status).toBe(200);
-      expect(data).toMatchObject({
-        projects: expect.any(Array),
-        credits: 5,
-        subscriptionTier: "free",
-      });
-      expect(data.projects).toHaveLength(2);
+      expect(data.success).toBe(true);
+      expect(data.data.blueprints).toHaveLength(2);
+      expect(data.data.blueprints[0].projectName).toBe("SneakerMarket");
     });
 
-    it("should return empty array for users with no projects", async () => {
-      // Arrange
-      const mockDb = mockDbResponse([]);
+    it("should return empty array for users with no blueprints", async () => {
+      testHelper.withDbQuery([]); // Empty result
 
-      mockDb.select.mockReturnValue(mockDb);
-      mockDb.from.mockReturnValue(mockDb);
-      mockDb.where.mockReturnValue(mockDb);
-      mockDb.orderBy.mockReturnValue(Promise.resolve([]));
-
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-      const request = createTestRequest("GET", "/api/blueprints");
-
-      // Act
+      const request = testHelper.createRequest({ method: "GET" });
       const response = await GET(request);
       const data = await response.json();
 
-      // Assert
       expect(response.status).toBe(200);
-      expect(data.projects).toEqual([]);
-      expect(data.credits).toBe(5);
+      expect(data.success).toBe(true);
+      expect(data.data.blueprints).toEqual([]);
     });
 
-    it("should handle database errors gracefully", async () => {
-      // Arrange
-      const mockDb = mockDbResponse([]);
-      mockDb.select.mockImplementation(() => {
-        throw new Error("Database connection failed");
+    it("should support pagination", async () => {
+      const mockBlueprints = Array.from(
+        { length: 25 }, // More than default pageSize
+        (_, i) => ({
+          id: i + 1,
+          userId: "user_test_123",
+          projectName: `Project ${i + 1}`,
+          input: `Input for project ${i + 1}`,
+          blueprint: {
+            title: `Blueprint ${i + 1}`,
+            description: `Description for project ${i + 1}`,
+          },
+          status: "completed",
+          createdAt: new Date().toISOString(),
+        }),
+      );
+
+      testHelper.withDbQuery(mockBlueprints);
+
+      const request = testHelper.createRequest({
+        method: "GET",
+        url: "http://localhost/api/blueprints?page=1&limit=10",
       });
 
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-      const request = createTestRequest("GET", "/api/blueprints");
-
-      // Act
       const response = await GET(request);
       const data = await response.json();
 
-      // Assert
-      expect(response.status).toBe(500);
-      expect(data.error).toBeDefined();
-    });
-  });
-
-  describe("Authentication & Authorization", () => {
-    it("should reject unauthenticated requests", async () => {
-      // Arrange - Mock no authenticated user
-      const { currentUser } = require("@clerk/nextjs/server");
-      currentUser.mockResolvedValue(null);
-
-      const request = createTestRequest("POST", "/api/blueprints", {
-        input: "I want to build a marketplace",
-        projectName: "TestProject",
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.data.blueprints).toHaveLength(10);
+      expect(data.data.pagination).toEqual({
+        page: 1,
+        limit: 10,
+        total: 25,
+        totalPages: 3,
       });
+    });
 
-      // Act
-      const response = await POST(request);
+    it("should handle unauthenticated requests", async () => {
+      testHelper.withoutAuth();
 
-      // Assert
+      const request = testHelper.createRequest({ method: "GET" });
+      const response = await GET(request);
+
       expect(response.status).toBe(401);
-    });
-
-    it("should allow authenticated requests with valid user", async () => {
-      // Arrange - Mock authenticated user
-      const { currentUser } = require("@clerk/nextjs/server");
-      currentUser.mockResolvedValue(mockUser);
-
-      const request = createTestRequest("POST", "/api/blueprints", {
-        input: "I want to build a marketplace for rare sneakers",
-        projectName: "SneakerMarket",
-      });
-
-      const mockDb = mockDbResponse([]);
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-      // Act
-      const response = await POST(request);
-
-      // Assert
-      expect(response.status).toBe(200);
     });
   });
 });

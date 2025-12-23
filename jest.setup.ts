@@ -4,6 +4,26 @@ import "@testing-library/jest-dom";
 // Import polyfills for Web APIs
 require("./jest.polyfills");
 
+// Import centralized test setup
+import { setupEnvironmentMocks } from "./__tests__/setup/environment-mocks";
+import { setupAuthMocks } from "./__tests__/setup/auth-setup";
+
+// Setup global test environment
+beforeAll(() => {
+  // Setup environment variables once
+  setupEnvironmentMocks();
+
+  // The test environment is set by jest configuration
+});
+
+beforeEach(() => {
+  // Clear all mocks before each test
+  jest.clearAllMocks();
+
+  // Setup default authenticated user
+  setupAuthMocks();
+});
+
 declare global {
   namespace jest {
     interface Matchers<R> {

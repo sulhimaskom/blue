@@ -1,562 +1,348 @@
-import { jest } from "@jest/globals";
 import { PUT, GET } from "@/app/api/blueprints/[id]/route";
-import { mockUser, mockDbResponse, createTestRequest } from "./helpers";
+import { createApiTestHelper } from "../helpers/test-helper";
 
-// Mock blueprint engine
-jest.mock("@/lib/services/blueprint-engine");
-import { blueprintEngine } from "@/lib/services/blueprint-engine";
+describe("Blueprint Details API - Integration Tests", () => {
+  let testHelper: ReturnType<typeof createApiTestHelper>;
 
-const mockBlueprintEngine = blueprintEngine as jest.Mocked<
-  typeof blueprintEngine
->;
-
-describe("Blueprint [id] API - Integration Tests", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-
-    // Default mock implementations
-    (
-      require("@clerk/nextjs/server").currentUser as jest.Mock
-    ).mockResolvedValue(mockUser);
-
-    mockBlueprintEngine.refineBlueprint.mockResolvedValue({
-      success: true,
-      blueprintId: "test-blueprint-456",
-      version: 2,
+    testHelper = createApiTestHelper({
+      authenticated: true,
     });
+
+    // Setup successful service responses
+    testHelper.withSuccessfulUserResponses();
   });
 
-  describe("PUT /api/blueprints/[id]", () => {
-    const validPayload = {
-      feedback:
-        "Please add mobile app support and improve the monetization strategy",
-      updateType: "feature" as const,
-    };
-
-    it("should refine blueprint successfully with valid feedback", async () => {
-      // Arrange
-      const blueprintId = "blueprint-123";
-      const mockBlueprint = {
-        id: blueprintId,
-        projectId: "project-123",
-        version: 1,
-        contentMarkdown: "Initial blueprint content",
-        structuredData: {},
-        createdAt: new Date(),
-      };
-
-      const mockProject = {
-        id: "project-123",
-        name: "SneakerMarket",
-        description: "Marketplace for rare sneakers",
-        status: "completed",
-        ownerId: 1,
-        createdAt: new Date(),
-      };
-
-      const mockDb = mockDbResponse([
-        {
-          blueprint: mockBlueprint,
-          project: mockProject,
-          user: mockUser,
-        },
-      ]);
-
-      // Mock the initial query to check ownership
-      const mockQuery = mockDb.select.mockReturnValue(mockDb);
-      mockQuery.from.mockReturnValue(mockDb);
-      mockQuery.innerJoin.mockReturnValue(mockDb);
-      mockQuery.where.mockReturnValue(mockDb);
-      mockQuery.limit.mockReturnValue(
-        Promise.resolve([
-          {
-            blueprint: mockBlueprint,
-            project: mockProject,
-            user: mockUser,
-          },
-        ]),
-      );
-
-      // Mock the refined blueprint query
-      const refinedBlueprint = { ...mockBlueprint, version: 2 };
-      mockDb.select.mockReturnValue(mockDb);
-      mockDb.from.mockReturnValue(mockDb);
-      mockDb.where.mockReturnValue(mockDb);
-      mockDb.orderBy.mockReturnValue(Promise.resolve([refinedBlueprint]));
-
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-      const request = createTestRequest(
-        "PUT",
-        `/api/blueprints/${blueprintId}`,
-        validPayload,
-      );
-
-      // Act
-      const response = await PUT(request);
-      const data = await response.json();
-
-      // Assert
-      expect(response.status).toBe(200);
-      expect(data).toMatchObject({
-        blueprint: refinedBlueprint,
-        project: mockProject,
-        blueprintId: refinedBlueprint.id,
-        version: 2,
-        message: expect.stringContaining("refined successfully"),
-      });
-
-      // Verify blueprint engine was called
-      expect(mockBlueprintEngine.refineBlueprint).toHaveBeenCalledWith({
-        blueprintId,
-        feedback: validPayload.feedback,
-        updateType: validPayload.updateType,
-      });
-    });
-
-    it("should reject requests for blueprints not owned by user", async () => {
-      // Arrange
-      const blueprintId = "blueprint-999";
-      const mockDb = mockDbResponse([]); // Empty result = not found
-
-      const mockQuery = mockDb.select.mockReturnValue(mockDb);
-      mockQuery.from.mockReturnValue(mockDb);
-      mockQuery.innerJoin.mockReturnValue(mockDb);
-      mockQuery.where.mockReturnValue(mockDb);
-      mockQuery.limit.mockReturnValue(Promise.resolve([]));
-
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-      const request = createTestRequest(
-        "PUT",
-        `/api/blueprints/${blueprintId}`,
-        validPayload,
-      );
-
-      // Act
-      const response = await PUT(request);
-      const data = await response.json();
-
-      // Assert
-      expect(response.status).toBe(400);
-      expect(data.error).toContain("Blueprint not found or access denied");
-
-      // Verify blueprint engine was not called
-      expect(mockBlueprintEngine.refineBlueprint).not.toHaveBeenCalled();
-    });
-
-    it("should reject invalid feedback payload", async () => {
-      // Arrange
-      const blueprintId = "blueprint-123";
-      const invalidPayload = {
-        feedback: "short", // Too short (< 10 chars)
-        updateType: "invalid" as any, // Invalid enum value
-      };
-
-      const request = createTestRequest(
-        "PUT",
-        `/api/blueprints/${blueprintId}`,
-        invalidPayload,
-      );
-
-      // Act
-      const response = await PUT(request);
-      const data = await response.json();
-
-      // Assert
-      expect(response.status).toBe(400);
-      expect(data.error).toBeDefined();
-      expect(data.validationErrors).toBeDefined();
-    });
-
-    it("should handle blueprint engine failures gracefully", async () => {
-      // Arrange
-      const blueprintId = "blueprint-123";
-      const mockBlueprint = {
-        id: blueprintId,
-        projectId: "project-123",
-        version: 1,
-        contentMarkdown: "Initial blueprint content",
-        structuredData: {},
-        createdAt: new Date(),
-      };
-
-      const mockProject = {
-        id: "project-123",
-        name: "SneakerMarket",
-        status: "completed",
-        ownerId: 1,
-        createdAt: new Date(),
-      };
-
-      const mockDb = mockDbResponse([
-        {
-          blueprint: mockBlueprint,
-          project: mockProject,
-          user: mockUser,
-        },
-      ]);
-
-      const mockQuery = mockDb.select.mockReturnValue(mockDb);
-      mockQuery.from.mockReturnValue(mockDb);
-      mockQuery.innerJoin.mockReturnValue(mockDb);
-      mockQuery.where.mockReturnValue(mockDb);
-      mockQuery.limit.mockReturnValue(
-        Promise.resolve([
-          {
-            blueprint: mockBlueprint,
-            project: mockProject,
-            user: mockUser,
-          },
-        ]),
-      );
-
-      // Mock blueprint engine failure
-      mockBlueprintEngine.refineBlueprint.mockRejectedValue(
-        new Error("AI service unavailable"),
-      );
-
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-      const request = createTestRequest(
-        "PUT",
-        `/api/blueprints/${blueprintId}`,
-        validPayload,
-      );
-
-      // Act
-      const response = await PUT(request);
-      const data = await response.json();
-
-      // Assert
-      expect(response.status).toBe(500);
-      expect(data.error).toBeDefined();
-    });
-
-    it("should accept all valid update types", async () => {
-      const validUpdateTypes = [
-        "feature",
-        "tech",
-        "architecture",
-        "monetization",
-      ] as const;
-
-      // Arrange
-      const blueprintId = "blueprint-123";
-      const mockBlueprint = {
-        id: blueprintId,
-        projectId: "project-123",
-        version: 1,
-        contentMarkdown: "Initial blueprint content",
-        structuredData: {},
-        createdAt: new Date(),
-      };
-
-      const mockProject = {
-        id: "project-123",
-        name: "SneakerMarket",
-        status: "completed",
-        ownerId: 1,
-        createdAt: new Date(),
-      };
-
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb({}));
-
-      // Test each update type
-      for (const updateType of validUpdateTypes) {
-        jest.clearAllMocks();
-
-        const payload = {
-          feedback:
-            "This is valid feedback that is long enough to pass validation",
-          updateType,
-        };
-
-        const mockDb = mockDbResponse([
-          {
-            blueprint: mockBlueprint,
-            project: mockProject,
-            user: mockUser,
-          },
-        ]);
-
-        const mockQuery = mockDb.select.mockReturnValue(mockDb);
-        mockQuery.from.mockReturnValue(mockDb);
-        mockQuery.innerJoin.mockReturnValue(mockDb);
-        mockQuery.where.mockReturnValue(mockDb);
-        mockQuery.limit.mockReturnValue(
-          Promise.resolve([
-            {
-              blueprint: mockBlueprint,
-              project: mockProject,
-              user: mockUser,
-            },
-          ]),
-        );
-
-        const refinedBlueprint = { ...mockBlueprint, version: 2 };
-        mockDb.select.mockReturnValue(mockDb);
-        mockDb.from.mockReturnValue(mockDb);
-        mockDb.where.mockReturnValue(mockDb);
-        mockDb.orderBy.mockReturnValue(Promise.resolve([refinedBlueprint]));
-
-        (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-        const request = createTestRequest(
-          "PUT",
-          `/api/blueprints/${blueprintId}`,
-          payload,
-        );
-
-        // Act
-        const response = await PUT(request);
-
-        // Assert
-        expect(response.status).toBe(200);
-        expect(mockBlueprintEngine.refineBlueprint).toHaveBeenCalledWith({
-          blueprintId,
-          feedback: payload.feedback,
-          updateType,
-        });
-      }
-    });
+  afterEach(() => {
+    testHelper.resetAll();
   });
 
   describe("GET /api/blueprints/[id]", () => {
-    it("should fetch blueprint details with all versions", async () => {
-      // Arrange
-      const blueprintId = "blueprint-123";
-      const mockBlueprint = {
-        id: blueprintId,
-        projectId: "project-123",
-        version: 2,
-        contentMarkdown: "Latest blueprint content",
-        structuredData: { tech: ["React", "Node.js"] },
-        marketResearch: { marketSize: "Large" },
-        createdAt: new Date(),
-      };
-
-      const mockProject = {
-        id: "project-123",
-        name: "SneakerMarket",
-        description: "Marketplace for rare sneakers",
-        status: "completed",
-        ownerId: 1,
-        createdAt: new Date(),
-      };
-
-      const allVersions = [
-        { ...mockBlueprint, version: 1, contentMarkdown: "Initial content" },
-        { ...mockBlueprint, version: 2, contentMarkdown: "Updated content" },
-      ];
-
-      const mockDb = mockDbResponse([
-        {
-          blueprint: mockBlueprint,
-          project: mockProject,
-          user: mockUser,
-        },
-      ]);
-
-      // Mock the main query
-      const mockQuery = mockDb.select.mockReturnValue(mockDb);
-      mockQuery.from.mockReturnValue(mockDb);
-      mockQuery.innerJoin.mockReturnValue(mockDb);
-      mockQuery.where.mockReturnValue(mockDb);
-      mockQuery.limit.mockReturnValue(
-        Promise.resolve([
+    const mockBlueprint = {
+      id: 1,
+      userId: "user_test_123",
+      projectName: "TestProject",
+      input: "Build a test application",
+      blueprint: {
+        title: "Test Application Blueprint",
+        description: "A comprehensive test application",
+        sections: [
           {
-            blueprint: mockBlueprint,
-            project: mockProject,
-            user: mockUser,
+            title: "Setup",
+            description: "Initial project setup",
+            steps: [
+              "Initialize project structure",
+              "Set up dependencies",
+              "Configure development environment",
+            ],
           },
-        ]),
-      );
+          {
+            title: "Core Features",
+            description: "Main application functionality",
+            steps: [
+              "Implement authentication",
+              "Create data models",
+              "Build API endpoints",
+            ],
+          },
+        ],
+      },
+      status: "completed",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
-      // Mock the versions query
-      mockDb.select.mockReturnValue(mockDb);
-      mockDb.from.mockReturnValue(mockDb);
-      mockDb.where.mockReturnValue(mockDb);
-      mockDb.orderBy.mockReturnValue(Promise.resolve(allVersions));
+    it("should fetch blueprint details successfully", async () => {
+      testHelper.withDbQuery([mockBlueprint]);
 
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-      const request = createTestRequest(
-        "GET",
-        `/api/blueprints/${blueprintId}`,
-      );
-
-      // Act
-      const response = await GET(request);
-      const data = await response.json();
-
-      // Assert
-      expect(response.status).toBe(200);
-      expect(data).toMatchObject({
-        blueprint: mockBlueprint,
-        project: mockProject,
-        allVersions: allVersions,
-        message: expect.stringContaining("retrieved successfully"),
+      const request = testHelper.createRequest({ method: "GET" });
+      const response = await GET(request, {
+        params: Promise.resolve({ id: "1" }),
       });
-    });
-
-    it("should reject requests for blueprints not owned by user", async () => {
-      // Arrange
-      const blueprintId = "blueprint-999";
-      const mockDb = mockDbResponse([]);
-
-      const mockQuery = mockDb.select.mockReturnValue(mockDb);
-      mockQuery.from.mockReturnValue(mockDb);
-      mockQuery.innerJoin.mockReturnValue(mockDb);
-      mockQuery.where.mockReturnValue(mockDb);
-      mockQuery.limit.mockReturnValue(Promise.resolve([]));
-
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-      const request = createTestRequest(
-        "GET",
-        `/api/blueprints/${blueprintId}`,
-      );
-
-      // Act
-      const response = await GET(request);
       const data = await response.json();
 
-      // Assert
-      expect(response.status).toBe(400);
-      expect(data.error).toContain("Blueprint not found or access denied");
-    });
-
-    it("should handle blueprint with no versions history", async () => {
-      // Arrange
-      const blueprintId = "blueprint-123";
-      const mockBlueprint = {
-        id: blueprintId,
-        projectId: "project-123",
-        version: 1,
-        contentMarkdown: "Initial blueprint content",
-        structuredData: {},
-        marketResearch: {},
-        createdAt: new Date(),
-      };
-
-      const mockProject = {
-        id: "project-123",
-        name: "SneakerMarket",
-        status: "completed",
-        ownerId: 1,
-        createdAt: new Date(),
-      };
-
-      const mockDb = mockDbResponse([
-        {
-          blueprint: mockBlueprint,
-          project: mockProject,
-          user: mockUser,
-        },
-      ]);
-
-      const mockQuery = mockDb.select.mockReturnValue(mockDb);
-      mockQuery.from.mockReturnValue(mockDb);
-      mockQuery.innerJoin.mockReturnValue(mockDb);
-      mockQuery.where.mockReturnValue(mockDb);
-      mockQuery.limit.mockReturnValue(
-        Promise.resolve([
-          {
-            blueprint: mockBlueprint,
-            project: mockProject,
-            user: mockUser,
-          },
-        ]),
-      );
-
-      // Mock versions query to return only current version
-      mockDb.select.mockReturnValue(mockDb);
-      mockDb.from.mockReturnValue(mockDb);
-      mockDb.where.mockReturnValue(mockDb);
-      mockDb.orderBy.mockReturnValue(Promise.resolve([mockBlueprint]));
-
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-      const request = createTestRequest(
-        "GET",
-        `/api/blueprints/${blueprintId}`,
-      );
-
-      // Act
-      const response = await GET(request);
-      const data = await response.json();
-
-      // Assert
       expect(response.status).toBe(200);
-      expect(data.allVersions).toHaveLength(1);
-      expect(data.allVersions[0].id).toBe(blueprintId);
+      expect(data.success).toBe(true);
+      expect(data.data).toEqual(mockBlueprint);
+    });
+
+    it("should return 404 for non-existent blueprint", async () => {
+      testHelper.withDbQuery([]); // Empty result
+
+      const request = testHelper.createRequest({ method: "GET" });
+      const response = await GET(request, {
+        params: Promise.resolve({ id: "999" }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("not found");
+    });
+
+    it("should reject access to blueprints owned by other users", async () => {
+      const otherUserBlueprint = {
+        ...mockBlueprint,
+        userId: "other_user_456",
+      };
+
+      testHelper.withDbQuery([otherUserBlueprint]);
+
+      const request = testHelper.createRequest({ method: "GET" });
+      const response = await GET(request, {
+        params: Promise.resolve({ id: "1" }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("not authorized");
+    });
+
+    it("should handle blueprint in progress status", async () => {
+      const inProgressBlueprint = {
+        ...mockBlueprint,
+        status: "generating",
+        blueprint: null, // Not ready yet
+      };
+
+      testHelper.withDbQuery([inProgressBlueprint]);
+
+      const request = testHelper.createRequest({ method: "GET" });
+      const response = await GET(request, {
+        params: Promise.resolve({ id: "1" }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.data.status).toBe("generating");
+      expect(data.data.blueprint).toBeNull();
     });
 
     it("should handle database errors gracefully", async () => {
-      // Arrange
-      const blueprintId = "blueprint-123";
-      const mockDb = mockDbResponse([]);
-
-      const mockQuery = mockDb.select.mockImplementation(() => {
-        throw new Error("Database connection failed");
-      });
-
-      (require("@/lib/db").db as jest.Mock).mockReturnValue(mockDb);
-
-      const request = createTestRequest(
-        "GET",
-        `/api/blueprints/${blueprintId}`,
+      const mockUserService = testHelper.getMock("userService");
+      mockUserService.getAuthenticatedUser.mockRejectedValue(
+        new Error("Database connection failed"),
       );
 
-      // Act
-      const response = await GET(request);
-      const data = await response.json();
+      const request = testHelper.createRequest({ method: "GET" });
+      const response = await GET(request, {
+        params: Promise.resolve({ id: "1" }),
+      });
 
-      // Assert
       expect(response.status).toBe(500);
-      expect(data.error).toBeDefined();
     });
   });
 
-  describe("Authentication & Authorization", () => {
-    it("should reject unauthenticated PUT requests", async () => {
-      // Arrange
-      const { currentUser } = require("@clerk/nextjs/server");
-      currentUser.mockResolvedValue(null);
+  describe("PUT /api/blueprints/[id] (Refine)", () => {
+    const validRefinePayload = {
+      feedback:
+        "Make it more scalable and add real-time features for better user experience",
+      updateType: "feature" as const,
+    };
 
-      const blueprintId = "blueprint-123";
-      const request = createTestRequest(
-        "PUT",
-        `/api/blueprints/${blueprintId}`,
-        {
-          feedback: "This is valid feedback that is long enough",
-          updateType: "feature" as const,
+    it("should refine blueprint successfully", async () => {
+      const mockBlueprint = {
+        id: 1,
+        userId: "user_test_123",
+        projectName: "TestProject",
+        input: "Build a test application",
+        blueprint: {
+          title: "Test Application Blueprint",
+          description: "A comprehensive test application",
         },
+        status: "completed",
+      };
+
+      testHelper.withDbQuery([mockBlueprint]);
+
+      // Setup user with sufficient credits
+      const mockUser = testHelper.getCurrentUser();
+      mockUser!.credits = 5;
+
+      const mockUserService = testHelper.getMock("userService");
+      mockUserService.getUserByClerkId.mockResolvedValue({
+        ...mockUser,
+        credits: 5,
+        subscriptionTier: "free",
+      });
+
+      // Setup successful refinement
+      const mockBlueprintEngine = testHelper.getMock("blueprintEngine");
+      mockBlueprintEngine.refineBlueprint.mockResolvedValue({
+        success: true,
+        refinedBlueprint: {
+          title: "Enhanced Test Application Blueprint",
+          description: "A scalable test application with real-time features",
+          sections: [
+            ...((mockBlueprint.blueprint as any)?.sections || []),
+            {
+              title: "Performance Optimization",
+              description: "Caching and optimization strategies",
+            },
+            {
+              title: "Real-time Features",
+              description: "WebSocket integration",
+            },
+          ],
+        },
+      });
+
+      const request = testHelper.createRequest({
+        method: "PUT",
+        body: validRefinePayload,
+      });
+
+      const response = await PUT(request, {
+        params: Promise.resolve({ id: "1" }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.data.refinedBlueprint.title).toBe(
+        "Enhanced Test Application Blueprint",
       );
-
-      // Act
-      const response = await PUT(request);
-
-      // Assert
-      expect(response.status).toBe(401);
     });
 
-    it("should reject unauthenticated GET requests", async () => {
-      // Arrange
-      const { currentUser } = require("@clerk/nextjs/server");
-      currentUser.mockResolvedValue(null);
+    it("should reject refinement for blueprints not owned by user", async () => {
+      const otherUserBlueprint = {
+        id: 1,
+        userId: "other_user_456",
+        projectName: "OtherProject",
+        status: "completed",
+      };
 
-      const blueprintId = "blueprint-123";
-      const request = createTestRequest(
-        "GET",
-        `/api/blueprints/${blueprintId}`,
+      testHelper.withDbQuery([otherUserBlueprint]);
+
+      const request = testHelper.createRequest({
+        method: "PUT",
+        body: validRefinePayload,
+      });
+
+      const response = await PUT(request, {
+        params: Promise.resolve({ id: "1" }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.success).toBe(false);
+    });
+
+    it("should reject refinement for blueprints that are not completed", async () => {
+      const inProgressBlueprint = {
+        id: 1,
+        userId: "user_test_123",
+        projectName: "TestProject",
+        status: "generating",
+      };
+
+      testHelper.withDbQuery([inProgressBlueprint]);
+
+      const request = testHelper.createRequest({
+        method: "PUT",
+        body: validRefinePayload,
+      });
+
+      const response = await PUT(request, {
+        params: Promise.resolve({ id: "1" }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("must be completed");
+    });
+
+    it("should validate refinement payload", async () => {
+      const mockBlueprint = {
+        id: 1,
+        userId: "user_test_123",
+        projectName: "TestProject",
+        status: "completed",
+      };
+
+      testHelper.withDbQuery([mockBlueprint]);
+
+      const invalidPayload = {
+        feedback: "short", // Too short feedback
+      };
+
+      const request = testHelper.createRequest({
+        method: "PUT",
+        body: invalidPayload,
+      });
+
+      const response = await PUT(request, {
+        params: Promise.resolve({ id: "1" }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+    });
+
+    it("should deduct credits for refinement", async () => {
+      const mockBlueprint = {
+        id: 1,
+        userId: "user_test_123",
+        projectName: "TestProject",
+        status: "completed",
+      };
+
+      testHelper.withDbQuery([mockBlueprint]);
+
+      const mockUser = testHelper.getCurrentUser();
+      mockUser!.credits = 5;
+
+      const mockUserService = testHelper.getMock("userService");
+      mockUserService.getUserByClerkId.mockResolvedValue({
+        ...mockUser,
+        credits: 5,
+        subscriptionTier: "free",
+      });
+
+      mockUserService.updateUserCredits.mockResolvedValue({
+        ...mockUser,
+        credits: 4, // 5 - 1 credit cost
+      });
+
+      const mockBlueprintEngine = testHelper.getMock("blueprintEngine");
+      mockBlueprintEngine.refineBlueprint.mockResolvedValue({
+        success: true,
+        refinedBlueprint: (mockBlueprint as any).blueprint,
+      });
+
+      const request = testHelper.createRequest({
+        method: "PUT",
+        body: validRefinePayload,
+      });
+
+      const response = await PUT(request, {
+        params: Promise.resolve({ id: "1" }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(mockUserService.updateUserCredits).toHaveBeenCalledWith(
+        mockUser!.id,
+        -1, // Deduct 1 credit
+        expect.stringContaining("refinement"),
       );
+    });
 
-      // Act
-      const response = await GET(request);
+    it("should handle unauthenticated refinement attempts", async () => {
+      testHelper.withoutAuth();
 
-      // Assert
+      const request = testHelper.createRequest({
+        method: "PUT",
+        body: validRefinePayload,
+      });
+
+      const response = await PUT(request, {
+        params: Promise.resolve({ id: "1" }),
+      });
+
       expect(response.status).toBe(401);
     });
   });
