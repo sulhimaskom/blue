@@ -32,6 +32,22 @@ const envSchema = z.object({
 type Env = z.infer<typeof envSchema>;
 
 function validateEnv(): Env {
+  // Skip validation during build time - Next.js will handle runtime validation
+  if (process.env.NEXT_PHASE === "phase-production-build") {
+    return {
+      NODE_ENV: "production",
+      DATABASE_URL: "placeholder",
+      IFLOW_API_KEY: "placeholder",
+      IFLOW_BASE_URL: "placeholder",
+      TAVILY_API_KEY: "placeholder",
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "placeholder",
+      CLERK_SECRET_KEY: "placeholder",
+      STRIPE_SECRET_KEY: "placeholder",
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "placeholder",
+      GITHUB_ACCESS_TOKEN: "placeholder",
+    } as Env;
+  }
+
   try {
     return envSchema.parse(process.env);
   } catch (error) {
