@@ -1,11 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { monitoringService } from "@/lib/monitoring";
+import { APIRouteHandler } from "@/lib/services/api-route-handler";
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const detailed = searchParams.get("detailed") === "true";
+export const GET = APIRouteHandler.createGETHandler({
+  requireAuth: false,
+  handler: async ({ req }) => {
+    const { searchParams } = new URL(req.url);
+    const detailed = searchParams.get("detailed") === "true";
 
-  try {
     // Get basic system health
     const systemHealth = await monitoringService.getSystemHealth();
 
@@ -93,17 +95,8 @@ export async function GET(request: NextRequest) {
         Expires: "0",
       },
     });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        status: "unhealthy",
-        timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 503 },
-    );
-  }
-}
+  },
+});
 
 // Health check for load balancers (minimal response)
 export async function HEAD() {
