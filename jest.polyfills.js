@@ -15,13 +15,37 @@ global.Response = jest.fn().mockImplementation((body, options) => ({
   text: jest
     .fn()
     .mockResolvedValue(typeof body === "string" ? body : JSON.stringify(body)),
+  headers: new Map(Object.entries(options?.headers || {})),
 }));
+
+// Mock NextResponse.json
+global.NextResponse = {
+  json: jest.fn().mockImplementation((data, options) => ({
+    status: options?.status || 200,
+    json: jest.fn().mockResolvedValue(data),
+    headers: new Map(Object.entries(options?.headers || {})),
+  })),
+};
 
 // Mock Web Crypto API
 global.crypto = {
   randomUUID: jest.fn(() => "mock-uuid-123-456"),
   getRandomValues: jest.fn(() => new Uint32Array(1)),
+  subtle: {
+    encrypt: jest.fn(),
+    decrypt: jest.fn(),
+    sign: jest.fn(),
+    verify: jest.fn(),
+    digest: jest.fn(),
+    generateKey: jest.fn(),
+    deriveKey: jest.fn(),
+    importKey: jest.fn(),
+    exportKey: jest.fn(),
+  },
 };
+
+// Add webcrypto for Node.js compatibility
+global.webcrypto = global.crypto;
 
 // Mock Headers
 global.Headers = jest.fn().mockImplementation((headers) => ({

@@ -2,9 +2,9 @@
 
 ## Open Bugs
 
-| ID  | Description  | Severity | File | Status |
-| --- | ------------ | -------- | ---- | ------ |
-| -   | No open bugs | -        | -    | -      |
+| ID      | Description                                                                                         | Severity | File             | Status |
+| ------- | --------------------------------------------------------------------------------------------------- | -------- | ---------------- | ------ |
+| BUG-003 | validateRequest function not exported correctly - TypeError: validateRequest(...) is not a function | Critical | lib/api-utils.ts | Open   |
 
 ## Fixed Bugs
 

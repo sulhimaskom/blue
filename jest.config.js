@@ -10,15 +10,15 @@ const customJestConfig = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
+    "^@clerk/nextjs/server$": "<rootDir>/__tests__/mocks/clerk-server.js",
+    "^@clerk/backend$": "<rootDir>/__tests__/mocks/clerk-backend.js",
   },
   testEnvironment: "jest-environment-jsdom",
   testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
   transform: {
     "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }],
   },
-  transformIgnorePatterns: [
-    "node_modules/(?!(.*\\.mjs$|@clerk/.*|@clerk/backend/.*|@radix-ui/.*|lucide-react|drizzle-orm|@neondatabase|@stripe/currency))",
-  ],
+  transformIgnorePatterns: ["node_modules/(?!(.*\\.mjs$))"],
   setupFiles: ["<rootDir>/jest.polyfills.js"],
 };
 

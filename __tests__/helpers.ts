@@ -43,6 +43,9 @@ class MockResponse {
   status: number;
   headers: MockHeaders;
   private body: any;
+  success?: boolean;
+  error?: string | null;
+  code?: string | null;
 
   constructor(body: any, init?: { status?: number }) {
     this.body = body;
@@ -61,25 +64,55 @@ class MockResponse {
 
 // Mock Next.js Response and NextResponse properly
 const originalResponse = global.Response;
+const originalNextResponse = (global as any).NextResponse;
+
+class MockNextResponse extends MockResponse {
+  static json(data: unknown, init?: { status?: number }) {
+    const response = new MockNextResponse(data, init);
+    response.status = init?.status || 200;
+    response.headers.set = jest.fn();
+    response.success = true;
+    response.error = null;
+    response.code = null;
+    return response;
+  }
+
+  static redirect() {
+    return new MockNextResponse(null, { status: 302 });
+  }
+}
 
 (global as any).Response = MockResponse;
-(global as any).NextResponse = {
-  json: jest.fn((data: unknown, init?: { status?: number }) => {
-    const response = new MockResponse(data, init);
-    response.status = init?.status || 200;
-    return response;
-  }),
-  redirect: jest.fn(),
-};
+(global as any).NextResponse = MockNextResponse;
 
-// Mock Clerk auth
+// Mock Clerk auth - must be loaded before any Clerk imports
+jest.mock("@clerk/backend", () => ({}));
 jest.mock("@clerk/nextjs/server", () => ({
   currentUser: jest.fn(),
+  auth: jest.fn(),
 }));
 
 // Mock database and Redis
 jest.mock("@/lib/db", () => ({
   db: jest.fn(),
+}));
+
+// Mock Zod validation
+jest.mock("zod", () => ({
+  z: {
+    string: () => ({
+      min: () => ({
+        max: () => ({
+          _input: "mock-input",
+        }),
+      }),
+    }),
+    object: (schema: any) => ({
+      parse: jest.fn((data: any) => data),
+      safeParse: jest.fn((data: any) => ({ success: true, data })),
+      _input: schema,
+    }),
+  },
 }));
 
 jest.mock("@/lib/redis", () => ({
@@ -104,6 +137,34 @@ jest.mock("@/lib/logger", () => ({
   },
 }));
 
+// Enhanced error classes with code property
+export class ValidationError extends Error {
+  code: string;
+  constructor(message: string) {
+    super(message);
+    this.name = "ValidationError";
+    this.code = "VALIDATION_ERROR";
+  }
+}
+
+export class AuthenticationError extends Error {
+  code: string;
+  constructor(message: string) {
+    super(message);
+    this.name = "AuthenticationError";
+    this.code = "AUTHENTICATION_ERROR";
+  }
+}
+
+export class DatabaseError extends Error {
+  code: string;
+  constructor(message: string) {
+    super(message);
+    this.name = "DatabaseError";
+    this.code = "DATABASE_ERROR";
+  }
+}
+
 // Test helpers
 export const mockUser = {
   id: "test-user-id",
@@ -123,45 +184,42 @@ export const mockCompleteUser = {
   profileImageUrl: "https://example.com/avatar.jpg",
   emailVerified: true,
   phoneVerified: false,
-  createdAt: new Date("2023-01-01T00:00:00Z"),
-  updatedAt: new Date("2023-12-01T00:00:00Z"),
-  lastSignInAt: new Date("2023-12-15T10:30:00Z"),
+  createdAt: 1672531200000, // 2023-01-01T00:00:00Z in ms
+  updatedAt: 1701388800000, // 2023-12-01T00:00:00Z in ms
+  lastSignInAt: 1702626600000, // 2023-12-15T10:30:00Z in ms
+  lastActiveAt: 1702626600000, // 2023-12-15T10:30:00Z in ms
   externalAccounts: [],
-  emailAddresses: [
-    {
-      emailAddress: "complete@test.example.com",
-      id: "email_test_id",
-      verification: {
-        status: "verified" as const,
-        strategy: "admin" as const,
-        attempts: 1,
-        expireAt: new Date(),
-      },
-      linkedAt: new Date(),
-    },
-  ],
+  emailAddresses: [],
   phoneNumbers: [],
-  primaryEmailAddressId: "email_test_id",
+  primaryEmailAddressId: null,
   primaryPhoneNumberId: null,
   primaryWebhookSecretId: null,
+  primaryWeb3WalletId: null,
   unsafeMetadata: {},
   publicMetadata: {},
   privateMetadata: {},
   externalId: null,
   samlAccounts: [],
   organizationMemberships: [],
-  hasImage: true,
-  imageUrl: "https://example.com/avatar.jpg",
+  web3Wallets: [],
+  hasImage: false,
+  imageUrl: null,
   totpSecret: null,
   backupCodes: null,
   locked: false,
   lockReason: null,
   deleteSelfEnabled: true,
   createOrganizationEnabled: true,
+  createOrganizationsLimit: 5,
   banned: false,
   bannedReason: null,
   password: null,
-};
+  // Additional Clerk User interface properties
+  primaryEmailAddress: null,
+  primaryPhoneNumber: null,
+  primaryWeb3Wallet: null,
+  fullName: "Test User",
+} as any; // Type assertion to bypass strict Clerk interface requirements
 
 export const mockDbResponse = (data: unknown): any => {
   const result = Array.isArray(data) ? data : [data];
@@ -177,6 +235,13 @@ export const mockDbResponse = (data: unknown): any => {
     returning: jest.fn().mockReturnValue(result),
     update: jest.fn().mockReturnThis(),
     set: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
+    leftJoin: jest.fn().mockReturnThis(),
+    rightJoin: jest.fn().mockReturnThis(),
+    fullJoin: jest.fn().mockReturnThis(),
+    groupBy: jest.fn().mockReturnThis(),
+    having: jest.fn().mockReturnThis(),
   };
 
   return mockDb;
