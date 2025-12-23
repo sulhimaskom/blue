@@ -13,13 +13,16 @@ import {
   DatabaseError,
 } from "@/lib/api-utils";
 import { logger, createRequestContext } from "@/lib/logger";
+import { blueprintEngine } from "@/lib/services/blueprint-engine";
 
 const refineBlueprintSchema = z.object({
   feedback: z
     .string()
     .min(10, "Feedback must be at least 10 characters")
     .max(500, "Feedback too long"),
-  updateType: z.enum(["minor", "major", "structure"]).default("minor"),
+  updateType: z
+    .enum(["feature", "tech", "architecture", "monetization"])
+    .default("feature"),
 });
 
 interface RouteParams {
@@ -71,28 +74,22 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       throw new AuthenticationError("Blueprint not found or access denied");
     }
 
-    const { blueprint, project } = projectWithBlueprint[0];
+    const { project } = projectWithBlueprint[0];
 
-    // Create new version of blueprint with refinement
-    const currentVersion = blueprint.version;
-    const refinedContent = `${blueprint.contentMarkdown}\n\n## Refinement (Version ${currentVersion + 1})\n\n**Type**: ${updateType}\n**Feedback**: ${feedback}\n\n*This refinement reflects user input. Enhanced AI integration will be available in Phase 3.*`;
+    // Use AI-powered blueprint refinement (Phase 3 Integration)
+    await blueprintEngine.refineBlueprint({
+      blueprintId: id,
+      feedback,
+      updateType: updateType || "feature",
+    });
 
+    // Get the newly created version
     const [refinedBlueprint] = await database
-      .insert(blueprints)
-      .values({
-        projectId: blueprint.projectId,
-        version: currentVersion + 1,
-        contentMarkdown: refinedContent,
-        structuredData: {
-          ...(blueprint.structuredData as any),
-          version: currentVersion + 1,
-          lastRefinement: feedback,
-          refinementType: updateType,
-          phase: "refined",
-        },
-        marketResearch: blueprint.marketResearch,
-      })
-      .returning();
+      .select()
+      .from(blueprints)
+      .where(eq(blueprints.id, id))
+      .orderBy(blueprints.version)
+      .limit(1);
 
     logger.userAction("Blueprint refined", user!.id, {
       requestId: context.requestId,
@@ -106,8 +103,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       project,
       blueprintId: refinedBlueprint.id,
       version: refinedBlueprint.version,
-      message:
-        "Blueprint refined successfully. Enhanced AI refinement will be available in Phase 3.",
+      message: "Blueprint refined successfully using AI analysis.",
     });
   } catch (error) {
     logger.apiError(

@@ -41,6 +41,18 @@ export function validateRequest<T>(
   };
 }
 
+// User-friendly direct validation function
+// This addresses BUG-003: validateRequest function not exported correctly
+// The original factory pattern was confusing and led to "is not a function" errors
+// Usage: const result = await validateRequestData(req, schema, "body");
+export async function validateRequestData<T>(
+  req: NextRequest,
+  schema: ZodSchema<T>,
+  source: "body" | "query" = "body",
+): Promise<{ success: true; data: T } | { success: false; error: string }> {
+  return await validateRequest(schema, source)(req);
+}
+
 // Sanitization utilities
 export const sanitize = {
   // Remove HTML tags and normalize whitespace
