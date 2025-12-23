@@ -77,6 +77,22 @@ jest.mock("@clerk/nextjs/server", () => ({
   currentUser: jest.fn(),
 }));
 
+// Mock environment variables
+jest.mock("@/lib/env", () => ({
+  env: {
+    NODE_ENV: "test",
+    DATABASE_URL: "postgresql://test:test@localhost:5432/test",
+    IFLOW_API_KEY: "test-iflow-key",
+    IFLOW_BASE_URL: "https://api.models.dev/v1",
+    TAVILY_API_KEY: "test-tavily-key",
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "test-clerk-key",
+    CLERK_SECRET_KEY: "test-clerk-secret",
+    STRIPE_SECRET_KEY: "test-stripe-secret",
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "test-stripe-publishable",
+    GITHUB_ACCESS_TOKEN: "test-github-token",
+  },
+}));
+
 // Mock database and Redis
 jest.mock("@/lib/db", () => ({
   db: jest.fn(),

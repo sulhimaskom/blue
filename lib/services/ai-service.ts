@@ -2,6 +2,7 @@ import { env } from "../env";
 import { logger } from "../logger";
 import { monitoringService } from "../monitoring";
 import { AIErrorReporter } from "./ai-error-reporter";
+import { circuitBreakerRegistry, SERVICE_CONFIGS } from "../circuit-breaker";
 
 export interface AIModel {
   id: string;
@@ -48,6 +49,8 @@ export interface ResearchResult {
 class AIService {
   private readonly baseUrl: string;
   private readonly apiKey: string;
+  private readonly iflowCircuitBreaker;
+  private readonly tavilyCircuitBreaker;
 
   // AI Models defined in blueprint.md
   private readonly models = {
@@ -68,6 +71,17 @@ class AIService {
   constructor() {
     this.baseUrl = env.IFLOW_BASE_URL;
     this.apiKey = env.IFLOW_API_KEY;
+
+    // Initialize circuit breakers for external services
+    this.iflowCircuitBreaker = circuitBreakerRegistry.get(
+      SERVICE_CONFIGS.AI_IFLOW.name,
+      SERVICE_CONFIGS.AI_IFLOW.config,
+    );
+
+    this.tavilyCircuitBreaker = circuitBreakerRegistry.get(
+      SERVICE_CONFIGS.RESEARCH_TAVILY.name,
+      SERVICE_CONFIGS.RESEARCH_TAVILY.config,
+    );
   }
 
   /**
@@ -81,85 +95,106 @@ class AIService {
     const context = { requestId: `req_${Date.now().toString(36)}` };
 
     try {
-      // Default to reasoning model for complex tasks
-      const model = request.model || this.models.reasoning;
-      const maxTokens = request.maxTokens || model.maxTokens;
-
-      logger.info("AI completion request initiated", {
-        model: model.id,
-        promptLength: request.prompt.length,
-        maxTokens,
-        temperature: request.temperature || 0.7,
-      });
-
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: model.id,
-          messages: [
-            ...(request.context || []).map((content) => ({
-              role: "system" as const,
-              content,
-            })),
-            { role: "user" as const, content: request.prompt },
-          ],
-          temperature: request.temperature || 0.7,
-          max_tokens: maxTokens,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `IFlow API error: ${response.status} ${JSON.stringify(errorData)}`,
+      // Check circuit breaker state before making request
+      if (!this.iflowCircuitBreaker.isAvailable()) {
+        const metrics = this.iflowCircuitBreaker.getMetrics();
+        const error = new Error(
+          `AI service temporarily unavailable (circuit breaker: ${metrics.state})`,
         );
+
+        logger.warn("AI completion blocked by circuit breaker", {
+          circuitState: metrics.state,
+          failureCount: metrics.failureCount,
+          successRate: `${this.iflowCircuitBreaker.getSuccessRate()}%`,
+        });
+
+        throw error;
       }
 
-      const data = await response.json();
+      return await this.iflowCircuitBreaker.execute(async () => {
+        // Default to reasoning model for complex tasks
+        const model = request.model || this.models.reasoning;
+        const maxTokens = request.maxTokens || model.maxTokens;
 
-      const completion: AICompletionResponse = {
-        content: data.choices[0]?.message?.content || "",
-        model: data.model,
-        usage: {
-          promptTokens: data.usage?.prompt_tokens || 0,
-          completionTokens: data.usage?.completion_tokens || 0,
-          totalTokens: data.usage?.total_tokens || 0,
-        },
-      };
+        logger.info("AI completion request initiated", {
+          model: model.id,
+          promptLength: request.prompt.length,
+          maxTokens,
+          temperature: request.temperature || 0.7,
+          circuitState: this.iflowCircuitBreaker.getMetrics().state,
+        });
 
-      const duration = Date.now() - startTime;
+        const response = await fetch(`${this.baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: model.id,
+            messages: [
+              ...(request.context || []).map((content) => ({
+                role: "system" as const,
+                content,
+              })),
+              { role: "user" as const, content: request.prompt },
+            ],
+            temperature: request.temperature || 0.7,
+            max_tokens: maxTokens,
+          }),
+        });
 
-      logger.info("AI completion completed successfully", {
-        model: completion.model,
-        promptTokens: completion.usage.promptTokens,
-        completionTokens: completion.usage.completionTokens,
-        totalTokens: completion.usage.totalTokens,
-        duration: `${duration}ms`,
-        tokenPerSecond: Math.round(
-          (completion.usage.totalTokens / duration) * 1000,
-        ),
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            `IFlow API error: ${response.status} ${JSON.stringify(errorData)}`,
+          );
+        }
+
+        const data = await response.json();
+
+        const completion: AICompletionResponse = {
+          content: data.choices[0]?.message?.content || "",
+          model: data.model,
+          usage: {
+            promptTokens: data.usage?.prompt_tokens || 0,
+            completionTokens: data.usage?.completion_tokens || 0,
+            totalTokens: data.usage?.total_tokens || 0,
+          },
+        };
+
+        const duration = Date.now() - startTime;
+
+        logger.info("AI completion completed successfully", {
+          model: completion.model,
+          promptTokens: completion.usage.promptTokens,
+          completionTokens: completion.usage.completionTokens,
+          totalTokens: completion.usage.totalTokens,
+          duration: `${duration}ms`,
+          tokenPerSecond: Math.round(
+            (completion.usage.totalTokens / duration) * 1000,
+          ),
+          circuitState: this.iflowCircuitBreaker.getMetrics().state,
+          circuitSuccessRate: `${this.iflowCircuitBreaker.getSuccessRate()}%`,
+        });
+
+        // Track AI operation metrics
+        monitoringService.trackAIOperation("completion", duration, true, {
+          model: completion.model,
+          promptTokens: completion.usage.promptTokens,
+          completionTokens: completion.usage.completionTokens,
+          totalTokens: completion.usage.totalTokens,
+        });
+
+        // Report structured success for enhanced monitoring
+        AIErrorReporter.reportSuccess("completion", {
+          model: completion.model,
+          responseTime: duration,
+          tokens: completion.usage.totalTokens,
+        });
+
+        return completion;
       });
-
-      // Track AI operation metrics
-      monitoringService.trackAIOperation("completion", duration, true, {
-        model: completion.model,
-        promptTokens: completion.usage.promptTokens,
-        completionTokens: completion.usage.completionTokens,
-        totalTokens: completion.usage.totalTokens,
-      });
-
-      // Report structured success for enhanced monitoring
-      AIErrorReporter.reportSuccess("completion", {
-        model: completion.model,
-        responseTime: duration,
-        tokens: completion.usage.totalTokens,
-      });
-
-      return completion;
     } catch (error) {
       const duration = Date.now() - startTime;
 
@@ -167,6 +202,8 @@ class AIService {
         error: error instanceof Error ? error.message : String(error),
         model: request.model?.id || "unknown",
         duration: `${duration}ms`,
+        circuitState: this.iflowCircuitBreaker.getMetrics().state,
+        circuitSuccessRate: `${this.iflowCircuitBreaker.getSuccessRate()}%`,
       });
 
       // Report structured error for enhanced monitoring
@@ -195,65 +232,86 @@ class AIService {
     const context = { requestId: `req_${Date.now().toString(36)}` };
 
     try {
-      logger.info("Market research initiated", {
-        query: request.query,
-        maxResults: request.maxResults || 10,
-        includeImages: request.includeImages || false,
-      });
-
-      const response = await fetch("https://api.tavily.com/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          api_key: env.TAVILY_API_KEY,
-          query: request.query,
-          search_depth: "advanced",
-          include_answer: true,
-          include_raw_content: false,
-          max_results: request.maxResults || 10,
-          include_images: request.includeImages || false,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `Tavily API error: ${response.status} ${JSON.stringify(errorData)}`,
+      // Check circuit breaker state before making request
+      if (!this.tavilyCircuitBreaker.isAvailable()) {
+        const metrics = this.tavilyCircuitBreaker.getMetrics();
+        const error = new Error(
+          `Research service temporarily unavailable (circuit breaker: ${metrics.state})`,
         );
+
+        logger.warn("Market research blocked by circuit breaker", {
+          circuitState: metrics.state,
+          failureCount: metrics.failureCount,
+          successRate: `${this.tavilyCircuitBreaker.getSuccessRate()}%`,
+        });
+
+        throw error;
       }
 
-      const data = await response.json();
+      return await this.tavilyCircuitBreaker.execute(async () => {
+        logger.info("Market research initiated", {
+          query: request.query,
+          maxResults: request.maxResults || 10,
+          includeImages: request.includeImages || false,
+          circuitState: this.tavilyCircuitBreaker.getMetrics().state,
+        });
 
-      const result: ResearchResult = {
-        query: request.query,
-        results: data.results || [],
-        answer: data.answer || "",
-      };
+        const response = await fetch("https://api.tavily.com/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            api_key: env.TAVILY_API_KEY,
+            query: request.query,
+            search_depth: "advanced",
+            include_answer: true,
+            include_raw_content: false,
+            max_results: request.maxResults || 10,
+            include_images: request.includeImages || false,
+          }),
+        });
 
-      const duration = Date.now() - startTime;
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            `Tavily API error: ${response.status} ${JSON.stringify(errorData)}`,
+          );
+        }
 
-      logger.info("Market research completed successfully", {
-        query: request.query,
-        resultCount: result.results.length,
-        hasAnswer: Boolean(result.answer),
-        duration: `${duration}ms`,
+        const data = await response.json();
+
+        const result: ResearchResult = {
+          query: request.query,
+          results: data.results || [],
+          answer: data.answer || "",
+        };
+
+        const duration = Date.now() - startTime;
+
+        logger.info("Market research completed successfully", {
+          query: request.query,
+          resultCount: result.results.length,
+          hasAnswer: Boolean(result.answer),
+          duration: `${duration}ms`,
+          circuitState: this.tavilyCircuitBreaker.getMetrics().state,
+          circuitSuccessRate: `${this.tavilyCircuitBreaker.getSuccessRate()}%`,
+        });
+
+        // Track research operation metrics
+        monitoringService.trackAIOperation("research", duration, true, {
+          query: request.query,
+          resultCount: result.results.length,
+          hasAnswer: Boolean(result.answer),
+        });
+
+        // Report structured success for enhanced monitoring
+        AIErrorReporter.reportSuccess("research", {
+          responseTime: duration,
+        });
+
+        return result;
       });
-
-      // Track research operation metrics
-      monitoringService.trackAIOperation("research", duration, true, {
-        query: request.query,
-        resultCount: result.results.length,
-        hasAnswer: Boolean(result.answer),
-      });
-
-      // Report structured success for enhanced monitoring
-      AIErrorReporter.reportSuccess("research", {
-        responseTime: duration,
-      });
-
-      return result;
     } catch (error) {
       const duration = Date.now() - startTime;
 
@@ -261,6 +319,8 @@ class AIService {
         query: request.query,
         error: error instanceof Error ? error.message : String(error),
         duration: `${duration}ms`,
+        circuitState: this.tavilyCircuitBreaker.getMetrics().state,
+        circuitSuccessRate: `${this.tavilyCircuitBreaker.getSuccessRate()}%`,
       });
 
       // Report structured error for enhanced monitoring
@@ -300,14 +360,38 @@ class AIService {
 
       await this.generateCompletion(testRequest);
 
-      logger.info("AI service health check passed");
+      logger.info("AI service health check passed", {
+        iflowCircuitState: this.iflowCircuitBreaker.getMetrics().state,
+        tavilyCircuitState: this.tavilyCircuitBreaker.getMetrics().state,
+      });
       return true;
     } catch (error) {
       logger.error("AI service health check failed", {
         error: error instanceof Error ? error.message : String(error),
+        iflowCircuitState: this.iflowCircuitBreaker.getMetrics().state,
+        tavilyCircuitState: this.tavilyCircuitBreaker.getMetrics().state,
       });
       return false;
     }
+  }
+
+  /**
+   * Get circuit breaker metrics for monitoring
+   */
+  getCircuitBreakerMetrics() {
+    return {
+      iflow: this.iflowCircuitBreaker.getMetrics(),
+      tavily: this.tavilyCircuitBreaker.getMetrics(),
+    };
+  }
+
+  /**
+   * Reset circuit breakers (for manual recovery)
+   */
+  resetCircuitBreakers(): void {
+    this.iflowCircuitBreaker.reset();
+    this.tavilyCircuitBreaker.reset();
+    logger.info("AI service circuit breakers reset");
   }
 }
 

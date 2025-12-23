@@ -1,5 +1,6 @@
 import { logger, createRequestContext } from "@/lib/logger";
 import { monitoringService } from "@/lib/monitoring";
+import { circuitBreakerRegistry, SERVICE_CONFIGS } from "@/lib/circuit-breaker";
 
 /**
  * GitHub App Service
@@ -56,6 +57,15 @@ class GitHubServiceError extends Error {
 
 class GitHubService {
   private baseUrl = "https://api.github.com";
+  private circuitBreaker;
+
+  constructor() {
+    // Initialize circuit breaker for GitHub API
+    this.circuitBreaker = circuitBreakerRegistry.get(
+      SERVICE_CONFIGS.GITHUB_API.name,
+      SERVICE_CONFIGS.GITHUB_API.config,
+    );
+  }
 
   private getCredentials() {
     const appId = process.env.GITHUB_APP_ID || "";
@@ -170,90 +180,113 @@ class GitHubService {
     const startTime = Date.now();
 
     try {
-      // For now, use personal access token as fallback
-      // In production, you'd implement proper GitHub App installation flow
-      const token = process.env.GITHUB_ACCESS_TOKEN;
-
-      if (!token) {
-        throw new GitHubServiceError(
-          "GitHub authentication not available. Please contact administrator.",
+      // Check circuit breaker state before making request
+      if (!this.circuitBreaker.isAvailable()) {
+        const metrics = this.circuitBreaker.getMetrics();
+        const error = new GitHubServiceError(
+          `GitHub service temporarily unavailable (circuit breaker: ${metrics.state})`,
         );
+
+        logger.warn("Repository creation blocked by circuit breaker", {
+          requestId: context.requestId,
+          circuitState: metrics.state,
+          failureCount: metrics.failureCount,
+          successRate: `${this.circuitBreaker.getSuccessRate()}%`,
+        });
+
+        throw error;
       }
 
-      const repoData = {
-        name: config.name,
-        description: config.description,
-        private: config.isPrivate,
-        auto_init: true,
-        gitignore_template: "Node",
-        license_template: "MIT",
-      };
+      return await this.circuitBreaker.execute(async () => {
+        // For now, use personal access token as fallback
+        // In production, you'd implement proper GitHub App installation flow
+        const token = process.env.GITHUB_ACCESS_TOKEN;
 
-      logger.info("Creating GitHub repository", {
-        requestId: context.requestId,
-        org: config.org,
-        name: config.name,
-        isPrivate: config.isPrivate,
-      });
+        if (!token) {
+          throw new GitHubServiceError(
+            "GitHub authentication not available. Please contact administrator.",
+          );
+        }
 
-      // Create repository
-      const createResponse = await fetch(
-        `${this.baseUrl}/orgs/${config.org}/repos`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `token ${token}`,
-            Accept: "application/vnd.github.v3+json",
-            "Content-Type": "application/json",
-            "User-Agent": "Architect-Platform/1.0.0",
-          },
-          body: JSON.stringify(repoData),
-        },
-      );
+        const repoData = {
+          name: config.name,
+          description: config.description,
+          private: config.isPrivate,
+          auto_init: true,
+          gitignore_template: "Node",
+          license_template: "MIT",
+        };
 
-      if (!createResponse.ok) {
-        const error = await createResponse.text();
-        logger.error("Failed to create repository", {
+        logger.info("Creating GitHub repository", {
           requestId: context.requestId,
           org: config.org,
           name: config.name,
-          status: createResponse.status,
-          error,
+          isPrivate: config.isPrivate,
+          circuitState: this.circuitBreaker.getMetrics().state,
         });
-        throw new GitHubServiceError(
-          `Failed to create repository: ${createResponse.statusText}`,
-          createResponse.status,
-          error,
+
+        // Create repository
+        const createResponse = await fetch(
+          `${this.baseUrl}/orgs/${config.org}/repos`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `token ${token}`,
+              Accept: "application/vnd.github.v3+json",
+              "Content-Type": "application/json",
+              "User-Agent": "Architect-Platform/1.0.0",
+            },
+            body: JSON.stringify(repoData),
+          },
         );
-      }
 
-      const repo: GitHubCreateRepoResponse = await createResponse.json();
+        if (!createResponse.ok) {
+          const error = await createResponse.text();
+          logger.error("Failed to create repository", {
+            requestId: context.requestId,
+            org: config.org,
+            name: config.name,
+            status: createResponse.status,
+            error,
+            circuitState: this.circuitBreaker.getMetrics().state,
+          });
+          throw new GitHubServiceError(
+            `Failed to create repository: ${createResponse.statusText}`,
+            createResponse.status,
+            error,
+          );
+        }
 
-      // Create initial commit with blueprint
-      await this.createBlueprintCommit(repo, config, token);
+        const repo: GitHubCreateRepoResponse = await createResponse.json();
 
-      const duration = Date.now() - startTime;
+        // Create initial commit with blueprint
+        await this.createBlueprintCommit(repo, config, token);
 
-      logger.userAction("GitHub repository created", "system", {
-        requestId: context.requestId,
-        repoId: repo.id,
-        fullName: repo.full_name,
-        htmlUrl: repo.html_url,
+        const duration = Date.now() - startTime;
+
+        logger.userAction("GitHub repository created", "system", {
+          requestId: context.requestId,
+          repoId: repo.id,
+          fullName: repo.full_name,
+          htmlUrl: repo.html_url,
+          circuitState: this.circuitBreaker.getMetrics().state,
+          circuitSuccessRate: `${this.circuitBreaker.getSuccessRate()}%`,
+        });
+
+        // Track successful GitHub operation
+        monitoringService.trackGitHubOperation(
+          "create-repository",
+          true,
+          duration,
+          {
+            repoName: repo.full_name,
+            isPrivate: repo.private,
+            org: config.org,
+          },
+        );
+
+        return repo;
       });
-
-      // Track successful GitHub operation
-      monitoringService.trackGitHubOperation(
-        "create-repository",
-        true,
-        duration,
-        {
-          repoName: repo.full_name,
-          isPrivate: repo.private,
-          org: config.org,
-        },
-      );
-
-      return repo;
     } catch (error) {
       const duration = Date.now() - startTime;
 
@@ -261,7 +294,12 @@ class GitHubService {
         "Repository creation error",
         context.requestId,
         error as Error,
-        { org: config.org, name: config.name },
+        {
+          org: config.org,
+          name: config.name,
+          circuitState: this.circuitBreaker.getMetrics().state,
+          circuitSuccessRate: `${this.circuitBreaker.getSuccessRate()}%`,
+        },
       );
 
       // Track failed GitHub operation
