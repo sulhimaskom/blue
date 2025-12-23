@@ -7,6 +7,7 @@ import {
   formatErrorResponse,
   DatabaseError,
 } from "@/lib/api-utils";
+import { logger, createRequestContext } from "@/lib/logger";
 
 // Simple webhook verification for now - enhanced implementation in Phase 4
 function verifyStripeWebhook(_body: string, signature: string): boolean {
@@ -15,6 +16,8 @@ function verifyStripeWebhook(_body: string, signature: string): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  const context = createRequestContext();
+
   try {
     const body = await req.text();
     const signature = req.headers.get("stripe-signature") || "";
@@ -61,7 +64,17 @@ export async function POST(req: NextRequest) {
               stripePaymentId: event.data.object.id,
             });
 
-            console.log("Payment processed for user:", metadata.userId);
+            logger.userAction(
+              "Payment processed via webhook",
+              metadata.userId,
+              {
+                requestId: context.requestId,
+                paymentIntent: event.data.object.id,
+                amount: event.data.object.amount / 100,
+                creditsAdded: creditsToAdd,
+                eventType: "payment_intent.succeeded",
+              },
+            );
           }
         }
       }
@@ -71,17 +84,31 @@ export async function POST(req: NextRequest) {
         const { subscription } = event.data.object;
 
         // Enhanced subscription handling in Phase 4
-        console.log("Subscription payment processed:", subscription);
+        logger.systemEvent("Subscription payment processed via webhook", {
+          requestId: context.requestId,
+          subscription,
+          eventType: "invoice.payment_succeeded",
+        });
       }
 
       return formatSuccessResponse({ received: true });
     } catch (error) {
-      console.error("Stripe webhook processing failed:", error);
+      logger.apiError(
+        "Stripe webhook processing failed",
+        context.requestId,
+        error as Error,
+        {
+          endpoint: "/api/webhooks/stripe",
+          eventType: event?.type,
+        },
+      );
       const errorResponse = new DatabaseError("Invalid webhook payload");
       return formatErrorResponse(errorResponse);
     }
   } catch (error) {
-    console.error("Stripe webhook error:", error);
+    logger.apiError("Stripe webhook error", context.requestId, error as Error, {
+      endpoint: "/api/webhooks/stripe",
+    });
     return formatErrorResponse(new DatabaseError("Webhook processing failed"));
   }
 }

@@ -7,6 +7,7 @@ import {
   formatErrorResponse,
   DatabaseError,
 } from "@/lib/api-utils";
+import { logger, createRequestContext } from "@/lib/logger";
 
 // Simple webhook verification for now - enhanced implementation in Phase 4
 function verifyWebhook(_body: string, headers: Headers): boolean {
@@ -18,6 +19,8 @@ function verifyWebhook(_body: string, headers: Headers): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  const context = createRequestContext();
+
   try {
     const body = await req.text();
     const headers = req.headers;
@@ -38,7 +41,11 @@ export async function POST(req: NextRequest) {
         const primaryEmail = email_addresses[0]?.email_address;
 
         if (!primaryEmail) {
-          console.error("No email found for user creation:", id);
+          logger.error("No email found for user creation", {
+            requestId: context.requestId,
+            clerkId: id,
+            eventType: "user.created",
+          });
           const error = new DatabaseError("No email provided");
           return formatErrorResponse(error);
         }
@@ -62,7 +69,13 @@ export async function POST(req: NextRequest) {
             })
             .returning();
 
-          console.log("New user created:", newUser.id);
+          logger.userAction("New user created via webhook", newUser.clerkId, {
+            requestId: context.requestId,
+            userId: newUser.id,
+            email: primaryEmail,
+            creditsGiven: 5,
+            eventType: "user.created",
+          });
         }
       }
 
@@ -71,7 +84,11 @@ export async function POST(req: NextRequest) {
         const { id } = event.data;
 
         await database.delete(users).where(eq(users.clerkId, id));
-        console.log("User deleted:", id);
+        logger.systemEvent("User deleted via webhook", {
+          requestId: context.requestId,
+          clerkId: id,
+          eventType: "user.deleted",
+        });
       }
 
       // Handle user email update
@@ -85,18 +102,33 @@ export async function POST(req: NextRequest) {
             .set({ email: primaryEmail })
             .where(eq(users.clerkId, id));
 
-          console.log("User email updated:", id);
+          logger.userAction("User email updated via webhook", id, {
+            requestId: context.requestId,
+            clerkId: id,
+            newEmail: primaryEmail,
+            eventType: "user.updated",
+          });
         }
       }
 
       return formatSuccessResponse({ received: true });
     } catch (error) {
-      console.error("Webhook processing failed:", error);
+      logger.apiError(
+        "Webhook processing failed",
+        context.requestId,
+        error as Error,
+        {
+          endpoint: "/api/webhooks/clerk",
+          eventType: event?.type,
+        },
+      );
       const errorResponse = new DatabaseError("Invalid webhook payload");
       return formatErrorResponse(errorResponse);
     }
   } catch (error) {
-    console.error("Clerk webhook error:", error);
+    logger.apiError("Clerk webhook error", context.requestId, error as Error, {
+      endpoint: "/api/webhooks/clerk",
+    });
     return formatErrorResponse(new DatabaseError("Webhook processing failed"));
   }
 }

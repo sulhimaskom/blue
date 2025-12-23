@@ -12,6 +12,7 @@ import {
   AuthenticationError,
   DatabaseError,
 } from "@/lib/api-utils";
+import { logger, createRequestContext } from "@/lib/logger";
 
 const refineBlueprintSchema = z.object({
   feedback: z
@@ -26,12 +27,18 @@ interface RouteParams {
 }
 
 export async function PUT(req: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
+  const context = createRequestContext();
+  let user: { id: string } | null = null;
+  const { id } = await params;
 
+  try {
     // Authentication check
-    const user = await currentUser();
+    user = await currentUser();
     if (!user?.id) {
+      logger.security("Authentication failed for blueprint refinement", {
+        requestId: context.requestId,
+        blueprintId: id,
+      });
       throw new AuthenticationError("Authentication required");
     }
 
@@ -64,7 +71,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       throw new AuthenticationError("Blueprint not found or access denied");
     }
 
-    const { blueprint } = projectWithBlueprint[0];
+    const { blueprint, project } = projectWithBlueprint[0];
 
     // Create new version of blueprint with refinement
     const currentVersion = blueprint.version;
@@ -87,14 +94,32 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       })
       .returning();
 
+    logger.userAction("Blueprint refined", user!.id, {
+      requestId: context.requestId,
+      blueprintId: refinedBlueprint.id,
+      version: refinedBlueprint.version,
+      updateType: validation.data.updateType,
+    });
+
     return formatSuccessResponse({
+      blueprint: refinedBlueprint,
+      project,
       blueprintId: refinedBlueprint.id,
       version: refinedBlueprint.version,
       message:
         "Blueprint refined successfully. Enhanced AI refinement will be available in Phase 3.",
     });
   } catch (error) {
-    console.error("Blueprint refinement error:", error);
+    logger.apiError(
+      "Blueprint refinement error",
+      context.requestId,
+      error as Error,
+      {
+        userId: user?.id,
+        blueprintId: id,
+        endpoint: "/api/blueprints/[id]",
+      },
+    );
 
     if (
       error instanceof ValidationError ||
@@ -111,12 +136,18 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 }
 
 export async function GET(_req: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
+  const context = createRequestContext();
+  let user: { id: string } | null = null;
+  const { id } = await params;
 
+  try {
     // Authentication check
-    const user = await currentUser();
+    user = await currentUser();
     if (!user?.id) {
+      logger.security("Authentication failed for blueprint fetch", {
+        requestId: context.requestId,
+        blueprintId: id,
+      });
       throw new AuthenticationError("Authentication required");
     }
 
@@ -148,6 +179,13 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
       .where(eq(blueprints.projectId, blueprint.projectId))
       .orderBy(blueprints.version);
 
+    logger.userAction("Blueprint details fetched", user!.id, {
+      requestId: context.requestId,
+      blueprintId: id,
+      project: project.name,
+      versionsCount: allVersions.length,
+    });
+
     return formatSuccessResponse({
       blueprint,
       project,
@@ -155,7 +193,16 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
       message: "Blueprint details retrieved successfully",
     });
   } catch (error) {
-    console.error("Blueprint fetch error:", error);
+    logger.apiError(
+      "Blueprint fetch error",
+      context.requestId,
+      error as Error,
+      {
+        userId: user?.id,
+        blueprintId: id,
+        endpoint: "/api/blueprints/[id]",
+      },
+    );
 
     if (error instanceof AuthenticationError) {
       return formatErrorResponse(error);

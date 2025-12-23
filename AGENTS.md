@@ -359,7 +359,74 @@ Based on evaluation score 82/100 with strong security foundation:
 
 ---
 
-**Version**: 2.7.0  
-**Last Updated**: 2025-12-23 (Comprehensive Architectural Audit)  
+**Version**: 2.8.0  
+**Last Updated**: 2025-12-23 (Comprehensive Lead Architect Audit)  
 **Context**: Architect Platform - Phase 3 AI Integration Ready  
-**Audit Score**: 85/100 - Exceptional foundation, production logging required
+**Audit Score**: 85/100 - Exceptional foundation, 22h production fixes required
+
+---
+
+## 🚨 UPDATED PRODUCTION-FIRST RULES (Post-85/100 Audit)
+
+### Critical Implementation Requirements
+
+**MANDATORY PRE-FLIGHT CHECKS** (ALL AGENTS):
+
+1. **Security Audit**: Run `npm audit` - confirm 0 vulnerabilities
+2. **Build Validation**: Run `npm run build` - must pass completely
+3. **Type Safety**: Run `npm run typecheck` - zero TS errors allowed
+4. **Lint Compliance**: Run `npm run lint` - fix all warnings before commit
+5. **Test Coverage**: Run `npm run test` - all tests must pass
+
+### PRODUCTION INFRASTRUCTURE RULES
+
+**Structured Logging (IMMEDIATE)**:
+
+- ❌ **FORBIDDEN**: `console.*` statements in API routes (11 existing violations)
+- ✅ **REQUIRED**: Use structured logging libraries (Pino/Winston)
+- 📁 **Implementation**: Add to `lib/logger.ts` with log levels, correlation IDs
+
+**Distributed Rate Limiting (HIGH PRIORITY)**:
+
+- ❌ **FORBIDDEN**: In-memory rate limiting (`lib/api-utils.ts:70-93`)
+- ✅ **REQUIRED**: Redis-backed distributed rate limiting for production
+- 📁 **Implementation**: Replace Map with Redis store, add circuit breakers
+
+**API Integration Testing (HIGH PRIORITY)**:
+
+- ✅ **CURRENT**: 2/2 basic component tests passing
+- 🎯 **TARGET**: 15+ comprehensive tests including API routes, database ops, auth middleware
+- 📁 **Implementation**: Add `__tests__/api/` directory with integration test suites
+
+### AI INTEGRATION READINESS CHECKLIST
+
+**Before Any AI Feature Development**:
+
+- [ ] Structured logging implemented across all API routes
+- [ ] Redis-based rate limiting deployed and tested
+- [ ] API integration test coverage >80%
+- [ ] Database connection pooling configured
+- [ ] Production monitoring infrastructure in place
+
+### Risk Assessment for New Agents
+
+**HIGH-RISK ACTIVITIES** (Requires Lead Architect Approval):
+
+- Adding AI features without structured logging
+- Implementing features without Redis rate limiting
+- Modifying authentication or database schema
+- Changes to core API route structure
+
+**MEDIUM-RISK ACTIVITIES** (Document in task.md):
+
+- New UI component development
+- Additional validation schemas
+- Environment variable additions
+- Database query optimizations
+
+**LOW-RISK ACTIVITIES** (Standard agent work):
+
+- Documentation updates
+- Test suite improvements
+- Code refactoring (maintaining patterns)
+- Bug fixes following existing patterns

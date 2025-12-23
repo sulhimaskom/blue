@@ -42,7 +42,7 @@ export function createAPIRoute<T>(options: {
         );
         const identifier =
           userId || req.headers.get("x-forwarded-for") || "unknown";
-        const rateLimitResult = rateLimiter(identifier);
+        const rateLimitResult = await rateLimiter(identifier);
 
         if (!rateLimitResult.allowed) {
           throw new ValidationError("Rate limit exceeded", 429);

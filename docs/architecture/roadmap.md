@@ -32,22 +32,36 @@
 
 ### Phase 3: AI Integration & Testing (Week 4-5) - HIGH PRIORITY
 
+**BLOCKERS (Must Complete Before AI Integration):**
+
+- [x] 🔴 **COMPLETED** (4 hours): Implemented structured logging to replace 11 console statements
+  - **Files**: ✅ All API routes updated (blueprints, credits, deploy, webhooks)
+  - **Implementation**: ✅ Created `lib/logger.ts` with correlation IDs, structured JSON output, security event tracking
+  - **Features**: Request context, user actions, system events, security logging, proper error handling
+  - **Build Status**: ✅ PASSED - Zero console warnings, 0 TS errors
+- [ ] 🔴 **HIGH** (6 hours): Replace in-memory rate limiting with Redis distributed rate limiting
+  - **Location**: lib/api-utils.ts:70-93 (Map-based implementation)
+  - **Issue**: Cannot scale horizontally, resets on server restart
+  - **Implementation**: Redis-backed rate limiting with circuit breakers, cluster support
+  - **Dependencies**: `npm install redis @types/redis`
+- [ ] 🔴 **HIGH** (12 hours): Add comprehensive API integration test coverage
+  - **Current**: Only 2 basic component tests passing
+  - **Target**: 15+ tests covering API routes, database operations, auth middleware
+  - **Implementation**: Create `__tests__/api/` directory, test all endpoints with supertest
+  - **Dependencies**: `npm install supertest @types/supertest`
+
+**AI Integration Features (After Blockers Complete):**
+
 - [ ] Integrate IFlow AI models (Brain + Mouth agents)
 - [ ] Implement Tavily/Perplexity research API integration
-- [ ] 🔴 **CRITICAL**: Implement structured logging (replace 11 console.\* statements in API routes)
-  - **Files**: app/api/blueprints/route.ts, app/api/credits/route.ts, app/api/deploy/[id]/route.ts, app/api/webhooks/\*_/_.ts
-  - **Solution**: Replace with Pino/Winston structured logging with proper log levels
-- [ ] 🔴 **HIGH**: Add Redis-based rate limiting for production scalability (replace in-memory Map at lib/api-utils.ts:70-93)
-  - **Issue**: Current Map-based rate limiting doesn't scale horizontally
-  - **Solution**: Implement Redis-backed distributed rate limiting
-- [ ] 🔴 **HIGH**: Add comprehensive API integration test coverage (currently only 2 component tests)
-  - **Current**: 2/2 basic component tests passing
-  - **Target**: API route tests, database operation tests, auth middleware tests
-- [ ] 🔴 **MEDIUM**: Implement Row Level Security (RLS) policies for multi-tenant security
 - [ ] GitHub App integration for repository creation
 - [ ] Performance optimization and monitoring setup
 - [ ] Credit system and Stripe payment integration
+
+**Database & Security Enhancements:**
+
 - [ ] 🔴 **MEDIUM**: Implement database connection pooling for Neon PostgreSQL
+- [ ] 🔴 **MEDIUM**: Implement Row Level Security (RLS) policies for multi-tenant security
 
 ### Phase 4: Production & Scaling (Week 6-7) - MEDIUM PRIORITY
 

@@ -13,6 +13,7 @@ import { db } from "@/lib/db";
 import { users, projects, blueprints } from "@/lib/db/schema";
 import { eq, count } from "drizzle-orm";
 import { z } from "zod";
+import { logger, createRequestContext } from "@/lib/logger";
 
 // Rate limiting: 3 requests per minute for blueprint generation
 const blueprintRateLimiter = RateLimiter(3, 60 * 1000);
@@ -29,10 +30,16 @@ const generateBlueprintSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const context = createRequestContext();
+  let user: { id: string } | null = null;
+
   try {
     // Authentication check
-    const user = await currentUser();
+    user = await currentUser();
     if (!user?.id) {
+      logger.security("Authentication failed - missing user", {
+        requestId: context.requestId,
+      });
       throw new AuthenticationError("Authentication required");
     }
 
@@ -41,10 +48,16 @@ export async function POST(req: NextRequest) {
       req.headers.get("x-forwarded-for") ||
       req.headers.get("x-real-ip") ||
       "unknown";
-    const rateLimitCheck = blueprintRateLimiter(
+    const rateLimitCheck = await blueprintRateLimiter(
       `blueprint:${user.id}:${clientIp}`,
     );
     if (!rateLimitCheck.allowed) {
+      logger.security("Blueprint generation rate limit exceeded", {
+        requestId: context.requestId,
+        userId: user.id,
+        clientIp,
+        resetTime: rateLimitCheck.resetTime,
+      });
       throw new ValidationError(
         `Rate limit exceeded. Try again in ${Math.ceil((rateLimitCheck.resetTime! - Date.now()) / 1000)} seconds.`,
         429,
@@ -74,6 +87,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (userRecord.credits < 1) {
+      logger.warn("Blueprint generation blocked - insufficient credits", {
+        requestId: context.requestId,
+        userId: user.id,
+        currentCredits: userRecord.credits,
+      });
       throw new ValidationError(
         "Insufficient credits. Please upgrade your plan.",
       );
@@ -93,6 +111,12 @@ export async function POST(req: NextRequest) {
       .returning();
 
     if (!newProject) {
+      logger.error("Project creation failed", {
+        requestId: context.requestId,
+        userId: user.id,
+        projectName,
+        input: input.substring(0, 100),
+      });
       throw new DatabaseError("Failed to create project");
     }
 
@@ -120,6 +144,14 @@ export async function POST(req: NextRequest) {
       .set({ credits: userRecord.credits - 1 })
       .where(eq(users.clerkId, user.id));
 
+    logger.userAction("Blueprint generation initiated", user!.id, {
+      requestId: context.requestId,
+      projectId: newProject.id,
+      blueprintId: placeholderBlueprint.id,
+      creditsDeducted: 1,
+      remainingCredits: userRecord.credits - 1,
+    });
+
     return formatSuccessResponse({
       projectId: newProject.id,
       blueprintId: placeholderBlueprint.id,
@@ -128,7 +160,15 @@ export async function POST(req: NextRequest) {
         "Blueprint generation initiated. Current implementation creates a placeholder until AI integration in Phase 3.",
     });
   } catch (error) {
-    console.error("Blueprint generation error:", error);
+    logger.apiError(
+      "Blueprint generation error",
+      context.requestId,
+      error as Error,
+      {
+        userId: user?.id,
+        endpoint: "/api/blueprints",
+      },
+    );
 
     if (
       error instanceof ValidationError ||
@@ -145,9 +185,15 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
+  const context = createRequestContext();
+  let user: { id: string } | null = null;
+
   try {
-    const user = await currentUser();
+    user = await currentUser();
     if (!user?.id) {
+      logger.security("Authentication failed for projects fetch", {
+        requestId: context.requestId,
+      });
       throw new AuthenticationError("Authentication required");
     }
 
@@ -185,13 +231,21 @@ export async function GET() {
       }),
     );
 
+    logger.userAction("Projects fetched", user!.id, {
+      requestId: context.requestId,
+      projectCount: projectsWithBlueprints.length,
+    });
+
     return formatSuccessResponse({
       projects: projectsWithBlueprints,
       credits: userRecord[0].credits,
       subscriptionTier: userRecord[0].subscriptionTier,
     });
   } catch (error) {
-    console.error("Projects fetch error:", error);
+    logger.apiError("Projects fetch error", context.requestId, error as Error, {
+      userId: user?.id,
+      endpoint: "/api/blueprints",
+    });
 
     if (error instanceof AuthenticationError) {
       return formatErrorResponse(error);

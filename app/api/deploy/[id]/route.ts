@@ -12,6 +12,7 @@ import {
   AuthenticationError,
   DatabaseError,
 } from "@/lib/api-utils";
+import { logger, createRequestContext } from "@/lib/logger";
 
 const deployRepoSchema = z.object({
   githubOrg: z
@@ -29,12 +30,18 @@ interface RouteParams {
 }
 
 export async function POST(req: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
+  const context = createRequestContext();
+  let user: { id: string } | null = null;
+  const { id } = await params;
 
+  try {
     // Authentication check
-    const user = await currentUser();
+    user = await currentUser();
     if (!user?.id) {
+      logger.security("Authentication failed for project deployment", {
+        requestId: context.requestId,
+        projectId: id,
+      });
       throw new AuthenticationError("Authentication required");
     }
 
@@ -65,6 +72,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     const { project } = projectDetails[0];
 
     if (project.status === "completed" || project.status === "deployed") {
+      logger.warn("Project deployment attempted on already deployed project", {
+        requestId: context.requestId,
+        userId: user.id,
+        projectId: id,
+        currentStatus: project.status,
+      });
       throw new ValidationError("Project is already deployed");
     }
 
@@ -81,6 +94,15 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       .where(eq(projects.id, id))
       .returning();
 
+    logger.userAction("Repository deployment initiated", user!.id, {
+      requestId: context.requestId,
+      projectId: id,
+      repoUrl: mockRepoUrl,
+      githubOrg,
+      repoName,
+      isPrivate,
+    });
+
     return formatSuccessResponse({
       projectId: updatedProject.id,
       repoUrl: updatedProject.repoUrl,
@@ -95,7 +117,16 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Repository deployment error:", error);
+    logger.apiError(
+      "Repository deployment error",
+      context.requestId,
+      error as Error,
+      {
+        userId: user?.id,
+        projectId: id,
+        endpoint: "/api/deploy/[id]",
+      },
+    );
 
     if (
       error instanceof ValidationError ||
@@ -112,11 +143,13 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 }
 
 export async function GET(_req: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
+  const context = createRequestContext();
+  let user: { id: string } | null = null;
+  const { id } = await params;
 
+  try {
     // Authentication check
-    const user = await currentUser();
+    user = await currentUser();
     if (!user?.id) {
       throw new AuthenticationError("Authentication required");
     }
@@ -140,6 +173,13 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 
     const { project } = projectDetails[0];
 
+    logger.userAction("Project status fetched", user!.id, {
+      requestId: context.requestId,
+      projectId: id,
+      status: project.status,
+      isDeployed: project.status === "deployed",
+    });
+
     return formatSuccessResponse({
       projectId: project.id,
       name: project.name,
@@ -156,7 +196,16 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
           : "Ready for deployment. GitHub App integration will be available in Phase 3.",
     });
   } catch (error) {
-    console.error("Project status fetch error:", error);
+    logger.apiError(
+      "Project status fetch error",
+      context.requestId,
+      error as Error,
+      {
+        userId: user?.id,
+        projectId: id,
+        endpoint: "/api/deploy/[id]",
+      },
+    );
 
     if (error instanceof AuthenticationError) {
       return formatErrorResponse(error);
