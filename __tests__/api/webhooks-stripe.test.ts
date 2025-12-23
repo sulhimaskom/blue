@@ -143,11 +143,17 @@ describe("/api/webhooks/stripe", () => {
       ) as NextRequest;
       (request as any).text = jest
         .fn()
-        .mockResolvedValue(JSON.stringify(proTierEvent));
+        .mockResolvedValue(JSON.stringify(paymentIntentSucceededEvent));
 
       // Act
       const response = await POST(request);
       const responseData = await response.json();
+
+      // Debug if request failed
+      if (response.status !== 200) {
+        console.log("❌ Test failed with status:", response.status);
+        console.log("Error response:", responseData);
+      }
 
       // Assert
       expect(response.status).toBe(200);
