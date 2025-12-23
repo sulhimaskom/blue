@@ -13,11 +13,15 @@
 
 ### Phase 2: Security & Database Foundation (Week 2-3) - HIGH PRIORITY
 
-- [ ] 🔴 Implement Clerk authentication system (Clerk integration)
+- [ ] 🔴 **CRITICAL**: Fix security vulnerabilities (Next.js 15.0.3 → 15.5.9+)
+- [ ] 🔴 Implement Clerk authentication system (app/layout.tsx integration)
+- [ ] 🔴 Add authentication middleware for protected routes
 - [ ] 🔴 Setup Neon PostgreSQL database with Drizzle ORM
-- [ ] 🔴 Implement basic API route handlers (Server Actions)
-- [ ] 🔴 Add input validation and error handling foundations
+- [ ] 🔴 Create database schema blueprint.md:76-123 (users, projects, blueprints, transactions)
 - [ ] 🔴 Implement Row Level Security (RLS) policies
+- [ ] 🔴 Add input validation middleware (Zod schemas)
+- [ ] 🔴 Implement basic API route handlers (Server Actions)
+- [ ] 🔴 Add comprehensive error handling foundations
 - [ ] Create basic UI components (shadcn/ui setup)
 - [ ] Implement blueprint generation engine (core AI logic)
 
@@ -46,7 +50,7 @@
 | Phase | Progress | Notes                                            |
 | ----- | -------- | ------------------------------------------------ |
 | 1     | 100%     | ✅ MVP codebase complete, build system validated |
-| 2     | 0%       | Not started - needs security foundations         |
+| 2     | 0%       | Not started - CRITICAL security patches required |
 | 3     | 0%       | Not started - depends on Phase 2 completion      |
 | 4     | 0%       | Not started - depends on full feature pipeline   |
 
