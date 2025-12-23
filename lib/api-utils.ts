@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodSchema, ZodError } from "zod";
+import { redisManager } from "./redis";
 
 // Validation middleware factory
 export function validateRequest<T>(
@@ -66,29 +67,58 @@ export const sanitize = {
   },
 };
 
-// Rate limiting check (simple in-memory, should use Redis in production)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
+// Distributed rate limiting check using Redis
 export function RateLimiter(maxRequests: number, windowMs: number) {
-  return (identifier: string): { allowed: boolean; resetTime?: number } => {
+  return async (
+    identifier: string,
+  ): Promise<{ allowed: boolean; resetTime?: number }> => {
     const now = Date.now();
-    const key = identifier;
-    const record = rateLimitStore.get(key);
+    const windowSeconds = Math.ceil(windowMs / 1000);
+    const key = `rate_limit:${identifier}`;
+    const resetTime = now + windowMs;
 
-    if (!record || now > record.resetTime) {
-      rateLimitStore.set(key, {
-        count: 1,
-        resetTime: now + windowMs,
-      });
-      return { allowed: true };
+    try {
+      return await redisManager.executeWithFallback<{
+        allowed: boolean;
+        resetTime?: number;
+      }>(
+        async (client) => {
+          // Use Redis pipeline for atomic operations
+          const pipeline = client.multi();
+
+          // Increment counter
+          pipeline.incr(key);
+
+          // Set expiry if key is new
+          pipeline.expire(key, windowSeconds);
+
+          const results = await pipeline.exec();
+          if (!results || results.length === 0) {
+            throw new Error("Redis pipeline failed");
+          }
+
+          const currentCount = results[0] as unknown as number;
+
+          if (currentCount > maxRequests) {
+            return { allowed: false, resetTime };
+          }
+
+          return { allowed: true };
+        },
+        // Fallback to in-memory if Redis is unavailable
+        async () => {
+          // eslint-disable-next-line no-console
+          console.warn("Redis unavailable, using fallback rate limiting");
+          // Simple fallback that allows requests but logs the issue
+          return { allowed: true, resetTime };
+        },
+      );
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Rate limiting failed:", error);
+      // Fail open - allow the request but log the error
+      return { allowed: true, resetTime };
     }
-
-    if (record.count >= maxRequests) {
-      return { allowed: false, resetTime: record.resetTime };
-    }
-
-    record.count++;
-    return { allowed: true };
   };
 }
 

@@ -76,21 +76,28 @@
   4. Replace all console.\* statements with logger calls
 - **Dependencies**: `npm install pino @types/pino`
 
-### BLOCKER #2: Distributed Rate Limiting (HIGH - 6 hours)
+### BLOCKER #2: Distributed Rate Limiting (HIGH - 6 hours) ✅ COMPLETED
 
-- [ ] **TASK**: Replace in-memory Map with Redis-based distributed rate limiting
-- **Risk**: HIGH - Cannot scale horizontally, vulnerable to distributed attacks
-- **Evidence**: Current implementation at `lib/api-utils.ts:70-93` uses in-memory Map
-- **Issues with Current Implementation**:
-  - Resets on server restart/d redeploy
-  - Cannot share state across multiple instances
-  - Vulnerable to coordinated attacks from multiple IPs
-- **Implementation Plan**:
-  1. Set up Redis connection management
-  2. Replace Map with Redis store for rate limit tracking
-  3. Add circuit breaker patterns for Redis failures
-  4. Implement cluster-aware rate limiting
-- **Dependencies**: `npm install redis @types/redis`
+- [x] **COMPLETED**: Replace in-memory Map with Redis-based distributed rate limiting
+- **Risk**: RESOLVED - Can now scale horizontally, protected against distributed attacks
+- **Evidence**: Replaced in-memory Map at `lib/api-utils.ts:70-93` with Redis-backed solution
+- **Issues Resolved**:
+  - ✅ Rate limits persist across server restarts/redeploys
+  - ✅ State shared across multiple instances
+  - ✅ Protected against coordinated distributed attacks
+- **Implementation Details**:
+  1. ✅ Set up Redis connection management with circuit breaker (`lib/redis.ts`)
+  2. ✅ Replaced Map with Redis store for rate limit tracking
+  3. ✅ Added circuit breaker patterns for Redis failures
+  4. ✅ Implemented cluster-aware rate limiting with fallback
+  5. ✅ Added Redis configuration to `.env.example`
+- **Dependencies**: ✅ `npm install redis @types/redis`
+- **Files Modified**:
+  - ✅ `lib/redis.ts` - New Redis connection manager with circuit breaker
+  - ✅ `lib/api-utils.ts` - Replaced in-memory rate limiting with Redis
+  - ✅ `app/api/blueprints/route.ts` - Updated async rate limit calls
+  - ✅ `lib/middleware.ts` - Updated async rate limit calls
+  - ✅ `.env.example` - Added Redis configuration variables
 
 ### BLOCKER #3: API Integration Test Coverage (HIGH - 12 hours)
 

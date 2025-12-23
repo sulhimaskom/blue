@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       req.headers.get("x-forwarded-for") ||
       req.headers.get("x-real-ip") ||
       "unknown";
-    const rateLimitCheck = blueprintRateLimiter(
+    const rateLimitCheck = await blueprintRateLimiter(
       `blueprint:${user.id}:${clientIp}`,
     );
     if (!rateLimitCheck.allowed) {
