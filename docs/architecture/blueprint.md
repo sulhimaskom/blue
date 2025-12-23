@@ -143,6 +143,14 @@ CREATE TABLE transactions (
 - `/api/webhooks/stripe`: Handle subscription updates.
 - `/api/webhooks/github`: Listen for deployment success (optional).
 
+### 4.3 GitHub App Integration ✅ IMPLEMENTED
+
+- **Repository Creation**: `/api/deploy/[id]` creates repositories via GitHub App API
+- **Blueprint Injection**: Automatically adds `docs/architecture/blueprint.md` to generated repos
+- **Authentication**: GitHub App with fallback to personal access token
+- **Error Handling**: Comprehensive error handling with proper status codes and logging
+- **Service Layer**: `lib/services/github-service.ts` handles all GitHub operations
+
 ---
 
 ## 5. Security Protocols
@@ -186,6 +194,7 @@ CREATE TABLE transactions (
 2.  **Integration**: GitHub App "Repo Creator" logic.
 3.  **Platform**: Dashboard UI & Auth.
 4.  **Monetization**: Credit system & Stripe.
+5.  **Deployment**: GitHub App integration for repository creation ✅ COMPLETE.
 
 ---
 
