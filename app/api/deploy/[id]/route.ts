@@ -1,7 +1,4 @@
 import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { projects, users, blueprints } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import {
@@ -10,6 +7,7 @@ import {
 } from "@/lib/services/github-service";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ValidationError } from "@/lib/api-utils";
+import { ProjectDataService } from "@/lib/services/project-data-service";
 
 const deployRepoSchema = z.object({
   githubOrg: z
@@ -34,24 +32,13 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     requireAuth: true,
     handler: async ({ context, user, data }) => {
       const { githubOrg, repoName, isPrivate } = data!;
-      const database = db();
 
       // Verify user owns the project
-      const projectDetails = await database
-        .select({
-          project: projects,
-          user: users,
-        })
-        .from(projects)
-        .innerJoin(users, eq(projects.ownerId, users.id))
-        .where(and(eq(projects.id, id), eq(users.clerkId, user!.clerkId)))
-        .limit(1);
-
-      if (!projectDetails.length) {
-        throw new ValidationError("Project not found or access denied");
-      }
-
-      const { project } = projectDetails[0];
+      const projectDetails = await ProjectDataService.verifyProjectOwnership(
+        id,
+        user!.clerkId,
+      );
+      const { project } = projectDetails;
 
       if (project.status === "completed" || project.status === "deployed") {
         logger.warn(
@@ -67,22 +54,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       }
 
       // Get the latest blueprint content
-      const [latestBlueprint] = await database
-        .select()
-        .from(blueprints)
-        .where(eq(blueprints.projectId, id))
-        .orderBy(blueprints.version)
-        .limit(1);
-
-      if (!latestBlueprint) {
-        throw new ValidationError("No blueprint found for this project");
-      }
+      const latestBlueprint = await ProjectDataService.getLatestBlueprint(id);
 
       // Update project status to generating
-      await database
-        .update(projects)
-        .set({ status: "generating" })
-        .where(eq(projects.id, id));
+      await ProjectDataService.updateProjectStatus(id, "generating");
 
       logger.info("Starting GitHub repository creation", {
         requestId: context.requestId,
@@ -103,14 +78,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           blueprintContent: latestBlueprint.contentMarkdown,
         });
 
-        const [updatedProject] = await database
-          .update(projects)
-          .set({
-            status: "deployed",
-            repoUrl: repo.html_url,
-          })
-          .where(eq(projects.id, id))
-          .returning();
+        const updatedProject = await ProjectDataService.updateProjectDeployment(
+          id,
+          repo.html_url,
+        );
 
         logger.userAction("Repository deployment successful", user!.clerkId, {
           requestId: context.requestId,
@@ -139,10 +110,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         };
       } catch (error) {
         // Reset project status on failure
-        await database
-          .update(projects)
-          .set({ status: "completed" })
-          .where(eq(projects.id, id));
+        await ProjectDataService.updateProjectStatus(id, "completed");
 
         if (error instanceof GitHubServiceError) {
           logger.error("GitHub service error during deployment", {
@@ -169,24 +137,12 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
   return APIRouteHandler.createGETHandler({
     requireAuth: true,
     handler: async ({ context, user }) => {
-      const database = db();
-
       // Get project details and deployment status
-      const projectDetails = await database
-        .select({
-          project: projects,
-          user: users,
-        })
-        .from(projects)
-        .innerJoin(users, eq(projects.ownerId, users.id))
-        .where(and(eq(projects.id, id), eq(users.clerkId, user!.clerkId)))
-        .limit(1);
-
-      if (!projectDetails.length) {
-        throw new ValidationError("Project not found or access denied");
-      }
-
-      const { project } = projectDetails[0];
+      const projectDetails = await ProjectDataService.verifyProjectOwnership(
+        id,
+        user!.clerkId,
+      );
+      const { project } = projectDetails;
 
       logger.userAction("Project status fetched", user!.clerkId, {
         requestId: context.requestId,

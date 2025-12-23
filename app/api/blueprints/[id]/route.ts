@@ -1,12 +1,9 @@
 import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { blueprints, projects, users } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { blueprintEngine } from "@/lib/services/blueprint-engine";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
-import { ValidationError } from "@/lib/api-utils";
+import { ProjectDataService } from "@/lib/services/project-data-service";
 
 const refineBlueprintSchema = z.object({
   feedback: z
@@ -30,26 +27,13 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     requireAuth: true,
     handler: async ({ context, user, data }) => {
       const { feedback, updateType } = data!;
-      const database = db();
 
-      // Verify user owns the project
-      const projectWithBlueprint = await database
-        .select({
-          project: projects,
-          blueprint: blueprints,
-          user: users,
-        })
-        .from(blueprints)
-        .innerJoin(projects, eq(blueprints.projectId, projects.id))
-        .innerJoin(users, eq(projects.ownerId, users.id))
-        .where(and(eq(blueprints.id, id), eq(users.clerkId, user!.clerkId)))
-        .limit(1);
-
-      if (!projectWithBlueprint.length) {
-        throw new ValidationError("Blueprint not found or access denied");
-      }
-
-      const { project } = projectWithBlueprint[0];
+      // Verify user owns the project and get blueprint details
+      const blueprintDetails = await ProjectDataService.getBlueprintWithProject(
+        id,
+        user!.clerkId,
+      );
+      const { project } = blueprintDetails;
 
       // Use AI-powered blueprint refinement (Phase 3 Integration)
       await blueprintEngine.refineBlueprint({
@@ -59,12 +43,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       });
 
       // Get the newly created version
-      const [refinedBlueprint] = await database
-        .select()
-        .from(blueprints)
-        .where(eq(blueprints.id, id))
-        .orderBy(blueprints.version)
-        .limit(1);
+      const refinedBlueprint = await ProjectDataService.getBlueprintById(id);
 
       logger.userAction("Blueprint refined", user!.clerkId, {
         requestId: context.requestId,
@@ -90,33 +69,17 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
   return APIRouteHandler.createGETHandler({
     requireAuth: true,
     handler: async ({ context, user }) => {
-      const database = db();
-
       // Get blueprint with project and verify ownership
-      const blueprintDetails = await database
-        .select({
-          blueprint: blueprints,
-          project: projects,
-          user: users,
-        })
-        .from(blueprints)
-        .innerJoin(projects, eq(blueprints.projectId, projects.id))
-        .innerJoin(users, eq(projects.ownerId, users.id))
-        .where(and(eq(blueprints.id, id), eq(users.clerkId, user!.clerkId)))
-        .limit(1);
-
-      if (!blueprintDetails.length) {
-        throw new ValidationError("Blueprint not found or access denied");
-      }
-
-      const { blueprint, project } = blueprintDetails[0];
+      const blueprintDetails = await ProjectDataService.getBlueprintWithProject(
+        id,
+        user!.clerkId,
+      );
+      const { blueprint, project } = blueprintDetails;
 
       // Get all versions of this blueprint
-      const allVersions = await database
-        .select()
-        .from(blueprints)
-        .where(eq(blueprints.projectId, blueprint.projectId))
-        .orderBy(blueprints.version);
+      const allVersions = await ProjectDataService.getBlueprintVersions(
+        blueprint.projectId,
+      );
 
       logger.userAction("Blueprint details fetched", user!.clerkId, {
         requestId: context.requestId,

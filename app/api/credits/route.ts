@@ -1,11 +1,9 @@
-import { db } from "@/lib/db";
-import { transactions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { UserService } from "@/lib/services/user-service";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { CREDIT_RULES, PRICING_PACKAGES } from "@/lib/constants";
+import { ProjectDataService } from "@/lib/services/project-data-service";
 
 const addCreditsSchema = z.object({
   amount: z
@@ -21,7 +19,6 @@ export const POST = APIRouteHandler.createPOSTHandler({
   requireAuth: true,
   handler: async ({ context, user, data }) => {
     const amount = data!.amount;
-    const database = db();
 
     // TODO: In Phase 4, this will integrate with actual Stripe payment processing
     // For now, we'll simulate successful payment and add credits
@@ -32,15 +29,12 @@ export const POST = APIRouteHandler.createPOSTHandler({
     const mockPaymentId = `pi_mock_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
     // Create transaction record
-    const [newTransaction] = await database
-      .insert(transactions)
-      .values({
-        userId: user!.id,
-        amount: amount, // in cents
-        creditsAdded: creditsToAdd,
-        stripePaymentId: mockPaymentId,
-      })
-      .returning();
+    const newTransaction = await ProjectDataService.createTransaction(
+      user!.id,
+      amount,
+      creditsToAdd,
+      mockPaymentId,
+    );
 
     // Update subscription tier if needed (non-critical, handled in service)
     await UserService.updateSubscriptionTierIfNeeded(
@@ -81,14 +75,10 @@ export const POST = APIRouteHandler.createPOSTHandler({
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: true,
   handler: async ({ context, user }) => {
-    const database = db();
-
     // Get transaction history
-    const transactionHistory = await database
-      .select()
-      .from(transactions)
-      .where(eq(transactions.userId, user!.id))
-      .orderBy(transactions.createdAt);
+    const transactionHistory = await ProjectDataService.getUserTransactions(
+      user!.id,
+    );
 
     logger.userAction("Credits information fetched", user!.clerkId, {
       requestId: context.requestId,
