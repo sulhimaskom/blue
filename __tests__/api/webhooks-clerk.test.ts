@@ -52,6 +52,7 @@ describe("Clerk Webhook API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/webhooks/clerk",
         headers: validHeaders,
         body: userCreatedEvent,
       });
@@ -74,6 +75,7 @@ describe("Clerk Webhook API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/webhooks/clerk",
         headers: validHeaders,
         body: userUpdatedEvent,
       });
@@ -96,6 +98,7 @@ describe("Clerk Webhook API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/webhooks/clerk",
         headers: validHeaders,
         body: userDeletedEvent,
       });
@@ -118,6 +121,7 @@ describe("Clerk Webhook API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/webhooks/clerk",
         headers: invalidHeaders,
         body: userCreatedEvent,
       });
@@ -140,6 +144,7 @@ describe("Clerk Webhook API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/webhooks/clerk",
         headers: validHeaders,
         body: userCreatedEvent,
       });
@@ -166,6 +171,7 @@ describe("Clerk Webhook API - Integration Tests", () => {
           POST(
             testHelper.createRequest({
               method: "POST",
+              path: "/api/webhooks/clerk",
               headers: validHeaders,
               body: event,
             }),
@@ -185,6 +191,7 @@ describe("Clerk Webhook API - Integration Tests", () => {
       // Process the same event twice
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/webhooks/clerk",
         headers: validHeaders,
         body: userCreatedEvent,
       });
@@ -211,6 +218,7 @@ describe("Clerk Webhook API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/webhooks/clerk",
         headers: validHeaders,
         body: userCreatedEvent,
       });

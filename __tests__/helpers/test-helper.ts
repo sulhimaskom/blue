@@ -176,16 +176,37 @@ export class ApiTestHelper {
   }
 
   /**
-   * Create a simple request object
+   * Create a simple request object with proper URL
    */
   createRequest(overrides: any = {}) {
+    const method = overrides.method || "GET";
+    const path = overrides.path || overrides.url || "/api/test";
+    const url = `http://localhost:3000${path}`;
+
     return {
-      method: "GET",
-      headers: new Headers({
-        "content-type": "application/json",
+      url,
+      method,
+      headers: {
+        get: jest.fn((key: string) => overrides?.headers?.[key] || null),
+        set: jest.fn(),
+        has: jest.fn(),
+        delete: jest.fn(),
+        entries: jest.fn(),
+        keys: jest.fn(),
+        values: jest.fn(),
+        forEach: jest.fn(),
         ...overrides?.headers,
-      }),
+      },
       json: async () => overrides.body || {},
+      cookies: new Map(),
+      nextUrl: new URL(url),
+      page: {
+        params: overrides.params || {},
+        searchParams: new URLSearchParams(),
+      },
+      ua: "test-ua",
+      ip: "127.0.0.1",
+      geo: {},
       ...overrides,
     };
   }

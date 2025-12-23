@@ -55,7 +55,10 @@ describe("Blueprint Details API - Integration Tests", () => {
     it("should fetch blueprint details successfully", async () => {
       testHelper.withDbQuery([mockBlueprint]);
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/blueprints/1",
+      });
       const response = await GET(request, {
         params: Promise.resolve({ id: "1" }),
       });
@@ -69,7 +72,10 @@ describe("Blueprint Details API - Integration Tests", () => {
     it("should return 404 for non-existent blueprint", async () => {
       testHelper.withDbQuery([]); // Empty result
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/blueprints/1",
+      });
       const response = await GET(request, {
         params: Promise.resolve({ id: "999" }),
       });
@@ -88,7 +94,10 @@ describe("Blueprint Details API - Integration Tests", () => {
 
       testHelper.withDbQuery([otherUserBlueprint]);
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/blueprints/1",
+      });
       const response = await GET(request, {
         params: Promise.resolve({ id: "1" }),
       });
@@ -108,7 +117,10 @@ describe("Blueprint Details API - Integration Tests", () => {
 
       testHelper.withDbQuery([inProgressBlueprint]);
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/blueprints/1",
+      });
       const response = await GET(request, {
         params: Promise.resolve({ id: "1" }),
       });
@@ -126,7 +138,10 @@ describe("Blueprint Details API - Integration Tests", () => {
         new Error("Database connection failed"),
       );
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/blueprints/1",
+      });
       const response = await GET(request, {
         params: Promise.resolve({ id: "1" }),
       });
@@ -191,6 +206,7 @@ describe("Blueprint Details API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "PUT",
+        path: "/api/blueprints/1",
         body: validRefinePayload,
       });
 
@@ -218,6 +234,7 @@ describe("Blueprint Details API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "PUT",
+        path: "/api/blueprints/1",
         body: validRefinePayload,
       });
 
@@ -242,6 +259,7 @@ describe("Blueprint Details API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "PUT",
+        path: "/api/blueprints/1",
         body: validRefinePayload,
       });
 
@@ -271,6 +289,7 @@ describe("Blueprint Details API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "PUT",
+        path: "/api/blueprints/1",
         body: invalidPayload,
       });
 
@@ -316,6 +335,7 @@ describe("Blueprint Details API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "PUT",
+        path: "/api/blueprints/1",
         body: validRefinePayload,
       });
 
@@ -336,6 +356,7 @@ describe("Blueprint Details API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "PUT",
+        path: "/api/blueprints/1",
         body: validRefinePayload,
       });
 

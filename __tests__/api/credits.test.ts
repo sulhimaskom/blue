@@ -25,7 +25,10 @@ describe("Credits API - Integration Tests", () => {
       const mockUserService = testHelper.getMock("userService");
       mockUserService.getAuthenticatedUser.mockResolvedValue(mockUser);
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/credits",
+      });
       const response = await GET(request);
       const data = await response.json();
 
@@ -45,7 +48,10 @@ describe("Credits API - Integration Tests", () => {
       const mockUserService = testHelper.getMock("userService");
       mockUserService.getAuthenticatedUser.mockResolvedValue(mockUser);
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/credits",
+      });
       const response = await GET(request);
       const data = await response.json();
 
@@ -62,7 +68,10 @@ describe("Credits API - Integration Tests", () => {
       const mockUserService = testHelper.getMock("userService");
       mockUserService.getAuthenticatedUser.mockResolvedValue(mockUser);
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/credits",
+      });
       const response = await GET(request);
       const data = await response.json();
 
@@ -75,7 +84,10 @@ describe("Credits API - Integration Tests", () => {
     it("should handle unauthenticated requests", async () => {
       testHelper.withoutAuth();
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/credits",
+      });
       const response = await GET(request);
 
       expect(response.status).toBe(401);
@@ -100,6 +112,7 @@ describe("Credits API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/credits",
         body: validPurchaseData,
       });
 
@@ -123,7 +136,8 @@ describe("Credits API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
-        body: invalidPurchaseData,
+        path: "/api/credits",
+        body: validPurchaseData,
       });
 
       const response = await POST(request);
@@ -141,6 +155,7 @@ describe("Credits API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/credits",
         body: belowMinimumData,
       });
 
@@ -159,6 +174,7 @@ describe("Credits API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/credits",
         body: validPurchaseData,
       });
 
@@ -176,6 +192,7 @@ describe("Credits API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/credits",
         body: invalidPayload,
       });
 
@@ -189,6 +206,7 @@ describe("Credits API - Integration Tests", () => {
     it("should return pricing information", async () => {
       const request = testHelper.createRequest({
         method: "GET",
+        path: "/api/credits",
       });
 
       // Add query parameter for pricing
@@ -214,6 +232,7 @@ describe("Credits API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/credits",
         body: validPurchaseData,
       });
 

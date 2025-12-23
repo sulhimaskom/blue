@@ -60,6 +60,7 @@ describe("Blueprint API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/blueprints",
         body: validPayload,
       });
 
@@ -90,6 +91,7 @@ describe("Blueprint API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/blueprints",
         body: validPayload,
       });
 
@@ -109,6 +111,7 @@ describe("Blueprint API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/blueprints",
         body: invalidPayload,
       });
 
@@ -138,6 +141,7 @@ describe("Blueprint API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/blueprints",
         body: validPayload,
       });
 
@@ -167,6 +171,7 @@ describe("Blueprint API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/blueprints",
         body: validPayload,
       });
 
@@ -185,6 +190,7 @@ describe("Blueprint API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/blueprints",
         body: validPayload,
       });
 
@@ -225,7 +231,10 @@ describe("Blueprint API - Integration Tests", () => {
 
       testHelper.withDbQuery(mockBlueprints);
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/blueprints",
+      });
       const response = await GET(request);
       const data = await response.json();
 
@@ -238,7 +247,10 @@ describe("Blueprint API - Integration Tests", () => {
     it("should return empty array for users with no blueprints", async () => {
       testHelper.withDbQuery([]); // Empty result
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/blueprints",
+      });
       const response = await GET(request);
       const data = await response.json();
 
@@ -288,7 +300,10 @@ describe("Blueprint API - Integration Tests", () => {
     it("should handle unauthenticated requests", async () => {
       testHelper.withoutAuth();
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/blueprints",
+      });
       const response = await GET(request);
 
       expect(response.status).toBe(401);

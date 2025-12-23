@@ -62,7 +62,7 @@ class MockResponse {
   }
 }
 
-// Mock Next.js Response and NextResponse properly
+// Mock Next.js Response and NextResponse properly BEFORE any imports
 const originalResponse = global.Response;
 const originalNextResponse = (global as any).NextResponse;
 
@@ -82,8 +82,15 @@ class MockNextResponse extends MockResponse {
   }
 }
 
-(global as any).Response = MockResponse;
+// Set up mocks before importing app modules
 (global as any).NextResponse = MockNextResponse;
+(global as any).Response = MockResponse;
+
+// Also mock next/server specifically
+jest.mock("next/server", () => ({
+  NextResponse: MockNextResponse,
+  Response: MockResponse,
+}));
 
 // Mock Clerk auth - must be loaded before any Clerk imports
 jest.mock("@clerk/backend", () => ({}));
@@ -93,9 +100,27 @@ jest.mock("@clerk/nextjs/server", () => ({
 }));
 
 // Mock database and Redis
-jest.mock("@/lib/db", () => ({
-  db: jest.fn(),
-}));
+jest.mock("@/lib/db", () => {
+  const mockDb = {
+    select: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnValue([]),
+    insert: jest.fn().mockReturnThis(),
+    values: jest.fn().mockReturnThis(),
+    returning: jest.fn().mockReturnValue([]),
+    update: jest.fn().mockReturnThis(),
+    set: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+  };
+
+  return {
+    db: mockDb,
+    checkDbHealth: jest.fn().mockResolvedValue(true),
+    getDb: jest.fn().mockResolvedValue(mockDb),
+  };
+});
 
 // Mock Zod validation
 jest.mock("zod", () => ({

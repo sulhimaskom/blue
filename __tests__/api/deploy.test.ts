@@ -44,6 +44,7 @@ describe("Deployment API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
+        path: "/api/deploy/1",
         body: validPayload,
       });
 
@@ -78,7 +79,12 @@ describe("Deployment API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
-        body: validPayload,
+        path: "/api/deploy/1",
+        body: {
+          githubOrg: "test-org",
+          repoName: "test-repo",
+          isPrivate: false,
+        },
       });
 
       const response = await POST(request, {
@@ -102,7 +108,12 @@ describe("Deployment API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
-        body: validPayload,
+        path: "/api/deploy/1",
+        body: {
+          githubOrg: "test-org",
+          repoName: "test-repo",
+          isPrivate: false,
+        },
       });
 
       const response = await POST(request, {
@@ -126,7 +137,12 @@ describe("Deployment API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
-        body: validPayload,
+        path: "/api/deploy/1",
+        body: {
+          githubOrg: "test-org",
+          repoName: "test-repo",
+          isPrivate: false,
+        },
       });
 
       const response = await POST(request, {
@@ -150,7 +166,12 @@ describe("Deployment API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
-        body: validPayload,
+        path: "/api/deploy/1",
+        body: {
+          githubOrg: "test-org",
+          repoName: "test-repo",
+          isPrivate: false,
+        },
       });
 
       const response = await POST(request, {
@@ -173,7 +194,11 @@ describe("Deployment API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
-        body: invalidPayload,
+        path: "/api/deploy/1",
+        body: {
+          githubOrg: "test",
+          repoName: "test",
+        },
       });
 
       const response = await POST(request, {
@@ -187,7 +212,8 @@ describe("Deployment API - Integration Tests", () => {
 
     it("should support private repository deployment", async () => {
       const privatePayload = {
-        ...validPayload,
+        githubOrg: "test-org",
+        repoName: "test-repo",
         isPrivate: true,
       };
 
@@ -207,7 +233,11 @@ describe("Deployment API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
-        body: privatePayload,
+        path: "/api/deploy/1",
+        body: {
+          githubOrg: "test",
+          repoName: "test",
+        },
       });
 
       const response = await POST(request, {
@@ -234,7 +264,10 @@ describe("Deployment API - Integration Tests", () => {
 
       testHelper.withDbQuery([project]);
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/deploy/1",
+      });
       const response = await GET(request, {
         params: Promise.resolve({ id: "1" }),
       });
@@ -248,7 +281,10 @@ describe("Deployment API - Integration Tests", () => {
     it("should handle project not found", async () => {
       testHelper.withDbQuery([]); // Empty result
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/deploy/1",
+      });
       const response = await GET(request, {
         params: Promise.resolve({ id: "999" }),
       });
@@ -281,7 +317,10 @@ describe("Deployment API - Integration Tests", () => {
 
         testHelper.withDbQuery([project]);
 
-        const request = testHelper.createRequest({ method: "GET" });
+        const request = testHelper.createRequest({
+          method: "GET",
+          path: "/api/deploy/1",
+        });
         const response = await GET(request, {
           params: Promise.resolve({ id: "1" }),
         });
@@ -302,7 +341,11 @@ describe("Deployment API - Integration Tests", () => {
 
       const request = testHelper.createRequest({
         method: "POST",
-        body: { githubOrg: "test", repoName: "test" },
+        path: "/api/deploy/1",
+        body: {
+          githubOrg: "test",
+          repoName: "test",
+        },
       });
 
       const response = await POST(request, {
@@ -315,7 +358,10 @@ describe("Deployment API - Integration Tests", () => {
     it("should reject unauthenticated GET requests", async () => {
       testHelper.withoutAuth();
 
-      const request = testHelper.createRequest({ method: "GET" });
+      const request = testHelper.createRequest({
+        method: "GET",
+        path: "/api/deploy/1",
+      });
       const response = await GET(request, {
         params: Promise.resolve({ id: "1" }),
       });

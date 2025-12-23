@@ -22,31 +22,48 @@ export function setupAuthMocks(user: MockUser | null = null) {
 
   const mockUser = user || defaultUser;
 
-  // Mock Clerk server-side authentication
-  jest.mock("@clerk/backend", () => ({
-    Clerk: jest.fn(() => ({
-      users: {
-        getUser: jest.fn().mockResolvedValue(mockUser),
-      },
-    })),
-  }));
+  // Get existing mocks and update their implementations
+  const clerkNextjsServer = require("@clerk/nextjs/server");
 
-  // Mock Clerk Next.js server helpers
-  jest.mock("@clerk/nextjs/server", () => ({
-    currentUser: jest.fn().mockResolvedValue(mockUser),
-    auth: jest.fn().mockResolvedValue({
+  // Update the mock implementations
+  if (clerkNextjsServer.currentUser) {
+    clerkNextjsServer.currentUser.mockResolvedValue(mockUser);
+  }
+  if (clerkNextjsServer.auth) {
+    clerkNextjsServer.auth.mockResolvedValue({
       userId: mockUser?.id || null,
       user: mockUser,
-    }),
-    getAuth: jest.fn().mockResolvedValue({
+    });
+  }
+  if (clerkNextjsServer.getAuth) {
+    clerkNextjsServer.getAuth.mockResolvedValue({
       userId: mockUser?.id || null,
       user: mockUser,
-    }),
-  }));
+    });
+  }
 
   return mockUser;
 }
 
 export function setupUnauthenticatedMocks() {
-  return setupAuthMocks(null);
+  // Get existing mocks and set them to return null
+  const clerkNextjsServer = require("@clerk/nextjs/server");
+
+  if (clerkNextjsServer.currentUser) {
+    clerkNextjsServer.currentUser.mockResolvedValue(null);
+  }
+  if (clerkNextjsServer.auth) {
+    clerkNextjsServer.auth.mockResolvedValue({
+      userId: null,
+      user: null,
+    });
+  }
+  if (clerkNextjsServer.getAuth) {
+    clerkNextjsServer.getAuth.mockResolvedValue({
+      userId: null,
+      user: null,
+    });
+  }
+
+  return null;
 }
