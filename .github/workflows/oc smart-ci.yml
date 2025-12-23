@@ -3,7 +3,7 @@ name: oc smart-ci
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ["oc standarizer", "CI Check"]
+    workflows: ["CI Check"]
     types: [completed]
 
 permissions:
@@ -165,5 +165,6 @@ jobs:
           else
             echo "⚠️ No open PR found for agent-workspace to dev. Check if changes were actually pushed."
           fi
+
 
 
