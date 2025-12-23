@@ -13,6 +13,11 @@ import {
   DatabaseError,
 } from "@/lib/api-utils";
 import { logger, createRequestContext } from "@/lib/logger";
+import {
+  githubService,
+  GitHubServiceError,
+} from "@/lib/services/github-service";
+import { blueprints } from "@/lib/db/schema";
 
 const deployRepoSchema = z.object({
   githubOrg: z
@@ -81,41 +86,97 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       throw new ValidationError("Project is already deployed");
     }
 
-    // TODO: In Phase 3, this will implement actual GitHub App API integration
-    // For now, we'll update the project with mock deployment data
-    const mockRepoUrl = `https://github.com/${githubOrg}/${repoName}`;
+    // Get the latest blueprint content
+    const [latestBlueprint] = await database
+      .select()
+      .from(blueprints)
+      .where(eq(blueprints.projectId, id))
+      .orderBy(blueprints.version)
+      .limit(1);
 
-    const [updatedProject] = await database
+    if (!latestBlueprint) {
+      throw new ValidationError("No blueprint found for this project");
+    }
+
+    // Update project status to generating
+    await database
       .update(projects)
-      .set({
-        status: "deployed",
-        repoUrl: mockRepoUrl,
-      })
-      .where(eq(projects.id, id))
-      .returning();
+      .set({ status: "generating" })
+      .where(eq(projects.id, id));
 
-    logger.userAction("Repository deployment initiated", user!.id, {
+    logger.info("Starting GitHub repository creation", {
       requestId: context.requestId,
+      userId: user.id,
       projectId: id,
-      repoUrl: mockRepoUrl,
       githubOrg,
       repoName,
-      isPrivate,
+      blueprintVersion: latestBlueprint.version,
     });
 
-    return formatSuccessResponse({
-      projectId: updatedProject.id,
-      repoUrl: updatedProject.repoUrl,
-      status: updatedProject.status,
-      message:
-        "Repository deployment simulated. GitHub App integration will be available in Phase 3.",
-      deploymentDetails: {
-        organization: githubOrg,
-        repository: repoName,
-        visibility: isPrivate ? "private" : "public",
-        simulatedAt: new Date().toISOString(),
-      },
-    });
+    try {
+      // Create GitHub repository with blueprint
+      const repo = await githubService.createRepository({
+        org: githubOrg,
+        name: repoName,
+        description: project.description || "AI-generated software project",
+        isPrivate: isPrivate || false,
+        blueprintContent: latestBlueprint.contentMarkdown,
+      });
+
+      const [updatedProject] = await database
+        .update(projects)
+        .set({
+          status: "deployed",
+          repoUrl: repo.html_url,
+        })
+        .where(eq(projects.id, id))
+        .returning();
+
+      logger.userAction("Repository deployment successful", user!.id, {
+        requestId: context.requestId,
+        projectId: id,
+        repoUrl: repo.html_url,
+        githubOrg,
+        repoName,
+        isPrivate,
+      });
+
+      return formatSuccessResponse({
+        projectId: updatedProject.id,
+        repoUrl: updatedProject.repoUrl,
+        status: updatedProject.status,
+        message: "Repository deployment successful",
+        deploymentDetails: {
+          repositoryId: repo.id,
+          fullName: repo.full_name,
+          cloneUrl: repo.clone_url,
+          organization: githubOrg,
+          repository: repoName,
+          visibility: isPrivate ? "private" : "public",
+          createdAt: repo.created_at,
+          blueprintVersion: latestBlueprint.version,
+        },
+      });
+    } catch (error) {
+      // Reset project status on failure
+      await database
+        .update(projects)
+        .set({ status: "completed" })
+        .where(eq(projects.id, id));
+
+      if (error instanceof GitHubServiceError) {
+        logger.error("GitHub service error during deployment", {
+          requestId: context.requestId,
+          userId: user.id,
+          projectId: id,
+          statusCode: error.statusCode,
+          message: error.message,
+        });
+        throw new ValidationError(`GitHub deployment failed: ${error.message}`);
+      }
+
+      throw error;
+    }
   } catch (error) {
     logger.apiError(
       "Repository deployment error",
@@ -131,7 +192,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     if (
       error instanceof ValidationError ||
       error instanceof AuthenticationError ||
-      error instanceof DatabaseError
+      error instanceof DatabaseError ||
+      error instanceof GitHubServiceError
     ) {
       return formatErrorResponse(error);
     }
@@ -189,11 +251,15 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
       createdAt: project.createdAt,
       isDeployed: project.status === "deployed",
       canDeploy:
-        project.status !== "deployed" && project.status !== "completed",
+        project.status !== "deployed" &&
+        project.status !== "completed" &&
+        project.status !== "generating",
       deploymentNotes:
         project.status === "deployed"
-          ? "Repository deployment successful. GitHub App integration will be available in Phase 3."
-          : "Ready for deployment. GitHub App integration will be available in Phase 3.",
+          ? "Repository deployment successful"
+          : project.status === "generating"
+            ? "Repository deployment in progress"
+            : "Ready for deployment",
     });
   } catch (error) {
     logger.apiError(
