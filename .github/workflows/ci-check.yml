@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js
+        continue-on-error: true
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -46,6 +47,7 @@ jobs:
           fi
 
       - name: Setup
+        continue-on-error: true
         if: steps.detect-pm.outputs.pm == 'pnpm'
         uses: pnpm/action-setup@v4
         with:
@@ -53,6 +55,7 @@ jobs:
 
       - name: Setup Cache
         uses: actions/cache@v4
+        continue-on-error: true
         with:
           path: |
             ~/.pnpm-store
@@ -63,6 +66,7 @@ jobs:
             ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-
 
       - name: Install Dependencies
+        continue-on-error: true
         run: ${{ steps.detect-pm.outputs.install }}
 
       - name: Lint
@@ -81,6 +85,7 @@ jobs:
         run: ${{ steps.detect-pm.outputs.pm }} run build --if-present
 
       - name: Check Results
+        continue-on-error: true
         run: |
           if [[ "${{ steps.lint.outcome }}" == "failure" || "${{ steps.test.outcome }}" == "failure" || "${{ steps.build.outcome }}" == "failure" ]]; then
             echo "❌ CI Check failed"
@@ -93,6 +98,7 @@ jobs:
           fi
 
       - name: Trigger oc smart-ci
+        continue-on-error: true
         if: env.CHECKS_FAILED == 'true'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -103,3 +109,4 @@ jobs:
       - name: Fail if checks failed
         if: env.CHECKS_FAILED == 'true'
         run: exit 1
+
