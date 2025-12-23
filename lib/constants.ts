@@ -82,6 +82,53 @@ export const UI = {
   },
 } as const;
 
+// Webhook event constants
+export const WEBHOOK_EVENTS = {
+  CLERK: {
+    USER_CREATED: "user.created",
+    USER_DELETED: "user.deleted",
+    USER_UPDATED: "user.updated",
+  } as const,
+
+  STRIPE: {
+    PAYMENT_INTENT_SUCCEEDED: "payment_intent.succeeded",
+    INVOICE_PAYMENT_SUCCEEDED: "invoice.payment_succeeded",
+  } as const,
+} as const;
+
+// API error message constants
+export const API_ERROR_MESSAGES = {
+  GENERIC_ERROR: "An unexpected error occurred. Please try again.",
+  INVALID_REQUEST: "Invalid request format.",
+  INSUFFICIENT_CREDITS: "Insufficient credits. Please upgrade your plan.",
+  RATE_LIMIT_EXCEEDED: "Rate limit exceeded. Please try again later.",
+  UNAUTHORIZED: "Authentication required.",
+  FORBIDDEN: "Access denied.",
+  NOT_FOUND: "Resource not found.",
+  VALIDATION_ERROR: "Input validation failed.",
+  DATABASE_ERROR: "Database operation failed.",
+  WEBHOOK_PROCESSING_FAILED: "Webhook processing failed.",
+  INVALID_WEBHOOK_SIGNATURE: "Invalid webhook signature.",
+} as const;
+
+// Credit system constants
+export const CREDIT_RULES = {
+  SIGNUP_BONUS: 5,
+  CONVERSION_RATE: 10, // $1 = 10 credits (1 credit = $0.10)
+  BLUEPRINT_COST: 1,
+  PRO_THRESHOLD: 500, // Credits needed for pro tier
+  MINIMUM_PURCHASE: 100, // $1.00 minimum in cents
+  MAXIMUM_PURCHASE: 100000, // $1000.00 maximum in cents
+} as const;
+
+// Pricing packages constants
+export const PRICING_PACKAGES = [
+  { credits: 10, price: "$1.00" },
+  { credits: 50, price: "$5.00" },
+  { credits: 100, price: "$10.00" },
+  { credits: 500, price: "$50.00 (Pro tier)" },
+] as const;
+
 // Homepage content constants
 export const HOMEPAGE = {
   HERO: {

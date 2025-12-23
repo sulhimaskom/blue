@@ -2,38 +2,21 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { users, transactions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import {
-  formatSuccessResponse,
-  formatErrorResponse,
-  DatabaseError,
-} from "@/lib/api-utils";
-import { logger, createRequestContext } from "@/lib/logger";
 
-// Simple webhook verification for now - enhanced implementation in Phase 4
-function verifyStripeWebhook(_body: string, signature: string): boolean {
-  // Placeholder verification - implement proper Stripe webhook signing in Phase 4
-  return !!signature && signature.startsWith("v1=");
-}
+import { logger } from "@/lib/logger";
+import { WebhookService } from "@/lib/services/webhook-service";
+import { SecurityService } from "@/lib/services/security-service";
+import { WEBHOOK_EVENTS, CREDIT_RULES } from "@/lib/constants";
 
 export async function POST(req: NextRequest) {
-  const context = createRequestContext();
-
-  try {
-    const body = await req.text();
-    const signature = req.headers.get("stripe-signature") || "";
-
-    // Simple webhook verification (enhanced in Phase 4)
-    if (!verifyStripeWebhook(body, signature)) {
-      const error = new DatabaseError("Invalid Stripe webhook signature");
-      return formatErrorResponse(error);
-    }
-
-    try {
-      const event = JSON.parse(body) as any;
+  return WebhookService.processWebhook(req, {
+    serviceName: "Stripe",
+    verifySignature: SecurityService.verifyStripeWebhook,
+    processEvent: async (event: any, context) => {
       const database = db();
 
       // Handle payment intent succeeded
-      if (event.type === "payment_intent.succeeded") {
+      if (event.type === WEBHOOK_EVENTS.STRIPE.PAYMENT_INTENT_SUCCEEDED) {
         const { metadata } = event.data.object;
 
         if (metadata?.userId && metadata?.creditsAdded) {
@@ -52,7 +35,9 @@ export async function POST(req: NextRequest) {
               .set({
                 credits: userRecord.credits + creditsToAdd,
                 subscriptionTier:
-                  creditsToAdd >= 500 ? "pro" : userRecord.subscriptionTier,
+                  creditsToAdd >= CREDIT_RULES.PRO_THRESHOLD
+                    ? "pro"
+                    : userRecord.subscriptionTier,
               })
               .where(eq(users.clerkId, metadata.userId));
 
@@ -80,7 +65,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Handle invoice payment succeeded (subscriptions)
-      else if (event.type === "invoice.payment_succeeded") {
+      else if (event.type === WEBHOOK_EVENTS.STRIPE.INVOICE_PAYMENT_SUCCEEDED) {
         const { subscription } = event.data.object;
 
         // Enhanced subscription handling in Phase 4
@@ -90,36 +75,10 @@ export async function POST(req: NextRequest) {
           eventType: "invoice.payment_succeeded",
         });
       }
-
-      return formatSuccessResponse({ received: true });
-    } catch (error) {
-      // Defensive: Ensure context is available even in unexpected error scenarios
-      const requestId = context?.requestId || "unknown";
-      const eventType = event?.type || "unknown";
-
-      logger.apiError(
-        "Stripe webhook processing failed",
-        requestId,
-        error as Error,
-        {
-          endpoint: "/api/webhooks/stripe",
-          eventType,
-        },
-      );
-      const errorResponse = new DatabaseError("Invalid webhook payload");
-      return formatErrorResponse(errorResponse);
-    }
-  } catch (error) {
-    // Defensive: Ensure context is available even in unexpected error scenarios
-    const requestId = context?.requestId || "unknown";
-
-    logger.apiError("Stripe webhook error", requestId, error as Error, {
-      endpoint: "/api/webhooks/stripe",
-    });
-    return formatErrorResponse(new DatabaseError("Webhook processing failed"));
-  }
+    },
+  });
 }
 
 export async function OPTIONS() {
-  return new Response(null, { status: 200 });
+  return WebhookService.handleOptions();
 }
