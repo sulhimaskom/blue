@@ -24,7 +24,8 @@ jest.mock("@/lib/logger", () => ({
 }));
 
 // Mock fetch
-global.fetch = jest.fn();
+const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+global.fetch = mockFetch;
 
 describe("GitHubService", () => {
   const originalEnv = process.env;
@@ -69,17 +70,12 @@ describe("GitHubService", () => {
     };
 
     it("should create repository successfully", async () => {
-      const mockFetch = global.fetch as jest.Mock;
-
-      // Reset all mocks
-      mockFetch.mockReset();
-
       // Mock repository creation
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
           json: async () => mockRepoResponse,
-        })
+        } as Response)
         // Mock branch refs
         .mockResolvedValueOnce({
           ok: true,
@@ -88,24 +84,24 @@ describe("GitHubService", () => {
               sha: "test-sha-123",
             },
           }),
-        })
+        } as Response)
         // Mock blob creation
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ sha: "blob-sha-123" }),
-        })
+        } as Response)
         // Mock tree creation
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ sha: "tree-sha-123" }),
-        })
+        } as Response)
         // Mock commit creation
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ sha: "commit-sha-123" }),
-        })
+        } as Response)
         // Mock branch update
-        .mockResolvedValueOnce({ ok: true });
+        .mockResolvedValueOnce({ ok: true } as Response);
 
       const result = await githubService.createRepository(mockRepoConfig);
 
@@ -122,14 +118,11 @@ describe("GitHubService", () => {
     });
 
     it("should handle API errors gracefully", async () => {
-      const mockFetch = global.fetch as jest.Mock;
-
-      mockFetch.mockReset();
-      mockFetch.mockResolvedValue({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 422,
         text: async () => "Repository already exists",
-      });
+      } as Response);
 
       await expect(
         githubService.createRepository(mockRepoConfig),
@@ -139,12 +132,10 @@ describe("GitHubService", () => {
 
   describe("verifyRepository", () => {
     it("should return true for existing repository", async () => {
-      const mockFetch = global.fetch as jest.Mock;
-
-      mockFetch.mockResolvedValue({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ id: 12345 }),
-      });
+      } as Response);
 
       const result = await githubService.verifyRepository("test-org/test-repo");
 
@@ -152,12 +143,10 @@ describe("GitHubService", () => {
     });
 
     it("should return false for non-existing repository", async () => {
-      const mockFetch = global.fetch as jest.Mock;
-
-      mockFetch.mockResolvedValue({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
-      });
+      } as Response);
 
       const result = await githubService.verifyRepository(
         "test-org/nonexistent",
@@ -176,8 +165,15 @@ describe("GitHubService", () => {
   });
 
   describe("GitHubServiceError", () => {
+    // Clear the cache to create new instances for proper testing
+    let OriginalGitHubServiceError: typeof GitHubServiceError;
+
+    beforeAll(() => {
+      OriginalGitHubServiceError = GitHubServiceError;
+    });
+
     it("should serialize to JSON correctly", () => {
-      const error = new GitHubServiceError("Test error", 400, {
+      const error = new (OriginalGitHubServiceError as any)("Test error", 400, {
         detail: "Bad request",
       });
 
@@ -192,7 +188,7 @@ describe("GitHubService", () => {
     });
 
     it("should handle missing optional parameters", () => {
-      const error = new GitHubServiceError("Simple error");
+      const error = new (OriginalGitHubServiceError as any)("Simple error");
 
       const json = error.toJSON();
 
