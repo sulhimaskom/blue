@@ -4,7 +4,7 @@ name: oc analyzer
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ["smart ci"]
+    workflows: ["Smart CI"]
     types: [completed]
 
 permissions:
@@ -86,4 +86,5 @@ jobs:
           ---
           *This issue was auto-generated.*" \
             --label "bug" || echo "Could not create issue"
+
 
