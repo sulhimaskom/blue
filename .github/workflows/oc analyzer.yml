@@ -3,13 +3,9 @@ name: oc analyzer
 # Continuous Cycle: Analyzer → PR → Standarizer → PR → Analyzer
 on:
   workflow_dispatch:
-  push:
-    branches: [dev]
-    paths-ignore:
-      - 'docs/**'
-      - '.github/workflows/**'
-      - 'README.md'
-      - 'AGENTS.md'
+  workflow_run:
+    workflows: ["smart ci"]
+    types: [completed]
 
 permissions:
   contents: write
@@ -90,3 +86,4 @@ jobs:
           ---
           *This issue was auto-generated.*" \
             --label "bug" || echo "Could not create issue"
+
