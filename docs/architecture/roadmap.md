@@ -34,12 +34,14 @@
 
 - [ ] Integrate IFlow AI models (Brain + Mouth agents)
 - [ ] Implement Tavily/Perplexity research API integration
-- [ ] 🔴 **CRITICAL**: Implement structured logging (replace console.\* statements)
-- [ ] 🔴 **HIGH**: Add Redis-based rate limiting for production scalability
-- [ ] Add comprehensive test coverage (API integration, database operations)
+- [ ] 🔴 **CRITICAL**: Implement structured logging (replace console.\* statements in API routes)
+- [ ] 🔴 **HIGH**: Add Redis-based rate limiting for production scalability (replace in-memory Map)
+- [ ] 🔴 **HIGH**: Add comprehensive API integration test coverage
+- [ ] 🔴 **MEDIUM**: Implement Row Level Security (RLS) policies for multi-tenant security
 - [ ] GitHub App integration for repository creation
 - [ ] Performance optimization and monitoring setup
 - [ ] Credit system and Stripe payment integration
+- [ ] 🔴 **MEDIUM**: Implement database connection pooling for Neon PostgreSQL
 
 ### Phase 4: Production & Scaling (Week 6-7) - MEDIUM PRIORITY
 
@@ -59,7 +61,7 @@
 | Phase | Progress | Notes                                                                            |
 | ----- | -------- | -------------------------------------------------------------------------------- |
 | 1     | 100%     | ✅ MVP codebase complete, build system validated                                 |
-| 2     | 100%     | ✅ Security + auth + database + validation + API routes complete (Audit: 78/100) |
+| 2     | 100%     | ✅ Security + auth + database + validation + API routes complete (Audit: 82/100) |
 | 3     | 0%       | 🚀 Ready - AI integration infrastructure is solid                                |
 | 4     | 0%       | Not started - depends on full feature pipeline                                   |
 
