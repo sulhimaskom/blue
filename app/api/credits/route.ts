@@ -12,6 +12,7 @@ import {
   AuthenticationError,
   DatabaseError,
 } from "@/lib/api-utils";
+import { logger, createRequestContext } from "@/lib/logger";
 
 const addCreditsSchema = z.object({
   amount: z
@@ -23,10 +24,17 @@ const addCreditsSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const context = createRequestContext();
+  let user: { id: string } | null = null;
+  let amount: number | undefined;
+
   try {
     // Authentication check
-    const user = await currentUser();
+    user = await currentUser();
     if (!user?.id) {
+      logger.security("Authentication failed for credit purchase", {
+        requestId: context.requestId,
+      });
       throw new AuthenticationError("Authentication required");
     }
 
@@ -36,7 +44,7 @@ export async function POST(req: NextRequest) {
       throw new ValidationError(validation.error);
     }
 
-    const { amount } = validation.data;
+    amount = validation.data.amount;
     const database = db();
 
     // Get user record
@@ -90,8 +98,26 @@ export async function POST(req: NextRequest) {
       message:
         "Credits added successfully. Stripe payment integration will be available in Phase 4.",
     });
+
+    logger.userAction("Credits purchased", user!.id, {
+      requestId: context.requestId,
+      transactionId: newTransaction.id,
+      amount: (amount || 0) / 100,
+      creditsAdded: creditsToAdd,
+      paymentId: mockPaymentId,
+      newTotal: updatedUser.credits,
+    });
   } catch (error) {
-    console.error("Credit purchase error:", error);
+    logger.apiError(
+      "Credit purchase error",
+      context.requestId,
+      error as Error,
+      {
+        userId: user?.id,
+        endpoint: "/api/credits",
+        amount: amount! / 100,
+      },
+    );
 
     if (
       error instanceof ValidationError ||
@@ -108,9 +134,15 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
+  const context = createRequestContext();
+  let user: { id: string } | null = null;
+
   try {
-    const user = await currentUser();
+    user = await currentUser();
     if (!user?.id) {
+      logger.security("Authentication failed for credits fetch", {
+        requestId: context.requestId,
+      });
       throw new AuthenticationError("Authentication required");
     }
 
@@ -154,8 +186,17 @@ export async function GET() {
         ],
       },
     });
+
+    logger.userAction("Credits information fetched", user!.id, {
+      requestId: context.requestId,
+      currentCredits: userRecord.credits,
+      transactionCount: transactionHistory.length,
+    });
   } catch (error) {
-    console.error("Credits fetch error:", error);
+    logger.apiError("Credits fetch error", context.requestId, error as Error, {
+      userId: user?.id,
+      endpoint: "/api/credits",
+    });
 
     if (error instanceof AuthenticationError) {
       return formatErrorResponse(error);
