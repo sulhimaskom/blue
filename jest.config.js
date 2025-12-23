@@ -17,7 +17,7 @@ const customJestConfig = {
     "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }],
   },
   transformIgnorePatterns: [
-    "node_modules/(?!(.*\\.mjs$|@clerk/.*|@radix-ui/.*|lucide-react|drizzle-orm|@neondatabase|@stripe/currency))",
+    "node_modules/(?!(.*\\.mjs$|@clerk/.*|@clerk/backend/.*|@radix-ui/.*|lucide-react|drizzle-orm|@neondatabase|@stripe/currency))",
   ],
   setupFiles: ["<rootDir>/jest.polyfills.js"],
 };

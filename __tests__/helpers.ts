@@ -1,54 +1,75 @@
 import { jest } from "@jest/globals";
 
-// Define error classes for testing - match api-utils
-export class ValidationError extends Error {
-  public code: number;
-  constructor(message: string, code = 400) {
-    super(message);
-    this.name = "ValidationError";
-    this.message = message;
-    this.code = code;
+// Complete Next.js environment mock for testing
+class MockHeaders {
+  private headers: Map<string, string> = new Map();
+
+  get(name: string): string | null {
+    return this.headers.get(name.toLowerCase()) || null;
+  }
+
+  set(name: string, value: string): void {
+    this.headers.set(name.toLowerCase(), value);
+  }
+
+  has(name: string): boolean {
+    return this.headers.has(name.toLowerCase());
+  }
+
+  delete(name: string): boolean {
+    return this.headers.delete(name.toLowerCase());
+  }
+
+  entries(): Array<[string, string]> {
+    return Array.from(this.headers.entries());
+  }
+
+  keys(): string[] {
+    return Array.from(this.headers.keys());
+  }
+
+  values(): string[] {
+    return Array.from(this.headers.values());
+  }
+
+  forEach(
+    callback: (value: string, name: string, headers: Headers) => void,
+  ): void {
+    this.headers.forEach((value, name) => callback(value, name, this as any));
   }
 }
 
-export class AuthenticationError extends Error {
-  public code: number;
-  constructor(message: string = "Authentication required") {
-    super(message);
-    this.name = "AuthenticationError";
-    this.message = message;
-    this.code = 401;
+class MockResponse {
+  status: number;
+  headers: MockHeaders;
+  private body: any;
+
+  constructor(body: any, init?: { status?: number }) {
+    this.body = body;
+    this.status = init?.status || 200;
+    this.headers = new MockHeaders();
+  }
+
+  json(): any {
+    return this.body;
+  }
+
+  text(): string {
+    return JSON.stringify(this.body);
   }
 }
 
-export class DatabaseError extends Error {
-  public code: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "DatabaseError";
-    this.message = message;
-    this.code = 500;
-  }
-}
+// Mock Next.js Response and NextResponse properly
+const originalResponse = global.Response;
 
-// Mock NextResponse.json for tests
-(global as any).Response = {
-  json: jest.fn((data: any, init?: any) => ({
-    ...data,
-    status: init?.status || 200,
-    headers: new Map(),
-  })),
-};
-
+(global as any).Response = MockResponse;
 (global as any).NextResponse = {
-  json: jest.fn((data: any, init?: any) => ({
-    ...data,
-    status: init?.status || 200,
-    headers: {
-      get: jest.fn(),
-      set: jest.fn(),
-    },
-  })),
+  json: jest.fn((data: unknown, init?: { status?: number }) => {
+    const response = new MockResponse(data, init);
+    response.status = init?.status || 200;
+    return response;
+  }),
+  redirect: jest.fn(),
 };
 
 // Mock Clerk auth
@@ -83,58 +104,28 @@ jest.mock("@/lib/logger", () => ({
   },
 }));
 
-// Mock api-utils for error classes
-jest.mock("@/lib/api-utils", () => ({
-  validateRequest: jest.fn(),
-  formatSuccessResponse: jest.fn((data: any) => ({ success: true, data })),
-  formatErrorResponse: jest.fn((error: any) => ({
-    success: false,
-    error: error instanceof Error ? error.message : "Unknown error",
-    code:
-      error instanceof Error && "code" in error ? error.code : "UNKNOWN_ERROR",
-  })),
-  ValidationError,
-  AuthenticationError,
-  DatabaseError,
-  RateLimiter: jest.fn(
-    () => jest.fn().mockResolvedValue({ allowed: true } as any) as any,
-  ),
-}));
-
-// Test helpers - legacy simple mock
+// Test helpers
 export const mockUser = {
   id: "test-user-id",
   email: "test@example.com",
 };
 
-// Complete Clerk User mock with all required properties for API tests
 export const mockCompleteUser = {
-  // Basic properties
   id: "user_test_complete_id_123456",
   email: "complete@test.example.com",
-
-  // Security properties
   passwordEnabled: true,
   totpEnabled: false,
   backupCodeEnabled: false,
   twoFactorEnabled: false,
-
-  // Profile properties
   firstName: "Test",
   lastName: "User",
   username: "testuser",
   profileImageUrl: "https://example.com/avatar.jpg",
-
-  // Verification properties
   emailVerified: true,
   phoneVerified: false,
-
-  // Timestamps
   createdAt: new Date("2023-01-01T00:00:00Z"),
   updatedAt: new Date("2023-12-01T00:00:00Z"),
   lastSignInAt: new Date("2023-12-15T10:30:00Z"),
-
-  // External accounts
   externalAccounts: [],
   emailAddresses: [
     {
@@ -149,68 +140,44 @@ export const mockCompleteUser = {
       linkedAt: new Date(),
     },
   ],
-
-  // Phone (optional)
   phoneNumbers: [],
-
-  // Organization/Session properties
   primaryEmailAddressId: "email_test_id",
   primaryPhoneNumberId: null,
   primaryWebhookSecretId: null,
-
-  // Flags
   unsafeMetadata: {},
   publicMetadata: {},
   privateMetadata: {},
-
-  // External OAuth/SAML properties
   externalId: null,
   samlAccounts: [],
-
-  // Organization invitations
   organizationMemberships: [],
-
-  // Password and security
   hasImage: true,
   imageUrl: "https://example.com/avatar.jpg",
-
-  // Additional Clerk-specific properties
   totpSecret: null,
   backupCodes: null,
-
-  // Legal acceptance
   locked: false,
   lockReason: null,
   deleteSelfEnabled: true,
   createOrganizationEnabled: true,
-
-  // Admin flags
   banned: false,
   bannedReason: null,
-
-  // Legacy properties
   password: null,
 };
 
-export const mockDbResponse = (data: any) => {
+export const mockDbResponse = (data: unknown): any => {
   const result = Array.isArray(data) ? data : [data];
 
-  const mockDb = {
+  const mockDb: any = {
     select: jest.fn().mockReturnThis(),
     from: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
-    orderBy: jest.fn().mockResolvedValue(result as any),
-    innerJoin: jest.fn().mockReturnThis(),
-    leftJoin: jest.fn().mockReturnThis(),
-    rightJoin: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnValue(result),
     insert: jest.fn().mockReturnThis(),
     values: jest.fn().mockReturnThis(),
-    returning: jest.fn().mockResolvedValue(result as any),
+    returning: jest.fn().mockReturnValue(result),
     update: jest.fn().mockReturnThis(),
     set: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-  } as any;
+  };
 
   return mockDb;
 };
@@ -218,28 +185,33 @@ export const mockDbResponse = (data: any) => {
 export const createTestRequest = (
   method: string,
   path: string,
-  body?: any,
+  body?: unknown,
   headers?: Record<string, string>,
-) => {
+): any => {
   const url = `http://localhost:3000${path}`;
-  const request: any = new Request(url, {
+  const request = {
+    url,
     method,
     headers: {
-      "content-type": "application/json",
-      ...headers,
+      get: jest.fn((key: string) => headers?.[key] || null),
+      set: jest.fn(),
+      has: jest.fn(),
+      delete: jest.fn(),
+      entries: jest.fn(),
+      keys: jest.fn(),
+      values: jest.fn(),
+      forEach: jest.fn(),
     },
-  });
-
-  // Mock json() method for body
-  if (body) {
-    request.json = jest.fn().mockResolvedValue(body as any);
-  } else {
-    request.json = jest.fn().mockResolvedValue({} as any);
-  }
-
-  // Mock other common request methods
-  request.headers = {
-    get: jest.fn((key: string) => headers?.[key] || null),
+    json: jest.fn().mockReturnValue(body || {}),
+    cookies: new Map(),
+    nextUrl: new URL(url),
+    page: {
+      params: {},
+      searchParams: new URLSearchParams(),
+    },
+    ua: "test-ua",
+    ip: "127.0.0.1",
+    geo: {},
   };
 
   return request;
@@ -248,6 +220,11 @@ export const createTestRequest = (
 // Clean up mocks before each test
 beforeEach(() => {
   jest.clearAllMocks();
+});
+
+// Restore original Response after tests
+afterAll(() => {
+  global.Response = originalResponse;
 });
 
 // Dummy test to satisfy Jest requirement for test files
