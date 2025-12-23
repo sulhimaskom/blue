@@ -35,8 +35,14 @@
 - [ ] Integrate IFlow AI models (Brain + Mouth agents)
 - [ ] Implement Tavily/Perplexity research API integration
 - [ ] 🔴 **CRITICAL**: Implement structured logging (replace 11 console.\* statements in API routes)
+  - **Files**: app/api/blueprints/route.ts, app/api/credits/route.ts, app/api/deploy/[id]/route.ts, app/api/webhooks/\*_/_.ts
+  - **Solution**: Replace with Pino/Winston structured logging with proper log levels
 - [ ] 🔴 **HIGH**: Add Redis-based rate limiting for production scalability (replace in-memory Map at lib/api-utils.ts:70-93)
+  - **Issue**: Current Map-based rate limiting doesn't scale horizontally
+  - **Solution**: Implement Redis-backed distributed rate limiting
 - [ ] 🔴 **HIGH**: Add comprehensive API integration test coverage (currently only 2 component tests)
+  - **Current**: 2/2 basic component tests passing
+  - **Target**: API route tests, database operation tests, auth middleware tests
 - [ ] 🔴 **MEDIUM**: Implement Row Level Security (RLS) policies for multi-tenant security
 - [ ] GitHub App integration for repository creation
 - [ ] Performance optimization and monitoring setup
@@ -62,7 +68,7 @@
 | ----- | -------- | -------------------------------------------------------------------------------- |
 | 1     | 100%     | ✅ MVP codebase complete, build system validated                                 |
 | 2     | 100%     | ✅ Security + auth + database + validation + API routes complete (Audit: 85/100) |
-| 3     | 0%       | 🚀 Ready - AI integration infrastructure is solid (22h fixes needed)             |
+| 3     | 0%       | 🚀 Ready - AI integration infrastructure is solid (22h production fixes needed)  |
 | 4     | 0%       | Not started - depends on full feature pipeline                                   |
 
 ---

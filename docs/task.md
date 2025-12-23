@@ -55,11 +55,24 @@
 - [x] **COMPLETED**: Add basic test coverage (Jest + Testing Library)
 - [x] **COMPLETED**: Implement Stripe payments and credit system (API endpoints)
 
-## New High Priority Items 🔴 (From 82/100 Evaluation)
+## Critical Production Issues 🔴 (From 85/100 Audit - MUST FIX BEFORE AI INTEGRATION)
 
-- [ ] **CRITICAL**: Implement structured logging (replace console.\* statements in all API routes)
+- [ ] **CRITICAL**: Implement structured logging (replace 11 console.\* statements in API routes)
+  - **Impact**: Security risk, production standard violation
+  - **Files**: All API routes contain console.error statements
+  - **Effort**: 4 hours
 - [ ] **HIGH**: Add Redis-based distributed rate limiting (replace in-memory Map in lib/api-utils.ts:70-93)
+  - **Impact**: Cannot scale horizontally, vulnerable to distributed attacks
+  - **Current**: Map-based rate limiting resets on server restart
+  - **Effort**: 6 hours
 - [ ] **HIGH**: Add comprehensive API integration test coverage (currently only 2 basic component tests)
+  - **Impact**: Regression risk, limited confidence in API functionality
+  - **Current**: 2/2 tests passing (component rendering only)
+  - **Target**: API routes, database operations, auth middleware tests
+  - **Effort**: 12 hours
+
+## Medium Priority Improvements 🟡 (Post-AI Integration)
+
 - [ ] **MEDIUM**: Implement database connection pooling for Neon PostgreSQL scaling
 - [ ] **MEDIUM**: Add Row Level Security (RLS) policies for multi-tenant data isolation
 - [ ] **LOW**: Set up production monitoring and alerting infrastructure
@@ -72,4 +85,4 @@
 
 ---
 
-**Last Updated**: 2025-12-23 (Phase 2 Complete - Score: 85/100 - Production fixes needed)
+**Last Updated**: 2025-12-23 (Comprehensive Audit: Score 85/100 - 22h production fixes needed)
