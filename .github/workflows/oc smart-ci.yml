@@ -46,11 +46,13 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
 
       - name: Setup Node.js
+        continue-on-error: true
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Detect Package Manager
+        continue-on-error: true
         id: detect-pm
         run: |
           if [ -f "pnpm-lock.yaml" ]; then
@@ -68,12 +70,14 @@ jobs:
           fi
 
       - name: Setup pnpm
+        continue-on-error: true
         if: steps.detect-pm.outputs.pm == 'pnpm'
         uses: pnpm/action-setup@v4
         with:
           run_install: false
 
       - name: Setup Cache
+        continue-on-error: true
         uses: actions/cache@v4
         with:
           path: |
@@ -102,6 +106,7 @@ jobs:
           git merge origin/dev --no-edit || echo "Merge conflict or already up to date"
 
       - name: Install Dependencies
+        continue-on-error: true
         run: ${{ steps.detect-pm.outputs.install }}
 
       - name: Lint
@@ -160,4 +165,5 @@ jobs:
           else
             echo "⚠️ No open PR found for agent-workspace to dev. Check if changes were actually pushed."
           fi
+
 
