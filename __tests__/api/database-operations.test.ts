@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { users, projects, blueprints, transactions } from "@/lib/db/schema";
 import { mockDbResponse } from "../helpers";
+import { eq, and } from "drizzle-orm";
 
 // Mock the imports
 jest.mock("@/lib/db");
@@ -256,7 +257,7 @@ describe("Database Operations", () => {
       const mockDatabase = mockDbResponse(mockBlueprints);
       mockDatabase.select.mockReturnValue(mockDatabase as any);
       mockDatabase.where.mockReturnValue(mockDatabase as any);
-      mockDatabase.orderBy.mockReturnValue(mockDatabase as any);
+      mockDatabase.orderBy.mockResolvedValue(mockBlueprints);
       mockDb.mockReturnValue(mockDatabase);
 
       // Act
@@ -370,8 +371,7 @@ describe("Database Operations", () => {
 
       const mockDatabase = mockDbResponse(mockTransactions);
       mockDatabase.select.mockReturnValue(mockDatabase as any);
-      mockDatabase.where.mockReturnValue(mockDatabase as any);
-      mockDatabase.orderBy.mockReturnValue(mockDatabase as any);
+      mockDatabase.where.mockResolvedValue(mockTransactions);
       mockDb.mockReturnValue(mockDatabase);
 
       // Act
