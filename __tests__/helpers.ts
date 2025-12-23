@@ -117,8 +117,8 @@ jest.mock("@/lib/db", () => {
 
   return {
     db: mockDb,
-    checkDbHealth: jest.fn().mockResolvedValue(true),
-    getDb: jest.fn().mockResolvedValue(mockDb),
+    checkDbHealth: jest.fn(() => Promise.resolve(true)),
+    getDb: jest.fn(() => Promise.resolve(mockDb)),
   };
 });
 
