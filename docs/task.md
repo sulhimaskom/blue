@@ -46,6 +46,8 @@
 - [x] **COMPLETED**: Extract hardcoded homepage content into reusable HeroSection component
 - [x] **COMPLETED**: Implement content constants to eliminate hardcoded strings (blueprint.md:194 compliance)
 - [x] **COMPLETED**: Create atomic UI component structure following blueprint.md:188-192
+- [x] **COMPLETED**: Extract duplicated auth layout into reusable AuthLayout component
+- [x] **COMPLETED**: Eliminate code duplication in sign-in/sign-up/protected-route components
 - [ ] Define implement database schema (users, projects, blueprints, transactions)
 - [ ] Implement blueprint generation engine (AI integration)
 - [ ] Add GitHub App integration for repository creation

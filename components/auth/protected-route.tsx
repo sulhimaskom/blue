@@ -3,6 +3,7 @@
 import { useAuthStatus } from "@/lib/hooks/use-auth";
 import { SignIn } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
+import { AuthLayout } from "./auth-layout";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,9 +15,9 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <AuthLayout>
         <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
+      </AuthLayout>
     );
   }
 
@@ -26,7 +27,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     }
 
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <AuthLayout>
         <div className="w-full max-w-md space-y-4 text-center">
           <h2 className="text-2xl font-semibold">Authentication Required</h2>
           <p className="text-muted-foreground">
@@ -34,7 +35,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
           </p>
           <SignIn path="/sign-in" />
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
