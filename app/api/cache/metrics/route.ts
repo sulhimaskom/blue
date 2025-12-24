@@ -1,53 +1,109 @@
 import { NextResponse } from "next/server";
-import { CacheService } from "@/lib/services/cache-service";
+import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
+import { redisManager } from "@/lib/redis";
 import { logger } from "@/lib/logger";
+import { metricsCalculator } from "@/lib/services/metrics-calculator-service";
 
-// Cache monitoring endpoint for performance insights
+// Enhanced cache monitoring endpoint with advanced analytics
 export async function GET() {
   try {
-    // Get comprehensive cache statistics
-    const cacheStats = await CacheService.getCacheStats();
+    // Get comprehensive cache statistics with performance metrics
+    const cacheStats = await UnifiedCacheManager.getCacheStats();
+    const redisMetrics = redisManager.getPerformanceMetrics();
+    const redisHealth = await redisManager.healthCheck();
 
-    // Mock hit rate for now - in production would be tracked
-    const hitRate = 0.65; // 65% hit rate estimate
+    // Calculate detailed efficiency metrics using unified service
+    const efficiency = metricsCalculator.calculateCachePerformance(cacheStats);
 
-    // Calculate cache efficiency metrics
-    const efficiency = {
-      hitRatePercent: Math.round(hitRate * 100),
-      expectedSavings: calculateCostSavings(hitRate, cacheStats.totalKeys),
-      performanceImprovement: calculatePerformanceImprovement(hitRate),
+    // Advanced performance analytics using unified service
+    const performance = {
+      ...cacheStats.performance,
+      redisPerformance:
+        metricsCalculator.calculateRedisPerformance(redisMetrics),
+      cacheEfficiency: metricsCalculator.calculateCacheEfficiency(cacheStats),
     };
 
     const monitoringData = {
       timestamp: new Date().toISOString(),
+      summary: {
+        status: metricsCalculator.determineOverallStatus(
+          redisHealth,
+          efficiency.hitRatePercent,
+          performance.redisPerformance.errorRate,
+        ),
+        healthGrade: metricsCalculator.calculateHealthGrade(
+          efficiency.hitRatePercent,
+          performance.redisPerformance.errorRate,
+        ),
+      },
       cache: {
-        totalKeys: cacheStats.totalKeys,
-        memoryUsageBytes: cacheStats.memoryUsage,
-        memoryUsageMB:
-          Math.round((cacheStats.memoryUsage / 1024 / 1024) * 100) / 100,
-        hitRate: efficiency.hitRatePercent,
+        storage: {
+          totalKeys: cacheStats.totalKeys,
+          dataCacheKeys: cacheStats.dataCacheKeys,
+          responseCacheKeys: cacheStats.responseCacheKeys,
+          memoryUsageBytes: cacheStats.memoryUsage,
+          memoryUsageMB:
+            Math.round((cacheStats.memoryUsage / 1024 / 1024) * 100) / 100,
+        },
+        performance: {
+          hitRate: efficiency.hitRatePercent,
+          avgGetTime: `${cacheStats.performance.avgGetTime.toFixed(2)}ms`,
+          avgSetTime: `${cacheStats.performance.avgSetTime.toFixed(2)}ms`,
+          operationsPerSecond: cacheStats.performance.operationsPerSecond,
+        },
+        aiCaching: {
+          iflowHits: cacheStats.aiCacheStats.iflowCacheHits,
+          tavilyHits: cacheStats.aiCacheStats.tavilyCacheHits,
+          blueprintHits: cacheStats.aiCacheStats.blueprintCacheHits,
+          aiHitRate: efficiency.aiHitRatePercent,
+          costSavings: efficiency.aiCostSavings,
+        },
+        tags: cacheStats.tags,
       },
-      performance: {
-        expectedSavings: efficiency.expectedSavings,
-        performanceImprovement: efficiency.performanceImprovement,
-        averageResponseTimeReduction: `${Math.round(hitRate * 40 * 100)}%`, // Based on 40% average improvement
+      infrastructure: {
+        redis: {
+          health: redisHealth.status,
+          primaryConnection: redisHealth.details.primaryConnection,
+          pooledConnections: redisHealth.details.pooledConnections,
+          circuitBreakerState: redisHealth.details.circuitBreakerState.state,
+          connectionMetrics: {
+            active: redisMetrics.connectionMetrics.activeConnections,
+            idle: redisMetrics.connectionMetrics.idleConnections,
+            total: redisMetrics.connectionMetrics.totalConnections,
+            utilization: performance.redisPerformance.connectionUtilization,
+          },
+        },
       },
-      status: {
-        health: cacheStats.totalKeys > 0 ? "healthy" : "empty",
-        efficiency:
-          efficiency.hitRatePercent > 50
-            ? "good"
-            : efficiency.hitRatePercent > 25
-              ? "fair"
-              : "poor",
+      analytics: {
+        efficiency,
+        performance,
+        recommendations: metricsCalculator.generateRecommendations(
+          efficiency,
+          performance,
+          redisHealth,
+        ),
+        trends: {
+          memoryTrend: "stable", // Would be enhanced with historical data
+          hitRateTrend:
+            efficiency.hitRatePercent > 70 ? "improving" : "needs_attention",
+          performanceTrend:
+            performance.redisPerformance.errorRate < 2
+              ? "optimal"
+              : "degrading",
+        },
       },
     };
 
-    logger.info("Cache monitoring data retrieved", monitoringData);
+    logger.info("Enhanced cache monitoring data retrieved", {
+      totalKeys: cacheStats.totalKeys,
+      hitRate: efficiency.hitRatePercent,
+      costSavings: efficiency.aiCostSavings,
+      redisHealth: redisHealth.status,
+    });
 
     return NextResponse.json(monitoringData);
   } catch (error) {
-    logger.error("Cache monitoring failed", {
+    logger.error("Enhanced cache monitoring failed", {
       error: error instanceof Error ? error.message : "Unknown error",
     });
 
@@ -56,21 +112,4 @@ export async function GET() {
       { status: 500 },
     );
   }
-}
-
-// Helper functions for performance calculations
-function calculateCostSavings(hitRate: number, totalKeys: number): string {
-  // Assume average AI call costs $0.02 and cache saves 65% of that
-  const avgCostPerCall = 0.02;
-  const savedCalls = Math.round(totalKeys * hitRate);
-  const savings = savedCalls * avgCostPerCall * 0.65; // 65% cost reduction with cache
-
-  return `$${Math.round(savings * 100) / 100} estimated daily savings`;
-}
-
-function calculatePerformanceImprovement(hitRate: number): string {
-  // Based on average 40-60% response time improvement with cache
-  const avgImprovement = 50; // 50% average improvement
-  const actualImprovement = Math.round(hitRate * avgImprovement);
-  return `${actualImprovement}% average response time improvement`;
 }

@@ -3,6 +3,8 @@ import { logger } from "../logger";
 import { monitoringService } from "../monitoring";
 import { AIErrorReporter } from "./ai-error-reporter";
 import { circuitBreakerRegistry, SERVICE_CONFIGS } from "../circuit-breaker";
+import { UnifiedCacheManager } from "./unified-cache-manager";
+import { AIPatternDetector, type AIPattern } from "./ai-pattern-detector";
 import { CacheService } from "./cache-service";
 
 export interface AIModel {
@@ -112,8 +114,18 @@ class AIService {
         throw error;
       }
 
-      // Check cache first for similar requests
-      const cacheKey = {
+      // Detect pattern for intelligent caching
+      const detectedPattern = AIPatternDetector.detectPattern(request.prompt);
+
+      // Generate optimized cache key with pattern awareness
+      const optimizedCacheKey = AIPatternDetector.generateOptimizedCacheKey(
+        "iflow",
+        request.prompt,
+        detectedPattern.pattern || undefined,
+      );
+
+      // Check unified cache with enhanced hit rates
+      const cacheData = {
         prompt: request.prompt,
         model: request.model?.id || this.models.reasoning.id,
         temperature: request.temperature || 0.7,
@@ -121,9 +133,15 @@ class AIService {
         context: request.context,
       };
 
-      const cachedResponse = await CacheService.getAIResponse(
+      const cachedResponse = await UnifiedCacheManager.getData(
         "iflow-completion",
-        cacheKey,
+        cacheData,
+        {
+          key: optimizedCacheKey,
+          tags: detectedPattern.pattern
+            ? [detectedPattern.pattern, "ai"]
+            : ["ai"],
+        },
       );
       if (cachedResponse) {
         logger.info("AI completion served from cache", {
@@ -226,14 +244,21 @@ class AIService {
           tokens: completion.usage.totalTokens,
         });
 
-        // Cache the successful response
-        await CacheService.cacheAIResponse(
+        // Cache the successful response with intelligent TTL
+        const intelligentTTL = detectedPattern.pattern
+          ? this.getPatternTypicalTTL(detectedPattern.pattern) * 0.5 // Half of pattern TTL for fresh data
+          : 1800; // Default 30 minutes
+
+        await UnifiedCacheManager.cacheData(
           "iflow-completion",
-          cacheKey,
+          cacheData,
           completion,
           {
-            ttl: 1800, // 30 minutes for AI completions
-            tags: ["ai-completion", model.id],
+            key: optimizedCacheKey,
+            ttl: intelligentTTL,
+            tags: detectedPattern.pattern
+              ? ["ai-completion", model.id, detectedPattern.pattern]
+              : ["ai-completion", model.id],
           },
         );
 
@@ -475,6 +500,21 @@ class AIService {
     this.iflowCircuitBreaker.reset();
     this.tavilyCircuitBreaker.reset();
     logger.info("AI service circuit breakers reset");
+  }
+
+  /**
+   * Get typical TTL for detected pattern
+   */
+  private getPatternTypicalTTL(pattern: AIPattern["type"]): number {
+    const ttlMap: Record<AIPattern["type"], number> = {
+      marketplace: 7200,
+      ecommerce: 3600,
+      social: 5400,
+      dashboard: 1800,
+      "api-service": 2700,
+      "mobile-app": 3600,
+    };
+    return ttlMap[pattern] || 1800;
   }
 }
 

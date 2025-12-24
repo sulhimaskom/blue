@@ -1,6 +1,7 @@
 import { aiService } from "@/lib/services/ai-service";
 import { circuitBreakerRegistry } from "@/lib/circuit-breaker";
 import { formatSuccessResponse, formatErrorResponse } from "@/lib/api-utils";
+import { metricsCalculator } from "@/lib/services/metrics-calculator-service";
 
 /**
  * GET /api/circuit-breakers/metrics
@@ -18,13 +19,12 @@ export async function GET() {
     // Get open circuits for quick health check
     const openCircuits = circuitBreakerRegistry.getOpenCircuits();
 
-    // Calculate overall health score
+    // Calculate overall health score using unified service
+    const { healthScore, status } =
+      metricsCalculator.calculateCircuitBreakerHealth(allMetrics, openCircuits);
+
     const totalCircuits = Object.keys(allMetrics).length;
     const healthyCircuits = totalCircuits - openCircuits.length;
-    const healthScore =
-      totalCircuits > 0
-        ? Math.round((healthyCircuits / totalCircuits) * 100)
-        : 100;
 
     const metrics = {
       timestamp: new Date().toISOString(),
@@ -50,12 +50,7 @@ export async function GET() {
             aiMetrics.tavily.state === "HALF_OPEN",
         },
       },
-      status:
-        healthScore >= 80
-          ? "healthy"
-          : healthScore >= 60
-            ? "degraded"
-            : "unhealthy",
+      status,
     };
 
     return formatSuccessResponse(
