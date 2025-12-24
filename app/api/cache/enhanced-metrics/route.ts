@@ -3,6 +3,7 @@ import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 import { AIPatternDetector } from "@/lib/services/ai-pattern-detector";
 import { automatedCacheWarmingService } from "@/lib/services/automated-cache-warming";
 import { logger } from "@/lib/logger";
+import { metricsCalculator } from "@/lib/services/metrics-calculator-service";
 
 // Enhanced AI cache metrics with pattern detection insights
 export async function GET() {
@@ -17,12 +18,13 @@ export async function GET() {
     const warmingMetrics = automatedCacheWarmingService.getMetrics();
     const warmingServiceStatus = automatedCacheWarmingService.getStatus();
 
-    // Calculate advanced performance metrics
-    const performanceInsights = calculatePerformanceInsights(
-      cacheStats,
-      aiAnalytics,
-      warmingMetrics,
-    );
+    // Calculate advanced performance metrics using unified service
+    const performanceInsights =
+      metricsCalculator.calculateAIPerformanceInsights(
+        cacheStats,
+        aiAnalytics,
+        warmingMetrics,
+      );
 
     // Generate pattern-based recommendations
     const recommendations =
@@ -39,7 +41,7 @@ export async function GET() {
       },
       aiPatternCaching: {
         patternDistribution: aiAnalytics.patternDistribution,
-        detectionAccuracy: calculateDetectionAccuracy(),
+        detectionAccuracy: metricsCalculator.calculateDetectionAccuracy(),
         optimizedCacheHitRate: `${Math.round(cacheStats.aiCacheStats.aiCacheHitRate * 100)}%`,
         costOptimization: {
           totalSavings: `$${cacheStats.aiCacheStats.estimatedCostSavings.toFixed(2)}`,
@@ -49,8 +51,12 @@ export async function GET() {
         },
         performance: {
           averageResponseTime: `${cacheStats.performance.avgGetTime.toFixed(2)}ms`,
-          cacheEfficiency: calculateCacheEfficiency(cacheStats),
-          patternHitRates: calculatePatternHitRates(aiAnalytics, cacheStats),
+          cacheEfficiency:
+            metricsCalculator.calculateCacheEfficiencyRating(cacheStats),
+          patternHitRates: metricsCalculator.calculatePatternHitRates(
+            aiAnalytics,
+            cacheStats,
+          ),
         },
       },
       intelligentWarming: {
@@ -93,10 +99,12 @@ export async function GET() {
       analytics: {
         performanceInsights,
         recommendations,
-        trends: calculateTrends(cacheStats, aiAnalytics),
+        trends: metricsCalculator.calculateTrends(cacheStats, aiAnalytics),
         optimization: {
-          nextOptimizationOpportunity: calculateNextOptimization(cacheStats),
-          warmupReadiness: calculateWarmupReadiness(aiAnalytics),
+          nextOptimizationOpportunity:
+            metricsCalculator.calculateNextOptimization(cacheStats),
+          warmupReadiness:
+            metricsCalculator.calculateWarmupReadiness(aiAnalytics),
         },
       },
     };
@@ -119,130 +127,4 @@ export async function GET() {
       { status: 500 },
     );
   }
-}
-
-// Enhanced helper functions for AI-specific metrics
-function calculatePerformanceInsights(
-  cacheStats: any,
-  aiAnalytics: any,
-  warmingMetrics: any,
-): {
-  overallStatus: "excellent" | "good" | "fair" | "poor";
-  healthGrade: "A+" | "A" | "B" | "C" | "D" | "F";
-  efficiency: number;
-  optimizationPotential: number;
-} {
-  const aiHitRate = cacheStats.aiCacheStats.aiCacheHitRate;
-  const costSavings = cacheStats.aiCacheStats.estimatedCostSavings;
-  const warmingEfficiency = warmingMetrics.warmedEntries > 0;
-
-  let status: "excellent" | "good" | "fair" | "poor";
-  if (aiHitRate > 0.8 && costSavings > 50 && warmingEfficiency) {
-    status = "excellent";
-  } else if (aiHitRate > 0.6 && costSavings > 25) {
-    status = "good";
-  } else if (aiHitRate > 0.4 && costSavings > 10) {
-    status = "fair";
-  } else {
-    status = "poor";
-  }
-
-  // Calculate health grade
-  const score =
-    aiHitRate * 50 + Math.min(costSavings, 50) + (warmingEfficiency ? 10 : 0);
-
-  let grade: "A+" | "A" | "B" | "C" | "D" | "F";
-  if (score >= 90) grade = "A+";
-  else if (score >= 80) grade = "A";
-  else if (score >= 70) grade = "B";
-  else if (score >= 60) grade = "C";
-  else if (score >= 50) grade = "D";
-  else grade = "F";
-
-  return {
-    overallStatus: status,
-    healthGrade: grade,
-    efficiency: Math.round((aiHitRate + (costSavings > 25 ? 0.2 : 0)) * 100),
-    optimizationPotential: Math.max(0, 100 - score),
-  };
-}
-
-function calculateDetectionAccuracy(): number {
-  // Simulate detection accuracy based on pattern distribution
-  return 0.85 + (Math.random() * 0.1 - 0.05); // 80-90% accuracy
-}
-
-function calculateCacheEfficiency(cacheStats: any): string {
-  const hitRate = cacheStats.hitRate;
-  const avgResponseTime = cacheStats.performance.avgGetTime;
-
-  if (hitRate > 0.8 && avgResponseTime < 50) return "excellent";
-  if (hitRate > 0.6 && avgResponseTime < 100) return "good";
-  if (hitRate > 0.4 && avgResponseTime < 200) return "fair";
-  return "needs_optimization";
-}
-
-function calculatePatternHitRates(
-  aiAnalytics: any,
-  cacheStats: any,
-): Record<string, number> {
-  const hitRates: Record<string, number> = {};
-
-  Object.entries(aiAnalytics.patternDistribution).forEach(
-    ([pattern, count]) => {
-      if (typeof count === "number" && count > 0) {
-        hitRates[pattern] = Math.min(
-          0.95,
-          cacheStats.aiCacheStats.aiCacheHitRate + (Math.random() * 0.1 - 0.05),
-        );
-      } else {
-        hitRates[pattern] = 0;
-      }
-    },
-  );
-
-  return hitRates;
-}
-
-function calculateTrends(
-  cacheStats: any,
-  aiAnalytics: any,
-): {
-  hitRateTrend: "improving" | "stable" | "declining";
-  costTrend: "increasing" | "stable" | "decreasing";
-  usageTrend: "growing" | "stable" | "declining";
-} {
-  const hitRate = cacheStats.aiCacheStats.aiCacheHitRate;
-  const totalRequests = aiAnalytics.totalRequests;
-
-  return {
-    hitRateTrend:
-      hitRate > 0.7 ? "improving" : hitRate > 0.5 ? "stable" : "declining",
-    costTrend:
-      cacheStats.aiCacheStats.estimatedCostSavings > 25
-        ? "increasing"
-        : "stable",
-    usageTrend: totalRequests > 100 ? "growing" : "stable",
-  };
-}
-
-function calculateNextOptimization(cacheStats: any): string {
-  const totalKeys = cacheStats.totalKeys;
-  const memoryUsage = cacheStats.memoryUsage;
-
-  if (totalKeys > 1000) return "Consider cache key optimization";
-  if (memoryUsage > 100 * 1024 * 1024) return "Memory cleanup recommended";
-  if (cacheStats.hitRate < 0.6) return "Increase warming frequency";
-  return "No immediate optimization needed";
-}
-
-function calculateWarmupReadiness(aiAnalytics: any): "high" | "medium" | "low" {
-  const totalRequests = aiAnalytics.totalRequests;
-  const patternBalance = Object.values(aiAnalytics.patternDistribution).filter(
-    (p) => (p as number) > 0,
-  ).length;
-
-  if (totalRequests > 200 && patternBalance >= 4) return "high";
-  if (totalRequests > 50 || patternBalance >= 2) return "medium";
-  return "low";
 }
