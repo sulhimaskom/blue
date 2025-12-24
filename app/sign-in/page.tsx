@@ -1,10 +1,5 @@
-import { SignIn } from "@clerk/nextjs";
-import { AuthLayout } from "@/components/auth/auth-layout";
+import { AuthPage } from "@/components/auth/auth-page";
 
 export default function SignInPage() {
-  return (
-    <AuthLayout>
-      <SignIn path="/sign-in" />
-    </AuthLayout>
-  );
+  return <AuthPage type="sign-in" />;
 }
