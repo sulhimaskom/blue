@@ -5,6 +5,7 @@ import { ChartIcon } from "@/components/ui/icons";
 import { MetricSummaryCard } from "@/components/ui/metric-card";
 import { BaseCard } from "@/components/ui/base-card";
 import { Skeleton, MetricCardSkeleton } from "@/components/ui/skeleton";
+import { UI_TEXT } from "@/lib/constants/ui-text";
 import {
   BaseTable,
   TableHeader,
@@ -47,7 +48,7 @@ export const PerformanceMetrics = React.memo(
           <div className="flex items-center gap-3 mb-6">
             <ChartIcon />
             <h2 className="text-xl font-semibold text-gray-900">
-              Performance Metrics
+              {UI_TEXT.monitoring.performanceMetrics}
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -57,7 +58,7 @@ export const PerformanceMetrics = React.memo(
           </div>
           <BaseCard>
             <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Recent Activity Log
+              {UI_TEXT.monitoring.recentActivity}
             </h3>
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -84,7 +85,7 @@ export const PerformanceMetrics = React.memo(
         <div className="flex items-center gap-3 mb-6">
           <ChartIcon />
           <h2 className="text-xl font-semibold text-gray-900">
-            Performance Metrics
+            {UI_TEXT.monitoring.performanceMetrics}
           </h2>
         </div>
 
@@ -137,7 +138,7 @@ const RecentActivityTable = React.memo(function RecentActivityTableComponent({
   return (
     <BaseCard>
       <h3 className="text-lg font-medium text-gray-900 mb-4">
-        Recent Activity Log
+        {UI_TEXT.monitoring.recentActivity}
       </h3>
       <BaseTable variant="bordered">
         <TableHeader

@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/status-indicator";
 import { BaseCard } from "@/components/ui/base-card";
 import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-service";
+import { UI_TEXT } from "@/lib/constants/ui-text";
 import type { SystemHealth } from "@/lib/hooks/use-monitoring";
 import { STATUS_THEMES, ANIMATION_STATES } from "@/lib/constants/ui-themes";
 
@@ -33,7 +34,7 @@ export const ServiceStatusGrid = React.memo(
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
           <ServerIcon />
-          Service Status Details
+          {UI_TEXT.monitoring.serviceStatusDetails}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {health.checks.map((check, index) => {

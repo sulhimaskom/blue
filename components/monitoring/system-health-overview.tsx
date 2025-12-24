@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/status-indicator";
 import { BaseCard } from "@/components/ui/base-card";
 import { GradientCard } from "@/components/ui/gradient-card";
+import { UI_TEXT } from "@/lib/constants/ui-text";
 import {
   MonitoringDashboardService,
   type HealthScoreMetrics,
@@ -48,7 +49,9 @@ export const SystemHealthOverview = React.memo(
       <BaseCard className="mb-8 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
           <ServerIcon />
-          <h2 className="text-xl font-semibold text-gray-900">System Health</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            {UI_TEXT.monitoring.systemHealth}
+          </h2>
           <div className="ml-auto">
             <StatusIndicator status={health.status as StatusType} size="md" />
           </div>
@@ -91,8 +94,12 @@ const HealthScoreCards = React.memo(function HealthScoreCardsComponent({
         <div className="text-3xl font-bold text-green-600 mb-3">
           {overviewData.uptime}
         </div>
-        <div className="text-sm font-medium text-gray-700">System Uptime</div>
-        <div className="text-xs text-gray-500 mt-1">Continuous operation</div>
+        <div className="text-sm font-medium text-gray-700">
+          {UI_TEXT.monitoring.systemUptime}
+        </div>
+        <div className="text-xs text-gray-500 mt-1">
+          {UI_TEXT.monitoring.continuousOperation}
+        </div>
       </GradientCard>
 
       {/* Services Monitored */}
@@ -101,9 +108,11 @@ const HealthScoreCards = React.memo(function HealthScoreCardsComponent({
           {health.checks.length}
         </div>
         <div className="text-sm font-medium text-gray-700">
-          Services Monitored
+          {UI_TEXT.monitoring.servicesMonitored}
         </div>
-        <div className="text-xs text-gray-500 mt-1">Active endpoints</div>
+        <div className="text-xs text-gray-500 mt-1">
+          {UI_TEXT.monitoring.activeEndpoints}
+        </div>
       </GradientCard>
     </div>
   );
@@ -146,7 +155,9 @@ const HealthScoreCard = React.memo(function HealthScoreCardComponent({
           </span>
         </div>
       </div>
-      <div className="text-sm font-medium text-gray-700">Health Score</div>
+      <div className="text-sm font-medium text-gray-700">
+        {UI_TEXT.monitoring.healthScore}
+      </div>
       <div className="text-xs text-gray-500 mt-1">
         {healthMetrics.healthyServices}/{healthMetrics.totalServices} services
         healthy
