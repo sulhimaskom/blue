@@ -221,29 +221,48 @@ class RedisManager {
   }
 
   /**
-   * Get pooled connection for better performance
+   * Get pooled connection with intelligent load balancing
    */
   private async getPooledConnection(): Promise<RedisClientType> {
-    // Try to get an idle connection from pool
-    const idleConnection = this.connectionPool.find(
-      () => !this.metrics.activeConnections,
+    // Round-robin selection for better load distribution
+    const availableConnections = this.connectionPool.filter(
+      (conn) => conn.isOpen,
     );
-    if (idleConnection && idleConnection.isOpen) {
+
+    if (availableConnections.length > 0) {
+      // Use simple round-robin for connection selection
+      const connectionIndex =
+        this.operationMetrics.totalOperations % availableConnections.length;
+      const selectedConnection = availableConnections[connectionIndex];
+
       this.metrics.activeConnections++;
-      this.metrics.idleConnections--;
-      return idleConnection;
+      return selectedConnection;
     }
 
     // Create new connection if pool isn't full
     if (this.connectionPool.length < this.maxPoolSize) {
-      const newConnection = await this.createNewConnection();
-      this.connectionPool.push(newConnection);
-      this.metrics.totalConnections++;
-      this.metrics.activeConnections++;
-      return newConnection;
+      try {
+        const newConnection = await this.createNewConnection();
+        this.connectionPool.push(newConnection);
+        this.metrics.totalConnections++;
+        this.metrics.activeConnections++;
+
+        logger.debug("Created new Redis connection", {
+          poolSize: this.connectionPool.length,
+        });
+
+        return newConnection;
+      } catch (error) {
+        logger.warn(
+          "Failed to create new Redis connection, falling back to primary",
+          {
+            error: error instanceof Error ? error.message : "Unknown error",
+          },
+        );
+      }
     }
 
-    // Fall back to primary client
+    // Fall back to primary client as last resort
     return await this.getClient();
   }
 
@@ -346,44 +365,65 @@ class RedisManager {
   }
 
   /**
-   * Optimize connection pool size based on current load
+   * Optimize connection pool size based on current load with intelligent scaling
    */
   async optimizeConnectionPool(): Promise<void> {
     const currentLoad = this.metrics.utilizationRate;
+    const avgResponseTime = this.operationMetrics.avgResponseTime;
 
-    // Scale up if under high load (>80% utilization)
-    if (currentLoad > 0.8 && this.connectionPool.length < this.maxPoolSize) {
-      const newConnection = await this.createNewConnection();
-      this.connectionPool.push(newConnection);
-      this.metrics.totalConnections++;
-      this.metrics.idleConnections++;
-    }
+    // Advanced scaling logic considering both load and response time
+    if (currentLoad > 0.8 || avgResponseTime > 500) {
+      // Scale up under high load or slow response times
+      if (this.connectionPool.length < this.maxPoolSize) {
+        try {
+          const newConnection = await this.createNewConnection();
+          this.connectionPool.push(newConnection);
+          this.metrics.totalConnections++;
+          this.metrics.idleConnections++;
 
-    // Scale down if under low load (<20% utilization)
-    if (currentLoad < 0.2 && this.connectionPool.length > this.minPoolSize) {
-      const idleConnection = this.connectionPool.find(
-        () => !this.metrics.activeConnections,
-      );
-      if (idleConnection) {
-        await idleConnection.quit();
-        const index = this.connectionPool.indexOf(idleConnection);
-        this.connectionPool.splice(index, 1);
-        this.metrics.totalConnections--;
-        this.metrics.idleConnections--;
+          logger.info("Redis connection pool scaled up", {
+            poolSize: this.connectionPool.length,
+            load: currentLoad,
+            avgResponseTime,
+          });
+        } catch (error) {
+          logger.warn("Failed to scale up Redis connection pool", {
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
       }
-    }
+    } else if (currentLoad < 0.2 && avgResponseTime < 200) {
+      // Scale down under low load with good performance
+      if (this.connectionPool.length > this.minPoolSize) {
+        // Find idle connections to close
+        const idleConnectionIndex = this.connectionPool.findIndex(
+          (conn) => conn !== this.client && conn.isOpen,
+        );
 
-    // Scale down if under low load (<20% utilization)
-    if (currentLoad < 0.2 && this.connectionPool.length > this.minPoolSize) {
-      const idleConnection = this.connectionPool.find(
-        () => !this.metrics.activeConnections,
-      );
-      if (idleConnection) {
-        await idleConnection.quit();
-        const index = this.connectionPool.indexOf(idleConnection);
-        this.connectionPool.splice(index, 1);
-        this.metrics.totalConnections--;
-        this.metrics.idleConnections--;
+        if (idleConnectionIndex >= 0) {
+          try {
+            const connectionToRemove = this.connectionPool[idleConnectionIndex];
+            await connectionToRemove.quit();
+            this.connectionPool.splice(idleConnectionIndex, 1);
+            this.metrics.totalConnections--;
+
+            // Adjust idle connections count safely
+            this.metrics.idleConnections = Math.max(
+              0,
+              this.metrics.idleConnections - 1,
+            );
+
+            logger.info("Redis connection pool scaled down", {
+              poolSize: this.connectionPool.length,
+              load: currentLoad,
+              avgResponseTime,
+            });
+          } catch (error) {
+            logger.warn("Failed to scale down Redis connection pool", {
+              error: error instanceof Error ? error.message : "Unknown error",
+            });
+          }
+        }
       }
     }
   }
@@ -408,46 +448,137 @@ class RedisManager {
   }
 
   /**
-   * Health check for Redis connections
+   * Advanced health check with comprehensive diagnostics
    */
   async healthCheck(): Promise<{
     status: "healthy" | "degraded" | "unhealthy";
     details: {
       primaryConnection: boolean;
       pooledConnections: number;
+      totalConnections: number;
       circuitBreakerState: CircuitBreakerState;
-      avgResponseTime: number;
-      errorRate: number;
+      performanceMetrics: {
+        avgResponseTime: number;
+        p95ResponseTime: number;
+        p99ResponseTime: number;
+        errorRate: number;
+        throughput: number;
+        utilizationRate: number;
+      };
+      memoryInfo: {
+        usedMemory: number;
+        peakMemory: number;
+        fragmentationRatio: number;
+      };
     };
+    recommendations: string[];
   }> {
     let primaryConnection = false;
     let pooledConnections = 0;
+    let memoryInfo = {
+      usedMemory: 0,
+      peakMemory: 0,
+      fragmentationRatio: 0,
+    };
+    const recommendations: string[] = [];
 
     try {
-      // Check primary connection
+      // Check primary connection with detailed tests
       if (this.client?.isOpen) {
         await this.client.ping();
-        primaryConnection = true;
-      }
 
-      // Check pooled connections
-      for (const connection of this.connectionPool) {
-        if (connection.isOpen) {
-          await connection.ping();
-          pooledConnections++;
+        primaryConnection = true;
+
+        // Get Redis memory info if available
+        try {
+          const info = await this.client.info("memory");
+          const memoryLines = info.split("\r\n");
+          memoryLines.forEach((line) => {
+            if (line.startsWith("used_memory:")) {
+              memoryInfo.usedMemory = parseInt(line.split(":")[1] || "0");
+            }
+            if (line.startsWith("used_memory_peak:")) {
+              memoryInfo.peakMemory = parseInt(line.split(":")[1] || "0");
+            }
+            if (line.startsWith("mem_fragmentation_ratio:")) {
+              memoryInfo.fragmentationRatio = parseFloat(
+                line.split(":")[1] || "0",
+              );
+            }
+          });
+        } catch (memError) {
+          // Memory info is optional for health check
         }
       }
 
-      const errorRate = this.operationMetrics.errorRate;
-      const avgResponseTime = this.operationMetrics.avgResponseTime;
+      // Check pooled connections with response time validation
+      const connectionPromises = this.connectionPool.map(async (connection) => {
+        if (connection.isOpen) {
+          const startTime = Date.now();
+          await connection.ping();
+          const responseTime = Date.now() - startTime;
 
-      // Determine health status
+          // Flag slow connections
+          if (responseTime > 500) {
+            recommendations.push("Some pooled connections are slow (>500ms)");
+          }
+
+          return true;
+        }
+        return false;
+      });
+
+      const connectionResults = await Promise.all(connectionPromises);
+      pooledConnections = connectionResults.filter(Boolean).length;
+
+      const perfMetrics = {
+        avgResponseTime: this.operationMetrics.avgResponseTime,
+        p95ResponseTime: this.operationMetrics.p95ResponseTime,
+        p99ResponseTime: this.operationMetrics.p99ResponseTime,
+        errorRate: this.operationMetrics.errorRate,
+        throughput: this.operationMetrics.throughput,
+        utilizationRate: this.metrics.utilizationRate,
+      };
+
+      // Advanced health status determination with nuanced thresholds
       let status: "healthy" | "degraded" | "unhealthy" = "healthy";
 
-      if (!primaryConnection || pooledConnections === 0) {
+      if (!primaryConnection) {
         status = "unhealthy";
-      } else if (errorRate > 0.1 || avgResponseTime > 1000) {
+        recommendations.push("Primary Redis connection is down");
+      } else if (pooledConnections === 0) {
+        status = "unhealthy";
+        recommendations.push("No healthy pooled connections available");
+      } else if (
+        perfMetrics.errorRate > 0.15 ||
+        perfMetrics.avgResponseTime > 2000 ||
+        perfMetrics.p99ResponseTime > 5000
+      ) {
+        status = "unhealthy";
+        recommendations.push("Performance metrics critically degraded");
+      } else if (
+        perfMetrics.errorRate > 0.05 ||
+        perfMetrics.avgResponseTime > 1000 ||
+        perfMetrics.p95ResponseTime > 2000 ||
+        perfMetrics.utilizationRate > 0.9
+      ) {
         status = "degraded";
+        recommendations.push("Performance metrics show degradation");
+      }
+
+      // Memory-related recommendations
+      if (memoryInfo.fragmentationRatio > 1.5) {
+        recommendations.push("High memory fragmentation detected");
+      }
+
+      // Connection pool recommendations
+      if (perfMetrics.utilizationRate > 0.8) {
+        recommendations.push("Consider increasing Redis connection pool size");
+      } else if (
+        perfMetrics.utilizationRate < 0.2 &&
+        this.connectionPool.length > 5
+      ) {
+        recommendations.push("Consider decreasing Redis connection pool size");
       }
 
       return {
@@ -455,10 +586,12 @@ class RedisManager {
         details: {
           primaryConnection,
           pooledConnections,
+          totalConnections: this.connectionPool.length,
           circuitBreakerState: this.circuitBreaker.getState(),
-          avgResponseTime,
-          errorRate,
+          performanceMetrics: perfMetrics,
+          memoryInfo,
         },
+        recommendations,
       };
     } catch (error) {
       return {
@@ -466,10 +599,22 @@ class RedisManager {
         details: {
           primaryConnection: false,
           pooledConnections: 0,
+          totalConnections: this.connectionPool.length,
           circuitBreakerState: this.circuitBreaker.getState(),
-          avgResponseTime: 0,
-          errorRate: 1,
+          performanceMetrics: {
+            avgResponseTime: 0,
+            p95ResponseTime: 0,
+            p99ResponseTime: 0,
+            errorRate: 1,
+            throughput: 0,
+            utilizationRate: 0,
+          },
+          memoryInfo,
         },
+        recommendations: [
+          "Redis health check failed",
+          error instanceof Error ? error.message : "Unknown error",
+        ],
       };
     }
   }

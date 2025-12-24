@@ -65,24 +65,32 @@ class MonitoringService {
       }
     });
 
-    // Redis health check
+    // Redis health check with comprehensive diagnostics
     this.scheduleHealthCheck("redis", async () => {
       const startTime = Date.now();
       try {
         const { redisManager } = await import("./redis");
-        const client = await redisManager.getClient();
-        await client.ping();
+        const healthResult = await redisManager.healthCheck();
+        const responseTime = Date.now() - startTime;
+
         return {
           service: "redis",
-          status: "healthy" as const,
-          responseTime: Date.now() - startTime,
+          status: healthResult.status,
+          responseTime,
+          metadata: {
+            connections: healthResult.details,
+            recommendations: healthResult.recommendations,
+          },
         };
       } catch (error) {
         return {
           service: "redis",
-          status: "degraded" as const,
+          status: "unhealthy" as const,
           responseTime: Date.now() - startTime,
-          error: error instanceof Error ? error.message : "Redis unavailable",
+          error:
+            error instanceof Error
+              ? error.message
+              : " Redis health check failed",
         };
       }
     });
@@ -351,6 +359,85 @@ class MonitoringService {
   // Health check API
   async getHealthChecks(): Promise<HealthCheck[]> {
     return Array.from(this.healthChecks.values());
+  }
+
+  /**
+   * Get comprehensive Redis performance metrics for monitoring dashboard
+   */
+  async getRedisPerformanceMetrics(): Promise<{
+    connectionMetrics: any;
+    operationMetrics: any;
+    circuitBreakerState: any;
+    healthStatus: any;
+    recommendations: string[];
+  }> {
+    try {
+      const { redisManager } = await import("./redis");
+
+      // Get detailed performance metrics
+      const performanceMetrics = redisManager.getPerformanceMetrics();
+
+      // Get advanced health check
+      const healthCheck = await redisManager.healthCheck();
+
+      return {
+        ...performanceMetrics,
+        healthStatus: healthCheck.details,
+        recommendations: healthCheck.recommendations,
+      };
+    } catch (error) {
+      logger.error("Failed to get Redis performance metrics", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      return {
+        connectionMetrics: {
+          activeConnections: 0,
+          idleConnections: 0,
+          totalConnections: 0,
+          connectionErrors: 1,
+          avgResponseTime: 0,
+          utilizationRate: 0,
+        },
+        operationMetrics: {
+          totalOperations: 0,
+          successfulOperations: 0,
+          failedOperations: 0,
+          avgResponseTime: 0,
+          p95ResponseTime: 0,
+          p99ResponseTime: 0,
+          throughput: 0,
+          errorRate: 1,
+        },
+        circuitBreakerState: {
+          failures: 0,
+          lastFailureTime: 0,
+          state: "OPEN" as const,
+        },
+        healthStatus: {
+          primaryConnection: false,
+          pooledConnections: 0,
+          totalConnections: 0,
+          performanceMetrics: {
+            avgResponseTime: 0,
+            p95ResponseTime: 0,
+            p99ResponseTime: 0,
+            errorRate: 1,
+            throughput: 0,
+            utilizationRate: 0,
+          },
+          memoryInfo: {
+            usedMemory: 0,
+            peakMemory: 0,
+            fragmentationRatio: 0,
+          },
+        },
+        recommendations: [
+          "Redis metrics unavailable - connection failed",
+          error instanceof Error ? error.message : "Unknown error",
+        ],
+      };
+    }
   }
 
   async getSystemHealth(): Promise<{

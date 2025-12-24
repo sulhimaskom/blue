@@ -5,7 +5,6 @@ import { blueprints, projects } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { UnifiedCacheManager } from "./unified-cache-manager";
 import { AIPatternDetector, type AIPattern } from "./ai-pattern-detector";
-import { CacheService } from "./cache-service";
 
 export interface BlueprintGenerationRequest {
   userId: number;
@@ -228,7 +227,7 @@ CRITICAL CONSTRAINTS:
       const patterns = this.analyzeInputPatterns(input);
 
       // Use enhanced pattern-based cache warming
-      await CacheService.warmupPatternCache(patterns);
+      await UnifiedCacheManager.warmupPatternCache(patterns);
 
       logger.debug("Blueprint cache warmed up with enhanced patterns", {
         inputLength: input.length,
@@ -364,7 +363,7 @@ CRITICAL CONSTRAINTS:
     try {
       // Check cache first
       const cacheKey = { userId, type: "user-stats" };
-      const cached = await CacheService.getAIResponse(
+      const cached = await UnifiedCacheManager.getData(
         "user-blueprint-stats",
         cacheKey,
       );
@@ -396,7 +395,7 @@ CRITICAL CONSTRAINTS:
       };
 
       // Cache the results with enhanced tagging
-      await CacheService.cacheAIResponse(
+      await UnifiedCacheManager.cacheData(
         "user-blueprint-stats",
         cacheKey,
         stats,
@@ -594,7 +593,7 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
           research,
         ),
         // Invalidate user stats cache when new blueprint is created
-        CacheService.invalidateByTag(`user-${request.userId}`),
+        UnifiedCacheManager.invalidateByTag(`user-${request.userId}`),
       ]);
 
       const blueprintId = blueprint[0].id;
@@ -720,7 +719,7 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
 
       // Intelligent cache invalidation for blueprint updates
       const blueprintType = this.extractBlueprintType(updatedBlueprint);
-      await CacheService.invalidateBlueprintCache(
+      await UnifiedCacheManager.invalidateBlueprintCache(
         current.projectId.toString(),
         blueprintType,
       );

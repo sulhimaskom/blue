@@ -5,7 +5,6 @@ import { AIErrorReporter } from "./ai-error-reporter";
 import { circuitBreakerRegistry, SERVICE_CONFIGS } from "../circuit-breaker";
 import { UnifiedCacheManager } from "./unified-cache-manager";
 import { AIPatternDetector, type AIPattern } from "./ai-pattern-detector";
-import { CacheService } from "./cache-service";
 
 export interface AIModel {
   id: string;
@@ -308,7 +307,7 @@ class AIService {
         includeImages: request.includeImages || false,
       };
 
-      const cachedResearch = await CacheService.getAIResponse(
+      const cachedResearch = await UnifiedCacheManager.getData(
         "tavily-research",
         researchCacheKey,
       );
@@ -408,7 +407,7 @@ class AIService {
         });
 
         // Cache the successful research result
-        await CacheService.cacheAIResponse(
+        await UnifiedCacheManager.cacheData(
           "tavily-research",
           researchCacheKey,
           result,
