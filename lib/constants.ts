@@ -58,6 +58,13 @@ export const DB_TIMEOUTS = {
   LONG: 30000, // 30 seconds
 } as const;
 
+// Intelligent Prefetch Service timeouts (in milliseconds)
+export const PREFETCH_TIMEOUTS = {
+  STRATEGY_EVALUATION: 30000, // 30 seconds - evaluate prefetch strategies
+  COMPREHENSIVE_PREFETCH: 300000, // 5 minutes - comprehensive prefetch cycle
+  STAGGERED_EXECUTION: 100, // 100ms per priority level - execution staggering
+} as const;
+
 // HTTP status codes
 export const HTTP_STATUS = {
   OK: 200,
