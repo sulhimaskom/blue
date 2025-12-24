@@ -10,29 +10,63 @@ import { sql } from "drizzle-orm";
 
 // Enhanced index definitions with query pattern context and performance metrics
 const RECOMMENDED_INDEXES = [
-  // Queries: Get projects by user with ordering
+  // HIGH IMPACT: User dashboard queries with status filtering
+  {
+    name: "idx_projects_owner_status_created",
+    table: "projects",
+    columns: ["owner_id", "status", "created_at DESC"],
+    description:
+      "High Impact: Optimizes user dashboard queries with status filtering",
+    impact: "HIGH",
+  },
+
+  // MEDIUM IMPACT: Blueprint history navigation with version ordering
+  {
+    name: "idx_blueprints_project_created_version",
+    table: "blueprints",
+    columns: ["project_id", "created_at DESC", "version"],
+    description:
+      "Medium Impact: Optimizes blueprint history navigation with version context",
+    impact: "MEDIUM",
+  },
+
+  // MEDIUM IMPACT: Transaction analytics with amount sorting
+  {
+    name: "idx_transactions_user_amount_created",
+    table: "transactions",
+    columns: ["user_id", "amount DESC", "created_at DESC"],
+    description:
+      "Medium Impact: Optimizes transaction analytics and financial reporting",
+    impact: "MEDIUM",
+  },
+
+  // LEGACY: Get projects by user with ordering
   {
     name: "idx_projects_owner_created",
     table: "projects",
     columns: ["owner_id", "created_at"],
-    description: "Optimizes user project listing with chronological ordering",
+    description:
+      "Legacy: Optimizes user project listing with chronological ordering",
+    impact: "LOW",
   },
 
-  // Queries: Get blueprints by project with version ordering
+  // LEGACY: Get blueprints by project with version ordering
   {
     name: "idx_blueprints_project_version",
     table: "blueprints",
     columns: ["project_id", "version"],
     description:
-      "Optimizes blueprint version retrieval and latest blueprint lookup",
+      "Legacy: Optimizes blueprint version retrieval and latest blueprint lookup",
+    impact: "LOW",
   },
 
-  // Queries: Get transactions by user with date ordering
+  // LEGACY: Get transactions by user with date ordering
   {
     name: "idx_transactions_user_created",
     table: "transactions",
     columns: ["user_id", "created_at"],
-    description: "Optimizes transaction history queries",
+    description: "Legacy: Optimizes transaction history queries",
+    impact: "LOW",
   },
 
   // Queries: Blueprint lookup by ID (f经常查询)

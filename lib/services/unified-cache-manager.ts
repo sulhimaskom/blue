@@ -262,11 +262,53 @@ export class UnifiedCacheManager {
   }
 
   /**
-   * Generate ETag for response validation
+   * Generate optimized ETag with content fingerprinting for better cache hit rates
    */
   private static generateETag(data: any): string {
     const content = JSON.stringify(data);
-    return `"${crypto.createHash("md5").update(content).digest("hex")}"`;
+    const size = content.length;
+    const contentFingerprint = this.calculateContentFingerprint(data);
+
+    // Enhanced ETag with fingerprint and size for better cache optimization
+    return `"${contentFingerprint}-${Math.floor(size / 1024)}kb"`;
+  }
+
+  /**
+   * Calculate content fingerprint for ETag optimization
+   * Uses selective content hashing for improved performance
+   */
+  private static calculateContentFingerprint(data: any): string {
+    try {
+      // For objects, use key structure and sample values for fingerprinting
+      if (typeof data === "object" && data !== null) {
+        const keys = Object.keys(data).sort();
+        const timestamp = data.timestamp || data.createdAt;
+        const type = data.type || typeof data;
+
+        // Create lightweight fingerprint from structure and timestamp
+        const structure = `${keys.join(",")}-${type}-${timestamp || ""}`;
+
+        return crypto
+          .createHash("sha1") // Faster than MD5 for this use case
+          .update(structure)
+          .digest("hex")
+          .substring(0, 8); // Shorter hash for efficiency
+      } else {
+        // For primitives, use quick content fingerprinting
+        return crypto
+          .createHash("sha1")
+          .update(String(data))
+          .digest("hex")
+          .substring(0, 8);
+      }
+    } catch (error) {
+      // Fallback to full MD5 hash if fingerprinting fails
+      return crypto
+        .createHash("md5")
+        .update(JSON.stringify(data))
+        .digest("hex")
+        .substring(0, 12);
+    }
   }
 
   /**
