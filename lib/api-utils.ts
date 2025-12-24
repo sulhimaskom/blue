@@ -187,6 +187,13 @@ export class DatabaseError extends Error {
   }
 }
 
+export class NotFoundError extends Error {
+  constructor(message: string = "Resource not found") {
+    super(message);
+    this.name = "NotFoundError";
+  }
+}
+
 // Error response formatter
 export function formatErrorResponse(error: Error): NextResponse {
   const status =

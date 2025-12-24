@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { EnterpriseThemeProvider } from "@/components/enterprise/enterprise-theme-provider";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -20,7 +21,9 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body className={inter.className}>
-          <ErrorBoundary>{children}</ErrorBoundary>
+          <EnterpriseThemeProvider>
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </EnterpriseThemeProvider>
         </body>
       </html>
     </ClerkProvider>
