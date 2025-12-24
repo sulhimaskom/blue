@@ -425,6 +425,31 @@ export class BlueprintQueryOptimizer {
   }
 
   /**
+   * Enrich projects with blueprint counts - eliminates duplicate mapping logic
+   * @param projects - Array of projects to enrich with blueprint counts
+   * @returns Projects enriched with blueprintCount field
+   */
+  static async enrichProjectsWithBlueprintCounts<T extends { id: string }>(
+    projects: T[],
+  ): Promise<(T & { blueprintCount: number })[]> {
+    if (!projects.length) return [];
+
+    const projectIds = projects.map((p) => p.id);
+    const optimizedCounts =
+      await BlueprintQueryOptimizer.optimizeBlueprintCountsQuery(projectIds);
+
+    const blueprintCounts = optimizedCounts.data;
+    const blueprintCountMap = new Map(
+      blueprintCounts.map(({ projectId, count }) => [projectId, count]),
+    );
+
+    return projects.map((project) => ({
+      ...project,
+      blueprintCount: (blueprintCountMap.get(project.id) as number) || 0,
+    }));
+  }
+
+  /**
    * Reset optimization metrics
    */
   static resetMetrics(): void {

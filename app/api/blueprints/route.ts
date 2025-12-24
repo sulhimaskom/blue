@@ -84,21 +84,16 @@ export const GET = APIRouteHandler.createGETHandler({
         await BlueprintQueryOptimizer.optimizeUserBlueprintQuery(user!.id);
       const userProjects = optimizedProjects.data;
 
-      // Optimized: Get blueprint counts with the advanced optimizer
+      // Get blueprint counts for metrics
       const projectIds = userProjects.map((p) => p.id);
       const optimizedCounts =
         await BlueprintQueryOptimizer.optimizeBlueprintCountsQuery(projectIds);
 
-      // Create lookup map for O(1) access to blueprint counts
-      const blueprintCounts = optimizedCounts.data;
-      const blueprintCountMap = new Map(
-        blueprintCounts.map(({ projectId, count }) => [projectId, count]),
-      );
-
-      const projectsWithBlueprints = userProjects.map((project) => ({
-        ...project,
-        blueprintCount: (blueprintCountMap.get(project.id) as number) || 0,
-      }));
+      // Optimized: Use centralized method to enrich projects with blueprint counts
+      const projectsWithBlueprints =
+        await BlueprintQueryOptimizer.enrichProjectsWithBlueprintCounts(
+          userProjects,
+        );
 
       // Cache the computed stats for future requests
       const totalBlueprints = projectsWithBlueprints.reduce(
@@ -145,19 +140,16 @@ export const GET = APIRouteHandler.createGETHandler({
       const optimizedProjects =
         await BlueprintQueryOptimizer.optimizeUserBlueprintQuery(user!.id);
 
+      // Get blueprint counts for metrics
       const projectIds = optimizedProjects.data.map((p) => p.id);
       const optimizedCounts =
         await BlueprintQueryOptimizer.optimizeBlueprintCountsQuery(projectIds);
 
-      const blueprintCounts = optimizedCounts.data;
-      const blueprintCountMap = new Map(
-        blueprintCounts.map(({ projectId, count }) => [projectId, count]),
-      );
-
-      const projectsWithBlueprints = optimizedProjects.data.map((project) => ({
-        ...project,
-        blueprintCount: (blueprintCountMap.get(project.id) as number) || 0,
-      }));
+      // Use centralized method to enrich projects with blueprint counts
+      const projectsWithBlueprints =
+        await BlueprintQueryOptimizer.enrichProjectsWithBlueprintCounts(
+          optimizedProjects.data,
+        );
 
       logger.userAction("Projects fetched with optimization", user!.clerkId, {
         requestId: context.requestId,
