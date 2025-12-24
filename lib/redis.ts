@@ -1,18 +1,10 @@
 import { createClient, type RedisClientType } from "redis";
 import { logger } from "./logger";
 import { RedisConfig } from "./redis-config";
-
-interface CircuitBreakerConfig {
-  failureThreshold: number;
-  resetTimeout: number;
-  monitoringPeriod: number;
-}
-
-interface CircuitBreakerState {
-  failures: number;
-  lastFailureTime: number;
-  state: "CLOSED" | "OPEN" | "HALF_OPEN";
-}
+import {
+  circuitBreakerRegistry,
+  type CircuitBreakerMetrics,
+} from "./circuit-breaker";
 
 interface ConnectionPoolMetrics {
   activeConnections: number;
@@ -34,59 +26,9 @@ interface PerformanceMetrics {
   errorRate: number;
 }
 
-class CircuitBreaker {
-  private state: CircuitBreakerState = {
-    failures: 0,
-    lastFailureTime: 0,
-    state: "CLOSED",
-  };
-
-  constructor(private config: CircuitBreakerConfig) {
-    // Configuration stored for potential future use
-    void config;
-  }
-
-  async execute<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.state.state === "OPEN") {
-      if (Date.now() - this.state.lastFailureTime > this.config.resetTimeout) {
-        this.state.state = "HALF_OPEN";
-      } else {
-        throw new Error("Circuit breaker is OPEN");
-      }
-    }
-
-    try {
-      const result = await operation();
-      this.onSuccess();
-      return result;
-    } catch (error) {
-      this.onFailure();
-      throw error;
-    }
-  }
-
-  private onSuccess() {
-    this.state.failures = 0;
-    this.state.state = "CLOSED";
-  }
-
-  private onFailure() {
-    this.state.failures++;
-    this.state.lastFailureTime = Date.now();
-
-    if (this.state.failures >= this.config.failureThreshold) {
-      this.state.state = "OPEN";
-    }
-  }
-
-  getState() {
-    return { ...this.state };
-  }
-}
-
 class RedisManager {
   private client: RedisClientType | null = null;
-  private circuitBreaker: CircuitBreaker;
+  private circuitBreaker: ReturnType<typeof circuitBreakerRegistry.get>;
   private isConnecting = false;
   private connectionPool: any[] = [];
   private maxPoolSize = 10;
@@ -101,10 +43,12 @@ class RedisManager {
     RedisConfig.logConfigurationStatus();
 
     const devConfig = RedisConfig.getDevelopmentConfig();
-    this.circuitBreaker = new CircuitBreaker({
+    this.circuitBreaker = circuitBreakerRegistry.get("redis-connection", {
       failureThreshold: devConfig.performanceMode ? 5 : 3,
       resetTimeout: devConfig.performanceMode ? 30000 : 15000, // Faster recovery for dev
       monitoringPeriod: devConfig.performanceMode ? 60000 : 30000,
+      successThreshold: 2,
+      timeoutMs: 30000,
     });
 
     this.metrics = {
@@ -365,7 +309,7 @@ class RedisManager {
   getPerformanceMetrics(): {
     connectionMetrics: ConnectionPoolMetrics;
     operationMetrics: PerformanceMetrics;
-    circuitBreakerState: CircuitBreakerState;
+    circuitBreakerState: CircuitBreakerMetrics;
   } {
     // Update connection utilization
     this.metrics.utilizationRate =
@@ -376,7 +320,7 @@ class RedisManager {
     return {
       connectionMetrics: { ...this.metrics },
       operationMetrics: { ...this.operationMetrics },
-      circuitBreakerState: this.circuitBreaker.getState(),
+      circuitBreakerState: this.circuitBreaker.getMetrics(),
     };
   }
 
@@ -460,7 +404,7 @@ class RedisManager {
   }
 
   getCircuitBreakerState() {
-    return this.circuitBreaker.getState();
+    return this.circuitBreaker.getMetrics();
   }
 
   /**
@@ -472,7 +416,7 @@ class RedisManager {
       primaryConnection: boolean;
       pooledConnections: number;
       totalConnections: number;
-      circuitBreakerState: CircuitBreakerState;
+      circuitBreakerState: CircuitBreakerMetrics;
       performanceMetrics: {
         avgResponseTime: number;
         p95ResponseTime: number;
@@ -603,7 +547,7 @@ class RedisManager {
           primaryConnection,
           pooledConnections,
           totalConnections: this.connectionPool.length,
-          circuitBreakerState: this.circuitBreaker.getState(),
+          circuitBreakerState: this.circuitBreaker.getMetrics(),
           performanceMetrics: perfMetrics,
           memoryInfo,
         },
@@ -616,7 +560,7 @@ class RedisManager {
           primaryConnection: false,
           pooledConnections: 0,
           totalConnections: this.connectionPool.length,
-          circuitBreakerState: this.circuitBreaker.getState(),
+          circuitBreakerState: this.circuitBreaker.getMetrics(),
           performanceMetrics: {
             avgResponseTime: 0,
             p95ResponseTime: 0,
@@ -651,4 +595,3 @@ process.on("SIGTERM", async () => {
 });
 
 export { redisManager };
-export type { CircuitBreakerConfig };
