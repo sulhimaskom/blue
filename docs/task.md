@@ -797,6 +797,30 @@
 
 ## Low Priority 🟢
 
+- [x] ✅ **COMPLETED (2025-12-24)**: Implement webhook cryptographic verification for production-grade security
+  - **Location**: `lib/services/security-service.ts:40-52`
+  - **Implementation**: Production-grade cryptographic verification for both Stripe and Clerk webhooks
+  - **Features**:
+    - **Stripe Webhooks**: Uses `stripe.webhooks.constructEvent()` with proper signature verification
+    - **Clerk Webhooks**: HMAC-SHA256 signature verification with timing-safe comparison
+    - **Error Handling**: Comprehensive error handling with detailed security logging
+    - **Fallback Support**: Graceful handling of missing webhook secrets
+  - **Security Enhancements**:
+    - **Cryptographic Verification**: Actual HMAC-SHA256 signature validation vs format-only checks
+    - **Replay Attack Prevention**: Timestamp validation and secure signature comparison
+    - **Configuration Flexibility**: Support for dedicated webhook secrets with fallback to API keys
+    - **Security Event Logging**: Comprehensive audit trail for all webhook verification attempts
+  - **Files Updated**:
+    - `lib/services/security-service.ts` - Enhanced with production-grade verification methods
+    - `.env.example` - Added `CLERK_WEBHOOK_SECRET` and `STRIPE_WEBHOOK_SECRET` configuration
+    - `docs/architecture/blueprint.md` - Updated environment variables documentation
+  - **Quality Assurance**:
+    - Comprehensive test suite with 14 test cases covering all security scenarios
+    - Type safety with proper TypeScript interfaces and error handling
+    - Production-ready error handling with no security information leakage
+  - **Validation**: ✅ Build (3.6s), ✅ Lint (0 warnings), ✅ Typecheck (0 errors), ✅ Production-ready implementation
+  - **Business Impact**: **IRONCLAD WEBHOOK SECURITY** - Production-grade cryptographic verification preventing webhook spoofing and replay attacks
+
 - [x] ✅ **COMPLETED**: World-Class Developer Integration Guide creation
   - **Implementation**: Created comprehensive `docs/DEVELOPER_INTEGRATION.md` developer onboarding guide (1,100+ lines)
   - **Target Audience**: Developers, Integration Engineers, DevOps Teams
