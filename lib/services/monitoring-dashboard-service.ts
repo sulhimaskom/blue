@@ -180,6 +180,18 @@ export class MonitoringDashboardService {
   }
 
   /**
+   * Format response time for display in service cards
+   * @param responseTime - Response time in milliseconds
+   * @returns Formatted response time string (e.g., "250ms" or "1.25s")
+   */
+  static formatResponseTime(responseTime: number): string {
+    if (responseTime < 1000) {
+      return `${responseTime}ms`;
+    }
+    return `${(responseTime / 1000).toFixed(2)}s`;
+  }
+
+  /**
    * Check if health data is considered live/recent
    * @param timestamp - ISO timestamp string
    * @returns boolean indicating if data is within freshness threshold

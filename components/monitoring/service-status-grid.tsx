@@ -106,9 +106,7 @@ function ServiceCard({
         {check.responseTime && (
           <div className="mt-2 text-sm text-gray-600">
             Response:{" "}
-            {check.responseTime < 1000
-              ? `${check.responseTime}ms`
-              : `${(check.responseTime / 1000).toFixed(2)}s`}
+            {MonitoringDashboardService.formatResponseTime(check.responseTime)}
           </div>
         )}
       </button>
