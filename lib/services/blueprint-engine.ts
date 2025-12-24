@@ -3,7 +3,6 @@ import { logger } from "../logger";
 import { db } from "../db";
 import { blueprints, projects } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { createHash } from "crypto";
 
 export interface BlueprintGenerationRequest {
   userId: number;
@@ -627,25 +626,28 @@ ${research.results
     }
   }
 
-/**
+  /**
    * Cache generated blueprint for quick retrieval
    */
   private async cacheGeneratedBlueprint(
     projectId: string,
+    // eslint-disable-next-line no-unused-vars
     _blueprint: BlueprintData,
-    _research: ResearchResult
+    // eslint-disable-next-line no-unused-vars
+    _research: ResearchResult,
   ): Promise<void> {
     try {
       // This would integrate with the cache service for subsequent operations
       // For now, it's a placeholder for future optimization
-      logger.debug('Blueprint cached for quick retrieval', { projectId });
+      // NOTE: _blueprint and _research are intentionally unused parameters
+      // for future cache integration - they contain the data that would be cached
+      logger.debug("Blueprint cached for quick retrieval", { projectId });
     } catch (error) {
-      logger.debug('Blueprint caching failed (non-critical)', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        projectId
+      logger.debug("Blueprint caching failed (non-critical)", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        projectId,
       });
     }
-  }
   }
 }
 

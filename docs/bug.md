@@ -15,6 +15,7 @@
 | BUG-003 | validateRequest function not exported correctly - TypeError: validateRequest(...) is not a function                                                           | 2025-12-23 |
 | BUG-004 | OC Standarizer workflow failures in Dec 22 - Repository checkout issues causing package.json not found errors                                                 | 2025-12-23 |
 | BUG-005 | GitHub App placeholder RSA signature in production - Security vulnerability using non-production JWT signing method                                           | 2025-12-24 |
+| BUG-006 | Syntax error in blueprint-engine.ts - Extra closing brace and duplicate code causing ESLint parsing error                                                     | 2025-12-24 |
 
 ---
 
