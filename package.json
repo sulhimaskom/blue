@@ -12,6 +12,11 @@
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch --coverage",
     "test:watch": "jest --watch",
+    "test:api": "NODE_ENV=test jest --config jest.api-integration.config.js",
+    "test:api:coverage": "NODE_ENV=test jest --config jest.api-integration.config.js --coverage",
+    "test:api:integration": "node scripts/run-api-integration-tests.js",
+    "test:api:simple": "node scripts/run-api-integration-tests-simple.js",
+    "test:all": "npm run test && npm run test:api:simple",
     "typecheck": "tsc --noEmit",
     "typecheck:clean": "rm -rf .next && npm run build && tsc --noEmit",
     "optimize-db": "npx tsx scripts/optimize-database.ts"
