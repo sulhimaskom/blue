@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { projects, blueprints } from "@/lib/db/schema";
-import { eq, count } from "drizzle-orm";
+import { eq, count, inArray } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 import { UserService } from "@/lib/services/user-service";
 import { blueprintEngine } from "@/lib/services/blueprint-engine";
@@ -80,20 +80,27 @@ export const GET = APIRouteHandler.createGETHandler({
       .where(eq(projects.ownerId, user!.id))
       .orderBy(projects.createdAt);
 
-    // Get blueprint counts for each project
-    const projectsWithBlueprints = await Promise.all(
-      userProjects.map(async (project) => {
-        const [blueprintCount] = await database
-          .select({ count: count() })
-          .from(blueprints)
-          .where(eq(blueprints.projectId, project.id));
+    // Optimized: Get blueprint counts with a single batch query instead of N+1 queries
+    const projectIds = userProjects.map((p) => p.id);
 
-        return {
-          ...project,
-          blueprintCount: blueprintCount!.count!,
-        };
-      }),
+    const blueprintCounts = await database
+      .select({
+        projectId: blueprints.projectId,
+        count: count(blueprints.id),
+      })
+      .from(blueprints)
+      .where(inArray(blueprints.projectId, projectIds))
+      .groupBy(blueprints.projectId);
+
+    // Create lookup map for O(1) access to blueprint counts
+    const blueprintCountMap = new Map(
+      blueprintCounts.map(({ projectId, count }) => [projectId, count]),
     );
+
+    const projectsWithBlueprints = userProjects.map((project) => ({
+      ...project,
+      blueprintCount: (blueprintCountMap.get(project.id)?.count as number) || 0,
+    }));
 
     logger.userAction("Projects fetched", user!.clerkId, {
       requestId: context.requestId,

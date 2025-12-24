@@ -10,11 +10,12 @@ interface ConnectionPool {
   connectionTimeoutMillis: number;
 }
 
+// Optimized connection pool configuration for high-concurrency production workloads
 const DB_POOL_CONFIG: ConnectionPool = {
-  max: 20, // Maximum number of connections in the pool
-  min: 5, // Minimum number of connections to maintain
-  idleTimeoutMillis: 30000, // Close connections after 30s of inactivity
-  connectionTimeoutMillis: 10000, // Timeout for acquiring a connection
+  max: 50, // Increased max connections for better concurrency under load
+  min: 10, // Higher minimum to reduce warm-up latency
+  idleTimeoutMillis: 15000, // Reduced idle timeout to free resources faster
+  connectionTimeoutMillis: 5000, // Faster timeout for better error handling
 };
 
 let _db: ReturnType<typeof drizzle>;
@@ -62,29 +63,142 @@ export function getDb() {
   return _db;
 }
 
-// Health check function to verify database connectivity
-export async function checkDbHealth(): Promise<boolean> {
+// Enhanced health check with performance metrics
+export async function checkDbHealth(): Promise<{
+  healthy: boolean;
+  latency?: number;
+  error?: string;
+  metrics?: {
+    connectionCount: number;
+    databaseSize: string;
+    uptime: string;
+  };
+}> {
+  const startTime = Date.now();
+
   try {
-    const db = getDb();
-    // Simple health check query
-    await db.select().from(schema.users).limit(1);
-    return true;
-  } catch (error) {
-    logger.error("Database health check failed:", {
-      error: error instanceof Error ? error.message : "Unknown error",
+    // Perform multiple health checks in parallel for comprehensive status
+    const [connectionCount, databaseSize, uptime] = await Promise.allSettled([
+      // Active connection count
+      _sql`SELECT count(*) as count FROM pg_stat_activity WHERE datname = current_database()`,
+
+      // Database size
+      _sql`SELECT pg_size_pretty(pg_database_size(current_database())) as size`,
+
+      // Database uptime
+      _sql`SELECT date_trunc('second', pg_postmaster_start_time()) as uptime`,
+    ]);
+
+    const latency = Date.now() - startTime;
+
+    // Extract values with fallbacks
+    const connCount =
+      connectionCount.status === "fulfilled"
+        ? parseInt(connectionCount.value[0]?.count || "0")
+        : 0;
+
+    const dbSize =
+      databaseSize.status === "fulfilled"
+        ? databaseSize.value[0]?.size || "Unknown"
+        : "Unknown";
+
+    const dbUptime =
+      uptime.status === "fulfilled"
+        ? new Date(uptime.value[0]?.uptime || "").toISOString()
+        : "Unknown";
+
+    logger.debug("Database health check passed", {
+      latency: `${latency}ms`,
+      connectionCount: connCount,
+      databaseSize: dbSize,
     });
-    return false;
+
+    return {
+      healthy: true,
+      latency,
+      metrics: {
+        connectionCount: connCount,
+        databaseSize: dbSize,
+        uptime: dbUptime,
+      },
+    };
+  } catch (error) {
+    const latency = Date.now() - startTime;
+
+    logger.error("Database health check failed", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      latency: `${latency}ms`,
+    });
+
+    return {
+      healthy: false,
+      latency,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 }
 
-// Connection pool statistics (for monitoring)
-export function getPoolStats() {
-  return {
-    maxConnections: DB_POOL_CONFIG.max,
-    minConnections: DB_POOL_CONFIG.min,
-    idleTimeout: DB_POOL_CONFIG.idleTimeoutMillis,
-    connectionTimeout: DB_POOL_CONFIG.connectionTimeoutMillis,
-  };
+// Enhanced connection pool statistics with real-time metrics
+export async function getPoolStats() {
+  try {
+    // Get real-time connection metrics from Neon
+    const connectionMetrics = await _sql`SELECT 
+      count(*) as active_connections,
+      count(*) FILTER (WHERE state = 'active') as active_queries,
+      count(*) FILTER (WHERE state = 'idle') as idle_connections
+      FROM pg_stat_activity 
+      WHERE datname = current_database()`;
+
+    return {
+      // Configuration
+      maxConnections: DB_POOL_CONFIG.max,
+      minConnections: DB_POOL_CONFIG.min,
+      idleTimeout: DB_POOL_CONFIG.idleTimeoutMillis,
+      connectionTimeout: DB_POOL_CONFIG.connectionTimeoutMillis,
+
+      // Real-time metrics
+      activeConnections: parseInt(
+        connectionMetrics[0]?.active_connections || "0",
+      ),
+      activeQueries: parseInt(connectionMetrics[0]?.active_queries || "0"),
+      idleConnections: parseInt(connectionMetrics[0]?.idle_connections || "0"),
+      connectionUtilization: Math.round(
+        (parseInt(connectionMetrics[0]?.active_connections || "0") /
+          DB_POOL_CONFIG.max) *
+          100,
+      ),
+      availableConnections: Math.max(
+        0,
+        DB_POOL_CONFIG.max -
+          parseInt(connectionMetrics[0]?.active_connections || "0"),
+      ),
+
+      timestamps: {
+        lastChecked: new Date().toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+    };
+  } catch (error) {
+    logger.warn("Failed to get real-time pool stats, returning config only", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+
+    // Fallback to configuration-only stats
+    return {
+      maxConnections: DB_POOL_CONFIG.max,
+      minConnections: DB_POOL_CONFIG.min,
+      idleTimeout: DB_POOL_CONFIG.idleTimeoutMillis,
+      connectionTimeout: DB_POOL_CONFIG.connectionTimeoutMillis,
+      activeConnections: "unknown",
+      activeQueries: "unknown",
+      connectionUtilization: "unknown",
+      availableConnections: "unknown",
+      timestamps: {
+        lastChecked: new Date().toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+    };
+  }
 }
 
 // For backward compatibility during transition

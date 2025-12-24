@@ -3,6 +3,7 @@ import { logger } from "../logger";
 import { monitoringService } from "../monitoring";
 import { AIErrorReporter } from "./ai-error-reporter";
 import { circuitBreakerRegistry, SERVICE_CONFIGS } from "../circuit-breaker";
+import { CacheService } from "./cache-service";
 
 export interface AIModel {
   id: string;
@@ -111,6 +112,38 @@ class AIService {
         throw error;
       }
 
+      // Check cache first for similar requests
+      const cacheKey = {
+        prompt: request.prompt,
+        model: request.model?.id || this.models.reasoning.id,
+        temperature: request.temperature || 0.7,
+        maxTokens: request.maxTokens || this.models.reasoning.maxTokens,
+        context: request.context,
+      };
+
+      const cachedResponse = await CacheService.getAIResponse(
+        "iflow-completion",
+        cacheKey,
+      );
+      if (cachedResponse) {
+        logger.info("AI completion served from cache", {
+          model: cachedResponse.model,
+          totalTokens: cachedResponse.usage.totalTokens,
+          promptLength: request.prompt.length,
+        });
+
+        const duration = Date.now() - startTime;
+        monitoringService.trackAIOperation("completion", duration, true, {
+          model: cachedResponse.model,
+          promptTokens: cachedResponse.usage.promptTokens,
+          completionTokens: cachedResponse.usage.completionTokens,
+          totalTokens: cachedResponse.usage.totalTokens,
+          cached: true,
+        });
+
+        return cachedResponse;
+      }
+
       return await this.iflowCircuitBreaker.execute(async () => {
         // Default to reasoning model for complex tasks
         const model = request.model || this.models.reasoning;
@@ -193,6 +226,17 @@ class AIService {
           tokens: completion.usage.totalTokens,
         });
 
+        // Cache the successful response
+        await CacheService.cacheAIResponse(
+          "iflow-completion",
+          cacheKey,
+          completion,
+          {
+            ttl: 1800, // 30 minutes for AI completions
+            tags: ["ai-completion", model.id],
+          },
+        );
+
         return completion;
       });
     } catch (error) {
@@ -232,6 +276,34 @@ class AIService {
     const context = { requestId: `req_${Date.now().toString(36)}` };
 
     try {
+      // Check cache first for research queries
+      const researchCacheKey = {
+        query: request.query,
+        maxResults: request.maxResults || 10,
+        includeImages: request.includeImages || false,
+      };
+
+      const cachedResearch = await CacheService.getAIResponse(
+        "tavily-research",
+        researchCacheKey,
+      );
+      if (cachedResearch) {
+        logger.info("Market research served from cache", {
+          query: request.query,
+          resultCount: cachedResearch.results.length,
+          hasAnswer: Boolean(cachedResearch.answer),
+        });
+
+        const duration = Date.now() - startTime;
+        monitoringService.trackAIOperation("research", duration, true, {
+          query: request.query,
+          resultCount: cachedResearch.results.length,
+          cached: true,
+        });
+
+        return cachedResearch;
+      }
+
       // Check circuit breaker state before making request
       if (!this.tavilyCircuitBreaker.isAvailable()) {
         const metrics = this.tavilyCircuitBreaker.getMetrics();
@@ -309,6 +381,17 @@ class AIService {
         AIErrorReporter.reportSuccess("research", {
           responseTime: duration,
         });
+
+        // Cache the successful research result
+        await CacheService.cacheAIResponse(
+          "tavily-research",
+          researchCacheKey,
+          result,
+          {
+            ttl: 7200, // 2 hours for research results
+            tags: ["market-research", "tavily"],
+          },
+        );
 
         return result;
       });
