@@ -1,7 +1,6 @@
 import type { SystemHealth, MetricsData } from "../hooks/use-monitoring";
 import {
   formatDuration,
-  formatUptime,
   formatMetricDisplayName,
   MONITORING_THRESHOLDS,
 } from "@/lib/utils/time-formatting";
@@ -158,15 +157,42 @@ export class MonitoringDashboardService {
   }
 
   /**
-   * Get system overview metrics
+   * Check if monitoring data is live based on age
+   */
+  static isDataLive(timestamp: string): boolean {
+    const now = Date.now();
+    const dataAge = now - new Date(timestamp).getTime();
+    const timeSinceUpdate = dataAge / 1000; // Convert to seconds
+
+    return timeSinceUpdate < MONITORING_THRESHOLDS.DATA_FRESHNESS;
+  }
+
+  /**
+   * Get system overview data for health cards
+   * Extracts data processing logic from UI components to maintain Service Layer compliance
    */
   static getSystemOverviewData(health: SystemHealth) {
     return {
-      uptime: formatUptime(health.uptime),
+      uptime: formatDuration(health.uptime),
+      // Add other overview metrics as needed
       totalServices: health.checks.length,
-      healthScore: this.calculateHealthScoreMetrics(health),
-      lastUpdate: new Date(health.timestamp),
+      healthyServices: health.checks.filter(
+        (check) => check.status === "healthy",
+      ).length,
+      status: health.status,
     };
+  }
+
+  /**
+   * Format response time for display
+   * Extracts inline formatting logic from UI components to maintain Service Layer compliance
+   */
+  static formatResponseTime(responseTime: number): string {
+    if (responseTime < 1000) {
+      return `${Math.round(responseTime)}ms`;
+    } else {
+      return `${(responseTime / 1000).toFixed(2)}s`;
+    }
   }
 
   /**
@@ -177,27 +203,5 @@ export class MonitoringDashboardService {
     if (score >= 70) return "Good";
     if (score >= 50) return "Degraded";
     return "Critical";
-  }
-
-  /**
-   * Format response time for display in service cards
-   * @param responseTime - Response time in milliseconds
-   * @returns Formatted response time string (e.g., "250ms" or "1.25s")
-   */
-  static formatResponseTime(responseTime: number): string {
-    if (responseTime < 1000) {
-      return `${responseTime}ms`;
-    }
-    return `${(responseTime / 1000).toFixed(2)}s`;
-  }
-
-  /**
-   * Check if health data is considered live/recent
-   * @param timestamp - ISO timestamp string
-   * @returns boolean indicating if data is within freshness threshold
-   */
-  static isDataLive(timestamp: string): boolean {
-    const timeSinceUpdate = Date.now() - new Date(timestamp).getTime();
-    return timeSinceUpdate < MONITORING_THRESHOLDS.DATA_FRESHNESS;
   }
 }
