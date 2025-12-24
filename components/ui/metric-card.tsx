@@ -1,6 +1,12 @@
 import { cn } from "@/lib/utils";
 import { ActivityIcon, ServerIcon, ChartIcon } from "./icons";
 import { StatusIndicator, type StatusType } from "./status-indicator";
+import {
+  getTrendColor,
+  getTextColor,
+  getIconColor,
+  getBackgroundColor,
+} from "@/lib/constants/ui-themes";
 
 interface MetricSummary {
   count: number;
@@ -68,22 +74,25 @@ export function MetricCard({
       <div className="flex items-start justify-between">
         <div className="flex-1">
           {/* Title */}
-          <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+          <h3
+            className={cn(
+              "text-sm font-medium uppercase tracking-wide",
+              getTextColor("body"),
+            )}
+          >
             {title}
           </h3>
 
           {/* Main value */}
           <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-3xl font-bold text-gray-900">{value}</p>
+            <p className={cn("text-3xl font-bold", getTextColor("heading"))}>
+              {value}
+            </p>
             {trend && (
               <span
                 className={cn(
                   "text-sm font-medium",
-                  trendingUp
-                    ? "text-green-600"
-                    : trendingDown
-                      ? "text-red-600"
-                      : "text-gray-500",
+                  getTrendColor(trend.direction),
                 )}
               >
                 {trendingUp ? "↑" : trendingDown ? "↓" : "→"}{" "}
@@ -93,7 +102,11 @@ export function MetricCard({
           </div>
 
           {/* Subtitle */}
-          {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}
+          {subtitle && (
+            <p className={cn("mt-1 text-sm", getTextColor("muted"))}>
+              {subtitle}
+            </p>
+          )}
 
           {/* Additional content */}
           {children && <div className="mt-4">{children}</div>}
@@ -102,8 +115,10 @@ export function MetricCard({
         {/* Icon */}
         {IconComponent && (
           <div className="ml-4 flex-shrink-0">
-            <div className="rounded-lg bg-gray-50 p-3">
-              <IconComponent className="w-6 h-6 text-gray-400" />
+            <div className={cn("rounded-lg p-3", getBackgroundColor("subtle"))}>
+              <IconComponent
+                className={cn("w-6 h-6", getIconColor("primary"))}
+              />
             </div>
           </div>
         )}
@@ -133,14 +148,14 @@ export function MetricSummaryCard({
     >
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
-          <span className="text-gray-500">Min:</span>
+          <span className={getTextColor("muted")}>Min:</span>
           <span className="ml-1 font-medium">
             {summary.min}
             {summary.unit}
           </span>
         </div>
         <div>
-          <span className="text-gray-500">Max:</span>
+          <span className={getTextColor("muted")}>Max:</span>
           <span className="ml-1 font-medium">
             {summary.max}
             {summary.unit}

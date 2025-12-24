@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-service";
 import type { MetricsData } from "@/lib/hooks/use-monitoring";
+import { getTextColor, cn, getAccentColor } from "@/lib/constants/ui-themes";
 
 interface PerformanceMetricsProps {
   metrics?: MetricsData;
@@ -47,7 +48,9 @@ export const PerformanceMetrics = React.memo(
         <BaseCard className="mb-8 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
             <ChartIcon />
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2
+              className={cn("text-xl font-semibold", getTextColor("heading"))}
+            >
               {UI_TEXT.monitoring.performanceMetrics}
             </h2>
           </div>
@@ -57,7 +60,12 @@ export const PerformanceMetrics = React.memo(
             ))}
           </div>
           <BaseCard>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <h3
+              className={cn(
+                "text-lg font-medium mb-4",
+                getTextColor("heading"),
+              )}
+            >
               {UI_TEXT.monitoring.recentActivity}
             </h3>
             <div className="space-y-3">
@@ -84,7 +92,7 @@ export const PerformanceMetrics = React.memo(
       <BaseCard className="mb-8 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
           <ChartIcon />
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className={cn("text-xl font-semibold", getTextColor("heading"))}>
             {UI_TEXT.monitoring.performanceMetrics}
           </h2>
         </div>
@@ -137,7 +145,7 @@ const RecentActivityTable = React.memo(function RecentActivityTableComponent({
 }: RecentActivityTableProps) {
   return (
     <BaseCard>
-      <h3 className="text-lg font-medium text-gray-900 mb-4">
+      <h3 className={cn("text-lg font-medium mb-4", getTextColor("heading"))}>
         {UI_TEXT.monitoring.recentActivity}
       </h3>
       <BaseTable variant="bordered">
@@ -152,20 +160,36 @@ const RecentActivityTable = React.memo(function RecentActivityTableComponent({
         <TableBody>
           {activityData.map((item) => (
             <TableRow key={item.id} hover>
-              <TableCell className="font-semibold text-gray-900 capitalize">
+              <TableCell
+                className={cn(
+                  "font-semibold capitalize",
+                  getTextColor("heading"),
+                )}
+              >
                 {item.name}
               </TableCell>
               <TableCell nowrap={false}>
-                <span className="text-lg font-bold text-blue-600">
+                <span
+                  className={cn(
+                    "text-lg font-bold",
+                    getAccentColor("blue", "primary"),
+                  )}
+                >
                   {item.value}
                 </span>
               </TableCell>
               <TableCell nowrap={false}>
-                <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
+                <span
+                  className={cn(
+                    "px-2 py-1 text-xs font-medium rounded-full",
+                    getAccentColor("purple", "background"),
+                    getAccentColor("purple", "text"),
+                  )}
+                >
                   {item.unit}
                 </span>
               </TableCell>
-              <TableCell className="text-gray-500">
+              <TableCell className={getTextColor("muted")}>
                 {item.formattedTime}
               </TableCell>
             </TableRow>

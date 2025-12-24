@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import { getTextColor, getBackgroundColor } from "@/lib/constants/ui-themes";
 
 export interface TableColumn {
   key: string;
@@ -20,13 +21,14 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
   className,
 }) => {
   return (
-    <thead className={cn("bg-gray-50", className)}>
+    <thead className={cn(getBackgroundColor("subtle"), className)}>
       <tr>
         {columns.map((column) => (
           <th
             key={column.key}
             className={cn(
-              "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
+              "px-6 py-3 text-left text-xs font-medium uppercase tracking-wider",
+              getTextColor("muted"),
               column.className,
             )}
           >

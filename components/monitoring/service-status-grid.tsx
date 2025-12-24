@@ -10,7 +10,12 @@ import { BaseCard } from "@/components/ui/base-card";
 import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-service";
 import { UI_TEXT } from "@/lib/constants/ui-text";
 import type { SystemHealth } from "@/lib/hooks/use-monitoring";
-import { STATUS_THEMES, ANIMATION_STATES } from "@/lib/constants/ui-themes";
+import {
+  STATUS_THEMES,
+  ANIMATION_STATES,
+  getTextColor,
+  cn,
+} from "@/lib/constants/ui-themes";
 
 interface ServiceStatusGridProps {
   health: SystemHealth;
@@ -32,7 +37,12 @@ export const ServiceStatusGrid = React.memo(
 
     return (
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+        <h3
+          className={cn(
+            "text-lg font-medium mb-4 flex items-center gap-2",
+            getTextColor("heading"),
+          )}
+        >
           <ServerIcon />
           {UI_TEXT.monitoring.serviceStatusDetails}
         </h3>
@@ -88,10 +98,18 @@ const ServiceCard = React.memo(function ServiceCardComponent({
     <BaseCard variant="hover" padding="sm">
       <button
         onClick={onToggle}
-        className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+        className={cn(
+          "w-full text-left focus:outline-none focus:ring-2 focus:ring-inset",
+          "focus:ring-blue-500",
+        )}
       >
         <div className="flex items-center justify-between">
-          <h4 className="font-semibold text-gray-900 capitalize flex items-center gap-2">
+          <h4
+            className={cn(
+              "font-semibold capitalize flex items-center gap-2",
+              getTextColor("heading"),
+            )}
+          >
             <StatusIndicator
               status={check.status as StatusType}
               size="sm"
@@ -103,7 +121,9 @@ const ServiceCard = React.memo(function ServiceCardComponent({
             {isLive && (
               <div className="flex items-center gap-1">
                 <div className={ANIMATION_STATES.liveAnimated} />
-                <span className="text-xs text-gray-500">Live</span>
+                <span className={cn("text-xs", getTextColor("muted"))}>
+                  Live
+                </span>
               </div>
             )}
             <StatusIndicator
@@ -115,7 +135,7 @@ const ServiceCard = React.memo(function ServiceCardComponent({
           </div>
         </div>
         {check.responseTime && (
-          <div className="mt-2 text-sm text-gray-600">
+          <div className={cn("mt-2 text-sm", getTextColor("body"))}>
             Response:{" "}
             {MonitoringDashboardService.formatResponseTime(check.responseTime)}
           </div>
@@ -144,12 +164,14 @@ const ServiceDetailPanel = React.memo(function ServiceDetailPanelComponent({
   error,
 }: ServiceDetailPanelProps) {
   return (
-    <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50">
+    <div className={cn("px-4 pb-4 border-t bg-gray-50", "border-gray-100")}>
       <div className="pt-4 space-y-3">
         {detailData.map((detail) => (
           <BaseCard key={detail.name} padding="sm">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{detail.label}</span>
+              <span className={cn("text-sm", getTextColor("body"))}>
+                {detail.label}
+              </span>
               {detail.status ? (
                 <StatusIndicator
                   status={detail.status as StatusType}
@@ -158,7 +180,9 @@ const ServiceDetailPanel = React.memo(function ServiceDetailPanelComponent({
                   className="px-2 py-1 rounded text-xs font-medium"
                 />
               ) : (
-                <span className="text-sm font-medium text-gray-900">
+                <span
+                  className={cn("text-sm font-medium", getTextColor("heading"))}
+                >
                   {detail.value}
                 </span>
               )}

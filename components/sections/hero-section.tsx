@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 
 import { HOMEPAGE } from "@/lib/constants";
 import { Gradients } from "@/lib/constants/gradients";
+import { getTextColor, cn } from "@/lib/constants/ui-themes";
 
 interface HeroSectionProps {
   title?: string;
@@ -22,9 +23,13 @@ export function HeroSection({
             {title || HOMEPAGE.HERO.TITLE}
           </h1>
           {description ? (
-            <p className="mt-4 text-lg text-gray-600">{description}</p>
+            <p className={cn("mt-4 text-lg", getTextColor("body"))}>
+              {description}
+            </p>
           ) : (
-            <p className="mt-4 text-lg text-gray-600">{subtitle}</p>
+            <p className={cn("mt-4 text-lg", getTextColor("body"))}>
+              {subtitle}
+            </p>
           )}
           <div className="mt-8 flex gap-4 justify-center lg:justify-start">
             <Button size="lg" className="bg-blue-600 hover:bg-blue-700">

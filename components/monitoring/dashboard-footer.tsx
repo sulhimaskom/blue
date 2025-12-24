@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ANIMATION_STATES } from "@/lib/constants/ui-themes";
+import { ANIMATION_STATES, getTextColor, cn } from "@/lib/constants/ui-themes";
 
 interface DashboardFooterProps {
   loading: boolean;
@@ -35,17 +35,25 @@ export function DashboardFooter({
             } shadow-sm`}
             aria-hidden="true"
           />
-          <span className="text-sm text-gray-600 font-medium">
+          <span className={cn("text-sm font-medium", getTextColor("body"))}>
             {loading ? "Updating..." : "System Live"}
           </span>
-          <span className="text-xs text-gray-400" aria-hidden="true">
+          <span
+            className={cn("text-xs", getTextColor("subtle"))}
+            aria-hidden="true"
+          >
             •
           </span>
-          <span className="text-sm text-gray-600">Last: {formattedTime}</span>
+          <span className={cn("text-sm", getTextColor("body"))}>
+            Last: {formattedTime}
+          </span>
         </div>
         {autoRefresh && (
           <div
-            className="flex items-center gap-2 text-xs text-gray-500"
+            className={cn(
+              "flex items-center gap-2 text-xs",
+              getTextColor("muted"),
+            )}
             aria-label="Auto-refresh status"
           >
             <svg

@@ -3,15 +3,15 @@
  * Following atomic design principles - these are UI atoms that can be reused across the application
  */
 
+import { getIconColor } from "@/lib/constants/ui-themes";
+
 export interface IconProps {
   className?: string;
 }
 
-export const CheckIcon = ({
-  className = "w-5 h-5 text-green-500",
-}: IconProps) => (
+export const CheckIcon = ({ className = "w-5 h-5" }: IconProps) => (
   <svg
-    className={className}
+    className={`${className} ${getIconColor("success")}`}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -25,11 +25,9 @@ export const CheckIcon = ({
   </svg>
 );
 
-export const ErrorIcon = ({
-  className = "w-5 h-5 text-red-500",
-}: IconProps) => (
+export const ErrorIcon = ({ className = "w-5 h-5" }: IconProps) => (
   <svg
-    className={className}
+    className={`${className} ${getIconColor("error")}`}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -43,11 +41,9 @@ export const ErrorIcon = ({
   </svg>
 );
 
-export const WarningIcon = ({
-  className = "w-5 h-5 text-yellow-500",
-}: IconProps) => (
+export const WarningIcon = ({ className = "w-5 h-5" }: IconProps) => (
   <svg
-    className={className}
+    className={`${className} ${getIconColor("warning")}`}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -130,11 +126,11 @@ export interface ExpandIconProps extends IconProps {
 }
 
 export const ExpandIcon = ({
-  className = "w-4 h-4 text-gray-400 transition-transform",
+  className = "w-4 h-4 transition-transform",
   isExpanded,
 }: ExpandIconProps) => (
   <svg
-    className={`${className} ${isExpanded ? "rotate-180" : ""}`}
+    className={`${className} ${getIconColor("primary")} ${isExpanded ? "rotate-180" : ""}`}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"

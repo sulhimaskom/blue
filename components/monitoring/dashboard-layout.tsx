@@ -4,7 +4,14 @@ import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorIcon, RefreshIcon, ActivityIcon } from "@/components/ui/icons";
 import { Gradients } from "@/lib/constants/gradients";
-import { STATUS_THEMES, ANIMATION_STATES } from "@/lib/constants/ui-themes";
+import {
+  STATUS_THEMES,
+  ANIMATION_STATES,
+  getBackgroundColor,
+  getTextColor,
+  getIconColor,
+  cn,
+} from "@/lib/constants/ui-themes";
 
 interface DashboardHeaderProps {
   title?: string;
@@ -27,14 +34,19 @@ export function DashboardHeader({
     <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-8">
       <div className="mb-6 lg:mb-0">
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-blue-100 rounded-lg">
+          <div className={cn("p-2 rounded-lg", getBackgroundColor("accent"))}>
             <ActivityIcon />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 leading-tight">
+            <h1
+              className={cn(
+                "text-3xl font-bold leading-tight",
+                getTextColor("heading"),
+              )}
+            >
               {title}
             </h1>
-            <p className="text-gray-600 mt-1">{description}</p>
+            <p className={cn("mt-1", getTextColor("body"))}>{description}</p>
           </div>
         </div>
       </div>
@@ -125,10 +137,10 @@ export function LoadingState({
   return (
     <div className="flex items-center justify-center py-20">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-8 h-8 text-blue-600 animate-spin">
+        <div className={cn("w-8 h-8 animate-spin", getIconColor("accent"))}>
           <RefreshIcon />
         </div>
-        <p className="text-gray-600">{message}</p>
+        <p className={getTextColor("body")}>{message}</p>
       </div>
     </div>
   );
