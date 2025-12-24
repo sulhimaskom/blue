@@ -5,12 +5,20 @@ import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 import { APIMetricsService } from "@/lib/services/api-metrics-service";
 import { RuntimeServiceInitializer } from "@/lib/services/runtime-service-initializer";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
+import { IntelligentPrefetchService } from "@/lib/services/intelligent-prefetch-service";
+import { RealTimePerformanceMonitor } from "@/lib/services/real-time-performance-monitor";
 
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: false,
   handler: async ({ req }) => {
     // Initialize runtime services safely (won't run during build)
     await RuntimeServiceInitializer.initializeServices();
+
+    // Initialize intelligent prefetch service for performance optimization
+    await IntelligentPrefetchService.initialize();
+
+    // Initialize real-time performance monitoring
+    await RealTimePerformanceMonitor.initialize();
 
     return UnifiedCacheManager.withCache(
       req,
