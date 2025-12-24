@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { AuthenticationError, DatabaseError } from "@/lib/api-utils";
 import { setRLSContext } from "@/lib/db/rls-policies";
 
+// Legacy type for backward compatibility - can be deprecated
 export interface AuthenticatedUser {
   clerkId: string;
   id: number;

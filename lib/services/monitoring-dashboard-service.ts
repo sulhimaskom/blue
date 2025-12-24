@@ -1,34 +1,22 @@
-import type { SystemHealth, MetricsData } from "../hooks/use-monitoring";
+import type {
+  SystemHealth,
+  MetricsData,
+  HealthScoreMetrics,
+  ServiceStatusData,
+  FormattedServiceData,
+} from "./service-types";
 import {
   formatDuration,
   formatMetricDisplayName,
   MONITORING_THRESHOLDS,
 } from "@/lib/utils/time-formatting";
 
-export interface HealthScoreMetrics {
-  score: number;
-  healthyServices: number;
-  totalServices: number;
-  statusText: string;
-}
-
-export interface ServiceStatusData {
-  name: string;
-  status: "healthy" | "degraded" | "unhealthy";
-  responseTime?: number;
-  error?: string;
-  lastChecked: Date;
-  isLive: boolean;
-}
-
-export interface FormattedServiceData {
-  name: string;
-  label: string;
-  value: string | number;
-  unit?: string;
-  badge?: string;
-  status?: string;
-}
+// Re-export for backward compatibility
+export type {
+  HealthScoreMetrics,
+  ServiceStatusData,
+  FormattedServiceData,
+} from "./service-types";
 
 /**
  * Service class for monitoring dashboard business logic

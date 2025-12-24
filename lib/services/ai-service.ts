@@ -4,50 +4,19 @@ import { monitoringService } from "../monitoring";
 import { AIErrorReporter } from "./ai-error-reporter";
 import { circuitBreakerRegistry, SERVICE_CONFIGS } from "../circuit-breaker";
 import { UnifiedCacheManager } from "./unified-cache-manager";
-import { AIPatternDetector, type AIPattern } from "./ai-pattern-detector";
+import { AIPatternDetector } from "./ai-pattern-detector";
 import { IdGenerators } from "../utils/id-generator";
+import type {
+  AIModel,
+  AICompletionRequest,
+  AICompletionResponse,
+  ResearchRequest,
+  ResearchResult,
+  AIPattern,
+} from "./service-types";
 
-export interface AIModel {
-  id: string;
-  name: string;
-  type: "reasoning" | "fast";
-  maxTokens: number;
-}
-
-export interface AICompletionRequest {
-  prompt: string;
-  model?: AIModel;
-  temperature?: number;
-  maxTokens?: number;
-  context?: string[];
-}
-
-export interface AICompletionResponse {
-  content: string;
-  model: string;
-  usage: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
-}
-
-export interface ResearchRequest {
-  query: string;
-  maxResults?: number;
-  includeImages?: boolean;
-}
-
-export interface ResearchResult {
-  query: string;
-  results: Array<{
-    title: string;
-    url: string;
-    snippet: string;
-    publishedDate?: string;
-  }>;
-  answer: string;
-}
+// Re-export for backward compatibility
+export type { ResearchResult } from "./service-types";
 
 class AIService {
   private readonly baseUrl: string;
@@ -507,6 +476,9 @@ class AIService {
    */
   private getPatternTypicalTTL(pattern: AIPattern["type"]): number {
     const ttlMap: Record<AIPattern["type"], number> = {
+      error: 300,
+      success: 1800,
+      anomaly: 600,
       marketplace: 7200,
       ecommerce: 3600,
       social: 5400,
