@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { monitoringService } from "@/lib/monitoring";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { circuitBreakerRegistry } from "@/lib/circuit-breaker";
-import { ResponseCache } from "@/lib/response-cache";
+import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: false,
   handler: async ({ req }) => {
-    return ResponseCache.withCache(
+    return UnifiedCacheManager.withCache(
       req,
       async () => {
         const { searchParams } = new URL(req.url);
