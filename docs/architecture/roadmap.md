@@ -149,6 +149,40 @@
 - [ ] **LOW**: Microservices migration planning
 - [ ] **LOW**: Full observability stack implementation
 
+### New Agent Engagement Tasks (Post-Audit Findings)
+
+**IMMEDIATE POST-AUDIT ENHANCEMENTS**:
+
+- [ ] **MEDIUM**: Implement webhook cryptographic verification
+  - **Location**: `lib/services/security-service.ts:40-52`
+  - **Current**: Format-based verification only
+  - **Target**: Implement `stripe.webhooks.constructEvent()` for production-grade security
+  - **Impact**: Enhanced webhook security for production deployment
+  - **Priority**: Phase 4 enhancement (not blocking current deployment)
+
+- [ ] **LOW**: Component documentation enhancement
+  - **Location**: Throughout `components/` directory
+  - **Current**: Missing JSDoc comments on complex components
+  - **Target**: Comprehensive JSDoc documentation for all complex React components
+  - **Impact**: Improved developer experience and maintainability
+  - **Priority**: Technical debt improvement
+
+- [ ] **LOW**: Tiered rate limiting strategy
+  - **Location**: `lib/api-utils.ts:83-135`
+  - **Current**: Uniform rate limiting across all users
+  - **Target**: Subscription tier-based rate limiting with elevated service for premium users
+  - **Impact**: Enhanced service differentiation during high load periods
+  - **Priority**: Feature enhancement for future iteration
+
+**INFRASTRUCTURE MONITORING ENHANCEMENTS**:
+
+- [ ] **LOW**: Add OpenTelemetry distributed tracing
+  - **Target**: Complete observability stack end-to-end request tracking
+  - **Priority**: Advanced monitoring enhancement
+- [ ] **LOW**: Implement alerting thresholds optimization
+  - **Target**: Dynamic alerting based on system usage patterns
+  - **Priority**: Operations efficiency enhancement
+
 ### Critical Update: Post-Audit Enhancement Tasks (Commit 9587ebd)
 
 **IMMEDIATE ENHANCEMENTS** (Based on Lead Auditor Evaluation):
