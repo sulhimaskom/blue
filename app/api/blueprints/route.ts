@@ -1,14 +1,11 @@
 import { z } from "zod";
-import { db } from "@/lib/db";
-import { projects, blueprints } from "@/lib/db/schema";
-import { eq, count, inArray } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 import { UserService } from "@/lib/services/user-service";
 import { blueprintEngine } from "@/lib/services/blueprint-engine";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { RateLimiter } from "@/lib/api-utils";
-import { DatabasePerformanceMonitor } from "@/lib/db/performance-monitor";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
+import { BlueprintQueryOptimizer } from "@/lib/db/blueprint-query-optimizer";
 
 // Rate limiting: 3 requests per minute for blueprint generation
 const blueprintRateLimiter = RateLimiter(3, 60 * 1000);
@@ -82,48 +79,18 @@ export const GET = APIRouteHandler.createGETHandler({
     );
 
     if (!cachedStats) {
-      const database = db();
+      // NEW: Use the optimized blueprint query optimizer
+      const optimizedProjects =
+        await BlueprintQueryOptimizer.optimizeUserBlueprintQuery(user!.id);
+      const userProjects = optimizedProjects.data;
 
-      // Get all projects for the user with performance monitoring and caching
-      const userProjects = await DatabaseQueryCache.executeCachedQuery(
-        "user-blueprints",
-        async () =>
-          DatabasePerformanceMonitor.trackQuery(
-            "fetch_user_projects",
-            async () =>
-              database
-                .select()
-                .from(projects)
-                .where(eq(projects.ownerId, user!.id))
-                .orderBy(projects.createdAt),
-          ),
-        { userId: user!.id },
-        { ttl: 600, tags: [`user-${user!.id}`, "user-blueprints"] },
-      );
-
-      // Optimized: Get blueprint counts with a single batch query instead of N+1 queries
+      // Optimized: Get blueprint counts with the advanced optimizer
       const projectIds = userProjects.map((p) => p.id);
-
-      const blueprintCounts = await DatabaseQueryCache.executeCachedQuery(
-        "user-blueprint-counts",
-        async () =>
-          DatabasePerformanceMonitor.trackQuery(
-            "fetch_blueprint_counts",
-            async () =>
-              database
-                .select({
-                  projectId: blueprints.projectId,
-                  count: count(blueprints.id),
-                })
-                .from(blueprints)
-                .where(inArray(blueprints.projectId, projectIds))
-                .groupBy(blueprints.projectId),
-          ),
-        { userId: user!.id, projectIds },
-        { ttl: 600, tags: [`user-${user!.id}`, "blueprint-counts"] },
-      );
+      const optimizedCounts =
+        await BlueprintQueryOptimizer.optimizeBlueprintCountsQuery(projectIds);
 
       // Create lookup map for O(1) access to blueprint counts
+      const blueprintCounts = optimizedCounts.data;
       const blueprintCountMap = new Map(
         blueprintCounts.map(({ projectId, count }) => [projectId, count]),
       );
@@ -149,67 +116,68 @@ export const GET = APIRouteHandler.createGETHandler({
 
       await DatabaseQueryCache.cacheUserBlueprintStats(user!.id, cachedStats);
 
-      logger.userAction("Projects fetched with cache", user!.clerkId, {
-        requestId: context.requestId,
-        projectCount: projectsWithBlueprints.length,
-        cacheStatus: "miss",
-      });
+      logger.userAction(
+        "Projects fetched with optimized cache",
+        user!.clerkId,
+        {
+          requestId: context.requestId,
+          projectCount: projectsWithBlueprints.length,
+          cacheStatus: "miss",
+          optimizationApplied: optimizedProjects.optimizationApplied,
+          performanceGain: optimizedProjects.metrics.improvementPercentage,
+          queryTime: `${optimizedProjects.metrics.optimizedQueryTime}ms`,
+        },
+      );
 
       return {
         projects: projectsWithBlueprints,
         credits: user!.credits,
         subscriptionTier: user!.subscriptionTier,
+        performanceMetrics: {
+          projectsQuery: optimizedProjects.metrics,
+          countsQuery: optimizedCounts.metrics,
+          totalOptimizations:
+            BlueprintQueryOptimizer.getOptimizationMetrics().totalOptimizations,
+        },
       };
     } else {
-      // Return cached data - for now simplified to show the concept
-      // In production, you'd cache and retrieve the full project list
-      const database = db();
+      // NEW: For cached responses, use the optimizer as well for consistency
+      const optimizedProjects =
+        await BlueprintQueryOptimizer.optimizeUserBlueprintQuery(user!.id);
 
-      const userProjects = await DatabasePerformanceMonitor.trackQuery(
-        "fetch_user_projects",
-        async () =>
-          database
-            .select()
-            .from(projects)
-            .where(eq(projects.ownerId, user!.id))
-            .orderBy(projects.createdAt),
-      );
+      const projectIds = optimizedProjects.data.map((p) => p.id);
+      const optimizedCounts =
+        await BlueprintQueryOptimizer.optimizeBlueprintCountsQuery(projectIds);
 
-      const projectIds = userProjects.map((p) => p.id);
-
-      const blueprintCounts = await DatabasePerformanceMonitor.trackQuery(
-        "fetch_blueprint_counts",
-        async () =>
-          database
-            .select({
-              projectId: blueprints.projectId,
-              count: count(blueprints.id),
-            })
-            .from(blueprints)
-            .where(inArray(blueprints.projectId, projectIds))
-            .groupBy(blueprints.projectId),
-      );
-
+      const blueprintCounts = optimizedCounts.data;
       const blueprintCountMap = new Map(
         blueprintCounts.map(({ projectId, count }) => [projectId, count]),
       );
 
-      const projectsWithBlueprints = userProjects.map((project) => ({
+      const projectsWithBlueprints = optimizedProjects.data.map((project) => ({
         ...project,
         blueprintCount: (blueprintCountMap.get(project.id) as number) || 0,
       }));
 
-      logger.userAction("Projects fetched", user!.clerkId, {
+      logger.userAction("Projects fetched with optimization", user!.clerkId, {
         requestId: context.requestId,
         projectCount: projectsWithBlueprints.length,
         cacheStatus: "hit",
         cachedStats,
+        optimizationApplied: optimizedProjects.optimizationApplied,
+        performanceGain: optimizedProjects.metrics.improvementPercentage,
       });
 
       return {
         projects: projectsWithBlueprints,
         credits: user!.credits,
         subscriptionTier: user!.subscriptionTier,
+        performanceMetrics: {
+          projectsQuery: optimizedProjects.metrics,
+          countsQuery: optimizedCounts.metrics,
+          totalOptimizations:
+            BlueprintQueryOptimizer.getOptimizationMetrics().totalOptimizations,
+        },
       };
     }
   },

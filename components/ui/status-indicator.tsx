@@ -1,5 +1,10 @@
 import { cn } from "@/lib/utils";
 import { CheckIcon, WarningIcon, ErrorIcon } from "./icons";
+import {
+  STATUS_THEMES,
+  SIZE_VARIANTS,
+  type StatusThemeType,
+} from "@/lib/constants/ui-themes";
 
 export type StatusType = "healthy" | "degraded" | "unhealthy" | "unknown";
 
@@ -19,28 +24,32 @@ export function StatusIndicator({
   className,
 }: StatusIndicatorProps) {
   const getStatusConfig = (status: StatusType) => {
+    const themeKey =
+      status === "unknown" ? "unknown" : (status as StatusThemeType);
+    const theme = STATUS_THEMES[themeKey];
+
     switch (status) {
       case "healthy":
         return {
-          color: "text-green-700 bg-green-50 border-green-200",
+          color: theme.combined,
           icon: CheckIcon,
           text: "Healthy",
         };
       case "degraded":
         return {
-          color: "text-yellow-700 bg-yellow-50 border-yellow-200",
+          color: theme.combined,
           icon: WarningIcon,
           text: "Degraded",
         };
       case "unhealthy":
         return {
-          color: "text-red-700 bg-red-50 border-red-200",
+          color: theme.combined,
           icon: ErrorIcon,
           text: "Unhealthy",
         };
       default:
         return {
-          color: "text-gray-700 bg-gray-50 border-gray-200",
+          color: theme.combined,
           icon: null,
           text: "Unknown",
         };
@@ -48,14 +57,7 @@ export function StatusIndicator({
   };
 
   const getSizeClasses = (size: "sm" | "md" | "lg") => {
-    switch (size) {
-      case "sm":
-        return "px-2 py-1 text-xs";
-      case "lg":
-        return "px-4 py-2 text-base";
-      default:
-        return "px-3 py-1.5 text-sm";
-    }
+    return SIZE_VARIANTS.indicator[size];
   };
 
   const config = getStatusConfig(status);

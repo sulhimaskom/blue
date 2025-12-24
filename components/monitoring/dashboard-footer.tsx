@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ANIMATION_STATES } from "@/lib/constants/ui-themes";
 
 interface DashboardFooterProps {
   loading: boolean;
@@ -30,7 +31,7 @@ export function DashboardFooter({
         <div className="flex items-center gap-3 px-6 py-3 bg-white rounded-full border border-gray-200 shadow-sm">
           <div
             className={`w-3 h-3 rounded-full ${
-              loading ? "bg-yellow-500 animate-pulse" : "bg-green-500"
+              loading ? ANIMATION_STATES.loading : ANIMATION_STATES.live
             } shadow-sm`}
             aria-hidden="true"
           />

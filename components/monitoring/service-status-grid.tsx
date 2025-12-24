@@ -9,6 +9,7 @@ import {
 import { BaseCard } from "@/components/ui/base-card";
 import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-service";
 import type { SystemHealth } from "@/lib/hooks/use-monitoring";
+import { STATUS_THEMES, ANIMATION_STATES } from "@/lib/constants/ui-themes";
 
 interface ServiceStatusGridProps {
   health: SystemHealth;
@@ -100,7 +101,7 @@ const ServiceCard = React.memo(function ServiceCardComponent({
           <div className="flex items-center gap-3">
             {isLive && (
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <div className={ANIMATION_STATES.liveAnimated} />
                 <span className="text-xs text-gray-500">Live</span>
               </div>
             )}
@@ -164,11 +165,17 @@ const ServiceDetailPanel = React.memo(function ServiceDetailPanelComponent({
           </BaseCard>
         ))}
         {error && (
-          <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-            <div className="text-sm text-red-700">
+          <div
+            className={`p-3 rounded-lg border ${STATUS_THEMES.unhealthy.background} ${STATUS_THEMES.unhealthy.border}`}
+          >
+            <div className={`text-sm ${STATUS_THEMES.unhealthy.text}`}>
               <strong>Error Details:</strong>
             </div>
-            <div className="text-sm text-red-600 mt-1 font-mono">{error}</div>
+            <div
+              className={`text-sm mt-1 font-mono ${STATUS_THEMES.unhealthy.text.replace("700", "600")}`}
+            >
+              {error}
+            </div>
           </div>
         )}
       </div>
