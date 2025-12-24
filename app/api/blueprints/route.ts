@@ -7,6 +7,7 @@ import { UserService } from "@/lib/services/user-service";
 import { blueprintEngine } from "@/lib/services/blueprint-engine";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { RateLimiter } from "@/lib/api-utils";
+import { DatabasePerformanceMonitor } from "@/lib/db/performance-monitor";
 
 // Rate limiting: 3 requests per minute for blueprint generation
 const blueprintRateLimiter = RateLimiter(3, 60 * 1000);
@@ -73,24 +74,32 @@ export const GET = APIRouteHandler.createGETHandler({
   handler: async ({ context, user }) => {
     const database = db();
 
-    // Get all projects for the user
-    const userProjects = await database
-      .select()
-      .from(projects)
-      .where(eq(projects.ownerId, user!.id))
-      .orderBy(projects.createdAt);
+    // Get all projects for the user with performance monitoring
+    const userProjects = await DatabasePerformanceMonitor.trackQuery(
+      "fetch_user_projects",
+      async () =>
+        database
+          .select()
+          .from(projects)
+          .where(eq(projects.ownerId, user!.id))
+          .orderBy(projects.createdAt),
+    );
 
     // Optimized: Get blueprint counts with a single batch query instead of N+1 queries
     const projectIds = userProjects.map((p) => p.id);
 
-    const blueprintCounts = await database
-      .select({
-        projectId: blueprints.projectId,
-        count: count(blueprints.id),
-      })
-      .from(blueprints)
-      .where(inArray(blueprints.projectId, projectIds))
-      .groupBy(blueprints.projectId);
+    const blueprintCounts = await DatabasePerformanceMonitor.trackQuery(
+      "fetch_blueprint_counts",
+      async () =>
+        database
+          .select({
+            projectId: blueprints.projectId,
+            count: count(blueprints.id),
+          })
+          .from(blueprints)
+          .where(inArray(blueprints.projectId, projectIds))
+          .groupBy(blueprints.projectId),
+    );
 
     // Create lookup map for O(1) access to blueprint counts
     const blueprintCountMap = new Map(
