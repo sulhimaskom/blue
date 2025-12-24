@@ -900,6 +900,12 @@ ${research.results
       dashboard: 0.8, // Shorter TTL for dashboard patterns
       "api-service": 1.0,
       "mobile-app": 1.1,
+      fintech: 2.0, // Longest TTL for regulated fintech
+      healthcare: 1.8, // Long TTL for healthcare compliance
+      edtech: 1.4,
+      realestate: 1.6,
+      logistics: 1.3,
+      saas: 1.0,
     };
 
     const baseTTL = cacheType === "complete" ? 7200 : 3600; // 2 hours vs 1 hour
