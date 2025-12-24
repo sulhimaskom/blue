@@ -21,6 +21,12 @@ import {
   SVG_STROKES,
   ANIMATION_TIMING,
 } from "@/lib/constants/svg-calculations";
+import {
+  getTextColor,
+  getIconColor,
+  getAccentColor,
+  cn,
+} from "@/lib/constants/ui-themes";
 
 interface SystemHealthOverviewProps {
   health: SystemHealth;
@@ -49,7 +55,7 @@ export const SystemHealthOverview = React.memo(
       <BaseCard className="mb-8 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
           <ServerIcon />
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className={cn("text-xl font-semibold", getTextColor("heading"))}>
             {UI_TEXT.monitoring.systemHealth}
           </h2>
           <div className="ml-auto">
@@ -91,26 +97,26 @@ const HealthScoreCards = React.memo(function HealthScoreCardsComponent({
 
       {/* System Uptime */}
       <GradientCard variant="green">
-        <div className="text-3xl font-bold text-green-600 mb-3">
+        <div className={cn("text-3xl font-bold mb-3", getIconColor("success"))}>
           {overviewData.uptime}
         </div>
-        <div className="text-sm font-medium text-gray-700">
+        <div className={cn("text-sm font-medium", getTextColor("body"))}>
           {UI_TEXT.monitoring.systemUptime}
         </div>
-        <div className="text-xs text-gray-500 mt-1">
+        <div className={cn("text-xs mt-1", getTextColor("muted"))}>
           {UI_TEXT.monitoring.continuousOperation}
         </div>
       </GradientCard>
 
       {/* Services Monitored */}
       <GradientCard variant="purple">
-        <div className="text-3xl font-bold text-purple-600 mb-3">
+        <div className={cn("text-3xl font-bold mb-3", getIconColor("accent"))}>
           {health.checks.length}
         </div>
-        <div className="text-sm font-medium text-gray-700">
+        <div className={cn("text-sm font-medium", getTextColor("body"))}>
           {UI_TEXT.monitoring.servicesMonitored}
         </div>
-        <div className="text-xs text-gray-500 mt-1">
+        <div className={cn("text-xs mt-1", getTextColor("muted"))}>
           {UI_TEXT.monitoring.activeEndpoints}
         </div>
       </GradientCard>
@@ -134,7 +140,7 @@ const HealthScoreCard = React.memo(function HealthScoreCardComponent({
             stroke="currentColor"
             strokeWidth={SVG_STROKES.DEFAULT_WIDTH}
             fill="none"
-            className="text-blue-100"
+            className={getAccentColor("blue", "subtle")}
           />
           <circle
             cx={SVG_STROKES.CENTER_POSITION}
@@ -146,19 +152,21 @@ const HealthScoreCard = React.memo(function HealthScoreCardComponent({
             strokeDasharray={HealthScoreCalculator.calculateStrokeDasharray(
               healthMetrics.score,
             )}
-            className={`text-blue-600 transition-all ${ANIMATION_TIMING.HEALTH_SCORE_UPDATE}`}
+            className={cn(
+              `${getAccentColor("blue", "primary")} transition-all ${ANIMATION_TIMING.HEALTH_SCORE_UPDATE}`,
+            )}
           />
         </svg>
         <div className="absolute">
-          <span className="text-2xl font-bold text-gray-900">
+          <span className={cn("text-2xl font-bold", getTextColor("heading"))}>
             {healthMetrics.score}%
           </span>
         </div>
       </div>
-      <div className="text-sm font-medium text-gray-700">
+      <div className={cn("text-sm font-medium", getTextColor("body"))}>
         {UI_TEXT.monitoring.healthScore}
       </div>
-      <div className="text-xs text-gray-500 mt-1">
+      <div className={cn("text-xs mt-1", getTextColor("muted"))}>
         {healthMetrics.healthyServices}/{healthMetrics.totalServices} services
         healthy
       </div>

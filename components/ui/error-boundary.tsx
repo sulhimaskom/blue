@@ -4,6 +4,12 @@ import React from "react";
 import { Button } from "./button";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 import { Environment } from "@/lib/utils/environment";
+import {
+  getTextColor,
+  getIconColor,
+  getBackgroundColor,
+  cn,
+} from "@/lib/constants/ui-themes";
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -64,16 +70,25 @@ export class ErrorBoundary extends React.Component<
         <div className="min-h-screen flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
             <div className="flex justify-center mb-4">
-              <div className="p-3 bg-red-100 rounded-full">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
+              <div
+                className={cn("p-3 rounded-full", getBackgroundColor("subtle"))}
+              >
+                <AlertTriangle
+                  className={cn("h-6 w-6", getIconColor("error"))}
+                />
               </div>
             </div>
 
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            <h2
+              className={cn(
+                "text-xl font-semibold mb-2",
+                getTextColor("heading"),
+              )}
+            >
               Something went wrong
             </h2>
 
-            <p className="text-gray-600 mb-6">
+            <p className={cn("mb-6", getTextColor("body"))}>
               We encountered an unexpected error. Please try refreshing the
               page.
             </p>
@@ -100,10 +115,22 @@ export class ErrorBoundary extends React.Component<
 
             {Environment.isDevelopment() && this.state.error && (
               <details className="mt-6 text-left">
-                <summary className="cursor-pointer text-sm font-mono text-gray-500 hover:text-gray-700">
+                <summary
+                  className={cn(
+                    "cursor-pointer text-sm font-mono hover:",
+                    getTextColor("muted"),
+                    getTextColor("body"),
+                  )}
+                >
                   Error Details (Development)
                 </summary>
-                <pre className="mt-2 text-xs bg-gray-100 p-3 rounded overflow-auto max-h-40 text-red-600">
+                <pre
+                  className={cn(
+                    "mt-2 text-xs p-3 rounded overflow-auto max-h-40",
+                    getBackgroundColor("muted"),
+                    getIconColor("error"),
+                  )}
+                >
                   {this.state.error.toString()}
                   {this.state.errorInfo && this.state.errorInfo.componentStack}
                 </pre>

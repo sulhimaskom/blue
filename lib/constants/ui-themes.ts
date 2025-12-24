@@ -86,6 +86,57 @@ export const CARD_VARIANTS = {
 } as const;
 
 /**
+ * Color Themes - Used for text, icons, and UI elements
+ */
+export const COLOR_THEMES = {
+  // Primary text colors
+  primary: {
+    heading: "text-gray-900",
+    body: "text-gray-600",
+    muted: "text-gray-500",
+    subtle: "text-gray-400",
+    disabled: "text-gray-300",
+  },
+  // Trend colors for metrics
+  trend: {
+    positive: "text-green-600",
+    negative: "text-red-600",
+    neutral: "text-gray-500",
+  },
+  // Icon colors
+  icon: {
+    primary: "text-gray-400",
+    accent: "text-blue-600",
+    success: "text-green-500",
+    warning: "text-yellow-500",
+    error: "text-red-500",
+  },
+  // Background colors
+  background: {
+    card: "bg-white",
+    subtle: "bg-gray-50",
+    muted: "bg-gray-100",
+    accent: "bg-blue-100",
+    success: "bg-purple-100",
+  },
+  // Accent colors for specific metrics
+  accent: {
+    blue: {
+      primary: "text-blue-600",
+      subtle: "text-blue-100",
+      background: "bg-blue-100",
+      text: "text-blue-700",
+    },
+    purple: {
+      primary: "text-purple-600",
+      subtle: "text-purple-100",
+      background: "bg-purple-100",
+      text: "text-purple-700",
+    },
+  },
+} as const;
+
+/**
  * Size Variants - Standardized sizing across components
  */
 export const SIZE_VARIANTS = {
@@ -122,6 +173,10 @@ export type CardVariantType = keyof typeof CARD_VARIANTS;
 export type SizeVariantType =
   | keyof typeof SIZE_VARIANTS.indicator
   | keyof typeof SIZE_VARIANTS.card;
+export type ColorThemeType = keyof typeof COLOR_THEMES.primary;
+export type TrendType = keyof typeof COLOR_THEMES.trend;
+export type IconColorType = keyof typeof COLOR_THEMES.icon;
+export type BackgroundType = keyof typeof COLOR_THEMES.background;
 
 /**
  * Utility function to combine theme classes with Tailwind's cn function
@@ -165,4 +220,68 @@ export function getSizeClasses(
 ): string {
   const sizeMap = SIZE_VARIANTS[type];
   return sizeMap[size as keyof typeof sizeMap] || sizeMap.md || "";
+}
+
+/**
+ * Get trend color classes for metric indicators
+ *
+ * @param direction - The trend direction
+ * @returns Color className string
+ */
+export function getTrendColor(direction: "up" | "down" | "neutral"): string {
+  return COLOR_THEMES.trend[
+    direction === "up"
+      ? "positive"
+      : direction === "down"
+        ? "negative"
+        : "neutral"
+  ];
+}
+
+/**
+ * Get icon color classes
+ *
+ * @param type - The icon color type
+ * @returns Color className string
+ */
+export function getIconColor(type: keyof typeof COLOR_THEMES.icon): string {
+  return COLOR_THEMES.icon[type];
+}
+
+/**
+ * Get text color classes
+ *
+ * @param type - The text color type
+ * @returns Color className string
+ */
+export function getTextColor(type: keyof typeof COLOR_THEMES.primary): string {
+  return COLOR_THEMES.primary[type];
+}
+
+/**
+ * Get background color classes
+ *
+ * @param type - The background color type
+ * @returns Background className string
+ */
+export function getBackgroundColor(
+  type: keyof typeof COLOR_THEMES.background,
+): string {
+  return COLOR_THEMES.background[type];
+}
+
+/**
+ * Get accent color classes for metrics
+ *
+ * @param color - The accent color (blue, purple)
+ * @param shade - The shade type
+ * @returns Accent color className string
+ */
+export function getAccentColor(
+  color: "blue" | "purple",
+  shade: "primary" | "subtle" | "background" | "text",
+): string {
+  return COLOR_THEMES.accent[color][
+    shade as keyof typeof COLOR_THEMES.accent.blue
+  ];
 }
