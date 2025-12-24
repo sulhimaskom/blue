@@ -1,16 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { monitoringService } from "@/lib/monitoring";
-import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 import { APIMetricsService } from "@/lib/services/api-metrics-service";
 import { RuntimeServiceInitializer } from "@/lib/services/runtime-service-initializer";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
 import { IntelligentPrefetchService } from "@/lib/services/intelligent-prefetch-service";
 import { RealTimePerformanceMonitor } from "@/lib/services/real-time-performance-monitor";
+import { withCompression } from "@/lib/middleware/compression-wrapper";
 
-export const GET = APIRouteHandler.createGETHandler({
-  requireAuth: false,
-  handler: async ({ req }) => {
+export async function GET(req: NextRequest) {
+  return withCompression(async () => {
     // Initialize runtime services safely (won't run during build)
     await RuntimeServiceInitializer.initializeServices();
 
@@ -87,8 +86,8 @@ export const GET = APIRouteHandler.createGETHandler({
         varyBy: [], // Health checks are the same for all users
       },
     );
-  },
-});
+  }, req);
+}
 
 // Health check for load balancers (minimal response)
 export async function HEAD() {
