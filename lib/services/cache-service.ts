@@ -206,7 +206,9 @@ export class CacheService {
         async (client) => {
           const keys = await client.sMembers(`${this.CACHE_PREFIX}tag:${tag}`);
           if (keys.length > 0) {
-            await client.del(...keys);
+            for (const key of keys) {
+              await client.del(key as string);
+            }
             await client.del(`${this.CACHE_PREFIX}tag:${tag}`);
           }
         },

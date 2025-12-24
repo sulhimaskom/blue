@@ -91,20 +91,20 @@ export async function checkDbHealth(): Promise<{
 
     const latency = Date.now() - startTime;
 
-    // Extract values with fallbacks
+    // Extract values with fallbacks - properly type cast Drizzle results
     const connCount =
       connectionCount.status === "fulfilled"
-        ? parseInt(connectionCount.value[0]?.count || "0")
+        ? parseInt((connectionCount.value as any)[0]?.count || "0")
         : 0;
 
     const dbSize =
       databaseSize.status === "fulfilled"
-        ? databaseSize.value[0]?.size || "Unknown"
+        ? (databaseSize.value as any)[0]?.size || "Unknown"
         : "Unknown";
 
     const dbUptime =
       uptime.status === "fulfilled"
-        ? new Date(uptime.value[0]?.uptime || "").toISOString()
+        ? new Date((uptime.value as any)[0]?.uptime || "").toISOString()
         : "Unknown";
 
     logger.debug("Database health check passed", {
@@ -158,19 +158,23 @@ export async function getPoolStats() {
 
       // Real-time metrics
       activeConnections: parseInt(
-        connectionMetrics[0]?.active_connections || "0",
+        (connectionMetrics as any)[0]?.active_connections || "0",
       ),
-      activeQueries: parseInt(connectionMetrics[0]?.active_queries || "0"),
-      idleConnections: parseInt(connectionMetrics[0]?.idle_connections || "0"),
+      activeQueries: parseInt(
+        (connectionMetrics as any)[0]?.active_queries || "0",
+      ),
+      idleConnections: parseInt(
+        (connectionMetrics as any)[0]?.idle_connections || "0",
+      ),
       connectionUtilization: Math.round(
-        (parseInt(connectionMetrics[0]?.active_connections || "0") /
+        (parseInt((connectionMetrics as any)[0]?.active_connections || "0") /
           DB_POOL_CONFIG.max) *
           100,
       ),
       availableConnections: Math.max(
         0,
         DB_POOL_CONFIG.max -
-          parseInt(connectionMetrics[0]?.active_connections || "0"),
+          parseInt((connectionMetrics as any)[0]?.active_connections || "0"),
       ),
 
       timestamps: {

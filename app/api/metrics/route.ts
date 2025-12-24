@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { monitoringService } from "@/lib/monitoring";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ValidationError } from "@/lib/api-utils";

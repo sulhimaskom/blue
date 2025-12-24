@@ -201,7 +201,7 @@ export class ResponseCache {
 
       // Restore headers
       Object.entries(cached.headers).forEach(([key, value]) => {
-        response.headers.set(key, value);
+        response.headers.set(key, value as string);
       });
 
       // Add cache metadata
@@ -286,7 +286,9 @@ export class ResponseCache {
         async (client) => {
           const keys = await client.sMembers(`${this.CACHE_PREFIX}tag:${tag}`);
           if (keys.length > 0) {
-            await client.del(...keys);
+            for (const key of keys) {
+              await client.del(key as string);
+            }
             await client.del(`${this.CACHE_PREFIX}tag:${tag}`);
           }
         },

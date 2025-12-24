@@ -88,7 +88,7 @@ export class DatabaseIndexer {
 
     for (const indexDef of RECOMMENDED_INDEXES) {
       try {
-        await this.createIndex(indexDef);
+        await this.createIndex(indexDef as any);
         results.success.push(indexDef.name);
         logger.debug("Index created successfully", {
           indexName: indexDef.name,
@@ -171,20 +171,21 @@ export class DatabaseIndexer {
       `;
 
       const currentIndexResults = await database.execute(indexQuery);
-      const currentIndexes = currentIndexResults.map((row) => ({
-        tableName: row.table_name,
-        indexName: row.index_name,
-        columnNames: this.extractColumnsFromDefinition(row.index_definition),
-        isPrimary: row.index_name.includes("_pkey"),
-        isUnique: row.index_definition.toLowerCase().includes("unique"),
-      }));
+      const currentIndexes =
+        (currentIndexResults as any).rows?.map((row: any) => ({
+          tableName: row.table_name,
+          indexName: row.index_name,
+          columnNames: this.extractColumnsFromDefinition(row.index_definition),
+          isPrimary: row.index_name.includes("_pkey"),
+          isUnique: row.index_definition.toLowerCase().includes("unique"),
+        })) || [];
 
       // Find missing recommended indexes
       const existingIndexNames = new Set(
-        currentIndexes.map((ix) => ix.indexName),
+        currentIndexes.map((ix: any) => ix.indexName),
       );
       const missingIndexes = RECOMMENDED_INDEXES.filter(
-        (ix) => !existingIndexNames.has(ix.name),
+        (ix: any) => !existingIndexNames.has(ix.name),
       );
 
       // Generate recommendations
@@ -199,7 +200,7 @@ export class DatabaseIndexer {
       return {
         currentIndexes,
         recommendations,
-        missingIndexes,
+        missingIndexes: missingIndexes as any,
       };
     } catch (error) {
       logger.error("Failed to analyze index usage", {
@@ -209,7 +210,7 @@ export class DatabaseIndexer {
       return {
         currentIndexes: [],
         recommendations: ["Unable to analyze current indexes"],
-        missingIndexes: RECOMMENDED_INDEXES,
+        missingIndexes: RECOMMENDED_INDEXES as any,
       };
     }
   }
@@ -304,11 +305,11 @@ export class DatabaseIndexer {
 
       return {
         slowQueries:
-          slowQueries.status === "fulfilled" ? slowQueries.value : [],
+          slowQueries.status === "fulfilled" ? (slowQueries.value as any) : [],
         indexUsageStats:
           indexUsage.status === "fulfilled"
             ? Object.fromEntries(
-                indexUsage.value.map((row: any) => [
+                ((indexUsage.value as any)?.rows || []).map((row: any) => [
                   row.index_name,
                   {
                     scans: row.scans,

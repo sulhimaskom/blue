@@ -99,7 +99,7 @@ export const GET = APIRouteHandler.createGETHandler({
 
     const projectsWithBlueprints = userProjects.map((project) => ({
       ...project,
-      blueprintCount: (blueprintCountMap.get(project.id)?.count as number) || 0,
+      blueprintCount: (blueprintCountMap.get(project.id) as number) || 0,
     }));
 
     logger.userAction("Projects fetched", user!.clerkId, {
