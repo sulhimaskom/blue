@@ -14,18 +14,17 @@ import {
 import type { SystemHealth } from "@/lib/hooks/use-monitoring";
 import { ServiceStatusGrid } from "./service-status-grid";
 
-/* eslint-disable no-unused-vars */
 interface SystemHealthOverviewProps {
   health: SystemHealth;
   expandedService: string | null;
+  // eslint-disable-next-line no-unused-vars
   onToggleServiceExpansion: (serviceName: string) => void;
 }
-/* eslint-enable no-unused-vars */
 
 export function SystemHealthOverview({
   health,
   expandedService,
-  onToggleServiceExpansion: handleToggleExpansion,
+  onToggleServiceExpansion,
 }: SystemHealthOverviewProps) {
   const healthMetrics =
     MonitoringDashboardService.calculateHealthScoreMetrics(health);
@@ -50,7 +49,7 @@ export function SystemHealthOverview({
       <ServiceStatusGrid
         health={health}
         expandedService={expandedService}
-        onToggleServiceExpansion={handleToggleExpansion}
+        onToggleServiceExpansion={onToggleServiceExpansion}
       />
     </BaseCard>
   );

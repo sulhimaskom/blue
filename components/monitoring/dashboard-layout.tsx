@@ -40,28 +40,38 @@ export function DashboardHeader({
         <Button
           variant="outline"
           onClick={onToggleAutoRefresh}
+          aria-label={
+            autoRefresh ? "Disable auto-refresh" : "Enable auto-refresh"
+          }
           className={`flex items-center gap-2 ${
             autoRefresh ? "bg-green-50 border-green-200 text-green-700" : ""
           }`}
         >
           {autoRefresh ? (
             <>
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              Auto-refresh ON
+              <div
+                className="w-2 h-2 bg-green-500 rounded-full animate-pulse"
+                aria-hidden="true"
+              />
+              <span>Auto-refresh ON</span>
             </>
           ) : (
             <>
-              <div className="w-2 h-2 bg-gray-400 rounded-full" />
-              Auto-refresh OFF
+              <div
+                className="w-2 h-2 bg-gray-400 rounded-full"
+                aria-hidden="true"
+              />
+              <span>Auto-refresh OFF</span>
             </>
           )}
         </Button>
         <Button
           onClick={onManualRefresh}
           disabled={loading}
+          aria-label={loading ? "Refreshing data" : "Refresh data now"}
           className="flex items-center gap-2"
         >
-          <div className={loading ? "animate-spin" : ""}>
+          <div className={loading ? "animate-spin" : ""} aria-hidden="true">
             <RefreshIcon />
           </div>
           {loading ? "Refreshing..." : "Refresh Now"}

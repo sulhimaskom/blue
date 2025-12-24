@@ -6,6 +6,12 @@ export { BaseCard } from "./base-card";
 export { GradientCard } from "./gradient-card";
 export type { BaseCardProps } from "./base-card";
 
+// Error Handling
+export { ErrorBoundary } from "./error-boundary";
+
+// Loading States
+export { Skeleton, MetricCardSkeleton, DashboardSkeleton } from "./skeleton";
+
 // Data Display Components
 export { MetricCard, MetricSummaryCard } from "./metric-card";
 export { StatusIndicator } from "./status-indicator";

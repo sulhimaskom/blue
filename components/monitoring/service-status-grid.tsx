@@ -9,18 +9,17 @@ import { BaseCard } from "@/components/ui/base-card";
 import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-service";
 import type { SystemHealth } from "@/lib/hooks/use-monitoring";
 
-/* eslint-disable no-unused-vars */
 interface ServiceStatusGridProps {
   health: SystemHealth;
   expandedService: string | null;
+  // eslint-disable-next-line no-unused-vars
   onToggleServiceExpansion: (serviceName: string) => void;
 }
-/* eslint-enable no-unused-vars */
 
 export function ServiceStatusGrid({
   health,
   expandedService,
-  onToggleServiceExpansion: handleToggleExpansion,
+  onToggleServiceExpansion,
 }: ServiceStatusGridProps) {
   const isLive = Date.now() - new Date(health.timestamp).getTime() < 5000;
 
@@ -42,7 +41,7 @@ export function ServiceStatusGrid({
               isExpanded={isExpanded}
               isLive={isLive}
               onToggle={() =>
-                handleToggleExpansion(isExpanded ? "" : check.service)
+                onToggleServiceExpansion(isExpanded ? "" : check.service)
               }
             />
           );

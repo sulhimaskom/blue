@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 interface DashboardFooterProps {
   loading: boolean;
   autoRefresh: boolean;
@@ -11,6 +13,17 @@ export function DashboardFooter({
   autoRefresh,
   lastRefresh,
 }: DashboardFooterProps) {
+  const [formattedTime, setFormattedTime] = useState<string>("Never");
+
+  // Fix hydration issue by formatting time client-side only
+  useEffect(() => {
+    if (lastRefresh) {
+      setFormattedTime(lastRefresh.toLocaleTimeString());
+    } else {
+      setFormattedTime("Never");
+    }
+  }, [lastRefresh]);
+
   return (
     <div className="mt-8 text-center">
       <div className="inline-flex flex-col items-center gap-3">
@@ -19,22 +32,27 @@ export function DashboardFooter({
             className={`w-3 h-3 rounded-full ${
               loading ? "bg-yellow-500 animate-pulse" : "bg-green-500"
             } shadow-sm`}
+            aria-hidden="true"
           />
           <span className="text-sm text-gray-600 font-medium">
             {loading ? "Updating..." : "System Live"}
           </span>
-          <span className="text-xs text-gray-400">•</span>
-          <span className="text-sm text-gray-600">
-            Last: {lastRefresh?.toLocaleTimeString() || "Never"}
+          <span className="text-xs text-gray-400" aria-hidden="true">
+            •
           </span>
+          <span className="text-sm text-gray-600">Last: {formattedTime}</span>
         </div>
         {autoRefresh && (
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div
+            className="flex items-center gap-2 text-xs text-gray-500"
+            aria-label="Auto-refresh status"
+          >
             <svg
               className="w-3 h-3"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
