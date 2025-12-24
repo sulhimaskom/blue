@@ -169,6 +169,18 @@ class Logger {
       ...metadata,
     });
   }
+
+  serviceError(
+    service: string,
+    message: string,
+    metadata?: Record<string, any>,
+  ): void {
+    this.error(`Service error in ${service}`, {
+      service,
+      message,
+      ...metadata,
+    });
+  }
 }
 
 export const logger = Logger.getInstance();
