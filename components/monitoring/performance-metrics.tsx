@@ -3,6 +3,7 @@
 import { ChartIcon } from "@/components/ui/icons";
 import { MetricSummaryCard } from "@/components/ui/metric-card";
 import { BaseCard } from "@/components/ui/base-card";
+import { Skeleton, MetricCardSkeleton } from "@/components/ui/skeleton";
 import {
   BaseTable,
   TableHeader,
@@ -14,10 +15,52 @@ import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-
 import type { MetricsData } from "@/lib/hooks/use-monitoring";
 
 interface PerformanceMetricsProps {
-  metrics: MetricsData;
+  metrics?: MetricsData;
+  loading?: boolean;
 }
 
-export function PerformanceMetrics({ metrics }: PerformanceMetricsProps) {
+export function PerformanceMetrics({
+  metrics,
+  loading,
+}: PerformanceMetricsProps) {
+  if (loading || !metrics) {
+    return (
+      <BaseCard className="mb-8 shadow-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <ChartIcon />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Performance Metrics
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <MetricCardSkeleton key={i} />
+          ))}
+        </div>
+        <BaseCard>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Recent Activity Log
+          </h3>
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center space-x-4 p-3 border border-gray-200 rounded-lg"
+              >
+                <div className="flex-1 grid grid-cols-4 gap-4">
+                  <Skeleton variant="text" className="h-4 w-16" />
+                  <Skeleton variant="text" className="h-4 w-12" />
+                  <Skeleton variant="text" className="h-4 w-10" />
+                  <Skeleton variant="text" className="h-4 w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </BaseCard>
+      </BaseCard>
+    );
+  }
+
   const metricsCards = MonitoringDashboardService.getMetricsCardsData(metrics);
   const activityData =
     MonitoringDashboardService.getRecentActivityData(metrics);

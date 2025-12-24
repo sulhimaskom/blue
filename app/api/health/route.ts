@@ -3,10 +3,14 @@ import { monitoringService } from "@/lib/monitoring";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 import { APIMetricsService } from "@/lib/services/api-metrics-service";
+import { RuntimeServiceInitializer } from "@/lib/services/runtime-service-initializer";
 
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: false,
   handler: async ({ req }) => {
+    // Initialize runtime services safely (won't run during build)
+    await RuntimeServiceInitializer.initializeServices();
+
     return UnifiedCacheManager.withCache(
       req,
       async () => {

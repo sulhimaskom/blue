@@ -9,6 +9,7 @@ import {
 import { SystemHealthOverview } from "@/components/monitoring/system-health-overview";
 import { PerformanceMetrics } from "@/components/monitoring/performance-metrics";
 import { DashboardFooter } from "@/components/monitoring/dashboard-footer";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
 
 export default function MonitoringDashboard() {
   const {
@@ -30,6 +31,11 @@ export default function MonitoringDashboard() {
     useMonitoringDashboardState();
 
   const hasData = !!(health || metrics);
+
+  // Show skeleton loading state while loading initial data
+  if (loading && !hasData) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <DashboardLayout
@@ -54,8 +60,8 @@ export default function MonitoringDashboard() {
         />
       )}
 
-      {/* Performance Metrics */}
-      {metrics && <PerformanceMetrics metrics={metrics} />}
+      {/* Performance Metrics with loading state */}
+      <PerformanceMetrics metrics={metrics || undefined} loading={loading} />
 
       {/* Footer with Enhanced Status */}
       <DashboardFooter

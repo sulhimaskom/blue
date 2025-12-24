@@ -194,20 +194,48 @@ CREATE TABLE transactions (
 
 ### 7.1 Development Environment
 
-For local development, you have two options:
+For local development, you have three options:
 
-**Option 1: Docker (Recommended)**
+**Option 1: Docker (Recommended for Full Experience)**
 
 ```bash
+# Start Redis container
 docker run -d -p 6379:6379 --name redis redis:alpine
+
+# Set environment variable
 REDIS_URL="redis://localhost:6379"
 ```
 
-**Option 2: In-Memory Fallback**
+**Option 2: In-Memory Fallback (Silent Development)**
 
 - Leave `REDIS_URL` unset in development
-- System will use in-memory caching with warnings
+- System automatically uses intelligent fallback mode
+- **Zero console noise** - clean development experience
 - Full functionality preserved with reduced performance
+- **Build-time optimized** - no interference with Next.js builds
+
+**Option 3: Verbose Development Logging**
+
+```bash
+# Enable detailed Redis logging for debugging
+REDIS_VERBOSE_LOGGING="true"
+```
+
+### 7.2 Development-First Features
+
+**Silent Mode Benefits:**
+
+- ✅ **Zero Build Interference**: Services only initialize at runtime, not during `npm run build`
+- ✅ **Clean Console Output**: No Redis connection errors during development
+- ✅ **Intelligent Fallback**: Automatic in-memory caching when Redis unavailable
+- ✅ **Performance Optimization**: Fast development startup without external dependencies
+
+**Production-Ready Runtime Initialization:**
+
+- Cache warming services start only during actual server runtime
+- Build process remains fast and clean
+- Runtime service detection prevents build-time execution
+- Graceful degradation maintains functionality in all environments
 
 ### 7.2 Production Environment
 

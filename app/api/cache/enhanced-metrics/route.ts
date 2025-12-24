@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 import { AIPatternDetector } from "@/lib/services/ai-pattern-detector";
 import { automatedCacheWarmingService } from "@/lib/services/automated-cache-warming";
+import { RuntimeServiceInitializer } from "@/lib/services/runtime-service-initializer";
 import { logger } from "@/lib/logger";
 import { metricsCalculator } from "@/lib/services/metrics-calculator-service";
 
 // Enhanced AI cache metrics with pattern detection insights
 export async function GET() {
   try {
+    // Initialize runtime services safely (won't run during build)
+    await RuntimeServiceInitializer.initializeServices();
     // Get comprehensive cache statistics
     const cacheStats = await UnifiedCacheManager.getCacheStats();
 
