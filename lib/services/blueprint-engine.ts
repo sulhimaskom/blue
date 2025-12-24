@@ -2,7 +2,8 @@ import { aiService, ResearchResult } from "./ai-service";
 import { logger } from "../logger";
 import { db } from "../db";
 import { blueprints, projects } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
+import { CacheService } from "./cache-service";
 
 export interface BlueprintGenerationRequest {
   userId: number;
@@ -214,6 +215,249 @@ CRITICAL CONSTRAINTS:
         `Invalid blueprint structure: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+
+  /**
+   * Warm up blueprint cache with common patterns based on input analysis
+   */
+  private async warmupBlueprintCache(input: string): Promise<void> {
+    try {
+      // Analyze input for common patterns and pre-cache related templates
+      const patterns = this.analyzeInputPatterns(input);
+
+      // Pre-cache common blueprint skeletons for faster generation
+      for (const pattern of patterns) {
+        const skeletonKey = `blueprint-skeleton-${pattern}`;
+        await CacheService.cacheAIResponse(
+          "blueprint-skeleton",
+          { pattern, input },
+          { pattern, timestamp: Date.now() },
+          {
+            ttl: 3600, // 1 hour for skeletons
+            tags: ["blueprint-skeleton", pattern],
+          },
+        );
+      }
+
+      logger.debug("Blueprint cache warmed up", {
+        inputLength: input.length,
+        patternsIdentified: patterns.length,
+      });
+    } catch (error) {
+      logger.debug("Cache warmup failed (non-critical)", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  /**
+   * Cache generated blueprint for quick retrieval and reference
+   */
+  private async cacheGeneratedBlueprint(
+    projectId: string,
+    blueprint: BlueprintData,
+    research: ResearchResult,
+  ): Promise<void> {
+    try {
+      const cacheData = {
+        blueprint,
+        research,
+        projectId,
+        cachedAt: new Date().toISOString(),
+      };
+
+      // Cache the complete blueprint data
+      await CacheService.cacheAIResponse(
+        "blueprint-complete",
+        { projectId },
+        cacheData,
+        {
+          ttl: 7200, // 2 hours for completed blueprints
+          tags: [
+            "blueprint-complete",
+            `project-${projectId}`,
+            blueprint.projectName.toLowerCase(),
+          ],
+        },
+      );
+
+      // Cache blueprint skeleton for pattern matching
+      await CacheService.cacheAIResponse(
+        "blueprint-skeleton",
+        {
+          pattern: blueprint.projectName,
+          type: this.extractBlueprintType(blueprint),
+        },
+        {
+          techStack: blueprint.techStack,
+          features: blueprint.features,
+          architecture: blueprint.architecture,
+        },
+        {
+          ttl: 14400, // 4 hours for skeletons
+          tags: ["blueprint-skeleton", this.extractBlueprintType(blueprint)],
+        },
+      );
+
+      logger.info("Blueprint cached for quick retrieval", {
+        projectId,
+        projectName: blueprint.projectName,
+        blueprintType: this.extractBlueprintType(blueprint),
+      });
+    } catch (error) {
+      logger.debug("Blueprint caching failed (non-critical)", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        projectId,
+      });
+    }
+  }
+
+  /**
+   * Retrieve cached blueprint if available
+   */
+  async getCachedBlueprint(projectId: string): Promise<{
+    blueprint: BlueprintData;
+    research: ResearchResult;
+  } | null> {
+    try {
+      const cached = await CacheService.getAIResponse("blueprint-complete", {
+        projectId,
+      });
+
+      if (cached) {
+        logger.info("Blueprint retrieved from cache", { projectId });
+        return {
+          blueprint: cached.blueprint,
+          research: cached.research,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      logger.error("Failed to retrieve cached blueprint", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        projectId,
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Get user's blueprint statistics with caching
+   */
+  async getUserBlueprintStats(userId: number): Promise<{
+    total: number;
+    completed: number;
+    generating: number;
+    avgGenerationTime: number;
+  }> {
+    try {
+      // Check cache first
+      const cacheKey = { userId, type: "user-stats" };
+      const cached = await CacheService.getAIResponse(
+        "user-blueprint-stats",
+        cacheKey,
+      );
+
+      if (cached) {
+        logger.debug("User blueprint stats from cache", { userId });
+        return cached;
+      }
+
+      const database = db();
+
+      // Get user's projects with optimized query
+      const userProjects = await database
+        .select({
+          id: projects.id,
+          status: projects.status,
+          createdAt: projects.createdAt,
+        })
+        .from(projects)
+        .where(eq(projects.ownerId, userId));
+
+      // Calculate stats
+      const stats = {
+        total: userProjects.length,
+        completed: userProjects.filter((p) => p.status === "completed").length,
+        generating: userProjects.filter((p) => p.status === "generating")
+          .length,
+        avgGenerationTime: 0, // Would need timing data from blueprints table
+      };
+
+      // Cache the results
+      await CacheService.cacheAIResponse(
+        "user-blueprint-stats",
+        cacheKey,
+        stats,
+        {
+          ttl: 600, // 10 minutes for user stats
+          tags: ["user-stats", `user-${userId}`],
+        },
+      );
+
+      return stats;
+    } catch (error) {
+      logger.error("Failed to get user blueprint stats", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userId,
+      });
+
+      // Fallback to defaults
+      return {
+        total: 0,
+        completed: 0,
+        generating: 0,
+        avgGenerationTime: 0,
+      };
+    }
+  }
+
+  /**
+   * Analyze input for common blueprint patterns
+   */
+  private analyzeInputPatterns(input: string): string[] {
+    const patterns: string[] = [];
+    const lowerInput = input.toLowerCase();
+
+    // Common SaaS patterns
+    if (lowerInput.includes("marketplace") || lowerInput.includes("platform")) {
+      patterns.push("marketplace");
+    }
+    if (lowerInput.includes("ecommerce") || lowerInput.includes("shop")) {
+      patterns.push("ecommerce");
+    }
+    if (lowerInput.includes("social") || lowerInput.includes("community")) {
+      patterns.push("social");
+    }
+    if (lowerInput.includes("dashboard") || lowerInput.includes("analytics")) {
+      patterns.push("dashboard");
+    }
+    if (lowerInput.includes("api") || lowerInput.includes("service")) {
+      patterns.push("api-service");
+    }
+
+    return patterns.length > 0 ? patterns : ["generic"];
+  }
+
+  /**
+   * Extract blueprint type for categorization
+   */
+  private extractBlueprintType(blueprint: BlueprintData): string {
+    const features = blueprint.features.join(" ").toLowerCase();
+    const tech = blueprint.techStack.framework.toLowerCase();
+
+    if (features.includes("marketplace") || features.includes("platform"))
+      return "marketplace";
+    if (features.includes("ecommerce") || features.includes("payment"))
+      return "ecommerce";
+    if (features.includes("social") || features.includes("community"))
+      return "social";
+    if (features.includes("dashboard") || features.includes("analytics"))
+      return "dashboard";
+    if (features.includes("api") || tech.includes("api")) return "api-service";
+
+    return "web-app";
   }
 
   /**
@@ -609,16 +853,31 @@ ${research.results
   }
 
   /**
-   * Warm up blueprint cache with common patterns
+   * Warm up blueprint cache with common patterns based on input analysis
    */
   private async warmupBlueprintCache(input: string): Promise<void> {
     try {
-      // This is a lightweight operation to prepare cache before main operations
-      // Cache common blueprint patterns based on input analysis
-      // This helps subsequent operations be faster
-      await new Promise((resolve) => setTimeout(resolve, 10)); // Minimal async operation
+      // Analyze input for common patterns and pre-cache related templates
+      const patterns = this.analyzeInputPatterns(input);
 
-      logger.debug("Blueprint cache warmed up", { inputLength: input.length });
+      // Pre-cache common blueprint skeletons for faster generation
+      for (const pattern of patterns) {
+        const skeletonKey = `blueprint-skeleton-${pattern}`;
+        await CacheService.cacheAIResponse(
+          "blueprint-skeleton",
+          { pattern, input },
+          { pattern, timestamp: Date.now() },
+          {
+            ttl: 3600, // 1 hour for skeletons
+            tags: ["blueprint-skeleton", pattern],
+          },
+        );
+      }
+
+      logger.debug("Blueprint cache warmed up", {
+        inputLength: input.length,
+        patternsIdentified: patterns.length,
+      });
     } catch (error) {
       logger.debug("Cache warmup failed (non-critical)", {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -627,27 +886,225 @@ ${research.results
   }
 
   /**
-   * Cache generated blueprint for quick retrieval
+   * Cache generated blueprint for quick retrieval and reference
    */
   private async cacheGeneratedBlueprint(
     projectId: string,
-    // eslint-disable-next-line no-unused-vars
-    _blueprint: BlueprintData,
-    // eslint-disable-next-line no-unused-vars
-    _research: ResearchResult,
+    blueprint: BlueprintData,
+    research: ResearchResult,
   ): Promise<void> {
     try {
-      // This would integrate with the cache service for subsequent operations
-      // For now, it's a placeholder for future optimization
-      // NOTE: _blueprint and _research are intentionally unused parameters
-      // for future cache integration - they contain the data that would be cached
-      logger.debug("Blueprint cached for quick retrieval", { projectId });
+      const cacheData = {
+        blueprint,
+        research,
+        projectId,
+        cachedAt: new Date().toISOString(),
+      };
+
+      // Cache the complete blueprint data
+      await CacheService.cacheAIResponse(
+        "blueprint-complete",
+        { projectId },
+        cacheData,
+        {
+          ttl: 7200, // 2 hours for completed blueprints
+          tags: [
+            "blueprint-complete",
+            `project-${projectId}`,
+            blueprint.projectName.toLowerCase(),
+          ],
+        },
+      );
+
+      // Cache blueprint skeleton for pattern matching
+      await CacheService.cacheAIResponse(
+        "blueprint-skeleton",
+        {
+          pattern: blueprint.projectName,
+          type: this.extractBlueprintType(blueprint),
+        },
+        {
+          techStack: blueprint.techStack,
+          features: blueprint.features,
+          architecture: blueprint.architecture,
+        },
+        {
+          ttl: 14400, // 4 hours for skeletons
+          tags: ["blueprint-skeleton", this.extractBlueprintType(blueprint)],
+        },
+      );
+
+      logger.info("Blueprint cached for quick retrieval", {
+        projectId,
+        projectName: blueprint.projectName,
+        blueprintType: this.extractBlueprintType(blueprint),
+      });
     } catch (error) {
       logger.debug("Blueprint caching failed (non-critical)", {
         error: error instanceof Error ? error.message : "Unknown error",
         projectId,
       });
     }
+  }
+
+  /**
+   * Retrieve cached blueprint if available
+   */
+  async getCachedBlueprint(projectId: string): Promise<{
+    blueprint: BlueprintData;
+    research: ResearchResult;
+  } | null> {
+    try {
+      const cached = await CacheService.getAIResponse("blueprint-complete", {
+        projectId,
+      });
+
+      if (cached) {
+        logger.info("Blueprint retrieved from cache", { projectId });
+        return {
+          blueprint: cached.blueprint,
+          research: cached.research,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      logger.error("Failed to retrieve cached blueprint", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        projectId,
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Get user's blueprint statistics with caching
+   */
+  async getUserBlueprintStats(userId: number): Promise<{
+    total: number;
+    completed: number;
+    generating: number;
+    avgGenerationTime: number;
+  }> {
+    try {
+      // Check cache first
+      const cacheKey = { userId, type: "user-stats" };
+      const cached = await CacheService.getAIResponse(
+        "user-blueprint-stats",
+        cacheKey,
+      );
+
+      if (cached) {
+        logger.debug("User blueprint stats from cache", { userId });
+        return cached;
+      }
+
+      const database = db();
+
+      // Get user's projects with optimized query
+      const userProjects = await database
+        .select({
+          id: projects.id,
+          status: projects.status,
+          createdAt: projects.createdAt,
+        })
+        .from(projects)
+        .where(eq(projects.ownerId, userId));
+
+      // Get blueprint counts in parallel
+      const [blueprintCounts] = await Promise.all([
+        database
+          .select({ count: blueprints.id })
+          .from(blueprints)
+          .where(
+            inArray(
+              blueprints.projectId,
+              userProjects.map((p) => p.id),
+            ),
+          ),
+      ]);
+
+      const stats = {
+        total: userProjects.length,
+        completed: userProjects.filter((p) => p.status === "completed").length,
+        generating: userProjects.filter((p) => p.status === "generating")
+          .length,
+        avgGenerationTime: 0, // Would need timing data from blueprints table
+      };
+
+      // Cache the results
+      await CacheService.cacheAIResponse(
+        "user-blueprint-stats",
+        cacheKey,
+        stats,
+        {
+          ttl: 600, // 10 minutes for user stats
+          tags: ["user-stats", `user-${userId}`],
+        },
+      );
+
+      return stats;
+    } catch (error) {
+      logger.error("Failed to get user blueprint stats", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userId,
+      });
+
+      // Fallback to defaults
+      return {
+        total: 0,
+        completed: 0,
+        generating: 0,
+        avgGenerationTime: 0,
+      };
+    }
+  }
+
+  /**
+   * Analyze input for common blueprint patterns
+   */
+  private analyzeInputPatterns(input: string): string[] {
+    const patterns: string[] = [];
+    const lowerInput = input.toLowerCase();
+
+    // Common SaaS patterns
+    if (lowerInput.includes("marketplace") || lowerInput.includes("platform")) {
+      patterns.push("marketplace");
+    }
+    if (lowerInput.includes("ecommerce") || lowerInput.includes("shop")) {
+      patterns.push("ecommerce");
+    }
+    if (lowerInput.includes("social") || lowerInput.includes("community")) {
+      patterns.push("social");
+    }
+    if (lowerInput.includes("dashboard") || lowerInput.includes("analytics")) {
+      patterns.push("dashboard");
+    }
+    if (lowerInput.includes("api") || lowerInput.includes("service")) {
+      patterns.push("api-service");
+    }
+
+    return patterns.length > 0 ? patterns : ["generic"];
+  }
+
+  /**
+   * Extract blueprint type for categorization
+   */
+  private extractBlueprintType(blueprint: BlueprintData): string {
+    const features = blueprint.features.join(" ").toLowerCase();
+    const tech = blueprint.techStack.framework.toLowerCase();
+
+    if (features.includes("marketplace") || features.includes("platform"))
+      return "marketplace";
+    if (features.includes("ecommerce") || features.includes("payment"))
+      return "ecommerce";
+    if (features.includes("social") || features.includes("community"))
+      return "social";
+    if (features.includes("dashboard") || features.includes("analytics"))
+      return "dashboard";
+    if (features.includes("api") || tech.includes("api")) return "api-service";
+
+    return "web-app";
   }
 }
 
