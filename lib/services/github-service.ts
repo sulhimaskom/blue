@@ -160,54 +160,6 @@ class GitHubService {
   }
 
   /**
-   * Get an access token for a specific installation
-   */
-  private async getInstallationToken(installationId: string): Promise<string> {
-    const context = createRequestContext();
-
-    try {
-      const jwt = this.createJWT();
-
-      const response = await fetch(
-        `${this.baseUrl}/app/installations/${installationId}/access_tokens`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${jwt}`,
-            Accept: "application/vnd.github.v3+json",
-            "User-Agent": "Architect-Platform/1.0.0",
-          },
-        },
-      );
-
-      if (!response.ok) {
-        const error = await response.text();
-        logger.error("Failed to get installation token", {
-          requestId: context.requestId,
-          installationId,
-          status: response.status,
-          error,
-        });
-        throw new GitHubServiceError(
-          `Failed to get installation token: ${response.statusText}`,
-          response.status,
-        );
-      }
-
-      const data = await response.json();
-      return data.token;
-    } catch (error) {
-      logger.apiError(
-        "Installation token error",
-        context.requestId,
-        error as Error,
-        { installationId },
-      );
-      throw error;
-    }
-  }
-
-  /**
    * Create a repository using GitHub App
    */
   async createRepository(

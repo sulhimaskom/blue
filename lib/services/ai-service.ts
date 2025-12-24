@@ -5,6 +5,7 @@ import { AIErrorReporter } from "./ai-error-reporter";
 import { circuitBreakerRegistry, SERVICE_CONFIGS } from "../circuit-breaker";
 import { UnifiedCacheManager } from "./unified-cache-manager";
 import { AIPatternDetector, type AIPattern } from "./ai-pattern-detector";
+import { IdGenerators } from "../utils/id-generator";
 
 export interface AIModel {
   id: string;
@@ -94,7 +95,7 @@ class AIService {
     request: AICompletionRequest,
   ): Promise<AICompletionResponse> {
     const startTime = Date.now();
-    const context = { requestId: `req_${Date.now().toString(36)}` };
+    const context = { requestId: IdGenerators.REQUEST() };
 
     try {
       // Check circuit breaker state before making request
@@ -297,7 +298,7 @@ class AIService {
    */
   async conductResearch(request: ResearchRequest): Promise<ResearchResult> {
     const startTime = Date.now();
-    const context = { requestId: `req_${Date.now().toString(36)}` };
+    const context = { requestId: IdGenerators.REQUEST() };
 
     try {
       // Check cache first for research queries
