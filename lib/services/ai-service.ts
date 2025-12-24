@@ -485,6 +485,12 @@ class AIService {
       dashboard: 1800,
       "api-service": 2700,
       "mobile-app": 3600,
+      fintech: 10800,
+      healthcare: 7200,
+      edtech: 5400,
+      realestate: 7200,
+      logistics: 5400,
+      saas: 3600,
     };
     return ttlMap[pattern] || 1800;
   }

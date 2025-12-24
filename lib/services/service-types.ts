@@ -143,7 +143,13 @@ export interface AIPattern {
     | "social"
     | "dashboard"
     | "api-service"
-    | "mobile-app";
+    | "mobile-app"
+    | "fintech"
+    | "healthcare"
+    | "edtech"
+    | "realestate"
+    | "logistics"
+    | "saas";
   description: string;
   timestamp: string;
   confidence: number;

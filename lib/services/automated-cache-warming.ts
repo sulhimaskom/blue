@@ -211,6 +211,42 @@ class AutomatedCacheWarmingService {
         "React Native mobile platform",
         "Cross-platform mobile app",
       ],
+      fintech: [
+        "Build a fintech payment platform",
+        "Create investment trading app",
+        "Banking app with financial services",
+        "Cryptocurrency trading platform",
+      ],
+      healthcare: [
+        "Build a telemedicine platform",
+        "Create patient management system",
+        "Healthcare app with HIPAA compliance",
+        "Medical records management system",
+      ],
+      edtech: [
+        "Build online education platform",
+        "Create e-learning management system",
+        "Student portal with courses",
+        "Online training platform",
+      ],
+      realestate: [
+        "Build real estate management platform",
+        "Create property listing website",
+        "Rental management application",
+        "Real estate CRM system",
+      ],
+      logistics: [
+        "Build logistics management system",
+        "Create fleet tracking platform",
+        "Supply chain management software",
+        "Delivery app with route optimization",
+      ],
+      saas: [
+        "Build B2B SaaS platform",
+        "Create enterprise software solution",
+        "Multi-tenant business application",
+        "Subscription management platform",
+      ],
     };
 
     return patterns.flatMap(
