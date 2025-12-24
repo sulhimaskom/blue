@@ -2,6 +2,7 @@
 
 import { ChartIcon } from "@/components/ui/icons";
 import { MetricSummaryCard } from "@/components/ui/metric-card";
+import { BaseCard } from "@/components/ui/base-card";
 import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-service";
 import type { MetricsData } from "@/lib/hooks/use-monitoring";
 
@@ -15,7 +16,7 @@ export function PerformanceMetrics({ metrics }: PerformanceMetricsProps) {
     MonitoringDashboardService.getRecentActivityData(metrics);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+    <BaseCard className="mb-8 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
         <ChartIcon />
         <h2 className="text-xl font-semibold text-gray-900">
@@ -26,7 +27,7 @@ export function PerformanceMetrics({ metrics }: PerformanceMetricsProps) {
       <MetricsCards cards={metricsCards} />
 
       <RecentActivityTable activityData={activityData} />
-    </div>
+    </BaseCard>
   );
 }
 
@@ -65,7 +66,7 @@ interface RecentActivityTableProps {
 
 function RecentActivityTable({ activityData }: RecentActivityTableProps) {
   return (
-    <div>
+    <BaseCard>
       <h3 className="text-lg font-medium text-gray-900 mb-4">
         Recent Activity Log
       </h3>
@@ -116,6 +117,6 @@ function RecentActivityTable({ activityData }: RecentActivityTableProps) {
           </table>
         </div>
       </div>
-    </div>
+    </BaseCard>
   );
 }

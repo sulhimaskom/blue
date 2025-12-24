@@ -21,6 +21,9 @@ export function setupEnvironmentMocks() {
     GITHUB_ACCESS_TOKEN: "test-github-token",
   };
 
+  // Clear any cached modules to reset imports with env variables
+  jest.resetModules();
+
   // Mock Next.js server utilities first
   jest.mock("next/server", () => {
     const MockResponse = class {

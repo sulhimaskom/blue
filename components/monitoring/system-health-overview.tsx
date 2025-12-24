@@ -5,6 +5,8 @@ import {
   StatusIndicator,
   type StatusType,
 } from "@/components/ui/status-indicator";
+import { BaseCard } from "@/components/ui/base-card";
+import { GradientCard } from "@/components/ui/gradient-card";
 import {
   MonitoringDashboardService,
   type HealthScoreMetrics,
@@ -30,7 +32,7 @@ export function SystemHealthOverview({
   const overviewData = MonitoringDashboardService.getSystemOverviewData(health);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+    <BaseCard className="mb-8 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
         <ServerIcon />
         <h2 className="text-xl font-semibold text-gray-900">System Health</h2>
@@ -50,7 +52,7 @@ export function SystemHealthOverview({
         expandedService={expandedService}
         onToggleServiceExpansion={handleToggleExpansion}
       />
-    </div>
+    </BaseCard>
   );
 }
 
@@ -71,16 +73,16 @@ function HealthScoreCards({
       <HealthScoreCard healthMetrics={healthMetrics} />
 
       {/* System Uptime */}
-      <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100">
+      <GradientCard variant="green">
         <div className="text-3xl font-bold text-green-600 mb-3">
           {overviewData.uptime}
         </div>
         <div className="text-sm font-medium text-gray-700">System Uptime</div>
         <div className="text-xs text-gray-500 mt-1">Continuous operation</div>
-      </div>
+      </GradientCard>
 
       {/* Services Monitored */}
-      <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl border border-purple-100">
+      <GradientCard variant="purple">
         <div className="text-3xl font-bold text-purple-600 mb-3">
           {health.checks.length}
         </div>
@@ -88,7 +90,7 @@ function HealthScoreCards({
           Services Monitored
         </div>
         <div className="text-xs text-gray-500 mt-1">Active endpoints</div>
-      </div>
+      </GradientCard>
     </div>
   );
 }
@@ -99,7 +101,7 @@ function HealthScoreCard({
   healthMetrics: HealthScoreMetrics;
 }) {
   return (
-    <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+    <GradientCard variant="blue">
       <div className="relative inline-flex items-center justify-center w-20 h-20 mb-3">
         <svg className="w-20 h-20 transform -rotate-90">
           <circle
@@ -133,6 +135,6 @@ function HealthScoreCard({
         {healthMetrics.healthyServices}/{healthMetrics.totalServices} services
         healthy
       </div>
-    </div>
+    </GradientCard>
   );
 }

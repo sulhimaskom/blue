@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch --coverage",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
     "optimize-db": "npx tsx scripts/optimize-database.ts"

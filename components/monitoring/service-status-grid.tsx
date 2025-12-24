@@ -5,6 +5,7 @@ import {
   StatusIndicator,
   type StatusType,
 } from "@/components/ui/status-indicator";
+import { BaseCard } from "@/components/ui/base-card";
 import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-service";
 import type { SystemHealth } from "@/lib/hooks/use-monitoring";
 
@@ -74,10 +75,10 @@ function ServiceCard({
     MonitoringDashboardService.getServiceDetailData(serviceData);
 
   return (
-    <div className="relative bg-white border rounded-lg overflow-hidden hover:shadow-md transition-all duration-200">
+    <BaseCard variant="hover" padding="sm">
       <button
         onClick={onToggle}
-        className="w-full p-4 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+        className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
       >
         <div className="flex items-center justify-between">
           <h4 className="font-semibold text-gray-900 capitalize flex items-center gap-2">
@@ -116,7 +117,7 @@ function ServiceCard({
       {isExpanded && (
         <ServiceDetailPanel detailData={detailData} error={check.error} />
       )}
-    </div>
+    </BaseCard>
   );
 }
 
@@ -135,24 +136,23 @@ function ServiceDetailPanel({ detailData, error }: ServiceDetailPanelProps) {
     <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50">
       <div className="pt-4 space-y-3">
         {detailData.map((detail) => (
-          <div
-            key={detail.name}
-            className="flex items-center justify-between py-2 px-3 bg-white rounded-lg border"
-          >
-            <span className="text-sm text-gray-600">{detail.label}</span>
-            {detail.status ? (
-              <StatusIndicator
-                status={detail.status as StatusType}
-                size="sm"
-                showIcon={false}
-                className="px-2 py-1 rounded text-xs font-medium"
-              />
-            ) : (
-              <span className="text-sm font-medium text-gray-900">
-                {detail.value}
-              </span>
-            )}
-          </div>
+          <BaseCard key={detail.name} padding="sm">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">{detail.label}</span>
+              {detail.status ? (
+                <StatusIndicator
+                  status={detail.status as StatusType}
+                  size="sm"
+                  showIcon={false}
+                  className="px-2 py-1 rounded text-xs font-medium"
+                />
+              ) : (
+                <span className="text-sm font-medium text-gray-900">
+                  {detail.value}
+                </span>
+              )}
+            </div>
+          </BaseCard>
         ))}
         {error && (
           <div className="p-3 bg-red-50 rounded-lg border border-red-100">
