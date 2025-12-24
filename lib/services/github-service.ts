@@ -1,6 +1,7 @@
 import { logger, createRequestContext } from "@/lib/logger";
 import { monitoringService } from "@/lib/monitoring";
 import { circuitBreakerRegistry, SERVICE_CONFIGS } from "@/lib/circuit-breaker";
+import * as crypto from "crypto";
 
 /**
  * GitHub App Service
@@ -88,38 +89,74 @@ class GitHubService {
    * Create a JWT token for GitHub App authentication
    */
   private createJWT(): string {
-    // Simple JWT implementation for GitHub App authentication
-    // In production, you might want to use a library like jsonwebtoken
-    const { appId } = this.getCredentials();
+    const context = createRequestContext();
 
-    const header = {
-      alg: "RS256",
-      typ: "JWT",
-    };
+    try {
+      const { appId, privateKey } = this.getCredentials();
 
-    const now = Math.floor(Date.now() / 1000);
-    const payload = {
-      iat: now,
-      exp: now + 600, // 10 minutes max
-      iss: appId,
-    };
+      const header = {
+        alg: "RS256",
+        typ: "JWT",
+      };
 
-    // Base64url encode without padding
-    const base64urlEncode = (str: string) =>
-      Buffer.from(str)
-        .toString("base64")
+      const now = Math.floor(Date.now() / 1000);
+      const payload = {
+        iat: now,
+        exp: now + 600, // 10 minutes max as required by GitHub
+        iss: appId,
+      };
+
+      // Base64url encode without padding
+      const base64urlEncode = (str: string) =>
+        Buffer.from(str)
+          .toString("base64")
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=/g, "");
+
+      const encodedHeader = base64urlEncode(JSON.stringify(header));
+      const encodedPayload = base64urlEncode(JSON.stringify(payload));
+
+      // Production-grade RSA-SHA256 signing using Node.js crypto
+      const signatureInput = `${encodedHeader}.${encodedPayload}`;
+
+      const sign = crypto.createSign("RSA-SHA256");
+      sign.update(signatureInput);
+      sign.end();
+
+      const signature = sign
+        .sign(privateKey, "base64")
         .replace(/\+/g, "-")
         .replace(/\//g, "_")
         .replace(/=/g, "");
 
-    const encodedHeader = base64urlEncode(JSON.stringify(header));
-    const encodedPayload = base64urlEncode(JSON.stringify(payload));
+      const jwt = `${encodedHeader}.${encodedPayload}.${signature}`;
 
-    // For production, use proper RSA signing. This is a simplified version.
-    // In production, you'd use crypto.createSign with the private key.
-    const signature = Buffer.from("placeholder-signature").toString("base64");
+      logger.info("GitHub App JWT created successfully", {
+        requestId: context.requestId,
+        appId,
+        expiresAt: new Date((now + 600) * 1000).toISOString(),
+      });
 
-    return `${encodedHeader}.${encodedPayload}.${signature}`;
+      return jwt;
+    } catch (error) {
+      logger.error("Failed to create GitHub App JWT", {
+        requestId: context.requestId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      if (error instanceof Error && error.message.includes("PEM routines")) {
+        throw new GitHubServiceError(
+          "Invalid GitHub App private key format. Please check GITHUB_APP_PRIVATE_KEY environment variable.",
+          500,
+        );
+      }
+
+      throw new GitHubServiceError(
+        `Failed to create GitHub App JWT: ${error instanceof Error ? error.message : "Unknown error"}`,
+        500,
+      );
+    }
   }
 
   /**
