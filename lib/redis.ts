@@ -97,13 +97,14 @@ class RedisManager {
   private lastMetricsUpdate = Date.now();
 
   constructor() {
-    // Log Redis configuration status
+    // Log Redis configuration status without warnings in development
     RedisConfig.logConfigurationStatus();
 
+    const devConfig = RedisConfig.getDevelopmentConfig();
     this.circuitBreaker = new CircuitBreaker({
-      failureThreshold: 5,
-      resetTimeout: 30000, // 30 seconds
-      monitoringPeriod: 60000, // 1 minute
+      failureThreshold: devConfig.performanceMode ? 5 : 3,
+      resetTimeout: devConfig.performanceMode ? 30000 : 15000, // Faster recovery for dev
+      monitoringPeriod: devConfig.performanceMode ? 60000 : 30000,
     });
 
     this.metrics = {
@@ -147,9 +148,14 @@ class RedisManager {
 
         if (!config.isConfigured) {
           if (devConfig.fallbackMode) {
-            throw new Error(
-              "Redis not configured - see logs for setup instructions",
-            );
+            // Silent fallback for development - don't throw in noisy environments
+            if (devConfig.silentMode) {
+              throw new Error("Redis not configured - using fallback mode");
+            } else {
+              throw new Error(
+                "Redis not configured - see logs for setup instructions",
+              );
+            }
           }
         }
 

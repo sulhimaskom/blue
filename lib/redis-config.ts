@@ -78,10 +78,14 @@ export class RedisConfig {
     const config = this.getRedisConfig();
 
     if (!config.isConfigured) {
-      logger.warn("Redis not configured - caching features will be limited", {
-        environment: config.environment,
-        recommendations: config.recommendations,
-      });
+      // Only in production do we warn about missing Redis
+      if (config.environment === "production") {
+        logger.warn("Redis not configured - caching features will be limited", {
+          environment: config.environment,
+          recommendations: config.recommendations,
+        });
+      }
+      // For all other environments, stay silent to reduce noise
     } else {
       logger.info("Redis configured successfully", {
         url: this.sanitizeUrl(config.url),
@@ -105,7 +109,7 @@ export class RedisConfig {
   }
 
   /**
-   * Get development-friendly Redis configuration
+   * Get development-friendly Redis configuration with enhanced defaults
    */
   static getDevelopmentConfig(): {
     shouldConnect: boolean;
@@ -113,16 +117,23 @@ export class RedisConfig {
     connectionTimeout: number;
     maxRetries: number;
     retryDelay: number;
+    silentMode: boolean;
+    performanceMode: boolean;
   } {
     const isConfigured = this.isRedisConfigured();
     const isProduction = process.env.NODE_ENV === "production";
+    const isTest = process.env.NODE_ENV === "test";
 
     return {
       shouldConnect: isConfigured || isProduction, // Always try in production
       fallbackMode: !isConfigured && !isProduction,
-      connectionTimeout: isProduction ? 5000 : 3000,
-      maxRetries: isProduction ? 5 : 2,
-      retryDelay: isProduction ? 1000 : 500,
+      connectionTimeout: isTest ? 1000 : isProduction ? 5000 : 3000,
+      maxRetries: isTest ? 1 : isProduction ? 5 : 2,
+      retryDelay: isTest ? 100 : isProduction ? 1000 : 500,
+      silentMode:
+        isTest ||
+        (!isConfigured && process.env.REDIS_VERBOSE_LOGGING !== "true"),
+      performanceMode: isProduction || isConfigured,
     };
   }
 }
