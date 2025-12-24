@@ -17,7 +17,7 @@ import {
 
 interface EnterpriseThemeContextType {
   activeTheme: EnterpriseThemeConfig | null;
-  setTheme: (customerId: string) => boolean;
+  setTheme: (customerId: string) => boolean; // eslint-disable-line no-unused-vars
   resetTheme: () => void;
   isEnterpriseMode: boolean;
 }

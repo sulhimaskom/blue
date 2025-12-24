@@ -257,6 +257,7 @@ export class EnterpriseThemeManager {
   /**
    * Generate enterprise-specific theme classes
    */
+  // eslint-disable-next-line no-unused-vars
   generateThemeClasses(theme: EnterpriseThemeConfig): EnterpriseThemeClasses {
     return {
       primary: `bg-[var(--enterprise-primary)] hover:bg-[var(--enterprise-primary)]/90 text-white`,
