@@ -1,5 +1,6 @@
 import { logger } from "../logger";
 import { DatabaseIndexer } from "../db/indexes";
+import { IdGenerators } from "../utils/id-generator";
 
 /**
  * Database Performance Monitoring & Alerting Configuration
@@ -289,7 +290,7 @@ export class DatabasePerformanceMonitor {
     recommendation: string,
   ): PerformanceAlert {
     return {
-      id: `alert_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      id: IdGenerators.ALERT(type),
       severity,
       type,
       message,

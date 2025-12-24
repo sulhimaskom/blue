@@ -44,7 +44,12 @@ export class MockFactory {
       };
     }
 
-    // Mock the module
+    // Mock the module - special handling for certain services
+    if (serviceName === "monitoring") {
+      // Already handled above
+      return mock;
+    }
+
     jest.mock(`@/lib/services/${serviceName}`, () => mockModule, {
       virtual: true,
     });
@@ -127,6 +132,80 @@ export class MockFactory {
       "BlueprintEngineError",
     );
   }
+
+  /**
+   * Creates monitoring service mock for system health
+   */
+  static createMonitoringServiceMock() {
+    const monitoringMock = {
+      getSystemHealth: jest.fn(),
+      trackError: jest.fn(),
+      trackAPICall: jest.fn(),
+      trackGitHubOperation: jest.fn(),
+    };
+
+    jest.mock("@/lib/monitoring", () => ({
+      monitoringService: monitoringMock,
+    }));
+
+    return monitoringMock;
+  }
+
+  /**
+   * Creates API metrics service mock for analytics
+   */
+  static createAPIMetricsServiceMock() {
+    return this.createServiceMock("api-metrics-service", [
+      "getApplicationHealthChecks",
+      "calculateOverallSystemStatus",
+      "getMetricSummary",
+      "getMetricData",
+      "getComprehensiveMetrics",
+    ]);
+  }
+
+  /**
+   * Creates circuit breaker service mock for resilience
+   */
+  static createCircuitBreakerServiceMock() {
+    return this.createServiceMock("circuit-breaker", [
+      "getAllCircuitBreakers",
+      "getCircuitBreakerMetrics",
+      "resetCircuitBreaker",
+      "resetAllCircuitBreakers",
+    ]);
+  }
+
+  /**
+   * Creates cache service mock for performance
+   */
+  static createCacheServiceMock() {
+    return this.createServiceMock("cache-service", [
+      "getMetrics",
+      "getEnhancedMetrics",
+      "clearCache",
+      "warmCache",
+    ]);
+  }
+
+  /**
+   * Creates database mock for data operations
+   */
+  static createDatabaseMock() {
+    const databaseMock = {
+      select: jest.fn(),
+      insert: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      query: jest.fn(),
+    };
+
+    jest.mock("@/lib/db", () => ({
+      db: jest.fn(() => databaseMock),
+    }));
+
+    return databaseMock;
+  }
 }
 
 /**
@@ -139,3 +218,9 @@ export const mockWebhookService = MockFactory.createWebhookServiceMock();
 export const mockSecurityService = MockFactory.createSecurityServiceMock();
 export const mockAIService = MockFactory.createAIServiceMock();
 export const mockBlueprintEngine = MockFactory.createBlueprintEngineMock();
+export const mockMonitoringService = MockFactory.createMonitoringServiceMock();
+export const mockAPIMetricsService = MockFactory.createAPIMetricsServiceMock();
+export const mockCircuitBreakerService =
+  MockFactory.createCircuitBreakerServiceMock();
+export const mockCacheService = MockFactory.createCacheServiceMock();
+export const mockDatabase = MockFactory.createDatabaseMock();

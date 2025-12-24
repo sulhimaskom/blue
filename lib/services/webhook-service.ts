@@ -5,6 +5,7 @@ import {
   DatabaseError,
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+import { IdGenerators } from "@/lib/utils/id-generator";
 
 export interface WebhookHandlerConfig {
   serviceName: string;
@@ -65,7 +66,7 @@ class WebhookService {
     req: NextRequest,
     config: WebhookHandlerConfig,
   ): Promise<Response> {
-    const context = { requestId: `webhook_${Date.now()}` };
+    const context = { requestId: IdGenerators.REQUEST() };
 
     try {
       const body = await req.text();

@@ -10,6 +10,11 @@ import {
   mockUserService,
   mockWebhookService,
   mockSecurityService,
+  mockMonitoringService,
+  mockAPIMetricsService,
+  mockCircuitBreakerService,
+  mockCacheService,
+  mockDatabase,
 } from "../factories/mock-factory";
 import { createDatabaseMock } from "../builders/database-builder";
 import { setupEnvironmentMocks } from "../setup/environment-mocks";
@@ -64,6 +69,10 @@ export class ApiTestHelper {
     this.getMock("userService");
     this.getMock("webhookService");
     this.getMock("securityService");
+    this.getMock("monitoringService");
+    this.getMock("apiMetricsService");
+    this.getMock("circuitBreakerService");
+    this.getMock("cacheService");
   }
 
   private setupDatabaseMocks() {
@@ -82,6 +91,11 @@ export class ApiTestHelper {
       userService: mockUserService,
       webhookService: mockWebhookService,
       securityService: mockSecurityService,
+      monitoringService: mockMonitoringService,
+      apiMetricsService: mockAPIMetricsService,
+      circuitBreakerService: mockCircuitBreakerService,
+      cacheService: mockCacheService,
+      database: mockDatabase,
     };
 
     return mocks[serviceName];
@@ -140,6 +154,10 @@ export class ApiTestHelper {
       userService: mockUserService,
       webhookService: mockWebhookService,
       securityService: mockSecurityService,
+      monitoringService: mockMonitoringService,
+      apiMetricsService: mockAPIMetricsService,
+      circuitBreakerService: mockCircuitBreakerService,
+      cacheService: mockCacheService,
     }).forEach((mock) => {
       Object.values(mock).forEach((method: any) => {
         if (typeof method === "function" && method.mockClear) {

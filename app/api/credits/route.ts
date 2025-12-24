@@ -4,6 +4,7 @@ import { UserService } from "@/lib/services/user-service";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { CREDIT_RULES, PRICING_PACKAGES } from "@/lib/constants";
 import { ProjectDataService } from "@/lib/services/project-data-service";
+import { IdGenerators } from "@/lib/utils/id-generator";
 
 const addCreditsSchema = z.object({
   amount: z
@@ -25,8 +26,8 @@ export const POST = APIRouteHandler.createPOSTHandler({
     // Credit conversion using constants
     const creditsToAdd = Math.floor(amount / CREDIT_RULES.CONVERSION_RATE);
 
-    // Simulate Stripe payment ID
-    const mockPaymentId = `pi_mock_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    // Generate secure mock payment ID
+    const mockPaymentId = IdGenerators.PAYMENT();
 
     // Create transaction record
     const newTransaction = await ProjectDataService.createTransaction(
