@@ -3,6 +3,13 @@
 import { ChartIcon } from "@/components/ui/icons";
 import { MetricSummaryCard } from "@/components/ui/metric-card";
 import { BaseCard } from "@/components/ui/base-card";
+import {
+  BaseTable,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-service";
 import type { MetricsData } from "@/lib/hooks/use-monitoring";
 
@@ -70,53 +77,38 @@ function RecentActivityTable({ activityData }: RecentActivityTableProps) {
       <h3 className="text-lg font-medium text-gray-900 mb-4">
         Recent Activity Log
       </h3>
-      <div className="overflow-hidden rounded-xl border border-gray-200">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Metric
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Value
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Unit
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Time
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {activityData.map((item) => (
-                <tr
-                  key={item.id}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 capitalize">
-                    {item.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-lg font-bold text-blue-600">
-                      {item.value}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
-                      {item.unit}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {item.formattedTime}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <BaseTable variant="bordered">
+        <TableHeader
+          columns={[
+            { key: "metric", label: "Metric" },
+            { key: "value", label: "Value" },
+            { key: "unit", label: "Unit" },
+            { key: "time", label: "Time" },
+          ]}
+        />
+        <TableBody>
+          {activityData.map((item) => (
+            <TableRow key={item.id} hover>
+              <TableCell className="font-semibold text-gray-900 capitalize">
+                {item.name}
+              </TableCell>
+              <TableCell nowrap={false}>
+                <span className="text-lg font-bold text-blue-600">
+                  {item.value}
+                </span>
+              </TableCell>
+              <TableCell nowrap={false}>
+                <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
+                  {item.unit}
+                </span>
+              </TableCell>
+              <TableCell className="text-gray-500">
+                {item.formattedTime}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </BaseTable>
     </BaseCard>
   );
 }

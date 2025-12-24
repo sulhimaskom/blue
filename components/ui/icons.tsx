@@ -3,7 +3,7 @@
  * Following atomic design principles - these are UI atoms that can be reused across the application
  */
 
-interface IconProps {
+export interface IconProps {
   className?: string;
 }
 
