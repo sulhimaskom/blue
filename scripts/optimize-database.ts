@@ -12,9 +12,10 @@
  */
 
 import { DatabaseIndexer } from "../lib/db/indexes";
-import { getDb, checkDbHealth, getPoolStats } from "../lib/db";
+import { checkDbHealth, getPoolStats } from "../lib/db";
 import { logger } from "../lib/logger";
-import { DatabasePerformanceMonitor } from "../lib/db/performance-monitor";
+import { DatabasePerformanceMonitor } from "../lib/services/database-performance-monitor";
+import { DatabasePerformanceMonitor as LegacyPerformanceMonitor } from "../lib/db/performance-monitor";
 
 async function main() {
   try {
@@ -78,10 +79,115 @@ async function main() {
       });
     }
 
-    // Enhanced performance monitoring
-    console.log("\n⚡ Enhanced Performance Analysis...");
+    // Advanced query pattern analysis
+    console.log("\n🧠 Intelligent Query Pattern Analysis...");
+    const queryPatterns = await DatabaseIndexer.detectQueryPatterns();
+
+    console.log(
+      `   • Query patterns analyzed: ${queryPatterns.patterns.length}`,
+    );
+    console.log(
+      `   • High-impact queries: ${queryPatterns.patterns.filter((p: any) => p.impact === "High").length}`,
+    );
+
+    if (queryPatterns.autoRecommendations.length > 0) {
+      console.log("\n💡 Intelligent Recommendations:");
+      queryPatterns.autoRecommendations.forEach((rec, i) => {
+        console.log(`   ${i + 1}. ${rec}`);
+      });
+    }
+
+    // Create advanced composite indexes for enhanced scalability
+    console.log("\n🚀 Creating Advanced Composite Indexes...");
+    const advancedResults = await DatabaseIndexer.createAdvancedIndexes();
+
+    console.log(
+      `   • Advanced indexes created: ${advancedResults.created.length}`,
+    );
+    if (advancedResults.failed.length > 0) {
+      console.log(`   • Failed: ${advancedResults.failed.length}`);
+      advancedResults.failed.forEach((failed) => {
+        console.log(`     - ${failed.name}: ${failed.error}`);
+      });
+    }
+    console.log(
+      `   • Performance Impact: ${advancedResults.performanceImpact}`,
+    );
+
+    // Comprehensive scaling analysis
+    console.log("\n📊 Comprehensive Scaling Analysis...");
+    const scalingAnalysis =
+      await DatabaseIndexer.comprehensiveScalingAnalysis();
+
+    console.log(
+      `   • Scaling Readiness Score: ${scalingAnalysis.overallScore}/100`,
+    );
+    console.log(
+      `   • Index Coverage: ${scalingAnalysis.indexing.currentIndexes}/${scalingAnalysis.indexing.recommendedIndexes}`,
+    );
+    console.log(
+      `   • Optimization Potential: ${scalingAnalysis.indexing.optimizationPotential}`,
+    );
+    console.log(
+      `   • Slow Queries: ${scalingAnalysis.performance.slowQueries}`,
+    );
+
+    if (scalingAnalysis.recommendations.length > 0) {
+      console.log("\n🎯 Prioritized Scaling Recommendations:");
+      scalingAnalysis.recommendations.forEach((rec, i) => {
+        console.log(
+          `   ${rec.priority}. ${rec.action} (Benefit: ${rec.estimatedBenefit})`,
+        );
+      });
+    }
+
+    // Enhanced performance monitoring with intelligent alerting
+    console.log("\n🛡️ Intelligent Performance Monitoring & Alerting...");
+    DatabasePerformanceMonitor.initialize({
+      enabled: true,
+      thresholds: {
+        slowQueryTime: 150,
+        connectionUtilization: 75,
+        errorRate: 3,
+        throughputMinimum: 15,
+        indexUsageThreshold: 15,
+      },
+    });
+
+    const monitoringResults =
+      await DatabasePerformanceMonitor.monitorAndAlert();
+    console.log(
+      `   • Health Status: ${monitoringResults.healthStatus.toUpperCase()}`,
+    );
+    console.log(
+      `   • Scaling Readiness Score: ${monitoringResults.metrics.scalingReadinessScore}/100`,
+    );
+    console.log(`   • Active Alerts: ${monitoringResults.alerts.length}`);
+    console.log(
+      `   • Query Latency: ${monitoringResults.metrics.queryLatency.toFixed(1)}ms`,
+    );
+    console.log(
+      `   • Throughput: ${monitoringResults.metrics.throughput.toFixed(1)} queries/sec`,
+    );
+
+    if (monitoringResults.alerts.length > 0) {
+      console.log("\n⚠️  Performance Alerts:");
+      monitoringResults.alerts.slice(0, 5).forEach((alert: any) => {
+        console.log(`   ${alert.severity.toUpperCase()}: ${alert.message}`);
+      });
+    }
+
+    if (monitoringResults.recommendations.length > 0) {
+      console.log("\n💡 Performance Recommendations:");
+      monitoringResults.recommendations.slice(0, 3).forEach((rec: any) => {
+        console.log(`   • ${rec}`);
+      });
+    }
+
+    // Legacy performance monitoring
+    console.log("\n⚡ Legacy Performance Analysis...");
     const realTimeIndicators =
-      await DatabasePerformanceMonitor.getRealTimePerformanceIndicators();
+      await LegacyPerformanceMonitor.getRealTimePerformanceIndicators();
 
     console.log(
       `   • Connection Health: ${realTimeIndicators.connectionHealth ? "✅ Healthy" : "❌ Unhealthy"}`,
@@ -114,7 +220,7 @@ async function main() {
     // Performance recommendations
     if (realTimeIndicators.recommendations.length > 0) {
       console.log("\n💡 Performance Recommendations:");
-      realTimeIndicators.recommendations.forEach((rec, i) => {
+      realTimeIndicators.recommendations.forEach((rec: any, i: number) => {
         console.log(`   ${i + 1}. ${rec}`);
       });
     }

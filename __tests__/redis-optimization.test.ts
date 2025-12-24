@@ -4,6 +4,7 @@
  */
 
 import { redisManager } from "../lib/redis";
+import { CircuitState } from "../lib/circuit-breaker";
 
 describe("Redis Performance Optimization", () => {
   beforeAll(async () => {
@@ -37,9 +38,13 @@ describe("Redis Performance Optimization", () => {
             pooledConnections: 2,
             totalConnections: 3,
             circuitBreakerState: {
-              failures: 0,
-              lastFailureTime: 0,
-              state: "CLOSED",
+              failureCount: 0,
+              lastFailureTime: undefined,
+              state: CircuitState.CLOSED,
+              successCount: 0,
+              totalCalls: 0,
+              totalFailures: 0,
+              totalSuccesses: 0,
             },
             performanceMetrics: {
               avgResponseTime: 50,
@@ -99,7 +104,7 @@ describe("Redis Performance Optimization", () => {
       const circuitState = redisManager.getCircuitBreakerState();
 
       expect(circuitState).toHaveProperty("state");
-      expect(circuitState).toHaveProperty("failures");
+      expect(circuitState).toHaveProperty("failureCount");
       expect(circuitState).toHaveProperty("lastFailureTime");
       expect(["CLOSED", "OPEN", "HALF_OPEN"]).toContain(circuitState.state);
     });
