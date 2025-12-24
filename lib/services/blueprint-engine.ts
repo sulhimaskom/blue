@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { UnifiedCacheManager } from "./unified-cache-manager";
 import { AIPatternDetector, type AIPattern } from "./ai-pattern-detector";
 import DatabaseQueryCache from "./database-cache-service";
+import { ValidationError, DatabaseError } from "./service-error-handler";
 
 export interface BlueprintGenerationRequest {
   userId: number;
@@ -186,7 +187,7 @@ CRITICAL CONSTRAINTS:
         content.match(/```json\s*([\s\S]*?)\s*```/) ||
         content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error("No valid JSON found in AI response");
+        throw new ValidationError("No valid JSON found in AI response");
       }
 
       const jsonString = jsonMatch[1] || jsonMatch[0];
@@ -203,18 +204,17 @@ CRITICAL CONSTRAINTS:
       ];
       for (const field of required) {
         if (!parsed[field]) {
-          throw new Error(`Missing required field: ${field}`);
+          throw new ValidationError(`Missing required field: ${field}`);
         }
       }
 
       return parsed as BlueprintData;
     } catch (error) {
-      logger.error("Blueprint parsing failed", {
-        content: content.substring(0, 500) + "...",
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw new Error(
-        `Invalid blueprint structure: ${error instanceof Error ? error.message : String(error)}`,
+      if (error instanceof ValidationError || error instanceof DatabaseError) {
+        throw error;
+      }
+      throw new DatabaseError(
+        `Blueprint parsing failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -672,7 +672,7 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
         .where(eq(blueprints.id, request.blueprintId));
 
       if (!current) {
-        throw new Error("Blueprint not found");
+        throw new ValidationError("Blueprint not found");
       }
 
       const currentData: BlueprintData = JSON.parse(
