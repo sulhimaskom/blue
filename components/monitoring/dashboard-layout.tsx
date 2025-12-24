@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorIcon, RefreshIcon, ActivityIcon } from "@/components/ui/icons";
 import { Gradients } from "@/lib/constants/gradients";
+import { STATUS_THEMES, ANIMATION_STATES } from "@/lib/constants/ui-themes";
 
 interface DashboardHeaderProps {
   title?: string;
@@ -45,13 +46,13 @@ export function DashboardHeader({
             autoRefresh ? "Disable auto-refresh" : "Enable auto-refresh"
           }
           className={`flex items-center gap-2 ${
-            autoRefresh ? "bg-green-50 border-green-200 text-green-700" : ""
+            autoRefresh ? STATUS_THEMES.healthy.combined : ""
           }`}
         >
           {autoRefresh ? (
             <>
               <div
-                className="w-2 h-2 bg-green-500 rounded-full animate-pulse"
+                className={ANIMATION_STATES.liveAnimated}
                 aria-hidden="true"
               />
               <span>Auto-refresh ON</span>
@@ -92,12 +93,22 @@ export function ErrorBanner({
   title = "Connection Error",
 }: ErrorBannerProps) {
   return (
-    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+    <div
+      className={`mb-6 p-4 rounded-lg border ${STATUS_THEMES.unhealthy.background} ${STATUS_THEMES.unhealthy.border}`}
+    >
       <div className="flex items-center gap-3">
         <ErrorIcon />
         <div>
-          <h3 className="text-red-800 font-medium">{title}</h3>
-          <p className="text-red-600 text-sm">{error}</p>
+          <h3
+            className={`font-medium ${STATUS_THEMES.unhealthy.text.replace("700", "800")}`}
+          >
+            {title}
+          </h3>
+          <p
+            className={`text-sm ${STATUS_THEMES.unhealthy.text.replace("700", "600")}`}
+          >
+            {error}
+          </p>
         </div>
       </div>
     </div>

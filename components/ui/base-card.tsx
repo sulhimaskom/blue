@@ -1,5 +1,6 @@
 import React, { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { CARD_VARIANTS, SIZE_VARIANTS } from "@/lib/constants/ui-themes";
 
 export interface BaseCardProps {
   children: ReactNode;
@@ -21,16 +22,12 @@ export const BaseCard: React.FC<BaseCardProps> = ({
   const baseClasses = "bg-white border rounded-lg overflow-hidden";
 
   const variantClasses = {
-    default: "border-gray-200",
-    hover: "hover:shadow-md transition-all duration-200 border-gray-200",
-    error: "border-red-200 bg-red-50",
+    default: CARD_VARIANTS.default,
+    hover: CARD_VARIANTS.hover,
+    error: CARD_VARIANTS.error,
   };
 
-  const paddingClasses = {
-    sm: "p-4",
-    md: "p-6",
-    lg: "p-6",
-  };
+  const paddingClasses = SIZE_VARIANTS.card;
 
   return (
     <div
