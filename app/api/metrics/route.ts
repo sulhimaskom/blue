@@ -84,6 +84,10 @@ export const GET = APIRouteHandler.createGETHandler({
           const realTimeIndicators =
             await DatabasePerformanceMonitor.getRealTimePerformanceIndicators();
 
+          // Add Redis performance metrics with enhanced monitoring
+          const redisMetrics =
+            await monitoringService.getRedisPerformanceMetrics();
+
           return NextResponse.json({
             metrics: metricNames,
             summaries,
@@ -103,6 +107,19 @@ export const GET = APIRouteHandler.createGETHandler({
               performance: dbPerformanceMetrics,
               recommendations: dbRecommendations,
               realTime: realTimeIndicators,
+            },
+            redis: {
+              performance: redisMetrics,
+              healthScore:
+                redisMetrics.healthStatus.performanceMetrics.errorRate < 0.05
+                  ? 100
+                  : Math.max(
+                      0,
+                      100 -
+                        redisMetrics.healthStatus.performanceMetrics.errorRate *
+                          100,
+                    ),
+              recommendations: redisMetrics.recommendations,
             },
             recent: metrics.slice(0, 50), // Latest 50 metrics across all types
             timestamp: new Date().toISOString(),
