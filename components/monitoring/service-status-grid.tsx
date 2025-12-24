@@ -1,0 +1,190 @@
+"use client";
+
+import { ServerIcon } from "@/components/ui/icons";
+import {
+  StatusIndicator,
+  type StatusType,
+} from "@/components/ui/status-indicator";
+import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-service";
+import type { SystemHealth } from "@/lib/hooks/use-monitoring";
+
+/* eslint-disable no-unused-vars */
+interface ServiceStatusGridProps {
+  health: SystemHealth;
+  expandedService: string | null;
+  onToggleServiceExpansion: (serviceName: string) => void;
+}
+/* eslint-enable no-unused-vars */
+
+export function ServiceStatusGrid({
+  health,
+  expandedService,
+  onToggleServiceExpansion: handleToggleExpansion,
+}: ServiceStatusGridProps) {
+  const isLive = Date.now() - new Date(health.timestamp).getTime() < 5000;
+
+  return (
+    <div>
+      <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+        <ServerIcon />
+        Service Status Details
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {health.checks.map((check, index) => {
+          const isExpanded = expandedService === check.service;
+
+          return (
+            <ServiceCard
+              key={index}
+              check={check}
+              health={health}
+              isExpanded={isExpanded}
+              isLive={isLive}
+              onToggle={() =>
+                handleToggleExpansion(isExpanded ? "" : check.service)
+              }
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+interface ServiceCardProps {
+  check: SystemHealth["checks"][0];
+  health: SystemHealth;
+  isExpanded: boolean;
+  isLive: boolean;
+  onToggle: () => void;
+}
+
+function ServiceCard({
+  check,
+  health,
+  isExpanded,
+  isLive,
+  onToggle,
+}: ServiceCardProps) {
+  const serviceData = MonitoringDashboardService.formatServiceData(
+    health,
+    check.service,
+  );
+  const detailData =
+    MonitoringDashboardService.getServiceDetailData(serviceData);
+
+  return (
+    <div className="relative bg-white border rounded-lg overflow-hidden hover:shadow-md transition-all duration-200">
+      <button
+        onClick={onToggle}
+        className="w-full p-4 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+      >
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold text-gray-900 capitalize flex items-center gap-2">
+            <StatusIndicator
+              status={check.status as StatusType}
+              size="sm"
+              showText={false}
+            />
+            {check.service}
+          </h4>
+          <div className="flex items-center gap-3">
+            {isLive && (
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-xs text-gray-500">Live</span>
+              </div>
+            )}
+            <StatusIndicator
+              status={check.status as StatusType}
+              size="sm"
+              showIcon={false}
+            />
+            <ExpandIcon isExpanded={isExpanded} />
+          </div>
+        </div>
+        {check.responseTime && (
+          <div className="mt-2 text-sm text-gray-600">
+            Response:{" "}
+            {check.responseTime < 1000
+              ? `${check.responseTime}ms`
+              : `${(check.responseTime / 1000).toFixed(2)}s`}
+          </div>
+        )}
+      </button>
+
+      {isExpanded && (
+        <ServiceDetailPanel detailData={detailData} error={check.error} />
+      )}
+    </div>
+  );
+}
+
+interface ServiceDetailPanelProps {
+  detailData: Array<{
+    name: string;
+    label: string;
+    value: string | number;
+    status?: string;
+  }>;
+  error?: string;
+}
+
+function ServiceDetailPanel({ detailData, error }: ServiceDetailPanelProps) {
+  return (
+    <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50">
+      <div className="pt-4 space-y-3">
+        {detailData.map((detail) => (
+          <div
+            key={detail.name}
+            className="flex items-center justify-between py-2 px-3 bg-white rounded-lg border"
+          >
+            <span className="text-sm text-gray-600">{detail.label}</span>
+            {detail.status ? (
+              <StatusIndicator
+                status={detail.status as StatusType}
+                size="sm"
+                showIcon={false}
+                className="px-2 py-1 rounded text-xs font-medium"
+              />
+            ) : (
+              <span className="text-sm font-medium text-gray-900">
+                {detail.value}
+              </span>
+            )}
+          </div>
+        ))}
+        {error && (
+          <div className="p-3 bg-red-50 rounded-lg border border-red-100">
+            <div className="text-sm text-red-700">
+              <strong>Error Details:</strong>
+            </div>
+            <div className="text-sm text-red-600 mt-1 font-mono">{error}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface ExpandIconProps {
+  isExpanded: boolean;
+}
+
+function ExpandIcon({ isExpanded }: ExpandIconProps) {
+  return (
+    <svg
+      className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M19 9l-7 7-7-7"
+      />
+    </svg>
+  );
+}
