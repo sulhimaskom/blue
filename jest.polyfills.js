@@ -20,11 +20,15 @@ global.Response = jest.fn().mockImplementation((body, options) => ({
 
 // Mock NextResponse.json
 global.NextResponse = {
-  json: jest.fn().mockImplementation((data, options) => ({
-    status: options?.status || 200,
-    json: jest.fn().mockResolvedValue(data),
-    headers: new Map(Object.entries(options?.headers || {})),
-  })),
+  json: jest.fn((data, options) => {
+    const response = {
+      status: options?.status || 200,
+      json: jest.fn().mockResolvedValue(data),
+      text: jest.fn().mockResolvedValue(JSON.stringify(data)),
+      headers: new Map(Object.entries(options?.headers || {})),
+    };
+    return response;
+  }),
 };
 
 // Mock Web Crypto API
