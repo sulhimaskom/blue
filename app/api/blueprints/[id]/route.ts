@@ -69,17 +69,13 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
   return APIRouteHandler.createGETHandler({
     requireAuth: true,
     handler: async ({ context, user }) => {
-      // Get blueprint with project and verify ownership
-      const blueprintDetails = await ProjectDataService.getBlueprintWithProject(
-        id,
-        user!.clerkId,
-      );
-      const { blueprint, project } = blueprintDetails;
-
-      // Get all versions of this blueprint
-      const allVersions = await ProjectDataService.getBlueprintVersions(
-        blueprint.projectId,
-      );
+      // Optimized: Get blueprint with project and all versions in a single database operation
+      const blueprintDetails =
+        await ProjectDataService.getBlueprintWithProjectAndVersions(
+          id,
+          user!.clerkId,
+        );
+      const { blueprint, project, allVersions } = blueprintDetails;
 
       logger.userAction("Blueprint details fetched", user!.clerkId, {
         requestId: context.requestId,

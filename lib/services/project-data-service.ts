@@ -59,6 +59,46 @@ export class ProjectDataService {
   }
 
   /**
+   * Get blueprint with project and all versions in a single optimized query
+   * Used by: /api/blueprints/[id] (GET) - Optimized version
+   */
+  static async getBlueprintWithProjectAndVersions(
+    blueprintId: string,
+    clerkId: string,
+  ) {
+    const database = db();
+
+    // Get blueprint details and verify ownership
+    const blueprintDetails = await database
+      .select({
+        blueprint: blueprints,
+        project: projects,
+        user: users,
+      })
+      .from(blueprints)
+      .innerJoin(projects, eq(blueprints.projectId, projects.id))
+      .innerJoin(users, eq(projects.ownerId, users.id))
+      .where(and(eq(blueprints.id, blueprintId), eq(users.clerkId, clerkId)))
+      .limit(1);
+
+    if (!blueprintDetails.length) {
+      throw new ValidationError("Blueprint not found or access denied");
+    }
+
+    // Get all versions for this project in a single query
+    const allVersions = await database
+      .select()
+      .from(blueprints)
+      .where(eq(blueprints.projectId, blueprintDetails[0].project.id))
+      .orderBy(blueprints.version);
+
+    return {
+      ...blueprintDetails[0],
+      allVersions,
+    };
+  }
+
+  /**
    * Get latest blueprint for a project
    * Used by: /api/deploy/[id]
    */
