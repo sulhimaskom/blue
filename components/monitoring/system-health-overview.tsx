@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useMemo } from "react";
 import { ServerIcon } from "@/components/ui/icons";
 import {
   StatusIndicator,
@@ -27,39 +28,47 @@ interface SystemHealthOverviewProps {
   onToggleServiceExpansion: (serviceName: string) => void;
 }
 
-export function SystemHealthOverview({
-  health,
-  expandedService,
-  onToggleServiceExpansion,
-}: SystemHealthOverviewProps) {
-  const healthMetrics =
-    MonitoringDashboardService.calculateHealthScoreMetrics(health);
-  const overviewData = MonitoringDashboardService.getSystemOverviewData(health);
+export const SystemHealthOverview = React.memo(
+  function SystemHealthOverviewComponent({
+    health,
+    expandedService,
+    onToggleServiceExpansion,
+  }: SystemHealthOverviewProps) {
+    const healthMetrics = useMemo(
+      () => MonitoringDashboardService.calculateHealthScoreMetrics(health),
+      [health],
+    );
 
-  return (
-    <BaseCard className="mb-8 shadow-sm">
-      <div className="flex items-center gap-3 mb-6">
-        <ServerIcon />
-        <h2 className="text-xl font-semibold text-gray-900">System Health</h2>
-        <div className="ml-auto">
-          <StatusIndicator status={health.status as StatusType} size="md" />
+    const overviewData = useMemo(
+      () => MonitoringDashboardService.getSystemOverviewData(health),
+      [health],
+    );
+
+    return (
+      <BaseCard className="mb-8 shadow-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <ServerIcon />
+          <h2 className="text-xl font-semibold text-gray-900">System Health</h2>
+          <div className="ml-auto">
+            <StatusIndicator status={health.status as StatusType} size="md" />
+          </div>
         </div>
-      </div>
 
-      <HealthScoreCards
-        healthMetrics={healthMetrics}
-        overviewData={overviewData}
-        health={health}
-      />
+        <HealthScoreCards
+          healthMetrics={healthMetrics}
+          overviewData={overviewData}
+          health={health}
+        />
 
-      <ServiceStatusGrid
-        health={health}
-        expandedService={expandedService}
-        onToggleServiceExpansion={onToggleServiceExpansion}
-      />
-    </BaseCard>
-  );
-}
+        <ServiceStatusGrid
+          health={health}
+          expandedService={expandedService}
+          onToggleServiceExpansion={onToggleServiceExpansion}
+        />
+      </BaseCard>
+    );
+  },
+);
 
 interface HealthScoreCardsProps {
   healthMetrics: HealthScoreMetrics;
@@ -67,7 +76,7 @@ interface HealthScoreCardsProps {
   health: SystemHealth;
 }
 
-function HealthScoreCards({
+const HealthScoreCards = React.memo(function HealthScoreCardsComponent({
   healthMetrics,
   overviewData,
   health,
@@ -98,9 +107,9 @@ function HealthScoreCards({
       </GradientCard>
     </div>
   );
-}
+});
 
-function HealthScoreCard({
+const HealthScoreCard = React.memo(function HealthScoreCardComponent({
   healthMetrics,
 }: {
   healthMetrics: HealthScoreMetrics;
@@ -144,4 +153,4 @@ function HealthScoreCard({
       </div>
     </GradientCard>
   );
-}
+});

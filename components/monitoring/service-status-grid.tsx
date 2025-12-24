@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useMemo } from "react";
 import { ServerIcon, ExpandIcon } from "@/components/ui/icons";
 import {
   StatusIndicator,
@@ -16,40 +17,45 @@ interface ServiceStatusGridProps {
   onToggleServiceExpansion: (serviceName: string) => void;
 }
 
-export function ServiceStatusGrid({
-  health,
-  expandedService,
-  onToggleServiceExpansion,
-}: ServiceStatusGridProps) {
-  const isLive = MonitoringDashboardService.isDataLive(health.timestamp);
+export const ServiceStatusGrid = React.memo(
+  function ServiceStatusGridComponent({
+    health,
+    expandedService,
+    onToggleServiceExpansion,
+  }: ServiceStatusGridProps) {
+    const isLive = useMemo(
+      () => MonitoringDashboardService.isDataLive(health.timestamp),
+      [health.timestamp],
+    );
 
-  return (
-    <div>
-      <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-        <ServerIcon />
-        Service Status Details
-      </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {health.checks.map((check, index) => {
-          const isExpanded = expandedService === check.service;
+    return (
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+          <ServerIcon />
+          Service Status Details
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {health.checks.map((check, index) => {
+            const isExpanded = expandedService === check.service;
 
-          return (
-            <ServiceCard
-              key={index}
-              check={check}
-              health={health}
-              isExpanded={isExpanded}
-              isLive={isLive}
-              onToggle={() =>
-                onToggleServiceExpansion(isExpanded ? "" : check.service)
-              }
-            />
-          );
-        })}
+            return (
+              <ServiceCard
+                key={index}
+                check={check}
+                health={health}
+                isExpanded={isExpanded}
+                isLive={isLive}
+                onToggle={() =>
+                  onToggleServiceExpansion(isExpanded ? "" : check.service)
+                }
+              />
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  },
+);
 
 interface ServiceCardProps {
   check: SystemHealth["checks"][0];
@@ -59,19 +65,22 @@ interface ServiceCardProps {
   onToggle: () => void;
 }
 
-function ServiceCard({
+const ServiceCard = React.memo(function ServiceCardComponent({
   check,
   health,
   isExpanded,
   isLive,
   onToggle,
 }: ServiceCardProps) {
-  const serviceData = MonitoringDashboardService.formatServiceData(
-    health,
-    check.service,
+  const serviceData = useMemo(
+    () => MonitoringDashboardService.formatServiceData(health, check.service),
+    [health, check.service],
   );
-  const detailData =
-    MonitoringDashboardService.getServiceDetailData(serviceData);
+
+  const detailData = useMemo(
+    () => MonitoringDashboardService.getServiceDetailData(serviceData),
+    [serviceData],
+  );
 
   return (
     <BaseCard variant="hover" padding="sm">
@@ -116,7 +125,7 @@ function ServiceCard({
       )}
     </BaseCard>
   );
-}
+});
 
 interface ServiceDetailPanelProps {
   detailData: Array<{
@@ -128,7 +137,10 @@ interface ServiceDetailPanelProps {
   error?: string;
 }
 
-function ServiceDetailPanel({ detailData, error }: ServiceDetailPanelProps) {
+const ServiceDetailPanel = React.memo(function ServiceDetailPanelComponent({
+  detailData,
+  error,
+}: ServiceDetailPanelProps) {
   return (
     <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50">
       <div className="pt-4 space-y-3">
@@ -162,4 +174,4 @@ function ServiceDetailPanel({ detailData, error }: ServiceDetailPanelProps) {
       </div>
     </div>
   );
-}
+});

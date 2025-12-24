@@ -1,6 +1,7 @@
 import { logger } from "../logger";
 import { UnifiedCacheManager } from "./unified-cache-manager";
 import { redisManager } from "../redis";
+import { PREFETCH_TIMEOUTS } from "../constants";
 
 /**
  * Intelligent prefetching strategies for API performance optimization
@@ -693,12 +694,12 @@ export class IntelligentPrefetchService {
       // Schedule prefetch strategy evaluation every 30 seconds
       setInterval(async () => {
         await this.evaluateAndExecuteStrategies();
-      }, 30000);
+      }, PREFETCH_TIMEOUTS.STRATEGY_EVALUATION);
 
       // Schedule comprehensive prefetch every 5 minutes
       setInterval(async () => {
         await this.performComprehensivePrefetch();
-      }, 300000);
+      }, PREFETCH_TIMEOUTS.COMPREHENSIVE_PREFETCH);
 
       logger.info("Prefetch scheduler started");
     } catch (error) {
@@ -725,7 +726,7 @@ export class IntelligentPrefetchService {
           // Add staggered execution to avoid overwhelming the system
           setTimeout(() => {
             this.executePrefetch(strategy);
-          }, strategy.priority * 100);
+          }, strategy.priority * PREFETCH_TIMEOUTS.STAGGERED_EXECUTION);
         }
       }
     } catch (error) {
