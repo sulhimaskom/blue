@@ -3,6 +3,7 @@
 import React from "react";
 import { Button } from "./button";
 import { RefreshCw, AlertTriangle } from "lucide-react";
+import { Environment } from "@/lib/utils/environment";
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -97,7 +98,7 @@ export class ErrorBoundary extends React.Component<
               </Button>
             </div>
 
-            {process.env.NODE_ENV === "development" && this.state.error && (
+            {Environment.isDevelopment() && this.state.error && (
               <details className="mt-6 text-left">
                 <summary className="cursor-pointer text-sm font-mono text-gray-500 hover:text-gray-700">
                   Error Details (Development)

@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorIcon, RefreshIcon, ActivityIcon } from "@/components/ui/icons";
+import { Gradients } from "@/lib/constants/gradients";
 
 interface DashboardHeaderProps {
   title?: string;
@@ -142,7 +143,9 @@ export function DashboardLayout({
   children,
 }: DashboardLayoutProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 md:p-6 lg:p-8">
+    <div
+      className={`min-h-screen ${Gradients.PAGE_BACKGROUND} p-4 md:p-6 lg:p-8`}
+    >
       <div className="max-w-7xl mx-auto">
         {header}
         {error && (errorBanner || <ErrorBanner error={error} />)}

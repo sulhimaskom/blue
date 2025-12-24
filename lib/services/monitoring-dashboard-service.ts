@@ -179,7 +179,12 @@ export class MonitoringDashboardService {
     return "Critical";
   }
 
-  private static isDataLive(timestamp: string): boolean {
+  /**
+   * Check if health data is considered live/recent
+   * @param timestamp - ISO timestamp string
+   * @returns boolean indicating if data is within freshness threshold
+   */
+  static isDataLive(timestamp: string): boolean {
     const timeSinceUpdate = Date.now() - new Date(timestamp).getTime();
     return timeSinceUpdate < MONITORING_THRESHOLDS.DATA_FRESHNESS;
   }

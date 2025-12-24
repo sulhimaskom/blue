@@ -21,7 +21,7 @@ export function ServiceStatusGrid({
   expandedService,
   onToggleServiceExpansion,
 }: ServiceStatusGridProps) {
-  const isLive = Date.now() - new Date(health.timestamp).getTime() < 5000;
+  const isLive = MonitoringDashboardService.isDataLive(health.timestamp);
 
   return (
     <div>

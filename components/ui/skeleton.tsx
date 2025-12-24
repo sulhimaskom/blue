@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Gradients } from "@/lib/constants/gradients";
 
 interface SkeletonProps {
   className?: string;
@@ -58,7 +59,7 @@ export function DashboardSkeleton({ className }: DashboardSkeletonProps) {
   return (
     <div
       className={cn(
-        "min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 md:p-6 lg:p-8",
+        `min-h-screen ${Gradients.PAGE_BACKGROUND} p-4 md:p-6 lg:p-8`,
         className,
       )}
     >

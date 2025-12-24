@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 
 import { HOMEPAGE } from "@/lib/constants";
+import { Gradients } from "@/lib/constants/gradients";
 
 interface HeroSectionProps {
   title?: string;
@@ -17,7 +18,7 @@ export function HeroSection({
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
       <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
         <div className="text-center lg:text-left">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className={`text-4xl font-bold ${Gradients.HERO_TEXT}`}>
             {title || HOMEPAGE.HERO.TITLE}
           </h1>
           {description ? (

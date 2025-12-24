@@ -13,6 +13,12 @@ import {
 } from "@/lib/services/monitoring-dashboard-service";
 import type { SystemHealth } from "@/lib/hooks/use-monitoring";
 import { ServiceStatusGrid } from "./service-status-grid";
+import {
+  HealthScoreCalculator,
+  SVG_CIRCLES,
+  SVG_STROKES,
+  ANIMATION_TIMING,
+} from "@/lib/constants/svg-calculations";
 
 interface SystemHealthOverviewProps {
   health: SystemHealth;
@@ -104,23 +110,25 @@ function HealthScoreCard({
       <div className="relative inline-flex items-center justify-center w-20 h-20 mb-3">
         <svg className="w-20 h-20 transform -rotate-90">
           <circle
-            cx="40"
-            cy="40"
-            r="36"
+            cx={SVG_STROKES.CENTER_POSITION}
+            cy={SVG_STROKES.CENTER_POSITION}
+            r={SVG_CIRCLES.CIRCLE_RADIUS}
             stroke="currentColor"
-            strokeWidth="8"
+            strokeWidth={SVG_STROKES.DEFAULT_WIDTH}
             fill="none"
             className="text-blue-100"
           />
           <circle
-            cx="40"
-            cy="40"
-            r="36"
+            cx={SVG_STROKES.CENTER_POSITION}
+            cy={SVG_STROKES.CENTER_POSITION}
+            r={SVG_CIRCLES.CIRCLE_RADIUS}
             stroke="currentColor"
-            strokeWidth="8"
+            strokeWidth={SVG_STROKES.DEFAULT_WIDTH}
             fill="none"
-            strokeDasharray={`${healthMetrics.score * 2.26} 226`}
-            className="text-blue-600 transition-all duration-500"
+            strokeDasharray={HealthScoreCalculator.calculateStrokeDasharray(
+              healthMetrics.score,
+            )}
+            className={`text-blue-600 transition-all ${ANIMATION_TIMING.HEALTH_SCORE_UPDATE}`}
           />
         </svg>
         <div className="absolute">
