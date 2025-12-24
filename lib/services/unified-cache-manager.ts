@@ -20,6 +20,8 @@ export interface CachedResponse {
     etag: string;
     compressed: boolean;
     size: number;
+    originalSize?: number;
+    compressionRatio?: string;
     tags: string[];
   };
 }
@@ -173,6 +175,7 @@ export class UnifiedCacheManager {
 
   /**
    * Normalize cache data to improve hit rates
+   * Enhanced with AI-specific patterns and intelligent normalization
    */
   private static normalizeCacheData(data: any): any {
     if (typeof data !== "object" || data === null) {
@@ -190,11 +193,11 @@ export class UnifiedCacheManager {
         continue;
       }
 
-      // Normalize common patterns
-      if (
-        key.toLowerCase().includes("timestamp") ||
-        key.toLowerCase().includes("date")
-      ) {
+      // Enhanced normalization patterns
+      const lowerKey = key.toLowerCase();
+
+      // Time-based normalization
+      if (lowerKey.includes("timestamp") || lowerKey.includes("date")) {
         // Round timestamps to nearest minute for better cache hits
         if (typeof value === "number") {
           normalized[key] = Math.floor(value / 60000) * 60000;
@@ -205,18 +208,155 @@ export class UnifiedCacheManager {
         } else {
           normalized[key] = value;
         }
-      } else if (
-        key.toLowerCase().includes("limit") ||
-        key.toLowerCase().includes("count")
+      }
+      // Pagination and limits normalization
+      else if (lowerKey.includes("limit") || lowerKey.includes("count")) {
+        // Normalize common limit values to standard ranges
+        const normalizedLimit = Math.min(
+          Math.max(parseInt(value) || 10, 1),
+          100,
+        );
+        // Round to common pagination sizes
+        normalized[key] =
+          normalizedLimit <= 10
+            ? 10
+            : normalizedLimit <= 25
+              ? 25
+              : normalizedLimit <= 50
+                ? 50
+                : 100;
+      }
+      // AI-specific parameters
+      else if (lowerKey.includes("model") || lowerKey.includes("ai")) {
+        // Normalize AI model names for better cache hits
+        normalized[key] = this.normalizeAIModelName(value);
+      }
+      // Search queries and text normalization
+      else if (
+        lowerKey.includes("query") ||
+        lowerKey.includes("search") ||
+        lowerKey.includes("prompt")
       ) {
-        // Normalize common limit values
-        normalized[key] = Math.min(Math.max(parseInt(value) || 10, 1), 100);
-      } else {
+        // Normalize text for better cache hits
+        normalized[key] = this.normalizeTextForCache(value);
+      }
+      // URL and endpoint normalization
+      else if (lowerKey.includes("url") || lowerKey.includes("endpoint")) {
+        normalized[key] = this.normalizeUrlForCache(value);
+      }
+      // Numeric ranges normalization
+      else if (lowerKey.includes("page")) {
+        normalized[key] = Math.max(parseInt(value) || 1, 1);
+      }
+      // Boolean normalization
+      else if (typeof value === "boolean") {
+        normalized[key] = value;
+      }
+      // Array normalization - sort for consistency
+      else if (Array.isArray(value)) {
+        normalized[key] = value.sort();
+      }
+      // Default case - preserve value
+      else {
         normalized[key] = value;
       }
     }
 
     return normalized;
+  }
+
+  /**
+   * Normalize AI model names for better cache hits
+   */
+  private static normalizeAIModelName(model: any): string {
+    if (!model || typeof model !== "string") {
+      return model;
+    }
+
+    const normalized = model.toLowerCase().trim();
+
+    // Map common model variations to canonical names
+    const modelMappings: Record<string, string> = {
+      "gpt-4": "gpt-4",
+      gpt4: "gpt-4",
+      "gpt-3.5-turbo": "gpt-3.5-turbo",
+      "gpt3.5": "gpt-3.5-turbo",
+      "claude-3": "claude-3",
+      claude3: "claude-3",
+      "iflow-gpt4": "iflow-gpt-4",
+      "iflow-gpt-4": "iflow-gpt-4",
+    };
+
+    return modelMappings[normalized] || normalized;
+  }
+
+  /**
+   * Normalize text for cache optimization
+   */
+  private static normalizeTextForCache(text: any): string {
+    if (!text || typeof text !== "string") {
+      return text;
+    }
+
+    // Trim whitespace and normalize spacing
+    let normalized = text.trim().replace(/\s+/g, " ");
+
+    // Convert to lowercase if it's a search query or simple text
+    if (normalized.length < 100) {
+      normalized = normalized.toLowerCase();
+    }
+
+    // Remove very common stop words for search queries
+    if (normalized.includes(" ")) {
+      const stopWords = new Set([
+        "the",
+        "a",
+        "an",
+        "and",
+        "or",
+        "but",
+        "in",
+        "on",
+        "at",
+        "to",
+        "for",
+      ]);
+      normalized = normalized
+        .split(" ")
+        .filter((word) => !stopWords.has(word))
+        .join(" ")
+        .trim();
+    }
+
+    return normalized;
+  }
+
+  /**
+   * Normalize URLs for cache consistency
+   */
+  private static normalizeUrlForCache(url: any): string {
+    if (!url || typeof url !== "string") {
+      return url;
+    }
+
+    try {
+      const urlObj = new URL(url);
+      // Sort query parameters for consistency
+      const params = new URLSearchParams(urlObj.search);
+      const sortedParams = new URLSearchParams();
+
+      Array.from(params.keys())
+        .sort()
+        .forEach((key) => {
+          sortedParams.set(key, params.get(key) || "");
+        });
+
+      urlObj.search = sortedParams.toString();
+      return urlObj.toString();
+    } catch {
+      // If URL parsing fails, return original
+      return url;
+    }
   }
 
   /**
@@ -596,7 +736,7 @@ export class UnifiedCacheManager {
   }
 
   /**
-   * Cache HTTP response with metadata
+   * Cache HTTP response with metadata and compression
    */
   static async cacheResponse(
     req: NextRequest,
@@ -608,7 +748,22 @@ export class UnifiedCacheManager {
     }
 
     const key = this.generateResponseKey(req, options.varyBy);
-    const responseData = await response.json();
+    let responseData = await response.json();
+
+    // Apply intelligent compression if enabled
+    let compressed = options.compress || false;
+    let originalSize = JSON.stringify(responseData).length;
+
+    // Auto-compress large responses (>10KB)
+    if (!compressed && originalSize > 10240) {
+      compressed = true;
+    }
+
+    if (compressed) {
+      responseData = await this.compressResponseData(responseData);
+    }
+
+    const finalSize = JSON.stringify(responseData).length;
     const etag = this.generateETag(responseData);
 
     const cachedResponse: CachedResponse = {
@@ -618,8 +773,13 @@ export class UnifiedCacheManager {
       metadata: {
         createdAt: new Date().toISOString(),
         etag,
-        compressed: options.compress || false,
-        size: JSON.stringify(responseData).length,
+        compressed,
+        size: finalSize,
+        originalSize,
+        compressionRatio:
+          finalSize < originalSize
+            ? (originalSize / finalSize).toFixed(2)
+            : "1.0",
         tags: options.tags || [],
       },
     };
@@ -650,7 +810,10 @@ export class UnifiedCacheManager {
         key,
         url: req.url,
         status: response.status,
-        size: cachedResponse.metadata.size,
+        size: finalSize,
+        originalSize,
+        compressed,
+        compressionRatio: cachedResponse.metadata.compressionRatio,
         ttl: options.ttl,
       });
     } catch (error) {
@@ -659,6 +822,99 @@ export class UnifiedCacheManager {
         key,
         url: req.url,
       });
+    }
+  }
+
+  /**
+   * Compress response data to reduce memory usage
+   */
+  private static async compressResponseData(data: any): Promise<any> {
+    try {
+      // For JSON objects, compress by removing unnecessary whitespace
+      if (typeof data === "object" && data !== null) {
+        return this.compressObject(data);
+      }
+
+      // For strings, trim whitespace if it's JSON-like
+      if (typeof data === "string") {
+        try {
+          // Try to parse as JSON and minify
+          const parsed = JSON.parse(data);
+          return this.compressObject(parsed);
+        } catch {
+          // If not JSON, just trim whitespace
+          return data.trim();
+        }
+      }
+
+      return data;
+    } catch (error) {
+      logger.debug("Response compression failed, using original data", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return data;
+    }
+  }
+
+  /**
+   * Compress objects by optimizing JSON structure
+   */
+  private static compressObject(obj: any): any {
+    if (Array.isArray(obj)) {
+      // For arrays, compress each element
+      return obj.map((item) => this.compressObject(item));
+    }
+
+    if (typeof obj === "object" && obj !== null) {
+      const compressed: any = {};
+
+      for (const [key, value] of Object.entries(obj)) {
+        // Remove null and undefined values
+        if (value === null || value === undefined) {
+          continue;
+        }
+
+        // Compress nested objects
+        if (
+          typeof value === "object" &&
+          value !== null &&
+          !(value instanceof Date)
+        ) {
+          compressed[key] = this.compressObject(value);
+        } else {
+          compressed[key] = value;
+        }
+      }
+
+      return compressed;
+    }
+
+    return obj;
+  }
+
+  /**
+   * Decompress response data when retrieving from cache
+   */
+  private static async decompressResponseData(
+    data: any,
+    compressionRatio?: string,
+  ): Promise<any> {
+    try {
+      // Data is already in usable format since we stored minified JSON
+      // Additional decompression logic can be added here if needed
+
+      if (compressionRatio && parseFloat(compressionRatio) > 1.5) {
+        logger.debug("Response decompressed", {
+          ratio: compressionRatio,
+        });
+      }
+
+      return data;
+    } catch (error) {
+      logger.debug("Response decompression failed, returning original data", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return data;
     }
   }
 
@@ -700,8 +956,14 @@ export class UnifiedCacheManager {
         return response;
       }
 
+      // Decompress data if needed
+      const responseData = await this.decompressResponseData(
+        cached.data,
+        cached.metadata.compressionRatio,
+      );
+
       // Return cached response
-      const response = NextResponse.json(cached.data, {
+      const response = NextResponse.json(responseData, {
         status: cached.status,
       });
 
