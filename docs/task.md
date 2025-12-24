@@ -73,6 +73,24 @@
   - **Implementation**: Created `/lib/services/user-service.ts` with centralized auth and DB operations
   - **Impact**: Eliminated code duplication between `/api/blueprints` and `/api/credits` routes
   - **Benefits**: Improved maintainability, better error handling, follows Service Layer principle
+- [x] **COMPLETED**: Extract monitoring dashboard logic into reusable hooks and utilities
+  - **Implementation**:
+    - Created `/lib/hooks/use-monitoring.ts` - Custom React hook for monitoring data fetching and state management
+    - Created `/lib/utils/monitoring-utils.ts` - Shared utility functions for formatting and calculations
+  - **Impact**: Refactored `/app/dashboard/monitoring/page.tsx` (533 → 444 lines, 17% reduction)
+  - **Benefits**:
+    - Eliminated 89 lines of inline data fetching logic and utility functions
+    - Created reusable `useMonitoring` hook that can be used across any monitoring interface
+    - Extracted `formatDuration`, `formatUptime`, `calculateHealthPercentage` utilities for reusability
+    - Follows Service Layer principle - business logic separated from UI components
+    - Improved maintainability through atomic modular design
+    - Enhanced reusability - hook can be used in future dashboard interfaces
+  - **Design Principles Applied**:
+    - **Atomic Modularity**: Each function has a single responsibility
+    - **Component Reusability**: `useMonitoring` hook can be used across multiple interfaces
+    - **Service Layer**: Business logic extracted from UI components
+    - **Flexibility**: Hook accepts configuration options for different use cases
+  - **Validation**: Build ✓ Lint ✓ Typecheck ✓ Tests (24/24 passing) ✓
 
 ## Critical Production Issues 🔴 (From 95/100 Audit - ALL COMPLETED)
 

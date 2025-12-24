@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ErrorIcon,
@@ -14,120 +14,31 @@ import {
   type StatusType,
 } from "@/components/ui/status-indicator";
 import { MetricSummaryCard } from "@/components/ui/metric-card";
-
-interface SystemHealth {
-  status: "healthy" | "degraded" | "unhealthy";
-  timestamp: string;
-  uptime: number;
-  checks: Array<{
-    service: string;
-    status: "healthy" | "degraded" | "unhealthy";
-    responseTime?: number;
-    error?: string;
-  }>;
-}
-
-interface MetricSummary {
-  count: number;
-  avg: number;
-  min: number;
-  max: number;
-  unit: string;
-}
-
-interface MetricsData {
-  metrics: string[];
-  summaries: Record<string, MetricSummary>;
-  recent: Array<{
-    name: string;
-    value: number;
-    unit: string;
-    timestamp: string;
-  }>;
-  timestamp: string;
-}
-
-// Icons now imported from @/components/ui/icons
+import { useMonitoring } from "@/lib/hooks/use-monitoring";
+import {
+  formatDuration,
+  formatUptime,
+  calculateHealthPercentage,
+  calculateLiveStatus,
+} from "@/lib/utils/monitoring-utils";
 
 export default function MonitoringDashboard() {
-  const [health, setHealth] = useState<SystemHealth | null>(null);
-  const [metrics, setMetrics] = useState<MetricsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [expandedService, setExpandedService] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  const refreshData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const [healthResponse, metricsResponse] = await Promise.allSettled([
-        fetch("/api/health?detailed=true"),
-        fetch("/api/metrics"),
-      ]);
-
-      if (healthResponse.status === "fulfilled") {
-        const healthData = await healthResponse.value.json();
-        setHealth(healthData);
-      } else {
-        throw new Error("Failed to fetch health data");
-      }
-
-      if (metricsResponse.status === "fulfilled") {
-        const metricsData = await metricsResponse.value.json();
-        setMetrics(metricsData);
-      } else {
-        throw new Error("Failed to fetch metrics data");
-      }
-
-      setLastRefresh(new Date());
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Unknown error occurred";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshData();
-  }, [refreshData]);
-
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(refreshData, 30000); // 30 seconds
-    return () => clearInterval(interval);
-  }, [autoRefresh, refreshData]);
-
-  // Status colors and icons now handled by StatusIndicator component
-
-  const formatDuration = (ms: number) => {
-    if (ms < 1000) return `${ms}ms`;
-    return `${(ms / 1000).toFixed(2)}s`;
-  };
-
-  const formatUptime = (seconds: number) => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
-  };
-
-  // Calculate health percentage for visual representation
-  const calculateHealthPercentage = (health: SystemHealth | null) => {
-    if (!health) return 0;
-    const healthyServices = health.checks.filter(
-      (check) => check.status === "healthy",
-    ).length;
-    return Math.round((healthyServices / health.checks.length) * 100);
-  };
+  const {
+    health,
+    metrics,
+    loading,
+    autoRefresh,
+    error,
+    lastRefresh,
+    refreshData,
+    setAutoRefresh,
+  } = useMonitoring({
+    autoRefresh: true,
+    refreshInterval: 30000,
+    detailed: true,
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 md:p-6 lg:p-8">
@@ -295,9 +206,7 @@ export default function MonitoringDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {health.checks.map((check, index) => {
                   const isExpanded = expandedService === check.service;
-                  const timeSinceUpdate = health.timestamp
-                    ? Date.now() - new Date(health.timestamp).getTime()
-                    : 0;
+                  const isLive = calculateLiveStatus(health.timestamp);
 
                   return (
                     <div
@@ -320,7 +229,7 @@ export default function MonitoringDashboard() {
                             {check.service}
                           </h4>
                           <div className="flex items-center gap-3">
-                            {timeSinceUpdate < 5000 && (
+                            {isLive && (
                               <div className="flex items-center gap-1">
                                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                                 <span className="text-xs text-gray-500">
@@ -503,7 +412,7 @@ export default function MonitoringDashboard() {
               </span>
               <span className="text-xs text-gray-400">•</span>
               <span className="text-sm text-gray-600">
-                Last: {lastRefresh.toLocaleTimeString()}
+                Last: {lastRefresh?.toLocaleTimeString() || "Never"}
               </span>
             </div>
             {autoRefresh && (
