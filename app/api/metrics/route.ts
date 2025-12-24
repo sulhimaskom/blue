@@ -3,13 +3,13 @@ import { monitoringService } from "@/lib/monitoring";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ValidationError } from "@/lib/api-utils";
 import { circuitBreakerRegistry } from "@/lib/circuit-breaker";
-import { ResponseCache } from "@/lib/response-cache";
+import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 import { DatabasePerformanceMonitor } from "@/lib/db/performance-monitor";
 
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: false,
   handler: async ({ req }) => {
-    return ResponseCache.withCache(
+    return UnifiedCacheManager.withCache(
       req,
       async () => {
         const { searchParams } = new URL(req.url);
