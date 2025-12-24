@@ -5,6 +5,7 @@ import { blueprints, projects } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { UnifiedCacheManager } from "./unified-cache-manager";
 import { AIPatternDetector, type AIPattern } from "./ai-pattern-detector";
+import DatabaseQueryCache from "./database-cache-service";
 
 export interface BlueprintGenerationRequest {
   userId: number;
@@ -592,9 +593,10 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
           blueprintData,
           research,
         ),
-        // Invalidate user stats cache when new blueprint is created
-        UnifiedCacheManager.invalidateByTag(`user-${request.userId}`),
       ]);
+
+      // Invalidate user cache when new blueprint is created
+      await DatabaseQueryCache.invalidateUserCache(request.userId);
 
       const blueprintId = blueprint[0].id;
 
@@ -719,10 +721,12 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
 
       // Intelligent cache invalidation for blueprint updates
       const blueprintType = this.extractBlueprintType(updatedBlueprint);
-      await UnifiedCacheManager.invalidateBlueprintCache(
-        current.projectId.toString(),
-        blueprintType,
-      );
+      await DatabaseQueryCache.invalidateBlueprintCache(request.blueprintId);
+
+      // Also invalidate tags from unified cache for blueprint type
+      if (blueprintType) {
+        await UnifiedCacheManager.invalidateByTag(blueprintType);
+      }
 
       const completionDuration = Date.now() - startTime;
 

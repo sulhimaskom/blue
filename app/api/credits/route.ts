@@ -5,6 +5,7 @@ import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { CREDIT_RULES, PRICING_PACKAGES } from "@/lib/constants";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { IdGenerators } from "@/lib/utils/id-generator";
+import DatabaseQueryCache from "@/lib/services/database-cache-service";
 
 const addCreditsSchema = z.object({
   amount: z
@@ -51,6 +52,9 @@ export const POST = APIRouteHandler.createPOSTHandler({
       context,
     );
 
+    // Invalidate user cache when credits are updated
+    await DatabaseQueryCache.invalidateUserCache(user!.id);
+
     logger.userAction("Credits purchased", user!.clerkId, {
       requestId: context.requestId,
       transactionId: newTransaction.id,
@@ -76,9 +80,12 @@ export const POST = APIRouteHandler.createPOSTHandler({
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: true,
   handler: async ({ context, user }) => {
-    // Get transaction history
-    const transactionHistory = await ProjectDataService.getUserTransactions(
-      user!.id,
+    // Get transaction history with caching
+    const transactionHistory = await DatabaseQueryCache.executeCachedQuery(
+      "user-transactions",
+      async () => ProjectDataService.getUserTransactions(user!.id),
+      { userId: user!.id },
+      { ttl: 900, tags: [`user-${user!.id}`, "transactions", "credits"] },
     );
 
     logger.userAction("Credits information fetched", user!.clerkId, {
