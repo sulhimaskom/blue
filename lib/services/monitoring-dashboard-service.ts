@@ -1,4 +1,10 @@
 import type { SystemHealth, MetricsData } from "../hooks/use-monitoring";
+import {
+  formatDuration,
+  formatUptime,
+  formatMetricDisplayName,
+  MONITORING_THRESHOLDS,
+} from "@/lib/utils/time-formatting";
 
 export interface HealthScoreMetrics {
   score: number;
@@ -100,7 +106,7 @@ export class MonitoringDashboardService {
       details.push({
         name: "responseTime",
         label: "Response time:",
-        value: this.formatDuration(check.responseTime),
+        value: formatDuration(check.responseTime),
       });
     }
 
@@ -132,7 +138,7 @@ export class MonitoringDashboardService {
   }> {
     return Object.entries(metrics.summaries).map(([name, summary]) => ({
       name,
-      displayName: this.formatMetricDisplayName(name),
+      displayName: formatMetricDisplayName(name),
       summary,
     }));
   }
@@ -143,9 +149,8 @@ export class MonitoringDashboardService {
   static getRecentActivityData(metrics: MetricsData) {
     return metrics.recent.slice(0, 10).map((metric, index) => ({
       id: index,
-      name: this.formatMetricDisplayName(metric.name),
-      value:
-        metric.unit === "ms" ? this.formatDuration(metric.value) : metric.value,
+      name: formatMetricDisplayName(metric.name),
+      value: metric.unit === "ms" ? formatDuration(metric.value) : metric.value,
       unit: metric.unit,
       timestamp: metric.timestamp,
       formattedTime: new Date(metric.timestamp).toLocaleString(),
@@ -157,7 +162,7 @@ export class MonitoringDashboardService {
    */
   static getSystemOverviewData(health: SystemHealth) {
     return {
-      uptime: this.formatUptime(health.uptime),
+      uptime: formatUptime(health.uptime),
       totalServices: health.checks.length,
       healthScore: this.calculateHealthScoreMetrics(health),
       lastUpdate: new Date(health.timestamp),
@@ -176,25 +181,6 @@ export class MonitoringDashboardService {
 
   private static isDataLive(timestamp: string): boolean {
     const timeSinceUpdate = Date.now() - new Date(timestamp).getTime();
-    return timeSinceUpdate < 5000; // less than 5 seconds ago
-  }
-
-  private static formatDuration(ms: number): string {
-    if (ms < 1000) return `${ms}ms`;
-    return `${(ms / 1000).toFixed(2)}s`;
-  }
-
-  private static formatUptime(seconds: number): string {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
-  }
-
-  private static formatMetricDisplayName(name: string): string {
-    return name.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+    return timeSinceUpdate < MONITORING_THRESHOLDS.DATA_FRESHNESS;
   }
 }

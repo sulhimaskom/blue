@@ -5,6 +5,7 @@ import {
   Dispatch,
   SetStateAction,
 } from "react";
+import { MONITORING_REFRESH_INTERVAL } from "@/lib/utils/time-formatting";
 
 export interface SystemHealth {
   status: "healthy" | "degraded" | "unhealthy";
@@ -60,7 +61,7 @@ export function useMonitoring(
 ): UseMonitoringReturn {
   const {
     autoRefresh: defaultAutoRefresh = true,
-    refreshInterval = 30000,
+    refreshInterval = MONITORING_REFRESH_INTERVAL,
     detailed = true,
   } = options;
 
