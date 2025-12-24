@@ -67,10 +67,8 @@ export class PredictivePerformanceAnalyzer {
       const anomalies = await this.detectAnomalies(currentMetrics);
 
       // Recommend optimizations based on patterns
-      const optimizations = await this.generateOptimizationRecommendations(
-        currentMetrics,
-        predictions,
-      );
+      const optimizations =
+        await this.generateOptimizationRecommendations(currentMetrics);
 
       // Calculate overall health score
       const healthScore = this.calculateHealthScore(
@@ -350,7 +348,7 @@ export class PredictivePerformanceAnalyzer {
    */
   private static calculateUrgency(
     metric: string,
-    currentValue: number,
+    _currentValue: number,
     predicted: number,
     confidence: number,
   ): "low" | "medium" | "high" | "critical" {
@@ -555,7 +553,6 @@ export class PredictivePerformanceAnalyzer {
    */
   private static async generateOptimizationRecommendations(
     currentMetrics: Map<string, number>,
-    _predictions: PerformancePrediction[],
   ): Promise<
     Array<{
       type: "index" | "cache" | "query" | "connection";
