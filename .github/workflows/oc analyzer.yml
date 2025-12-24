@@ -57,8 +57,13 @@ jobs:
 
       - name: Install OpenCode
         run: |
-          curl -fsSL https://opencode.ai/install | bash
+          # Use specific version to avoid GitHub API rate limiting issues
+          curl -fsSL https://opencode.ai/install | bash -s -- --version 1.0.193
           echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+
+      - name: Verify OpenCode Installation
+        run: |
+          opencode --version || (echo "OpenCode installation failed" && exit 1)
 
       - name: Execute
         run: |
@@ -86,6 +91,3 @@ jobs:
           ---
           *This issue was auto-generated.*" \
             --label "bug" || echo "Could not create issue"
-
-
-

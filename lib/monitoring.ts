@@ -1,4 +1,8 @@
 import { logger } from "./logger";
+import {
+  MONITORING_REFRESH_INTERVAL,
+  MONITORING_THRESHOLDS,
+} from "./utils/time-formatting";
 
 export interface HealthCheck {
   service: string;
@@ -130,7 +134,7 @@ class MonitoringService {
   private scheduleHealthCheck(
     service: string,
     checkFn: () => Promise<HealthCheck>,
-    interval: number = 30000, // 30 seconds
+    interval: number = MONITORING_REFRESH_INTERVAL,
   ): void {
     // Run immediately, then schedule
     checkFn().then((result) => {
@@ -202,7 +206,7 @@ class MonitoringService {
     this.metrics.set(name, existing);
 
     // Log significant metrics
-    if (name.includes("time") && value > 5000) {
+    if (name.includes("time") && value > MONITORING_THRESHOLDS.SLOW_RESPONSE) {
       logger.warn(`Slow operation detected: ${name}`, {
         metric: name,
         value,

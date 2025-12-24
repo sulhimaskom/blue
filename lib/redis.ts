@@ -1,5 +1,6 @@
 import { createClient, type RedisClientType } from "redis";
 import { logger } from "./logger";
+import { RedisConfig } from "./redis-config";
 
 interface CircuitBreakerConfig {
   failureThreshold: number;
@@ -96,6 +97,9 @@ class RedisManager {
   private lastMetricsUpdate = Date.now();
 
   constructor() {
+    // Log Redis configuration status
+    RedisConfig.logConfigurationStatus();
+
     this.circuitBreaker = new CircuitBreaker({
       failureThreshold: 5,
       resetTimeout: 30000, // 30 seconds
@@ -138,24 +142,30 @@ class RedisManager {
 
     try {
       return await this.circuitBreaker.execute(async () => {
-        const redisUrl = process.env.REDIS_URL;
-        const redisPassword = process.env.REDIS_PASSWORD;
+        const config = RedisConfig.getRedisConfig();
+        const devConfig = RedisConfig.getDevelopmentConfig();
 
-        if (!redisUrl) {
-          throw new Error("REDIS_URL environment variable is required");
+        if (!config.isConfigured) {
+          if (devConfig.fallbackMode) {
+            throw new Error(
+              "Redis not configured - see logs for setup instructions",
+            );
+          }
         }
 
         this.client = createClient({
-          url: redisUrl,
-          password: redisPassword || undefined,
+          url: config.url,
+          password: config.password,
           socket: {
-            connectTimeout: 3000, // Reduced from 5000ms
+            connectTimeout: devConfig.connectionTimeout,
             reconnectStrategy: (retries) => {
-              if (retries > 5) {
-                // Reduced from 10
+              if (retries > devConfig.maxRetries) {
                 return new Error("Max reconnection attempts reached");
               }
-              return Math.min(retries * 30, 300); // Faster reconnection
+              return Math.min(
+                (retries * devConfig.retryDelay) / 10,
+                devConfig.retryDelay,
+              );
             },
           },
         });

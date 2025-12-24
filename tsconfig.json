@@ -24,5 +24,13 @@
     "target": "ES2017"
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "__tests__/factories/",
+    "__tests__/builders/",
+    "__tests__/setup/",
+    "__tests__/helpers/",
+    "__tests__/mocks/",
+    "__tests__/api/"
+  ]
 }
