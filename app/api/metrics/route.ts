@@ -4,6 +4,7 @@ import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ValidationError } from "@/lib/api-utils";
 import { circuitBreakerRegistry } from "@/lib/circuit-breaker";
 import { ResponseCache } from "@/lib/response-cache";
+import { DatabasePerformanceMonitor } from "@/lib/db/performance-monitor";
 
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: false,
@@ -75,6 +76,14 @@ export const GET = APIRouteHandler.createGETHandler({
             };
           }
 
+          // Add database performance metrics
+          const dbPerformanceMetrics =
+            DatabasePerformanceMonitor.getPerformanceMetrics();
+          const dbRecommendations =
+            DatabasePerformanceMonitor.getPerformanceRecommendations();
+          const realTimeIndicators =
+            await DatabasePerformanceMonitor.getRealTimePerformanceIndicators();
+
           return NextResponse.json({
             metrics: metricNames,
             summaries,
@@ -89,6 +98,11 @@ export const GET = APIRouteHandler.createGETHandler({
                   ? Math.round((healthyCircuits / totalCircuits) * 100)
                   : 100;
               })(),
+            },
+            database: {
+              performance: dbPerformanceMetrics,
+              recommendations: dbRecommendations,
+              realTime: realTimeIndicators,
             },
             recent: metrics.slice(0, 50), // Latest 50 metrics across all types
             timestamp: new Date().toISOString(),

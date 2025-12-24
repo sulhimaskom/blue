@@ -76,17 +76,41 @@ export async function checkDbHealth(): Promise<{
 }> {
   const startTime = Date.now();
 
+  // Skip database connection during build time
+  if (
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    (process.env.NODE_ENV === "development" && !process.env.DATABASE_URL)
+  ) {
+    return {
+      healthy: false,
+      latency: Date.now() - startTime,
+      error: "Database unavailable during build time",
+    };
+  }
+
+  // Ensure database connection is initialized
+  let sql;
+  try {
+    sql = neon(process.env.DATABASE_URL!);
+  } catch (error) {
+    return {
+      healthy: false,
+      latency: Date.now() - startTime,
+      error: "Database connection failed",
+    };
+  }
+
   try {
     // Perform multiple health checks in parallel for comprehensive status
     const [connectionCount, databaseSize, uptime] = await Promise.allSettled([
       // Active connection count
-      _sql`SELECT count(*) as count FROM pg_stat_activity WHERE datname = current_database()`,
+      sql`SELECT count(*) as count FROM pg_stat_activity WHERE datname = current_database()`,
 
       // Database size
-      _sql`SELECT pg_size_pretty(pg_database_size(current_database())) as size`,
+      sql`SELECT pg_size_pretty(pg_database_size(current_database())) as size`,
 
       // Database uptime
-      _sql`SELECT date_trunc('second', pg_postmaster_start_time()) as uptime`,
+      sql`SELECT date_trunc('second', pg_postmaster_start_time()) as uptime`,
     ]);
 
     const latency = Date.now() - startTime;
@@ -140,14 +164,53 @@ export async function checkDbHealth(): Promise<{
 
 // Enhanced connection pool statistics with real-time metrics
 export async function getPoolStats() {
+  // Skip during build time
+  if (
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    (process.env.NODE_ENV === "development" && !process.env.DATABASE_URL)
+  ) {
+    return {
+      status: "build_time",
+      maxConnections: DB_POOL_CONFIG.max,
+      minConnections: DB_POOL_CONFIG.min,
+      idleTimeout: DB_POOL_CONFIG.idleTimeoutMillis,
+      connectionTimeout: DB_POOL_CONFIG.connectionTimeoutMillis,
+      activeConnections: "n/a",
+      activeQueries: "n/a",
+      connectionUtilization: "n/a",
+      availableConnections: "n/a",
+      timestamps: {
+        lastChecked: new Date().toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+    };
+  }
+
   try {
-    // Get real-time connection metrics from Neon
-    const connectionMetrics = await _sql`SELECT 
+    // Ensure we have a valid SQL connection
+    const sql = _sql || neon(process.env.DATABASE_URL!);
+
+    // Get real-time connection metrics from Neon with performance optimizations
+    const connectionMetrics = await sql`SELECT 
       count(*) as active_connections,
       count(*) FILTER (WHERE state = 'active') as active_queries,
-      count(*) FILTER (WHERE state = 'idle') as idle_connections
+      count(*) FILTER (WHERE state = 'idle') as idle_connections,
+      count(*) FILTER (WHERE state = 'idle in transaction') as idle_in_transaction
       FROM pg_stat_activity 
       WHERE datname = current_database()`;
+
+    const activeConnections = parseInt(
+      (connectionMetrics as any)[0]?.active_connections || "0",
+    );
+    const activeQueries = parseInt(
+      (connectionMetrics as any)[0]?.active_queries || "0",
+    );
+    const idleConnections = parseInt(
+      (connectionMetrics as any)[0]?.idle_connections || "0",
+    );
+    const idleInTransaction = parseInt(
+      (connectionMetrics as any)[0]?.idle_in_transaction || "0",
+    );
 
     return {
       // Configuration
@@ -157,25 +220,24 @@ export async function getPoolStats() {
       connectionTimeout: DB_POOL_CONFIG.connectionTimeoutMillis,
 
       // Real-time metrics
-      activeConnections: parseInt(
-        (connectionMetrics as any)[0]?.active_connections || "0",
-      ),
-      activeQueries: parseInt(
-        (connectionMetrics as any)[0]?.active_queries || "0",
-      ),
-      idleConnections: parseInt(
-        (connectionMetrics as any)[0]?.idle_connections || "0",
-      ),
+      activeConnections,
+      activeQueries,
+      idleConnections,
+      idleInTransaction,
       connectionUtilization: Math.round(
-        (parseInt((connectionMetrics as any)[0]?.active_connections || "0") /
-          DB_POOL_CONFIG.max) *
-          100,
+        (activeConnections / DB_POOL_CONFIG.max) * 100,
       ),
-      availableConnections: Math.max(
-        0,
-        DB_POOL_CONFIG.max -
-          parseInt((connectionMetrics as any)[0]?.active_connections || "0"),
-      ),
+      availableConnections: Math.max(0, DB_POOL_CONFIG.max - activeConnections),
+
+      // Additional performance metrics
+      avgQueryTime:
+        activeConnections > 0
+          ? Math.round((activeQueries / activeConnections) * 100) / 100
+          : 0,
+      connectionEfficiency:
+        activeConnections > 0
+          ? Math.round((activeQueries / activeConnections) * 100)
+          : 0,
 
       timestamps: {
         lastChecked: new Date().toISOString(),
@@ -189,6 +251,7 @@ export async function getPoolStats() {
 
     // Fallback to configuration-only stats
     return {
+      status: "error",
       maxConnections: DB_POOL_CONFIG.max,
       minConnections: DB_POOL_CONFIG.min,
       idleTimeout: DB_POOL_CONFIG.idleTimeoutMillis,
@@ -197,6 +260,7 @@ export async function getPoolStats() {
       activeQueries: "unknown",
       connectionUtilization: "unknown",
       availableConnections: "unknown",
+      error: error instanceof Error ? error.message : "Unknown error",
       timestamps: {
         lastChecked: new Date().toISOString(),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,

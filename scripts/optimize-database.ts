@@ -12,8 +12,9 @@
  */
 
 import { DatabaseIndexer } from "../lib/db/indexes";
-import { getDb, checkDbHealth } from "../lib/db";
+import { getDb, checkDbHealth, getPoolStats } from "../lib/db";
 import { logger } from "../lib/logger";
+import { DatabasePerformanceMonitor } from "../lib/db/performance-monitor";
 
 async function main() {
   try {
@@ -77,11 +78,55 @@ async function main() {
       });
     }
 
+    // Enhanced performance monitoring
+    console.log("\n⚡ Enhanced Performance Analysis...");
+    const realTimeIndicators =
+      await DatabasePerformanceMonitor.getRealTimePerformanceIndicators();
+
+    console.log(
+      `   • Connection Health: ${realTimeIndicators.connectionHealth ? "✅ Healthy" : "❌ Unhealthy"}`,
+    );
+    console.log(`   • Query Latency: ${realTimeIndicators.queryLatency}ms`);
+    console.log(
+      `   • Throughput: ${realTimeIndicators.throughput.toFixed(2)} queries/sec`,
+    );
+    console.log(`   • Error Rate: ${realTimeIndicators.errorRate.toFixed(1)}%`);
+
+    // Connection pool statistics
+    console.log("\n🔗 Connection Pool Analysis...");
+    try {
+      const poolStats = await getPoolStats();
+      console.log(`   • Max Connections: ${poolStats.maxConnections}`);
+      console.log(`   • Active Connections: ${poolStats.activeConnections}`);
+      console.log(
+        `   • Connection Utilization: ${poolStats.connectionUtilization}%`,
+      );
+      console.log(
+        `   • Available Connections: ${poolStats.availableConnections}`,
+      );
+    } catch (error) {
+      console.log(
+        "   ⚠️  Pool stats unavailable:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+
+    // Performance recommendations
+    if (realTimeIndicators.recommendations.length > 0) {
+      console.log("\n💡 Performance Recommendations:");
+      realTimeIndicators.recommendations.forEach((rec, i) => {
+        console.log(`   ${i + 1}. ${rec}`);
+      });
+    }
+
     console.log("\n✅ Database optimization completed successfully!");
     console.log("\nNext steps:");
-    console.log("   • Monitor query performance in production");
-    console.log("   • Consider adding connection pooling monitoring");
+    console.log(
+      "   • Monitor query performance in production with DatabasePerformanceMonitor",
+    );
+    console.log("   • Track connection pooling with `/api/metrics` endpoint");
     console.log("   • Schedule regular ANALYZE operations");
+    console.log("   • Set up alerts for slow queries >500ms");
   } catch (error) {
     console.error("\n❌ Database optimization failed:", error);
     process.exit(1);
