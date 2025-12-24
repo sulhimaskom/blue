@@ -27,6 +27,10 @@ const envSchema = z.object({
 
   // GitHub
   GITHUB_ACCESS_TOKEN: z.string().min(1, "GitHub access token is required"),
+
+  // Redis (Optional - will fall back to in-memory if not provided)
+  REDIS_URL: z.string().url().optional(),
+  REDIS_PASSWORD: z.string().optional(),
 });
 
 type Env = z.infer<typeof envSchema>;
