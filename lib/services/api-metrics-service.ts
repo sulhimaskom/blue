@@ -1,6 +1,7 @@
 import { monitoringService } from "@/lib/monitoring";
 import { circuitBreakerRegistry } from "@/lib/circuit-breaker";
 import { DatabasePerformanceMonitor } from "@/lib/db/performance-monitor";
+import DatabaseQueryCache from "./database-cache-service";
 
 /**
  * Centralized API metrics calculation service
@@ -14,36 +15,46 @@ import { DatabasePerformanceMonitor } from "@/lib/db/performance-monitor";
  */
 export class APIMetricsService {
   /**
-   * Calculate comprehensive system metrics with all subsystems
+   * Calculate comprehensive system metrics with all subsystems and intelligent caching
    */
   static async getComprehensiveMetrics(limit: number = 100) {
-    // Get base monitoring metrics
-    const metrics = monitoringService.getMetrics(undefined, limit);
-    const metricNames = [...new Set(metrics.map((m) => m.name))];
+    return DatabaseQueryCache.executeCachedQuery(
+      "comprehensive-metrics",
+      async () => {
+        // Get base monitoring metrics
+        const metrics = monitoringService.getMetrics(undefined, limit);
+        const metricNames = [...new Set(metrics.map((m) => m.name))];
 
-    // Calculate metric summaries
-    const summaries: Record<string, any> = {};
-    for (const name of metricNames) {
-      summaries[name] = monitoringService.getMetricSummary(name);
-    }
+        // Calculate metric summaries
+        const summaries: Record<string, any> = {};
+        for (const name of metricNames) {
+          summaries[name] = monitoringService.getMetricSummary(name);
+        }
 
-    // Get all subsystem metrics in parallel
-    const [circuitBreakerData, dbPerformanceData, redisPerformanceData] =
-      await Promise.all([
-        this.getCircuitBreakerMetrics(),
-        this.getDatabaseMetrics(),
-        this.getRedisMetrics(),
-      ]);
+        // Get all subsystem metrics in parallel
+        const [circuitBreakerData, dbPerformanceData, redisPerformanceData] =
+          await Promise.all([
+            this.getCircuitBreakerMetrics(),
+            this.getDatabaseMetrics(),
+            this.getRedisMetrics(),
+          ]);
 
-    return {
-      metrics: metricNames,
-      summaries,
-      circuitBreakers: circuitBreakerData,
-      database: dbPerformanceData,
-      redis: redisPerformanceData,
-      recent: metrics.slice(0, 50), // Latest 50 metrics across all types
-      timestamp: new Date().toISOString(),
-    };
+        return {
+          metrics: metricNames,
+          summaries,
+          circuitBreakers: circuitBreakerData,
+          database: dbPerformanceData,
+          redis: redisPerformanceData,
+          recent: metrics.slice(0, 50), // Latest 50 metrics across all types
+          timestamp: new Date().toISOString(),
+        };
+      },
+      { limit },
+      {
+        ttl: 30, // 30 seconds caching for comprehensive metrics aggregation
+        tags: ["metrics", "comprehensive-metrics", "aggregation"],
+      },
+    );
   }
 
   /**
