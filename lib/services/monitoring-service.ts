@@ -1,46 +1,10 @@
 import { logger } from "../logger";
-
-export interface SystemHealth {
-  status: "healthy" | "degraded" | "unhealthy";
-  timestamp: string;
-  uptime: number;
-  checks: Array<{
-    service: string;
-    status: "healthy" | "degraded" | "unhealthy";
-    responseTime?: number;
-    error?: string;
-  }>;
-}
-
-export interface MetricSummary {
-  count: number;
-  avg: number;
-  min: number;
-  max: number;
-  unit: string;
-}
-
-export interface MetricsData {
-  metrics: string[];
-  summaries: Record<string, MetricSummary>;
-  recent: Array<{
-    name: string;
-    value: number;
-    unit: string;
-    timestamp: string;
-  }>;
-  timestamp: string;
-}
-
-export interface MonitoringData {
-  health: SystemHealth | null;
-  metrics: MetricsData | null;
-}
-
-export interface MonitoringServiceOptions {
-  detailed?: boolean;
-  timeout?: number;
-}
+import type {
+  SystemHealth,
+  MetricsData,
+  MonitoringData,
+  MonitoringServiceOptions,
+} from "./service-types";
 
 export class MonitoringService {
   private readonly DEFAULT_TIMEOUT = 10000; // 10 seconds

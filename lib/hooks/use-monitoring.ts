@@ -1,41 +1,21 @@
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  Dispatch,
-  SetStateAction,
-} from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { MONITORING_REFRESH_INTERVAL } from "@/lib/utils/time-formatting";
-import {
-  monitoringService,
-  type SystemHealth,
-  type MetricsData,
-} from "@/lib/services/monitoring-service";
+import { monitoringService } from "@/lib/services/monitoring-service";
+import type {
+  SystemHealth,
+  MetricsData,
+  UseMonitoringOptions,
+  UseMonitoringReturn,
+} from "@/lib/services/service-types";
 
-// Type definitions now centralized in monitoring-service.ts
+// Export types from centralized service-types for convenience
 export type {
   SystemHealth,
   MetricsData,
   MetricSummary,
-} from "@/lib/services/monitoring-service";
-
-export interface UseMonitoringOptions {
-  autoRefresh?: boolean;
-  refreshInterval?: number;
-  detailed?: boolean;
-}
-
-export interface UseMonitoringReturn {
-  health: SystemHealth | null;
-  metrics: MetricsData | null;
-  loading: boolean;
-  autoRefresh: boolean;
-  error: string | null;
-  lastRefresh: Date | null;
-  refreshData: () => Promise<void>;
-  setAutoRefresh: Dispatch<SetStateAction<boolean>>;
-}
+  UseMonitoringOptions,
+  UseMonitoringReturn,
+} from "@/lib/services/service-types";
 
 export function useMonitoring(
   options: UseMonitoringOptions = {},

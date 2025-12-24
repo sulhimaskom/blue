@@ -2,6 +2,10 @@ import { logger, createRequestContext } from "@/lib/logger";
 import { monitoringService } from "@/lib/monitoring";
 import { circuitBreakerRegistry, SERVICE_CONFIGS } from "@/lib/circuit-breaker";
 import * as crypto from "crypto";
+import type {
+  GitHubRepoConfig,
+  GitHubCreateRepoResponse,
+} from "./service-types";
 
 /**
  * GitHub App Service
@@ -9,30 +13,6 @@ import * as crypto from "crypto";
  * Handles GitHub App API integration for repository creation and management.
  * Uses GitHub App authentication for higher rate limits and proper permissions.
  */
-
-export interface GitHubRepoConfig {
-  org: string;
-  name: string;
-  description: string;
-  isPrivate: boolean;
-  blueprintContent: string;
-}
-
-export interface GitHubCreateRepoResponse {
-  id: number;
-  name: string;
-  full_name: string;
-  html_url: string;
-  clone_url: string;
-  private: boolean;
-  created_at: string;
-}
-
-export interface GitHubAppConfig {
-  appId: string;
-  privateKey: string;
-  installationId?: string;
-}
 
 class GitHubServiceError extends Error {
   // Public properties for error serialization and debugging
