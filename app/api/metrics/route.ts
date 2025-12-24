@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 import { APIMetricsService } from "@/lib/services/api-metrics-service";
+import DatabaseQueryCache from "@/lib/services/database-cache-service";
 
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: false,
@@ -26,7 +27,21 @@ export const GET = APIRouteHandler.createGETHandler({
           // Get comprehensive metrics from service
           const comprehensiveMetrics =
             await APIMetricsService.getComprehensiveMetrics(limit);
-          return NextResponse.json(comprehensiveMetrics);
+
+          // Include database query cache statistics
+          const dbCacheStats = DatabaseQueryCache.getCacheStats();
+          const dbCacheSavings = DatabaseQueryCache.calculateCostSavings();
+
+          const enhancedMetrics = {
+            ...comprehensiveMetrics,
+            databaseQueryCache: {
+              ...dbCacheStats,
+              hitRatePercent: Math.round(dbCacheStats.hitRate * 100),
+              costSavings: dbCacheSavings,
+            },
+          };
+
+          return NextResponse.json(enhancedMetrics);
         }
       },
       {

@@ -4,6 +4,7 @@ import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 import { APIMetricsService } from "@/lib/services/api-metrics-service";
 import { RuntimeServiceInitializer } from "@/lib/services/runtime-service-initializer";
+import DatabaseQueryCache from "@/lib/services/database-cache-service";
 
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: false,
@@ -30,6 +31,20 @@ export const GET = APIRouteHandler.createGETHandler({
           checks: allChecks,
         });
 
+        // Get database cache statistics
+        const dbCacheStats = DatabaseQueryCache.getCacheStats();
+        const dbCacheHealth = {
+          service: "database-query-cache",
+          status: dbCacheStats.hitRate > 0.3 ? "healthy" : "degraded",
+          metrics: {
+            hitRate: Math.round(dbCacheStats.hitRate * 100),
+            totalQueries: dbCacheStats.totalQueries,
+            avgQueryTime: Math.round(dbCacheStats.avgQueryTime),
+          },
+        };
+
+        const allEnhancedChecks = [...allChecks, dbCacheHealth];
+
         const response = {
           status: overallStatus,
           timestamp: new Date().toISOString(),
@@ -37,8 +52,8 @@ export const GET = APIRouteHandler.createGETHandler({
           version: process.env.npm_package_version || "1.0.0",
           environment: process.env.NODE_ENV || "development",
           checks: detailed
-            ? allChecks
-            : allChecks.map(({ service, status, ...rest }) => ({
+            ? allEnhancedChecks
+            : allEnhancedChecks.map(({ service, status, ...rest }) => ({
                 service,
                 status,
                 error:
