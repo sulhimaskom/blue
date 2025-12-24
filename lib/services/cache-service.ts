@@ -284,4 +284,312 @@ export class CacheService {
       });
     }
   }
+
+  /**
+   * Intelligent cache invalidation for blueprint updates
+   */
+  static async invalidateBlueprintCache(
+    projectId: string,
+    blueprintType?: string,
+  ): Promise<void> {
+    try {
+      const tags = [
+        `project-${projectId}`,
+        "blueprint-complete",
+        "blueprint-skeleton",
+      ];
+
+      if (blueprintType) {
+        tags.push(blueprintType);
+      }
+
+      // Invalidate by tags in parallel for faster cleanup
+      await Promise.allSettled(tags.map((tag) => this.invalidateByTag(tag)));
+
+      logger.info("Blueprint cache invalidated", {
+        projectId,
+        blueprintType,
+        tagsInvalidated: tags.length,
+      });
+    } catch (error) {
+      logger.error("Blueprint cache invalidation failed", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        projectId,
+        blueprintType,
+      });
+    }
+  }
+
+  /**
+   * Pattern-based cache warming for common blueprint types
+   */
+  static async warmupPatternCache(patterns: string[]): Promise<void> {
+    try {
+      logger.info("Starting pattern-based cache warmup", {
+        patterns,
+        count: patterns.length,
+      });
+
+      const warmupPromises = patterns.map(async (pattern) => {
+        // Pre-cache common blueprint skeletons for this pattern
+        const skeletonData = {
+          pattern,
+          timestamp: Date.now(),
+          commonFeatures: this.getCommonFeaturesForPattern(pattern),
+          recommendedTechStack: this.getRecommendedTechStackForPattern(pattern),
+        };
+
+        await this.cacheAIResponse(
+          "blueprint-skeleton",
+          { pattern },
+          skeletonData,
+          {
+            ttl: 14400, // 4 hours for skeletons
+            tags: ["blueprint-skeleton", pattern, "pre-warmed"],
+          },
+        );
+
+        // Pre-cache research templates for common patterns
+        const researchTemplate = this.getResearchTemplateForPattern(pattern);
+        await this.cacheAIResponse(
+          "research-template",
+          { pattern },
+          researchTemplate,
+          {
+            ttl: 7200, // 2 hours for research templates
+            tags: ["research-template", pattern, "pre-warmed"],
+          },
+        );
+      });
+
+      await Promise.allSettled(warmupPromises);
+
+      logger.info("Pattern-based cache warmup completed", {
+        patterns,
+        count: patterns.length,
+      });
+    } catch (error) {
+      logger.error("Pattern-based cache warmup failed", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        patterns,
+      });
+    }
+  }
+
+  /**
+   * Get common features for a blueprint pattern
+   */
+  private static getCommonFeaturesForPattern(pattern: string): string[] {
+    const patternFeatures = {
+      marketplace: [
+        "User authentication and profiles",
+        "Product/service listings with search and filtering",
+        "Ratings and review system",
+        "Secure payment processing",
+        "Order management and tracking",
+        "Vendor/seller dashboards",
+        "Communication and messaging",
+        "Mobile-responsive design",
+      ],
+      ecommerce: [
+        "Product catalog with categories",
+        "Shopping cart and checkout",
+        "Payment gateway integration",
+        "Order management system",
+        "Inventory tracking",
+        "Customer account management",
+        "Product recommendations",
+        "Shipping and tax calculation",
+      ],
+      social: [
+        "User profiles and social feeds",
+        "Follow/friend system",
+        "Content posting and sharing",
+        "Likes and comments",
+        "Real-time notifications",
+        "Privacy controls",
+        "Direct messaging",
+        "Media upload and processing",
+      ],
+      dashboard: [
+        "Data visualization widgets",
+        "Real-time metrics display",
+        "Customizable dashboards",
+        "Data export functionality",
+        "User role management",
+        "Report generation",
+        "API data integration",
+        "Interactive charts",
+      ],
+      "api-service": [
+        "RESTful API endpoints",
+        "API authentication and rate limiting",
+        "Comprehensive documentation",
+        "API key management",
+        "Usage analytics",
+        "Webhook integration",
+        "SDK and client libraries",
+        "API monitoring and alerting",
+      ],
+      "web-app": [
+        "User authentication",
+        "Responsive design",
+        "Database integration",
+        "Form handling and validation",
+        "File upload capability",
+        "Search functionality",
+        "Admin interface",
+        "Performance optimization",
+      ],
+    };
+
+    return (
+      patternFeatures[pattern as keyof typeof patternFeatures] ||
+      patternFeatures["web-app"]
+    );
+  }
+
+  /**
+   * Get recommended tech stack for a blueprint pattern
+   */
+  private static getRecommendedTechStackForPattern(pattern: string): any {
+    const patternStacks = {
+      marketplace: {
+        runtime: "Node.js 20+",
+        framework: "Next.js 15",
+        database: "PostgreSQL 16",
+        auth: "Clerk",
+        deployment: "Vercel",
+      },
+      ecommerce: {
+        runtime: "Node.js 20+",
+        framework: "Next.js 15",
+        database: "PostgreSQL 16",
+        auth: "Clerk",
+        deployment: "Vercel",
+      },
+      social: {
+        runtime: "Node.js 20+",
+        framework: "Next.js 15",
+        database: "PostgreSQL 16 + Redis",
+        auth: "Clerk",
+        deployment: "Vercel",
+      },
+      dashboard: {
+        runtime: "Node.js 20+",
+        framework: "Next.js 15",
+        database: "PostgreSQL 16",
+        auth: "Clerk",
+        deployment: "Vercel",
+      },
+      "api-service": {
+        runtime: "Node.js 20+",
+        framework: "Express.js",
+        database: "PostgreSQL 16",
+        auth: "JWT with refresh tokens",
+        deployment: "AWS ECS",
+      },
+      "web-app": {
+        runtime: "Node.js 20+",
+        framework: "Next.js 15",
+        database: "PostgreSQL 16",
+        auth: "Clerk",
+        deployment: "Vercel",
+      },
+    };
+
+    return (
+      patternStacks[pattern as keyof typeof patternStacks] ||
+      patternStacks["web-app"]
+    );
+  }
+
+  /**
+   * Get research template for a blueprint pattern
+   */
+  private static getResearchTemplateForPattern(pattern: string): any {
+    const researchTemplates = {
+      marketplace: {
+        queryTemplate: "Market analysis for {idea} marketplace platform",
+        focusAreas: [
+          "Market size and growth potential",
+          "Competitor analysis and gaps",
+          "Target demographics and user behavior",
+          "Monetization strategies in market",
+          "Technology trends and innovations",
+        ],
+      },
+      ecommerce: {
+        queryTemplate: "E-commerce market research for {idea}",
+        focusAreas: [
+          "E-commerce trends and statistics",
+          "Competitor landscape and pricing",
+          "Consumer shopping behavior",
+          "Payment and logistics solutions",
+          "Market opportunities and niches",
+        ],
+      },
+      social: {
+        queryTemplate: "Social media platform analysis for {idea}",
+        focusAreas: [
+          "Social media usage patterns",
+          "Community engagement strategies",
+          "Privacy and regulatory considerations",
+          "Monetization in social platforms",
+          "Emerging social trends",
+        ],
+      },
+      dashboard: {
+        queryTemplate: "Analytics and dashboard market for {idea}",
+        focusAreas: [
+          "Data visualization trends",
+          "Business intelligence market",
+          "Integration requirements",
+          "User interface innovations",
+          "Competitive analysis",
+        ],
+      },
+      "api-service": {
+        queryTemplate: "API-as-a-Service market analysis for {idea}",
+        focusAreas: [
+          "API market growth and trends",
+          "Developer experience standards",
+          "Integration patterns",
+          "Monetization models for APIs",
+          "Technology stack preferences",
+        ],
+      },
+      "web-app": {
+        queryTemplate: "Web application market research for {idea}",
+        focusAreas: [
+          "Web application trends",
+          "User experience expectations",
+          "Technology landscape",
+          "Market validation",
+          "Growth strategies",
+        ],
+      },
+    };
+
+    return (
+      researchTemplates[pattern as keyof typeof researchTemplates] ||
+      researchTemplates["web-app"]
+    );
+  }
+
+  /**
+   * Get cache hit rate statistics (mock implementation)
+   */
+  static async getCacheHitRate(): Promise<number> {
+    try {
+      // In a real implementation, this would track hit/miss metrics
+      // For now, return a mock value based on cache performance expectations
+      return 0.65; // 65% hit rate
+    } catch (error) {
+      logger.error("Failed to get cache hit rate", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return 0;
+    }
+  }
 }

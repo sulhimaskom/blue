@@ -225,22 +225,13 @@ CRITICAL CONSTRAINTS:
       // Analyze input for common patterns and pre-cache related templates
       const patterns = this.analyzeInputPatterns(input);
 
-      // Pre-cache common blueprint skeletons for faster generation
-      for (const pattern of patterns) {
-        await CacheService.cacheAIResponse(
-          "blueprint-skeleton",
-          { pattern, input },
-          { pattern, timestamp: Date.now() },
-          {
-            ttl: 3600, // 1 hour for skeletons
-            tags: ["blueprint-skeleton", pattern],
-          },
-        );
-      }
+      // Use enhanced pattern-based cache warming
+      await CacheService.warmupPatternCache(patterns);
 
-      logger.debug("Blueprint cache warmed up", {
+      logger.debug("Blueprint cache warmed up with enhanced patterns", {
         inputLength: input.length,
         patternsIdentified: patterns.length,
+        warmingStrategy: "pattern-based",
       });
     } catch (error) {
       logger.debug("Cache warmup failed (non-critical)", {
@@ -384,14 +375,14 @@ CRITICAL CONSTRAINTS:
         avgGenerationTime: 0, // Would need timing data from blueprints table
       };
 
-      // Cache the results
+      // Cache the results with enhanced tagging
       await CacheService.cacheAIResponse(
         "user-blueprint-stats",
         cacheKey,
         stats,
         {
           ttl: 600, // 10 minutes for user stats
-          tags: ["user-stats", `user-${userId}`],
+          tags: ["user-stats", `user-${userId}`, "stats-cache"],
         },
       );
 
@@ -582,6 +573,8 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
           blueprintData,
           research,
         ),
+        // Invalidate user stats cache when new blueprint is created
+        CacheService.invalidateByTag(`user-${request.userId}`),
       ]);
 
       const blueprintId = blueprint[0].id;
@@ -705,6 +698,25 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
         marketResearch: current.marketResearch,
       });
 
+      // Intelligent cache invalidation for blueprint updates
+      const blueprintType = this.extractBlueprintType(updatedBlueprint);
+      await CacheService.invalidateBlueprintCache(
+        current.projectId.toString(),
+        blueprintType,
+      );
+
+      const completionDuration = Date.now() - startTime;
+
+      logger.info("Blueprint refinement completed", {
+        blueprintId: request.blueprintId,
+        previousVersion: current.version,
+        newVersion,
+        updateType: request.updateType,
+        blueprintType,
+        cacheInvalidated: true,
+        duration: `${completionDuration}ms`,
+      });
+
       const duration = Date.now() - startTime;
 
       logger.info("Blueprint refinement completed", {
@@ -715,13 +727,13 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
         duration: `${duration}ms`,
       });
     } catch (error) {
-      const duration = Date.now() - startTime;
+      const errorDuration = Date.now() - startTime;
 
       logger.error("Blueprint refinement failed", {
         blueprintId: request.blueprintId,
         updateType: request.updateType,
         error: error instanceof Error ? error.message : String(error),
-        duration: `${duration}ms`,
+        duration: `${errorDuration}ms`,
       });
 
       throw error;
