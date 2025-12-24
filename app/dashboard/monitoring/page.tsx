@@ -2,6 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  ErrorIcon,
+  RefreshIcon,
+  ActivityIcon,
+  ServerIcon,
+  ChartIcon,
+} from "@/components/ui/icons";
+import {
+  StatusIndicator,
+  type StatusType,
+} from "@/components/ui/status-indicator";
+import { MetricSummaryCard } from "@/components/ui/metric-card";
 
 interface SystemHealth {
   status: "healthy" | "degraded" | "unhealthy";
@@ -35,118 +47,7 @@ interface MetricsData {
   timestamp: string;
 }
 
-// Icon components for enhanced UI
-const CheckIcon = () => (
-  <svg
-    className="w-5 h-5 text-green-500"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M5 13l4 4L19 7"
-    />
-  </svg>
-);
-
-const ErrorIcon = () => (
-  <svg
-    className="w-5 h-5 text-red-500"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M6 18L18 6M6 6l12 12"
-    />
-  </svg>
-);
-
-const WarningIcon = () => (
-  <svg
-    className="w-5 h-5 text-yellow-500"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-    />
-  </svg>
-);
-
-const RefreshIcon = () => (
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-    />
-  </svg>
-);
-
-const ActivityIcon = () => (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-    />
-  </svg>
-);
-
-const ServerIcon = () => (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
-    />
-  </svg>
-);
-
-const ChartIcon = () => (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-    />
-  </svg>
-);
+// Icons now imported from @/components/ui/icons
 
 export default function MonitoringDashboard() {
   const [health, setHealth] = useState<SystemHealth | null>(null);
@@ -202,31 +103,7 @@ export default function MonitoringDashboard() {
     return () => clearInterval(interval);
   }, [autoRefresh, refreshData]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "healthy":
-        return "text-green-700 bg-green-50 border-green-200";
-      case "degraded":
-        return "text-yellow-700 bg-yellow-50 border-yellow-200";
-      case "unhealthy":
-        return "text-red-700 bg-red-50 border-red-200";
-      default:
-        return "text-gray-700 bg-gray-50 border-gray-200";
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "healthy":
-        return <CheckIcon />;
-      case "degraded":
-        return <WarningIcon />;
-      case "unhealthy":
-        return <ErrorIcon />;
-      default:
-        return null;
-    }
-  };
+  // Status colors and icons now handled by StatusIndicator component
 
   const formatDuration = (ms: number) => {
     if (ms < 1000) return `${ms}ms`;
@@ -337,12 +214,10 @@ export default function MonitoringDashboard() {
                 System Health
               </h2>
               <div className="ml-auto">
-                <span
-                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(health.status)}`}
-                >
-                  {getStatusIcon(health.status)}
-                  {health.status.toUpperCase()}
-                </span>
+                <StatusIndicator
+                  status={health.status as StatusType}
+                  size="md"
+                />
               </div>
             </div>
 
@@ -437,7 +312,11 @@ export default function MonitoringDashboard() {
                       >
                         <div className="flex items-center justify-between">
                           <h4 className="font-semibold text-gray-900 capitalize flex items-center gap-2">
-                            {getStatusIcon(check.status)}
+                            <StatusIndicator
+                              status={check.status as StatusType}
+                              size="sm"
+                              showText={false}
+                            />
                             {check.service}
                           </h4>
                           <div className="flex items-center gap-3">
@@ -449,11 +328,11 @@ export default function MonitoringDashboard() {
                                 </span>
                               </div>
                             )}
-                            <span
-                              className={`px-2 py-1 rounded-lg text-xs font-medium border ${getStatusColor(check.status)}`}
-                            >
-                              {check.status}
-                            </span>
+                            <StatusIndicator
+                              status={check.status as StatusType}
+                              size="sm"
+                              showIcon={false}
+                            />
                             <svg
                               className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                               fill="none"
@@ -493,11 +372,12 @@ export default function MonitoringDashboard() {
                               <span className="text-sm text-gray-600">
                                 Status:
                               </span>
-                              <span
-                                className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(check.status)}`}
-                              >
-                                {check.status}
-                              </span>
+                              <StatusIndicator
+                                status={check.status as StatusType}
+                                size="sm"
+                                showIcon={false}
+                                className="px-2 py-1 rounded text-xs font-medium"
+                              />
                             </div>
                             <div className="flex items-center justify-between py-2 px-3 bg-white rounded-lg border">
                               <span className="text-sm text-gray-600">
@@ -543,53 +423,13 @@ export default function MonitoringDashboard() {
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {Object.entries(metrics.summaries).map(([name, summary]) => (
-                <div
+                <MetricSummaryCard
                   key={name}
-                  className="bg-gradient-to-br from-white to-gray-50 border rounded-xl p-5 hover:shadow-md transition-all duration-200"
-                >
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <ChartIcon />
-                    {name
-                      .replace(/_/g, " ")
-                      .replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-sm text-gray-600">Count:</span>
-                      <span className="text-lg font-bold text-blue-600">
-                        {summary.count}
-                      </span>
-                    </div>
-                    {summary.unit !== "count" && (
-                      <>
-                        <div className="flex justify-between items-center py-1">
-                          <span className="text-sm text-gray-600">
-                            Average:
-                          </span>
-                          <span className="text-sm font-medium text-gray-900">
-                            {summary.unit === "ms"
-                              ? formatDuration(summary.avg)
-                              : summary.avg}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center py-1">
-                          <span className="text-sm text-gray-600">Range:</span>
-                          <span className="text-sm font-medium text-gray-900">
-                            {summary.unit === "ms"
-                              ? `${formatDuration(summary.min)} - ${formatDuration(summary.max)}`
-                              : `${summary.min} - ${summary.max}`}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                    <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                      <span className="text-sm text-gray-600">Unit:</span>
-                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
-                        {summary.unit}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  title={name
+                    .replace(/_/g, " ")
+                    .replace(/\b\w/g, (l) => l.toUpperCase())}
+                  summary={summary}
+                />
               ))}
             </div>
 
