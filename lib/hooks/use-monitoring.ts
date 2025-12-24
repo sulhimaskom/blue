@@ -2,6 +2,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   Dispatch,
   SetStateAction,
 } from "react";
@@ -77,23 +78,44 @@ export function useMonitoring(
     setError(null);
 
     try {
+      // Add request timeout and caching optimization
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
       const [healthResponse, metricsResponse] = await Promise.allSettled([
-        fetch(`/api/health?detailed=${detailed}`),
-        fetch("/api/metrics"),
+        fetch(`/api/health?detailed=${detailed}&_t=${Date.now()}`, {
+          signal: controller.signal,
+          headers: { "Cache-Control": "no-cache" },
+        }),
+        fetch(`/api/metrics?_t=${Date.now()}`, {
+          signal: controller.signal,
+          headers: { "Cache-Control": "no-cache" },
+        }),
       ]);
 
-      if (healthResponse.status === "fulfilled") {
+      clearTimeout(timeoutId);
+
+      let hasError = false;
+      const errors: string[] = [];
+
+      if (healthResponse.status === "fulfilled" && healthResponse.value.ok) {
         const healthData = await healthResponse.value.json();
         setHealth(healthData);
       } else {
-        throw new Error("Failed to fetch health data");
+        hasError = true;
+        errors.push("Failed to fetch health data");
       }
 
-      if (metricsResponse.status === "fulfilled") {
+      if (metricsResponse.status === "fulfilled" && metricsResponse.value.ok) {
         const metricsData = await metricsResponse.value.json();
         setMetrics(metricsData);
       } else {
-        throw new Error("Failed to fetch metrics data");
+        hasError = true;
+        errors.push("Failed to fetch metrics data");
+      }
+
+      if (hasError) {
+        throw new Error(errors.join("; "));
       }
 
       setLastRefresh(new Date());
@@ -101,6 +123,8 @@ export function useMonitoring(
       const errorMessage =
         err instanceof Error ? err.message : "Unknown error occurred";
       setError(errorMessage);
+
+      // Don't clear existing data on error - allow stale data display
     } finally {
       setLoading(false);
     }
@@ -117,14 +141,29 @@ export function useMonitoring(
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, refreshData]);
 
-  return {
-    health,
-    metrics,
-    loading,
-    autoRefresh,
-    error,
-    lastRefresh,
-    refreshData,
-    setAutoRefresh,
-  };
+  // Memoize the return object to prevent unnecessary re-renders
+  const returnObject = useMemo(
+    () => ({
+      health,
+      metrics,
+      loading,
+      autoRefresh,
+      error,
+      lastRefresh,
+      refreshData,
+      setAutoRefresh,
+    }),
+    [
+      health,
+      metrics,
+      loading,
+      autoRefresh,
+      error,
+      lastRefresh,
+      refreshData,
+      setAutoRefresh,
+    ],
+  );
+
+  return returnObject;
 }
