@@ -6,6 +6,7 @@ import {
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { IdGenerators } from "@/lib/utils/id-generator";
+import { APIResponseFormatter } from "@/lib/services/api-response-formatter";
 
 export interface WebhookHandlerConfig {
   serviceName: string;
@@ -24,7 +25,7 @@ export interface WebhookHandlerConfig {
  * - Test environment response handling
  * - Signature verification patterns
  */
-class WebhookService {
+export class WebhookService {
   /**
    * Create standardized webhook response based on environment
    */
@@ -147,6 +148,47 @@ class WebhookService {
   static handleOptions(): Response {
     return new Response(null, { status: 200 });
   }
-}
+  /**
+   * Enhanced webhook response using APIResponseFormatter
+   * Provides consistent error handling and response structure
+   */
+  static createStandardizedWebhookResponse(
+    success: boolean,
+    data: any = { received: true },
+    error?: Error,
+    requestId?: string,
+    service?: string,
+  ): NextResponse | Response {
+    // Handle test environment differently for backward compatibility
+    if (process.env.NODE_ENV === "test") {
+      return new NextResponse(
+        JSON.stringify({
+          success,
+          data: success ? data : null,
+          error: success ? null : error?.message,
+        }),
+        {
+          status: success ? 200 : 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
 
-export { WebhookService };
+    // Use standardized API response formatter for production
+    if (success) {
+      return APIResponseFormatter.createSuccessResponse(
+        data,
+        requestId,
+        service,
+        "webhook_processing",
+      );
+    } else {
+      return APIResponseFormatter.createErrorResponse(
+        error || new Error("Webhook processing failed"),
+        requestId,
+        service,
+        "webhook_processing",
+      );
+    }
+  }
+}

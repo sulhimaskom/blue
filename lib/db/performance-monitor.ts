@@ -1,6 +1,7 @@
 import { db } from "./index";
 import { logger } from "../logger";
 import { sql } from "drizzle-orm";
+import { Timing } from "../utils/time-measurement";
 
 /**
  * Database performance monitoring and query optimization service
@@ -47,7 +48,7 @@ export class DatabasePerformanceMonitor {
       // Estimate row count if possible
       logger.debug("Query executed successfully", {
         queryName,
-        duration: `${Date.now() - startTime}ms`,
+        duration: `${Timing.perf(startTime)}ms`,
       });
 
       return result;
@@ -57,7 +58,7 @@ export class DatabasePerformanceMonitor {
 
       logger.warn("Query execution failed", {
         queryName,
-        duration: `${Date.now() - startTime}ms`,
+        duration: `${Timing.perf(startTime)}ms`,
         error,
       });
 
@@ -66,7 +67,7 @@ export class DatabasePerformanceMonitor {
       // Store metrics
       this.recordQueryMetrics({
         query: queryName,
-        duration: Date.now() - startTime,
+        duration: Timing.perf(startTime),
         timestamp: new Date(),
         success,
         error,
@@ -123,7 +124,9 @@ export class DatabasePerformanceMonitor {
       (q) => q.duration > this.SLOW_QUERY_THRESHOLD,
     );
     const recentErrors = this.queryHistory
-      .filter((q) => !q.success && Date.now() - q.timestamp.getTime() < 300000) // Last 5 minutes
+      .filter(
+        (q) => !q.success && Timing.now() - q.timestamp.getTime() < 300000,
+      ) // Last 5 minutes
       .slice(-10);
 
     // Query statistics by name
@@ -241,7 +244,7 @@ export class DatabasePerformanceMonitor {
     recommendations: string[];
   }> {
     try {
-      const startTime = Date.now();
+      const startTime = Timing.now();
 
       // Test query latency
       await this.trackQuery("health_check", async () => {
@@ -249,13 +252,14 @@ export class DatabasePerformanceMonitor {
         return database.execute(sql`SELECT 1 as health_check`);
       });
 
-      const queryLatency = Date.now() - startTime;
+      const queryLatency = Timing.perf(startTime);
       const metrics = this.getPerformanceMetrics();
       const throughput =
         metrics.totalQueries > 0
           ? metrics.totalQueries /
             (this.queryHistory.length > 0
-              ? (Date.now() - this.queryHistory[0]!.timestamp.getTime()) / 1000
+              ? (Timing.now() - this.queryHistory[0]!.timestamp.getTime()) /
+                1000
               : 1)
           : 0;
 

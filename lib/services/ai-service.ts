@@ -6,6 +6,12 @@ import { circuitBreakerRegistry, SERVICE_CONFIGS } from "../circuit-breaker";
 import { UnifiedCacheManager } from "./unified-cache-manager";
 import { AIPatternDetector } from "./ai-pattern-detector";
 import { IdGenerators } from "../utils/id-generator";
+import { Timing } from "../utils/time-measurement";
+// Error monitoring imports for future use
+// import {
+//   captureApiError,
+//   createMonitoredError,
+// } from "./error-monitoring-service";
 import type {
   AIModel,
   AICompletionRequest,
@@ -18,7 +24,7 @@ import type {
 // Re-export for backward compatibility
 export type { ResearchResult } from "./service-types";
 
-class AIService {
+export class AIService {
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly iflowCircuitBreaker;
@@ -63,7 +69,7 @@ class AIService {
   async generateCompletion(
     request: AICompletionRequest,
   ): Promise<AICompletionResponse> {
-    const startTime = Date.now();
+    const startTime = Timing.now();
     const context = { requestId: IdGenerators.REQUEST() };
 
     try {
@@ -86,11 +92,16 @@ class AIService {
       // Detect pattern for intelligent caching
       const detectedPattern = AIPatternDetector.detectPattern(request.prompt);
 
-      // Generate optimized cache key with pattern awareness
+      // Extract industry context for semantic caching
+      const industryContext =
+        AIPatternDetector.detectIndustryContext(request.prompt) || undefined;
+
+      // Generate enhanced cache key with semantic fingerprinting
       const optimizedCacheKey = AIPatternDetector.generateOptimizedCacheKey(
         "iflow",
         request.prompt,
         detectedPattern.pattern || undefined,
+        industryContext,
       );
 
       // Check unified cache with enhanced hit rates
@@ -119,7 +130,7 @@ class AIService {
           promptLength: request.prompt.length,
         });
 
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
         monitoringService.trackAIOperation("completion", duration, true, {
           model: cachedResponse.model,
           promptTokens: cachedResponse.usage.promptTokens,
@@ -183,7 +194,7 @@ class AIService {
           },
         };
 
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
 
         logger.info("AI completion completed successfully", {
           model: completion.model,

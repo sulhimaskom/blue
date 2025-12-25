@@ -149,6 +149,26 @@ export const UI_TEXT = {
     passwordMismatch: "Passwords do not match",
     fieldInvalid: "Please enter a valid value",
   },
+
+  // Homepage Content
+  homepage: {
+    hero: {
+      title: "Architect Platform",
+      subtitle:
+        "AI-powered platform for generating software blueprints and repositories",
+      actions: {
+        getStarted: "Get Started",
+        viewDemo: "View Demo",
+      },
+    },
+    sections: {
+      features: {
+        title: "Why Choose Architect Platform?",
+        description:
+          "From idea to production-ready repository in minutes, not weeks.",
+      },
+    },
+  },
 } as const;
 
 /**
@@ -159,16 +179,25 @@ export type UI_TEXT_KEY = typeof UI_TEXT;
 
 /**
  * Helper to get nested UI text values safely
+ * Supports dot notation for nested object access
  */
 export const getUIText = <K extends keyof UI_TEXT_KEY>(
   category: K,
-  key?: keyof UI_TEXT_KEY[K],
+  path?: string,
 ): string => {
-  if (!key) {
+  if (!path) {
     return UI_TEXT[category] as any;
   }
 
-  const value = UI_TEXT[category]?.[key];
+  // Handle dot notation for nested access
+  const keys = path.split(".");
+  let value: any = UI_TEXT[category];
+
+  for (const key of keys) {
+    value = value?.[key];
+    if (value === undefined) break;
+  }
+
   return typeof value === "string" ? value : String(value || "");
 };
 

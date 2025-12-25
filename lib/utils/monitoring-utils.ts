@@ -4,6 +4,7 @@ import {
   formatUptime,
   MONITORING_THRESHOLDS,
 } from "./time-formatting";
+import { Timing } from "./time-measurement";
 
 // Re-export for backward compatibility
 export { formatDuration, formatUptime };
@@ -17,7 +18,7 @@ export function calculateHealthPercentage(health: SystemHealth | null): number {
 }
 
 export function calculateLiveStatus(timestamp: string): boolean {
-  const timeSinceUpdate = Date.now() - new Date(timestamp).getTime();
+  const timeSinceUpdate = Timing.now() - new Date(timestamp).getTime();
   return timeSinceUpdate < MONITORING_THRESHOLDS.DATA_FRESHNESS;
 }
 

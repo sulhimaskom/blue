@@ -46,9 +46,12 @@ jobs:
         with:
           path: |
             ~/.opencode
-          key: ${{ runner.os }}-opencode-v1
+            ~/.npm
+            **/node_modules
+          key: ${{ runner.os }}-opencode-v2-${{ hashFiles('**/package*.json') }}
           restore-keys: |
-            ${{ runner.os }}-opencode-
+            ${{ runner.os }}-opencode-v2-
+            ${{ runner.os }}-opencode-v1-
 
       - name: Configure Git
         run: |

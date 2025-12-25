@@ -5,14 +5,24 @@ on:
     workflows: ["oc standarizer"]
     types: [completed]
   workflow_dispatch:
+  push:
+    branches: [agent-workspace, dev]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+  pull_request:
+    branches: [dev]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
 
 permissions:
   contents: read
   actions: write
 
 concurrency:
-  group: oc-agent
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
@@ -29,6 +39,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: ${{ steps.detect-pm.outputs.pm }}
 
       - name: Detect Package Manager
         id: detect-pm
@@ -56,40 +67,65 @@ jobs:
 
       - name: Setup Cache
         uses: actions/cache@v4
-        continue-on-error: true
+        continue-on-error: false
         with:
           path: |
             ~/.pnpm-store
             ~/.npm
             **/node_modules
-          key: ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v2-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock') }}
           restore-keys: |
+            ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v2-
             ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-
 
       - name: Install Dependencies
-        continue-on-error: true
+        continue-on-error: false
         run: ${{ steps.detect-pm.outputs.install }}
+
+      - name: Typecheck
+        id: typecheck
+        continue-on-error: false
+        run: ${{ steps.detect-pm.outputs.pm }} run typecheck --if-present
 
       - name: Lint
         id: lint
-        continue-on-error: true
+        continue-on-error: false
         run: ${{ steps.detect-pm.outputs.pm }} run lint --if-present
 
       - name: Test
         id: test
-        continue-on-error: true
+        continue-on-error: false
         run: ${{ steps.detect-pm.outputs.pm }} test --if-present
 
       - name: Build
         id: build
-        continue-on-error: true
+        continue-on-error: false
         run: ${{ steps.detect-pm.outputs.pm }} run build --if-present
 
       - name: Check Results
-        continue-on-error: true
+        continue-on-error: false
         run: |
-          if [[ "${{ steps.lint.outcome }}" == "failure" || "${{ steps.test.outcome }}" == "failure" || "${{ steps.build.outcome }}" == "failure" ]]; then
-            echo "❌ CI Check failed"
+          FAILED_CHECKS=0
+          if [[ "${{ steps.typecheck.outcome }}" == "failure" ]]; then
+            echo "❌ Typecheck failed: ${{ steps.typecheck.outcome }}"
+            FAILED_CHECKS=$((FAILED_CHECKS + 1))
+          fi
+          if [[ "${{ steps.lint.outcome }}" == "failure" ]]; then
+            echo "❌ Lint failed: ${{ steps.lint.outcome }}"
+            FAILED_CHECKS=$((FAILED_CHECKS + 1))
+          fi
+          if [[ "${{ steps.test.outcome }}" == "failure" ]]; then
+            echo "❌ Test failed: ${{ steps.test.outcome }}"
+            FAILED_CHECKS=$((FAILED_CHECKS + 1))
+          fi
+          if [[ "${{ steps.build.outcome }}" == "failure" ]]; then
+            echo "❌ Build failed: ${{ steps.build.outcome }}"
+            FAILED_CHECKS=$((FAILED_CHECKS + 1))
+          fi
+
+          if [[ $FAILED_CHECKS -gt 0 ]]; then
+            echo "❌ CI Check failed ($FAILED_CHECKS failures)"
+            echo "  Typecheck: ${{ steps.typecheck.outcome }}"
             echo "  Lint: ${{ steps.lint.outcome }}"
             echo "  Test: ${{ steps.test.outcome }}"
             echo "  Build: ${{ steps.build.outcome }}"
@@ -110,5 +146,3 @@ jobs:
       - name: Fail if checks failed
         if: env.CHECKS_FAILED == 'true'
         run: exit 1
-
-
