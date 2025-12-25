@@ -1,6 +1,54 @@
 import { logger } from "@/lib/logger";
 
 /**
+ * Circular Buffer for memory-efficient metrics collection
+ * Prevents unlimited memory growth while maintaining performance data
+ */
+class CircularBuffer<T> {
+  private buffer: T[];
+  private size: number;
+  private index: number;
+  private count: number;
+
+  constructor(size: number) {
+    this.buffer = new Array(size);
+    this.size = size;
+    this.index = 0;
+    this.count = 0;
+  }
+
+  push(item: T): void {
+    this.buffer[this.index] = item;
+    this.index = (this.index + 1) % this.size;
+    this.count = Math.min(this.count + 1, this.size);
+  }
+
+  getAll(): T[] {
+    if (this.count < this.size) {
+      return this.buffer.slice(0, this.count);
+    }
+    return [
+      ...this.buffer.slice(this.index),
+      ...this.buffer.slice(0, this.index),
+    ];
+  }
+
+  getLatest(n: number): T[] {
+    const all = this.getAll();
+    return all.slice(-Math.min(n, all.length));
+  }
+
+  clear(): void {
+    this.index = 0;
+    this.count = 0;
+  }
+
+  get length(): number {
+    return this.count;
+  }
+}
+
+/**
  * Simplified performance monitoring service for real-time optimization
  * Identifies performance bottlenecks and provides optimization recommendations
  */
@@ -44,11 +92,11 @@ export class PerformanceMonitorService {
   private metrics: Partial<PerformanceMetrics> = {};
   private alerts: PerformanceAlert[] = [];
   private isMonitoring = false;
-  private apiResponseTimes: Array<{
+  private apiResponseTimes = new CircularBuffer<{
     endpoint: string;
     time: number;
     timestamp: Date;
-  }> = [];
+  }>(100); // Keep only last 100 API calls
   private componentMetrics = new Map<
     string,
     { renderTime: number; reRenderCount: number }
@@ -223,14 +271,10 @@ export class PerformanceMonitorService {
       timestamp: new Date(),
     });
 
-    // Keep only last 100 API calls
-    if (this.apiResponseTimes.length > 100) {
-      this.apiResponseTimes = this.apiResponseTimes.slice(-100);
-    }
-
-    // Update aggregation metrics
-    const totalResponseTime = this.apiResponseTimes.reduce(
-      (sum, call) => sum + call.time,
+    // Update aggregation metrics (circular buffer handles size automatically)
+    const allCalls = this.apiResponseTimes.getAll();
+    const totalResponseTime = allCalls.reduce(
+      (sum: number, call) => sum + call.time,
       0,
     );
     this.metrics.avgApiResponseTime =
@@ -239,7 +283,7 @@ export class PerformanceMonitorService {
 
     // Find slowest endpoint
     if (this.apiResponseTimes.length > 0) {
-      const slowestCall = this.apiResponseTimes.reduce((slowest, current) =>
+      const slowestCall = allCalls.reduce((slowest: any, current) =>
         current.time > slowest.time ? current : slowest,
       );
       this.metrics.slowestApiEndpoint = slowestCall.endpoint;
@@ -374,7 +418,7 @@ export class PerformanceMonitorService {
   reset(): void {
     this.metrics = {};
     this.alerts = [];
-    this.apiResponseTimes = [];
+    this.apiResponseTimes.clear();
     this.componentMetrics.clear();
   }
 

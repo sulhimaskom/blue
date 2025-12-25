@@ -8,10 +8,16 @@ import {
 } from "@/components/monitoring/dashboard-layout";
 import { SystemHealthOverview } from "@/components/monitoring/system-health-overview";
 import { PerformanceMetrics } from "@/components/monitoring/performance-metrics";
-import { PerformanceDashboard } from "@/components/monitoring/performance-dashboard";
 import { DashboardFooter } from "@/components/monitoring/dashboard-footer";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, lazy, Suspense } from "react";
+
+// Dynamic imports for performance optimization - reduces initial bundle size
+const PerformanceDashboard = lazy(() =>
+  import("@/components/monitoring/performance-dashboard").then((module) => ({
+    default: module.PerformanceDashboard,
+  })),
+);
 
 export default function MonitoringDashboard() {
   const {
@@ -85,8 +91,10 @@ export default function MonitoringDashboard() {
       {/* Performance Metrics with loading state */}
       <PerformanceMetrics metrics={metrics || undefined} loading={loading} />
 
-      {/* Advanced Performance Optimization Dashboard */}
-      <PerformanceDashboard detailed={false} />
+      {/* Advanced Performance Optimization Dashboard - Lazy loaded for performance */}
+      <Suspense fallback={<DashboardSkeleton />}>
+        <PerformanceDashboard detailed={false} />
+      </Suspense>
 
       {/* Footer with Enhanced Status */}
       <DashboardFooter

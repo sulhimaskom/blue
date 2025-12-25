@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 import { BaseCard } from "@/components/ui/base-card";
 import { MetricCard } from "@/components/ui/metric-card";
 import {
@@ -17,6 +23,21 @@ import {
   getStatusTheme,
   cn,
 } from "@/lib/constants/ui-themes";
+
+// Debounce hook for performance optimization
+function useDebounce<T extends () => any>(callback: T, delay: number): T {
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  return useCallback(
+    (() => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => callback(), delay);
+    }) as T,
+    [callback, delay],
+  ) as T;
+}
 
 interface PerformanceDashboardProps {
   detailed?: boolean;
@@ -41,34 +62,65 @@ export const PerformanceDashboard = React.memo(
     const [loading, setLoading] = useState(true);
     const [autoRefresh, setAutoRefresh] = useState(true);
 
-    // Memoize refresh function to prevent unnecessary re-renders
-    const refreshPerformanceData = useMemo(() => {
-      return async () => {
+    // Optimized refresh function with request cancellation and debouncing
+    const refreshPerformanceDataInner = useCallback(
+      async (abortSignal?: AbortSignal) => {
         setLoading(true);
         try {
           const response = await fetch(
             `/api/performance/optimization?detailed=${detailed}`,
+            {
+              signal: abortSignal,
+              headers: {
+                "Cache-Control": "no-cache",
+                Pragma: "no-cache",
+              },
+            },
           );
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
           const data = await response.json();
           setPerformanceData(data);
         } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error("Failed to fetch performance data:", error);
+          if (error instanceof Error && error.name !== "AbortError") {
+            // eslint-disable-next-line no-console
+            console.error("Failed to fetch performance data:", error);
+          }
         } finally {
           setLoading(false);
         }
-      };
-    }, [detailed]);
+      },
+      [detailed],
+    );
 
-    // Auto-refresh effect
+    // Debounced version to prevent rapid successive calls (for manual refresh)
+    const debouncedRefresh = useDebounce(refreshPerformanceDataInner, 1000);
+
+    // Click handler for manual refresh
+    const refreshPerformanceData = useCallback(() => {
+      const controller = new AbortController();
+      debouncedRefresh(controller.signal);
+    }, [debouncedRefresh]);
+
+    // Auto-refresh function without debouncing for consistent intervals
+    const autoRefreshData = useCallback(() => {
+      const controller = new AbortController();
+      refreshPerformanceDataInner(controller.signal);
+    }, [refreshPerformanceDataInner]);
+
+    // Auto-refresh effect with initial fetch
     useEffect(() => {
-      refreshPerformanceData();
+      // Initial data fetch
+      autoRefreshData();
 
       if (autoRefresh) {
-        const interval = setInterval(refreshPerformanceData, 30000); // 30 seconds
+        const interval = setInterval(autoRefreshData, 30000); // 30 seconds
         return () => clearInterval(interval);
       }
-    }, [autoRefresh, refreshPerformanceData]);
+    }, [autoRefresh, autoRefreshData]);
 
     // Auto-optimization function
     const applyOptimizations = async () => {
