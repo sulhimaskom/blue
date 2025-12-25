@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from "next/server";
 import responseCompressor from "@/lib/middleware/response-compression";
 import { logger } from "@/lib/logger";
 import { CircuitBreaker } from "@/lib/circuit-breaker";
+import { Timing } from "@/lib/utils/time-measurement";
+import { IdGenerators } from "@/lib/utils/id-generator";
 
 // Circuit breaker for compression to prevent cascading failures
 const compressionCircuit = new CircuitBreaker("response-compression", {
@@ -27,8 +29,8 @@ export async function withCompression(
   handler: (req: NextRequest) => Promise<NextResponse> | NextResponse,
   req: NextRequest,
 ): Promise<NextResponse> {
-  const startTime = Date.now();
-  const requestId = req.headers.get("x-request-id") || `req_${Date.now()}`;
+  const startTime = Timing.now();
+  const requestId = req.headers.get("x-request-id") || IdGenerators.REQUEST();
 
   try {
     // Check if client supports compression
@@ -66,7 +68,7 @@ export async function withCompression(
       );
 
       // Log performance metrics
-      const duration = Date.now() - startTime;
+      const duration = Timing.perf(startTime);
       const metrics = responseCompressor.getPerformanceMetrics();
 
       logger.info("Compression middleware completed", {
@@ -83,7 +85,7 @@ export async function withCompression(
     return response;
   } catch (error) {
     // Log compression failure and return original response
-    const duration = Date.now() - startTime;
+    const duration = Timing.perf(startTime);
     logger.error("Compression middleware failed", {
       requestId,
       duration: `${duration}ms`,

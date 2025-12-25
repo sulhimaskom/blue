@@ -6,6 +6,7 @@ import { circuitBreakerRegistry, SERVICE_CONFIGS } from "../circuit-breaker";
 import { UnifiedCacheManager } from "./unified-cache-manager";
 import { AIPatternDetector } from "./ai-pattern-detector";
 import { IdGenerators } from "../utils/id-generator";
+import { Timing } from "../utils/time-measurement";
 // Error monitoring imports for future use
 // import {
 //   captureApiError,
@@ -68,7 +69,7 @@ class AIService {
   async generateCompletion(
     request: AICompletionRequest,
   ): Promise<AICompletionResponse> {
-    const startTime = Date.now();
+    const startTime = Timing.now();
     const context = { requestId: IdGenerators.REQUEST() };
 
     try {
@@ -124,7 +125,7 @@ class AIService {
           promptLength: request.prompt.length,
         });
 
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
         monitoringService.trackAIOperation("completion", duration, true, {
           model: cachedResponse.model,
           promptTokens: cachedResponse.usage.promptTokens,
@@ -188,7 +189,7 @@ class AIService {
           },
         };
 
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
 
         logger.info("AI completion completed successfully", {
           model: completion.model,
