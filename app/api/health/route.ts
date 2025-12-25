@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(response, { status: httpStatus });
       },
       {
-        ttl: 15, // Cache for 15 seconds - health data changes frequently
+        ttl: 45, // Optimized: Cache for 45 seconds - smart caching for health status that changes gradually
         tags: ["health-check", "system-status"],
         varyBy: [], // Health checks are the same for all users
       },

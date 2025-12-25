@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
         }
       },
       {
-        ttl: 10, // Cache for 10 seconds - metrics change frequently
+        ttl: 30, // Optimized: Cache for 30 seconds - smart caching for metrics that change periodically
         tags: ["metrics", "performance-data"],
         varyBy: [], // Metrics are the same for all users
       },
