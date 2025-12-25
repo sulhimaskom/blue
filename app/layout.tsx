@@ -3,14 +3,15 @@ import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { EnterpriseThemeProvider } from "@/components/enterprise/enterprise-theme-provider";
+import { getUIText } from "@/lib/constants/ui-text";
 import "@/lib/sentry"; // Initialize error monitoring
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Architect Platform",
-  description: "AI-powered platform for generating software blueprints",
+  title: getUIText("homepage", "hero.title"),
+  description: getUIText("homepage", "hero.subtitle"),
 };
 
 export default function RootLayout({

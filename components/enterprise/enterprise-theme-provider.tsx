@@ -14,6 +14,7 @@ import {
   useEnterpriseTheme,
   type EnterpriseThemeConfig,
 } from "@/lib/constants/enterprise-themes";
+import { getUIText } from "@/lib/constants/ui-text";
 
 interface EnterpriseThemeContextType {
   activeTheme: EnterpriseThemeConfig | null;
@@ -91,7 +92,8 @@ export function EnterpriseThemeProvider({
 
     // Update page title
     if (activeTheme.brandName && document.title) {
-      document.title = `${activeTheme.brandName} - Architect Platform`;
+      const platformName = getUIText("homepage", "hero.title");
+      document.title = `${activeTheme.brandName} - ${platformName}`;
     }
 
     // Update favicon if provided
