@@ -24,7 +24,7 @@ import type {
 // Re-export for backward compatibility
 export type { ResearchResult } from "./service-types";
 
-class AIService {
+export class AIService {
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly iflowCircuitBreaker;

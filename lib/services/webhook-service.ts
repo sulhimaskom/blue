@@ -25,7 +25,7 @@ export interface WebhookHandlerConfig {
  * - Test environment response handling
  * - Signature verification patterns
  */
-class WebhookService {
+export class WebhookService {
   /**
    * Create standardized webhook response based on environment
    */
@@ -192,5 +192,3 @@ class WebhookService {
     }
   }
 }
-
-export { WebhookService };

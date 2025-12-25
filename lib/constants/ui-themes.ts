@@ -7,9 +7,6 @@
  * Usage: Import themes from this file, never hardcode colors directly
  */
 
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
 /**
  * Status Themes - Used across indicators, badges, and alerts
  */
@@ -190,12 +187,10 @@ export type IconColorType = keyof typeof COLOR_THEMES.icon;
 export type BackgroundType = keyof typeof COLOR_THEMES.background;
 
 /**
- * Utility function to combine theme classes with Tailwind's cn function
- * Prevents class conflicts and provides consistent theming
+ * Re-export cn utility from utils to maintain import compatibility
+ * Theme system uses centralized utility function for consistency
  */
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+export { cn } from "../utils";
 
 /**
  * Get a complete status theme by combining all related classes

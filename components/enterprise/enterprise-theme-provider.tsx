@@ -9,12 +9,13 @@
 
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import {
-  useEnterpriseTheme,
   type EnterpriseThemeConfig,
+  useEnterpriseTheme,
 } from "@/lib/constants/enterprise-themes";
 import { getUIText } from "@/lib/constants/ui-text";
+import { ClientStorageService } from "@/lib/services/client-storage-service";
 
 interface EnterpriseThemeContextType {
   activeTheme: EnterpriseThemeConfig | null;
@@ -73,8 +74,8 @@ export function EnterpriseThemeProvider({
         return;
       }
 
-      // Priority 3: Local storage
-      const storedTheme = localStorage.getItem("enterprise-theme");
+      // Priority 3: Client storage (via service layer)
+      const storedTheme = ClientStorageService.getTheme();
       if (storedTheme) {
         setTheme(storedTheme);
         return;
@@ -106,8 +107,8 @@ export function EnterpriseThemeProvider({
       }
     }
 
-    // Store theme preference
-    localStorage.setItem("enterprise-theme", activeTheme.customerId);
+    // Store theme preference (via service layer)
+    ClientStorageService.setTheme(activeTheme.customerId);
 
     // Update meta description for enterprise branding
     const metaDescription = document.querySelector(

@@ -10,7 +10,7 @@ import crypto from "crypto";
  * - Input sanitization patterns
  * - Security event logging
  */
-class SecurityService {
+export class SecurityService {
   /**
    * Verify Clerk webhook signature using cryptographic verification
    * Production-grade implementation with Svix webhook verification
@@ -201,5 +201,3 @@ class SecurityService {
     logger.security(event, this.sanitizeForLogging(metadata));
   }
 }
-
-export { SecurityService };
