@@ -722,7 +722,7 @@ class AIPatternDetector {
   /**
    * Detect industry context from user input
    */
-  private static detectIndustryContext(input: string): string | null {
+  static detectIndustryContext(input: string): string | null {
     const industryKeywords = {
       "finance-banking": [
         "bank",
@@ -852,25 +852,36 @@ class AIPatternDetector {
   }
 
   /**
-   * Generate optimized cache key for AI responses
+   * Generate optimized cache key for AI responses with enhanced semantic fingerprinting
    */
   static generateOptimizedCacheKey(
     service: "iflow" | "tavily",
     input: string,
     pattern?: AIPattern["type"],
+    industryContext?: string,
   ): string {
     const normalizedInput = this.normalizeInputForCaching(input);
     const patternPrefix = pattern ? `${pattern}:` : "";
+    const industryPrefix = industryContext ? `${industryContext}:` : "";
     const servicePrefix = service === "iflow" ? "ai" : "research";
 
-    // Create semantic hash for better cache hits
+    // Enhanced semantic fingerprinting for enterprise patterns
+    const semanticComponents = [
+      servicePrefix,
+      industryPrefix,
+      patternPrefix,
+      normalizedInput,
+      this.extractSemanticSignature(input), // New: semantic signature
+    ].filter(Boolean);
+
+    // Create semantic hash with enhanced collision resistance
     const semanticHash = crypto
       .createHash("sha256")
-      .update(`${servicePrefix}:${patternPrefix}${normalizedInput}`)
+      .update(semanticComponents.join(":"))
       .digest("hex")
-      .substring(0, 12);
+      .substring(0, 16); // Increased for better uniqueness
 
-    return `${servicePrefix}-${patternPrefix}${semanticHash}`;
+    return `${servicePrefix}-${industryPrefix}${patternPrefix}${semanticHash}`;
   }
 
   /**
@@ -1010,6 +1021,7 @@ class AIPatternDetector {
         "iflow",
         `blueprint-${rule.pattern}`,
         rule.pattern,
+        rule.pattern.includes("-") ? rule.pattern.split("-")[0] : undefined, // Extract industry context
       );
 
       await UnifiedCacheManager.cacheData(
@@ -1154,6 +1166,31 @@ class AIPatternDetector {
     return recommendations.length > 0
       ? recommendations
       : ["AI caching performance is optimal - continue current strategy"];
+  }
+
+  /**
+   * NEW: Extract semantic signature for better pattern matching
+   */
+  private static extractSemanticSignature(input: string): string {
+    const semanticKeywords = {
+      marketplace: ["vendor", "seller", "buyer", "listing"],
+      ecommerce: ["cart", "checkout", "product", "inventory"],
+      social: ["feed", "profile", "community", "network"],
+      fintech: ["payment", "transaction", "investment", "banking"],
+      healthcare: ["patient", "doctor", "medical", "health"],
+      edtech: ["student", "course", "learning", "education"],
+    };
+
+    const normalized = input.toLowerCase();
+    const detectedSemantics: string[] = [];
+
+    for (const [category, keywords] of Object.entries(semanticKeywords)) {
+      if (keywords.some((keyword) => normalized.includes(keyword))) {
+        detectedSemantics.push(category);
+      }
+    }
+
+    return detectedSemantics.sort().join("-");
   }
 }
 

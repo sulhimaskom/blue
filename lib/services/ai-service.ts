@@ -92,11 +92,16 @@ class AIService {
       // Detect pattern for intelligent caching
       const detectedPattern = AIPatternDetector.detectPattern(request.prompt);
 
-      // Generate optimized cache key with pattern awareness
+      // Extract industry context for semantic caching
+      const industryContext =
+        AIPatternDetector.detectIndustryContext(request.prompt) || undefined;
+
+      // Generate enhanced cache key with semantic fingerprinting
       const optimizedCacheKey = AIPatternDetector.generateOptimizedCacheKey(
         "iflow",
         request.prompt,
         detectedPattern.pattern || undefined,
+        industryContext,
       );
 
       // Check unified cache with enhanced hit rates
