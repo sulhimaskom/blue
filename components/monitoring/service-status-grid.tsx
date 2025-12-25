@@ -17,13 +17,58 @@ import {
   cn,
 } from "@/lib/constants/ui-themes";
 
+/**
+ * Props for the ServiceStatusGrid component.
+ * @interface ServiceStatusGridProps
+ */
 interface ServiceStatusGridProps {
+  /** System health data containing all service checks and status information */
   health: SystemHealth;
+  /** Name of the currently expanded service for detailed view, or null if none expanded */
   expandedService: string | null;
+  /** Callback function to toggle expansion state for a specific service */
   // eslint-disable-next-line no-unused-vars
   onToggleServiceExpansion: (serviceName: string) => void;
 }
 
+/**
+ * ServiceStatusGrid component that displays individual service status in a responsive grid layout.
+ *
+ * Architectural Pattern:
+ * - Service Layer compliance: delegates all data processing to MonitoringDashboardService
+ * - Atomic design with composable ServiceCard components
+ * - Memoized components for performance optimization
+ * - Accessible interactions with proper ARIA labels
+ *
+ * Features:
+ * - Responsive grid layout (1 column mobile, 2 tablet, 3 desktop)
+ * - Each service displays status, response time, and live indicator
+ * - Expandable cards with detailed service information
+ * - Real-time status indicators with animations
+ * - Comprehensive error details in expanded view
+ * - Hover effects and keyboard navigation
+ *
+ * Data Flow:
+ * 1. Receives SystemHealth data from parent component
+ * 2. Checks data freshness using MonitoringDashboardService.isDataLive()
+ * 3. Maps each service check to ServiceCard component
+ * 4. Handles expansion state and user interactions
+ *
+ * Performance Optimizations:
+ * - React.memo for component memoization
+ * - useMemo for data freshness calculation
+ * - Individual ServiceCard memoization
+ * - Efficient state management
+ *
+ * @example
+ * ```tsx
+ * <ServiceStatusGrid
+ *   health={systemHealth}
+ *   expandedService="database"
+ *   onToggleServiceExpansion={(service) => console.log('Toggle:', service)}
+ * />
+ * ```
+ */
 export const ServiceStatusGrid = React.memo(
   function ServiceStatusGridComponent({
     health,
@@ -69,14 +114,45 @@ export const ServiceStatusGrid = React.memo(
   },
 );
 
+/**
+ * Props for the ServiceCard component.
+ * @interface ServiceCardProps
+ */
 interface ServiceCardProps {
+  /** Individual service check data containing status, response time, and error information */
   check: SystemHealth["checks"][0];
+  /** Complete system health data for context and additional calculations */
   health: SystemHealth;
+  /** Whether this service card is currently expanded to show details */
   isExpanded: boolean;
+  /** Whether the monitoring data is currently live (fresh) */
   isLive: boolean;
+  /** Callback function to toggle the expansion state of this service */
   onToggle: () => void;
 }
 
+/**
+ * ServiceCard component that displays individual service status with expandable details.
+ *
+ * Features:
+ * - Service status with color-coded indicators
+ * - Response time display with formatted units
+ * - Live data indicator with animation
+ * - Expandable details panel with comprehensive information
+ * - Keyboard accessible and screen reader friendly
+ * - Hover effects and visual feedback
+ * - Error details display with proper formatting
+ *
+ * Data Processing:
+ * - Uses MonitoringDashboardService.formatServiceData() for display formatting
+ * - Delegates detail data calculation to Service Layer
+ * - Formats response times using service methods
+ * - Processes error information for user display
+ *
+ * Architecture:
+ * Follows atomic design principles with focused single responsibility.
+ * Extracts all business logic to MonitoringDashboardService per Service Layer principles.
+ */
 const ServiceCard = React.memo(function ServiceCardComponent({
   check,
   health,
@@ -149,16 +225,39 @@ const ServiceCard = React.memo(function ServiceCardComponent({
   );
 });
 
+/**
+ * Props for the ServiceDetailPanel component.
+ * @interface ServiceDetailPanelProps
+ */
 interface ServiceDetailPanelProps {
+  /** Array of formatted detail items for the service */
   detailData: Array<{
     name: string;
     label: string;
     value: string | number;
     status?: string;
   }>;
+  /** Optional error message to display for failed services */
   error?: string;
 }
 
+/**
+ * ServiceDetailPanel component that displays expanded service information with error handling.
+ *
+ * Features:
+ * - Comprehensive service details in card format
+ * - Status indicators with color coding
+ * - Error information display with proper formatting
+ * - Consistent spacing and theme integration
+ * - Accessible error presentation
+ * - Memoized for performance optimization
+ *
+ * Display Information:
+ * - Response time with formatted duration
+ * - Service status with indicators
+ * - Last checked timestamp
+ * - Error details with monospace formatting
+ */
 const ServiceDetailPanel = React.memo(function ServiceDetailPanelComponent({
   detailData,
   error,

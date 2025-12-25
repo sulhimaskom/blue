@@ -17,11 +17,54 @@ import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-
 import type { MetricsData } from "@/lib/hooks/use-monitoring";
 import { getTextColor, cn, getAccentColor } from "@/lib/constants/ui-themes";
 
+/**
+ * Props for the PerformanceMetrics component.
+ * @interface PerformanceMetricsProps
+ */
 interface PerformanceMetricsProps {
+  /** Optional metrics data containing performance information and summaries */
   metrics?: MetricsData;
+  /** Loading state indicator for metrics data fetching */
   loading?: boolean;
 }
 
+/**
+ * PerformanceMetrics component that displays comprehensive system performance data.
+ *
+ * Architectural Pattern:
+ * - Service Layer compliance: delegates all calculations to MonitoringDashboardService
+ * - Zero business logic in UI components per blueprint.md requirements
+ * - Memoized components for performance optimization
+ * - Skeleton loading states for better UX
+ *
+ * Features:
+ * - Metrics cards showing key performance indicators
+ * - Recent activity table with formatted data
+ * - Loading skeleton components during data fetch
+ * - Responsive grid layout for metric cards
+ * - Formatted time and duration displays
+ * - Error boundaries and graceful degradation
+ *
+ * Data Processing Flow:
+ * 1. Raw MetricsData enters component from useMonitoring hook
+ * 2. MonitoringDashboardService.processMetricsCardsData() formats card data
+ * 3. MonitoringDashboardService.getRecentActivityData() formats table data
+ * 4. UI components render processed data with consistent styling
+ *
+ * Performance Optimizations:
+ * - React.memo for component memoization
+ * - useMemo hooks for expensive calculations
+ * - Skeleton loading prevents layout shifts
+ * - Efficient data processing in Service Layer
+ *
+ * @example
+ * ```tsx
+ * <PerformanceMetrics
+ *   metrics={metricsData}
+ *   loading={isLoading}
+ * />
+ * ```
+ */
 export const PerformanceMetrics = React.memo(
   function PerformanceMetricsComponent({
     metrics,
@@ -105,7 +148,12 @@ export const PerformanceMetrics = React.memo(
   },
 );
 
+/**
+ * Props for the MetricsCards component.
+ * @interface MetricsCardsProps
+ */
 interface MetricsCardsProps {
+  /** Array of metric card data containing name, display name, and summary information */
   cards: Array<{
     name: string;
     displayName: string;
@@ -113,6 +161,15 @@ interface MetricsCardsProps {
   }>;
 }
 
+/**
+ * MetricsCards component that renders a grid of metric summary cards.
+ *
+ * Features:
+ * - Responsive grid layout (1 column mobile, 2 tablet, 4 desktop)
+ * - Each card renders MetricSummaryCard with processed data
+ * - Consistent spacing and theme integration
+ * - Memoized for performance optimization
+ */
 const MetricsCards = React.memo(function MetricsCardsComponent({
   cards,
 }: MetricsCardsProps) {
@@ -129,7 +186,12 @@ const MetricsCards = React.memo(function MetricsCardsComponent({
   );
 });
 
+/**
+ * Props for the RecentActivityTable component.
+ * @interface RecentActivityTableProps
+ */
 interface RecentActivityTableProps {
+  /** Array of activity data points with formatted metrics and timestamps */
   activityData: Array<{
     id: number;
     name: string;
@@ -140,6 +202,23 @@ interface RecentActivityTableProps {
   }>;
 }
 
+/**
+ * RecentActivityTable component that displays the latest system metrics in tabular format.
+ *
+ * Features:
+ * - Responsive table with hover effects
+ * - Formatted metric names using display name mappings
+ * - Color-coded values and units using theme system
+ * - Human-readable timestamps with local formatting
+ * - Accessible table structure with proper headers
+ * - Memoized for performance optimization
+ *
+ * Data Processing:
+ * - Metric names are formatted for human readability
+ * - Values are highlighted with theme colors
+ * - Units are displayed as styled badges
+ * - Timestamps are formatted to local time zone
+ */
 const RecentActivityTable = React.memo(function RecentActivityTableComponent({
   activityData,
 }: RecentActivityTableProps) {

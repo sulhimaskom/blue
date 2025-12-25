@@ -6,12 +6,70 @@ import type {
   MonitoringServiceOptions,
 } from "./service-types";
 
+/**
+ * MonitoringService class that handles all monitoring data operations.
+ *
+ * Service Layer Implementation:
+ * - Centralizes business logic for monitoring operations
+ * - Implements proper error handling and fallback mechanisms
+ * - Provides data validation and integrity checks
+ * - Maintains separation between UI and data access layers
+ *
+ * Features:
+ * - Parallel API calls for optimal performance
+ * - Comprehensive error handling with partial data recovery
+ * - Timeout management with AbortController
+ * - Stale data fallback for UI stability
+ * - Structured logging with correlation IDs
+ * - Data validation and integrity checking
+ *
+ * Usage Pattern:
+ * - Singleton instance exported for consistent usage
+ * - All methods return promises for async operations
+ * - Errors are logged but don't crash the application
+ * - Partial failures are handled gracefully
+ *
+ * @example
+ * ```typescript
+ * import { monitoringService } from '@/lib/services/monitoring-service';
+ *
+ * const data = await monitoringService.fetchMonitoringData({
+ *   detailed: true,
+ *   timeout: 15000
+ * });
+ * ```
+ */
 export class MonitoringService {
   private readonly DEFAULT_TIMEOUT = 10000; // 10 seconds
 
   /**
    * Fetches comprehensive monitoring data (health and metrics)
    * Implements centralized business logic for monitoring operations
+   *
+   * Features:
+   * - Parallel API calls for optimal performance
+   * - Comprehensive error handling with partial data recovery
+   * - Timeout management with AbortController
+   * - Structured logging for debugging and monitoring
+   *
+   * Error Handling Strategy:
+   * - Partial failures return available data instead of throwing
+   * - Complete failures return stale data fallback
+   * - All errors are logged with context for debugging
+   * - UI stability is maintained during network issues
+   *
+   * @param options - Configuration options for monitoring data fetch
+   * @param options.detailed - Whether to fetch detailed health information (default: true)
+   * @param options.timeout - Request timeout in milliseconds (default: 10000)
+   * @returns Promise resolving to monitoring data with health and metrics
+   *
+   * @example
+   * ```typescript
+   * const data = await monitoringService.fetchMonitoringData({
+   *   detailed: true,
+   *   timeout: 15000
+   * });
+   * ```
    */
   async fetchMonitoringData(
     options: MonitoringServiceOptions = {},
@@ -64,6 +122,25 @@ export class MonitoringService {
 
   /**
    * Fetches health data with proper error handling and caching headers
+   *
+   * Implementation Details:
+   * - Uses cache-control headers to prevent stale data
+   * - Adds timestamp to prevent browser caching
+   * - Implements AbortController for timeout handling
+   * - Provides meaningful error messages
+   *
+   * @param detailed - Whether to fetch detailed health information
+   * @param signal - AbortSignal for request cancellation
+   * @returns Promise resolving to SystemHealth data
+   * @throws Error if API request fails or is aborted
+   *
+   * @example
+   * ```typescript
+   * const health = await monitoringService.fetchHealthData(
+   *   true,
+   *   controller.signal
+   * );
+   * ```
    */
   private async fetchHealthData(
     detailed: boolean,
@@ -87,6 +164,23 @@ export class MonitoringService {
 
   /**
    * Fetches metrics data with proper error handling and caching headers
+   *
+   * Implementation Details:
+   * - Uses cache-control headers to prevent stale data
+   * - Adds timestamp to prevent browser caching
+   * - Implements AbortController for timeout handling
+   * - Provides meaningful error messages
+   *
+   * @param signal - AbortSignal for request cancellation
+   * @returns Promise resolving to MetricsData
+   * @throws Error if API request fails or is aborted
+   *
+   * @example
+   * ```typescript
+   * const metrics = await monitoringService.fetchMetricsData(
+   *   controller.signal
+   * );
+   * ```
    */
   private async fetchMetricsData(signal: AbortSignal): Promise<MetricsData> {
     const timestamp = Date.now();
@@ -104,6 +198,25 @@ export class MonitoringService {
 
   /**
    * Processes API responses and handles partial failures gracefully
+   *
+   * Error Handling Strategy:
+   * - Partial failures return available data instead of throwing
+   * - All errors are logged with context for debugging
+   * - Complete failures throw to trigger fallback mechanisms
+   * - Maintains UI stability during network issues
+   *
+   * @param healthResponse - PromiseSettledResult from health API call
+   * @param metricsResponse - PromiseSettledResult from metrics API call
+   * @returns Promise resolving to processed MonitoringData
+   * @throws Error if both health and metrics requests fail completely
+   *
+   * @example
+   * ```typescript
+   * const result = await monitoringService.processMonitoringResponses(
+   *   healthResponse,
+   *   metricsResponse
+   * );
+   * ```
    */
   private async processMonitoringResponses(
     healthResponse: PromiseSettledResult<SystemHealth>,
@@ -155,6 +268,20 @@ export class MonitoringService {
 
   /**
    * Provides fallback stale data to maintain UI stability during errors
+   *
+   * Strategy:
+   * - Returns null data rather than throwing errors
+   * - Maintains UI stability during network failures
+   * - Allows graceful degradation of functionality
+   * - Prevents complete application failure
+   *
+   * @returns MonitoringData with null values for graceful degradation
+   *
+   * @example
+   * ```typescript
+   * const fallback = monitoringService.getStaleDataFallback();
+   * // Result: { health: null, metrics: null }
+   * ```
    */
   private getStaleDataFallback(): MonitoringData {
     logger.info("Using stale data fallback for monitoring");
@@ -167,6 +294,23 @@ export class MonitoringService {
 
   /**
    * Validates monitoring data integrity
+   *
+   * Validation Rules:
+   * - At least one of health or metrics must be present
+   * - Health data must have status, timestamp, and checks array
+   * - Metrics data must have metrics array and summaries object
+   * - Ensures data structure consistency across the application
+   *
+   * @param data - Monitoring data to validate
+   * @returns boolean indicating whether data is valid
+   *
+   * @example
+   * ```typescript
+   * const isValid = monitoringService.validateMonitoringData(data);
+   * if (!isValid) {
+   *   console.error('Invalid monitoring data structure');
+   * }
+   * ```
    */
   validateMonitoringData(data: MonitoringData): boolean {
     // Basic validation to ensure data structure integrity
@@ -197,6 +341,21 @@ export class MonitoringService {
 
   /**
    * Gets monitoring data summary for quick status checks
+   *
+   * Calculates aggregate status based on service health:
+   * - All services healthy: "healthy"
+   * - Some services healthy: "degraded"
+   * - No services healthy: "unhealthy"
+   * - No health data available: "unknown"
+   *
+   * @param data - Monitoring data to summarize
+   * @returns Object with calculated status, service count, and last update time
+   *
+   * @example
+   * ```typescript
+   * const summary = monitoringService.getMonitoringSummary(data);
+   * // Result: { status: 'healthy', serviceCount: 5, lastUpdated: '2024-12-25T10:30:00Z' }
+   * ```
    */
   getMonitoringSummary(data: MonitoringData): {
     status: "healthy" | "degraded" | "unhealthy" | "unknown";
@@ -235,5 +394,20 @@ export class MonitoringService {
   }
 }
 
-// Export singleton instance for consistent usage
+/**
+ * Singleton instance of MonitoringService for consistent application usage.
+ *
+ * Usage Pattern:
+ * - Import this instance throughout the application
+ * - Avoid creating multiple instances to maintain consistency
+ * - Service follows stateless design for safe sharing
+ *
+ * @example
+ * ```typescript
+ * import { monitoringService } from '@/lib/services/monitoring-service';
+ *
+ * // Use the singleton instance
+ * const data = await monitoringService.fetchMonitoringData();
+ * ```
+ */
 export const monitoringService = new MonitoringService();

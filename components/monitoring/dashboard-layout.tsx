@@ -13,15 +13,46 @@ import {
   cn,
 } from "@/lib/constants/ui-themes";
 
+/**
+ * Props for the DashboardHeader component.
+ * @interface DashboardHeaderProps
+ */
 interface DashboardHeaderProps {
+  /** Optional custom title for the dashboard header. Defaults to "System Monitoring Dashboard" */
   title?: string;
+  /** Optional custom description for the dashboard. Defaults to "Real-time system health and performance metrics" */
   description?: string;
+  /** Current state of auto-refresh functionality */
   autoRefresh: boolean;
+  /** Loading state for manual refresh operation */
   loading: boolean;
+  /** Callback function to toggle auto-refresh on/off */
   onToggleAutoRefresh: () => void;
+  /** Callback function to trigger manual data refresh */
   onManualRefresh: () => void;
 }
 
+/**
+ * DashboardHeader component that provides the main header with auto-refresh controls.
+ *
+ * Features:
+ * - Customizable title and description
+ * - Auto-refresh toggle with live indicator
+ * - Manual refresh button with loading state
+ * - Responsive layout for mobile and desktop
+ *
+ * @example
+ * ```tsx
+ * <DashboardHeader
+ *   title="Custom Dashboard"
+ *   description="Monitoring custom services"
+ *   autoRefresh={true}
+ *   loading={false}
+ *   onToggleAutoRefresh={() => console.log('toggle refresh')}
+ *   onManualRefresh={() => console.log('manual refresh')}
+ * />
+ * ```
+ */
 export function DashboardHeader({
   title = "System Monitoring Dashboard",
   description = "Real-time system health and performance metrics",
@@ -95,11 +126,34 @@ export function DashboardHeader({
   );
 }
 
+/**
+ * Props for the ErrorBanner component.
+ * @interface ErrorBannerProps
+ */
 interface ErrorBannerProps {
+  /** Error message to display to the user */
   error: string;
+  /** Optional custom title for the error banner. Defaults to "Connection Error" */
   title?: string;
 }
 
+/**
+ * ErrorBanner component for displaying connection or API errors to users.
+ *
+ * Features:
+ * - Consistent error styling using theme colors
+ * - Error icon for visual feedback
+ * - Customizable title and message
+ * - Accessible error presentation
+ *
+ * @example
+ * ```tsx
+ * <ErrorBanner
+ *   title="API Error"
+ *   error="Failed to fetch monitoring data. Please try again."
+ * />
+ * ```
+ */
 export function ErrorBanner({
   error,
   title = "Connection Error",
@@ -127,10 +181,29 @@ export function ErrorBanner({
   );
 }
 
+/**
+ * Props for the LoadingState component.
+ * @interface LoadingStateProps
+ */
 interface LoadingStateProps {
+  /** Optional custom loading message. Defaults to "Loading system data..." */
   message?: string;
 }
 
+/**
+ * LoadingState component for displaying loading indicators during data fetching.
+ *
+ * Features:
+ * - Animated refresh icon
+ * - Customizable loading message
+ * - Centered layout with proper spacing
+ * - Accessible loading indicator
+ *
+ * @example
+ * ```tsx
+ * <LoadingState message="Fetching latest metrics..." />
+ * ```
+ */
 export function LoadingState({
   message = "Loading system data...",
 }: LoadingStateProps) {
@@ -146,16 +219,56 @@ export function LoadingState({
   );
 }
 
+/**
+ * Props for the DashboardLayout component.
+ * @interface DashboardLayoutProps
+ */
 interface DashboardLayoutProps {
+  /** Header component to display at the top of the dashboard */
   header: ReactNode;
+  /** Optional error message to display. If provided, shows error banner */
   error?: string | null;
+  /** Loading state indicator for the dashboard */
   loading: boolean;
+  /** Flag indicating whether data is available for display */
   hasData: boolean;
+  /** Optional custom error banner component. If not provided, uses default ErrorBanner */
   errorBanner?: ReactNode;
+  /** Optional custom loading state component. If not provided, uses default LoadingState */
   loadingState?: ReactNode;
+  /** Main content of the dashboard */
   children: ReactNode;
 }
 
+/**
+ * DashboardLayout component that provides the main layout structure for monitoring dashboards.
+ *
+ * Architectural Pattern:
+ * - Atomic design pattern with composable components
+ * - Separation of concerns: layout handles presentation, not data fetching
+ * - Responsive design with mobile-first approach
+ * - Accessibility-first with proper ARIA labels
+ *
+ * Features:
+ * - Consistent gradient background using theme system
+ * - Responsive padding for all screen sizes
+ * - Maximum width container for optimal reading
+ * - Error and loading state management
+ * - Flexible content area with customizable components
+ *
+ * @example
+ * ```tsx
+ * <DashboardLayout
+ *   header={<DashboardHeader {...headerProps} />}
+ *   error={error}
+ *   loading={loading}
+ *   hasData={hasData}
+ * >
+ *   <SystemHealthOverview {...healthProps} />
+ *   <PerformanceMetrics {...metricsProps} />
+ * </DashboardLayout>
+ * ```
+ */
 export function DashboardLayout({
   header,
   error,
