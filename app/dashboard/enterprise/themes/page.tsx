@@ -249,6 +249,7 @@ export default function EnterpriseThemesPage() {
                           </div>
 
                           {theme.logoUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={theme.logoUrl}
                               alt={theme.brandName}
