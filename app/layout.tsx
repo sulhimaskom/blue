@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { EnterpriseThemeProvider } from "@/components/enterprise/enterprise-theme-provider";
+import "@/lib/sentry"; // Initialize error monitoring
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });

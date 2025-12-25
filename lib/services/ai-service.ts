@@ -6,6 +6,11 @@ import { circuitBreakerRegistry, SERVICE_CONFIGS } from "../circuit-breaker";
 import { UnifiedCacheManager } from "./unified-cache-manager";
 import { AIPatternDetector } from "./ai-pattern-detector";
 import { IdGenerators } from "../utils/id-generator";
+// Error monitoring imports for future use
+// import {
+//   captureApiError,
+//   createMonitoredError,
+// } from "./error-monitoring-service";
 import type {
   AIModel,
   AICompletionRequest,

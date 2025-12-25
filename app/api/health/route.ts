@@ -7,6 +7,11 @@ import DatabaseQueryCache from "@/lib/services/database-cache-service";
 import { IntelligentPrefetchService } from "@/lib/services/intelligent-prefetch-service";
 import { RealTimePerformanceMonitor } from "@/lib/services/real-time-performance-monitor";
 import { withCompression } from "@/lib/middleware/compression-wrapper";
+// Error monitoring imports for future use
+// import {
+//   captureApiError,
+//   createMonitoredError,
+// } from "@/lib/services/error-monitoring-service";
 
 export async function GET(req: NextRequest) {
   return withCompression(async () => {
