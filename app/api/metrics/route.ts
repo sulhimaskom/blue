@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
       }
     },
     {
-      ttl: 45, // Optimized: Extended to 45 seconds for better performance - metrics don't change rapidly
+      ttl: 30, // Optimized: Balanced 30 seconds for fresh data with good cache hit rates
       tags: ["metrics", "performance-data", "dashboard"],
       varyBy: [], // Metrics are the same for all users
       initializeServices: true, // Enable runtime service initialization

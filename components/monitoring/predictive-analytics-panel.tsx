@@ -24,7 +24,7 @@ interface PredictiveAnalyticsProps {
 }
 
 export const PredictiveAnalyticsPanel = React.memo(
-  function PredictiveAnalyticsPanel({
+  function PredictiveAnalyticsPanelComponent({
     healthScore,
     nextAction,
     predictions,
@@ -32,6 +32,17 @@ export const PredictiveAnalyticsPanel = React.memo(
   }: PredictiveAnalyticsProps) {
     // Memoize expensive filter operations for analytics summary
     const analyticsData = useMemo(() => {
+      // Early return for empty arrays to avoid unnecessary calculations
+      if (predictions.length === 0 && anomalies.length === 0) {
+        return {
+          activePredictions: 0,
+          activeAnomalies: 0,
+          hasCriticalAnomalies: false,
+          highUrgencyCount: 0,
+          hasCriticalPredictions: false,
+        };
+      }
+
       const activePredictions = predictions.length;
       const activeAnomalies = anomalies.length;
       const hasCriticalAnomalies = anomalies.some(

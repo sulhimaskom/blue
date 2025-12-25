@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
       };
     },
     {
-      ttl: 60, // Optimized: Extended to 60 seconds for better performance - health status changes infrequently
+      ttl: 45, // Optimized: Balanced 45 seconds allows quicker health status detection
       tags: ["health-check", "system-status", "dashboard"],
       varyBy: [], // Health checks are the same for all users
       initializeServices: true, // Enable runtime service initialization
