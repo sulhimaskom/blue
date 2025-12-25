@@ -8,6 +8,7 @@ import {
 } from "@/components/monitoring/dashboard-layout";
 import { SystemHealthOverview } from "@/components/monitoring/system-health-overview";
 import { PerformanceMetrics } from "@/components/monitoring/performance-metrics";
+import { PerformanceDashboard } from "@/components/monitoring/performance-dashboard";
 import { DashboardFooter } from "@/components/monitoring/dashboard-footer";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { useEffect, useRef } from "react";
@@ -83,6 +84,9 @@ export default function MonitoringDashboard() {
 
       {/* Performance Metrics with loading state */}
       <PerformanceMetrics metrics={metrics || undefined} loading={loading} />
+
+      {/* Advanced Performance Optimization Dashboard */}
+      <PerformanceDashboard detailed={false} />
 
       {/* Footer with Enhanced Status */}
       <DashboardFooter
