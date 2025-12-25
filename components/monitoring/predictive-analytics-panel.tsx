@@ -5,6 +5,12 @@ import {
   StatusIndicator,
   type StatusType,
 } from "@/components/ui/status-indicator";
+import {
+  getTextColor,
+  getBackgroundColor,
+  getAccentColor,
+  cn,
+} from "@/lib/constants/ui-themes";
 
 interface PredictiveAnalyticsProps {
   healthScore: number;
@@ -116,13 +122,18 @@ export const PredictiveAnalyticsPanel = React.memo(
 
           <BaseCard variant="default" padding="lg">
             <div className="space-y-2">
-              <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+              <h4 className={cn("font-semibold", getTextColor("heading"))}>
                 Next Recommended Action
               </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              <p className={cn("text-sm mb-2", getTextColor("body"))}>
                 {nextAction}
               </p>
-              <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+              <span
+                className={cn(
+                  "text-xs font-medium",
+                  getAccentColor("blue", "primary"),
+                )}
+              >
                 🤖 AI-powered optimization recommendation
               </span>
             </div>
@@ -132,7 +143,9 @@ export const PredictiveAnalyticsPanel = React.memo(
         {/* Critical Predictions */}
         {predictions.length > 0 && (
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h3
+              className={cn("text-lg font-semibold", getTextColor("heading"))}
+            >
               Performance Predictions
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -145,15 +158,17 @@ export const PredictiveAnalyticsPanel = React.memo(
                           status={getUrgencyStatus(prediction.urgency)}
                           size="md"
                         />
-                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                        <span
+                          className={cn("font-medium", getTextColor("heading"))}
+                        >
                           {prediction.metric}
                         </span>
                       </div>
-                      <span className="text-sm text-gray-500">
+                      <span className={cn("text-sm", getTextColor("muted"))}>
                         {prediction.confidence}% confidence
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className={cn("text-sm", getTextColor("body"))}>
                       {prediction.recommendation}
                     </p>
                   </div>
@@ -166,7 +181,9 @@ export const PredictiveAnalyticsPanel = React.memo(
         {/* Performance Anomalies */}
         {anomalies.length > 0 && (
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h3
+              className={cn("text-lg font-semibold", getTextColor("heading"))}
+            >
               Detected Anomalies
             </h3>
             <div className="space-y-3">
@@ -179,18 +196,31 @@ export const PredictiveAnalyticsPanel = React.memo(
                           status={getSeverityStatus(anomaly.severity)}
                           size="md"
                         />
-                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                        <span
+                          className={cn("font-medium", getTextColor("heading"))}
+                        >
                           {anomaly.metric}
                         </span>
                       </div>
-                      <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400">
+                      <span
+                        className={cn(
+                          "text-xs px-2 py-1 rounded-full",
+                          getBackgroundColor("subtle"),
+                          getTextColor("muted"),
+                        )}
+                      >
                         {anomaly.severity.toUpperCase()}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className={cn("text-sm", getTextColor("body"))}>
                       {anomaly.description}
                     </p>
-                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                    <p
+                      className={cn(
+                        "text-sm font-medium",
+                        getAccentColor("blue", "primary"),
+                      )}
+                    >
                       💡 {anomaly.recommendedAction}
                     </p>
                   </div>

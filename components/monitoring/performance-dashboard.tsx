@@ -10,7 +10,13 @@ import {
   TrendingUpIcon,
   AlertTriangleIcon,
 } from "@/components/ui/icons";
-import { getTextColor, cn } from "@/lib/constants/ui-themes";
+import {
+  getTextColor,
+  getBackgroundColor,
+  getAccentColor,
+  getStatusTheme,
+  cn,
+} from "@/lib/constants/ui-themes";
 
 interface PerformanceDashboardProps {
   detailed?: boolean;
@@ -108,8 +114,15 @@ export const PerformanceDashboard = React.memo(
             </h2>
           </div>
           <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+            <div
+              className={cn(
+                "h-4 rounded w-1/4 mb-2",
+                getBackgroundColor("muted"),
+              )}
+            ></div>
+            <div
+              className={cn("h-3 rounded w-1/3", getBackgroundColor("muted"))}
+            ></div>
           </div>
         </BaseCard>
       );
@@ -138,7 +151,7 @@ export const PerformanceDashboard = React.memo(
                 "px-3 py-1 rounded-lg text-sm font-medium transition-colors",
                 autoRefresh
                   ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                  : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
+                  : getBackgroundColor("subtle") + " " + getTextColor("body"),
               )}
             >
               {autoRefresh ? "Auto-refresh ON" : "Auto-refresh OFF"}
@@ -146,14 +159,23 @@ export const PerformanceDashboard = React.memo(
 
             <button
               onClick={applyOptimizations}
-              className="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-lg text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+              className={cn(
+                "px-3 py-1 rounded-lg text-sm font-medium transition-colors",
+                getAccentColor("blue", "background"),
+                getAccentColor("blue", "text"),
+                "hover:bg-blue-200 dark:hover:bg-blue-800",
+              )}
             >
               Auto-Optimize
             </button>
 
             <button
               onClick={refreshPerformanceData}
-              className="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              className={cn(
+                "p-2 transition-colors",
+                getTextColor("muted"),
+                "hover:text-gray-800 dark:hover:text-gray-200",
+              )}
               disabled={loading}
             >
               <div className={loading ? "animate-spin" : ""}>
@@ -224,21 +246,22 @@ export const PerformanceDashboard = React.memo(
                 .map((alert: any, index: number) => (
                   <div
                     key={index}
-                    className="p-3 border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20 rounded-lg"
+                    className={cn(
+                      "p-3 rounded-lg",
+                      getStatusTheme("unhealthy"),
+                    )}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-red-800 dark:text-red-200 capitalize">
+                      <span className="font-medium capitalize">
                         {alert.metric}
                       </span>
-                      <span className="text-sm text-red-600 dark:text-red-400">
+                      <span className="text-sm opacity-75">
                         {alert.value > alert.threshold
                           ? `${Math.round(((alert.value - alert.threshold) / alert.threshold) * 100)}% over threshold`
                           : "At threshold"}
                       </span>
                     </div>
-                    <p className="text-sm text-red-700 dark:text-red-300">
-                      {alert.recommendation}
-                    </p>
+                    <p className="text-sm opacity-90">{alert.recommendation}</p>
                   </div>
                 ))}
             </div>
@@ -261,9 +284,14 @@ export const PerformanceDashboard = React.memo(
                 (win: string, index: number) => (
                   <div
                     key={index}
-                    className="p-3 border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20 rounded-lg"
+                    className={cn(
+                      "p-3 rounded-lg border",
+                      getAccentColor("blue", "background"),
+                    )}
                   >
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <p
+                      className={cn("text-sm", getAccentColor("blue", "text"))}
+                    >
                       {win}
                     </p>
                   </div>

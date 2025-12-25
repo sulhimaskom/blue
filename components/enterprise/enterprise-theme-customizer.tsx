@@ -15,7 +15,12 @@ import {
   createEnterpriseTheme,
   ENTERPRISE_THEME_TEMPLATES,
 } from "@/lib/constants/enterprise-themes";
-import { cn } from "@/lib/constants/ui-themes";
+import {
+  cn,
+  getTextColor,
+  getBackgroundColor,
+  getAccentColor,
+} from "@/lib/constants/ui-themes";
 import { Button } from "@/components/ui/button";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 
@@ -136,16 +141,16 @@ export function EnterpriseThemeCustomizer({
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       {/* Header */}
       <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold text-gray-900">
+        <h2 className={cn("text-2xl font-bold", getTextColor("heading"))}>
           Enterprise Theme Customizer
         </h2>
-        <p className="text-gray-600">
+        <p className={cn(getTextColor("body"))}>
           Customize the platform appearance to match your brand identity
         </p>
         {activeTheme && (
           <div className="flex items-center justify-center gap-2">
             <StatusIndicator status="healthy" size="sm" />
-            <span className="text-sm text-green-600">
+            <span className={cn("text-sm", getAccentColor("blue", "primary"))}>
               Active: {activeTheme.brandName}
             </span>
           </div>
@@ -153,8 +158,12 @@ export function EnterpriseThemeCustomizer({
       </div>
 
       {/* Theme Templates */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold mb-4">Quick Start Templates</h3>
+      <div className={cn("rounded-lg border p-6", getBackgroundColor("card"))}>
+        <h3
+          className={cn("text-lg font-semibold mb-4", getTextColor("heading"))}
+        >
+          Quick Start Templates
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Object.entries(ENTERPRISE_THEME_TEMPLATES).map(([key, template]) => (
             <button
@@ -163,8 +172,11 @@ export function EnterpriseThemeCustomizer({
               className={cn(
                 "p-4 rounded-lg border-2 transition-all",
                 selectedTemplate === key
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200 hover:border-gray-300",
+                  ? cn("border-blue-500", getAccentColor("blue", "background"))
+                  : cn(
+                      "border-gray-200 hover:border-gray-300",
+                      getBackgroundColor("subtle"),
+                    ),
               )}
             >
               <div
@@ -172,7 +184,9 @@ export function EnterpriseThemeCustomizer({
                 style={{ backgroundColor: template.primaryColor }}
               />
               <div className="text-sm font-medium">{template.brandName}</div>
-              <div className="text-xs text-gray-500 capitalize">{key}</div>
+              <div className={cn("text-xs capitalize", getTextColor("muted"))}>
+                {key}
+              </div>
             </button>
           ))}
         </div>

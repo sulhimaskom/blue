@@ -15,7 +15,12 @@ import {
 } from "@/components/ui/table";
 import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-service";
 import type { MetricsData } from "@/lib/hooks/use-monitoring";
-import { getTextColor, cn, getAccentColor } from "@/lib/constants/ui-themes";
+import {
+  getTextColor,
+  cn,
+  getAccentColor,
+  getBackgroundColor,
+} from "@/lib/constants/ui-themes";
 
 /**
  * Props for the PerformanceMetrics component.
@@ -117,14 +122,37 @@ export const PerformanceMetrics = React.memo(
               {Array.from({ length: 5 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex items-center space-x-4 p-3 border border-gray-200 rounded-lg"
+                  className={cn(
+                    "flex items-center space-x-4 p-3 border rounded-lg",
+                    getBackgroundColor("card"),
+                  )}
                 >
-                  <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                  <div
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      getBackgroundColor("muted"),
+                    )}
+                  ></div>
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-300 rounded w-1/4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                    <div
+                      className={cn(
+                        "h-4 rounded w-1/4",
+                        getBackgroundColor("muted"),
+                      )}
+                    ></div>
+                    <div
+                      className={cn(
+                        "h-3 rounded w-1/3",
+                        getBackgroundColor("subtle"),
+                      )}
+                    ></div>
                   </div>
-                  <div className="h-3 bg-gray-200 rounded w-16"></div>
+                  <div
+                    className={cn(
+                      "h-3 rounded w-16",
+                      getBackgroundColor("subtle"),
+                    )}
+                  ></div>
                 </div>
               ))}
             </div>
