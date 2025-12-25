@@ -22,6 +22,7 @@ const customJestConfig = {
     "<rootDir>/__tests__/setup/",
     "<rootDir>/__tests__/helpers/",
     "<rootDir>/__tests__/mocks/",
+    "<rootDir>/__tests__/integration/",
     // Temporarily ignore complex API integration tests
     "<rootDir>/__tests__/api/",
   ],
