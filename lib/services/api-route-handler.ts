@@ -15,6 +15,7 @@ import { RuntimeServiceInitializer } from "@/lib/services/runtime-service-initia
 import { IntelligentPrefetchService } from "@/lib/services/intelligent-prefetch-service";
 import { RealTimePerformanceMonitor } from "@/lib/services/real-time-performance-monitor";
 import { withCompression } from "@/lib/middleware/compression-wrapper";
+import { Timing } from "@/lib/utils/time-measurement";
 
 export interface APIHandlerConfig<TInput = any> {
   schema?: z.ZodSchema<TInput>;
@@ -64,7 +65,7 @@ class APIRouteHandler {
    */
   static createPOSTHandler<TInput = any>(config: APIHandlerConfig<TInput>) {
     return async (req: NextRequest) => {
-      const startTime = Date.now();
+      const startTime = Timing.now();
       const context = createRequestContext();
       let authenticatedUser:
         | import("@/lib/services/user-service").AuthenticatedUser
@@ -97,7 +98,7 @@ class APIRouteHandler {
               resetTime: rateLimitCheck.resetTime,
             });
             throw new ValidationError(
-              `Rate limit exceeded. Try again in ${Math.ceil((rateLimitCheck.resetTime! - Date.now()) / 1000)} seconds.`,
+              `Rate limit exceeded. Try again in ${Math.ceil((rateLimitCheck.resetTime! - Timing.now()) / 1000)} seconds.`,
               429,
             );
           }
@@ -140,7 +141,7 @@ class APIRouteHandler {
           data: validationData,
         });
 
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
 
         // Log successful request
         logger.apiRequest(
@@ -161,7 +162,7 @@ class APIRouteHandler {
 
         return formatSuccessResponse(result);
       } catch (error) {
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
         const statusCode =
           error instanceof ValidationError ? error.statusCode : 500;
 
@@ -205,7 +206,7 @@ class APIRouteHandler {
     config: Omit<APIHandlerConfig<TInput>, "schema" | "requireCredits">,
   ) {
     return async (req: NextRequest) => {
-      const startTime = Date.now();
+      const startTime = Timing.now();
       const context = createRequestContext();
       let authenticatedUser:
         | import("@/lib/services/user-service").AuthenticatedUser
@@ -225,7 +226,7 @@ class APIRouteHandler {
           user: authenticatedUser || undefined,
         });
 
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
 
         // Log successful request
         logger.apiRequest(
@@ -246,7 +247,7 @@ class APIRouteHandler {
 
         return formatSuccessResponse(result);
       } catch (error) {
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
 
         // Log error
         logger.apiError(
@@ -307,7 +308,7 @@ class APIRouteHandler {
         return UnifiedCacheManager.withCache(
           req,
           async () => {
-            const startTime = Date.now();
+            const startTime = Timing.now();
             const context = createRequestContext();
             let authenticatedUser:
               | import("@/lib/services/user-service").AuthenticatedUser
@@ -328,7 +329,7 @@ class APIRouteHandler {
                 user: authenticatedUser || undefined,
               });
 
-              const duration = Date.now() - startTime;
+              const duration = Timing.perf(startTime);
 
               // Log successful request
               logger.apiRequest(
@@ -354,7 +355,7 @@ class APIRouteHandler {
 
               return NextResponse.json(result, { status: httpStatus });
             } catch (error) {
-              const duration = Date.now() - startTime;
+              const duration = Timing.perf(startTime);
 
               // Log error
               logger.apiError(

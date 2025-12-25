@@ -5,6 +5,7 @@ import type {
   MonitoringData,
   MonitoringServiceOptions,
 } from "./service-types";
+import { Timing } from "@/lib/utils/time-measurement";
 
 /**
  * MonitoringService class that handles all monitoring data operations.
@@ -78,7 +79,7 @@ export class MonitoringService {
     options: MonitoringServiceOptions = {},
   ): Promise<MonitoringData> {
     const { detailed = true, timeout = this.DEFAULT_TIMEOUT } = options;
-    const now = Date.now();
+    const now = Timing.now();
 
     // Performance optimization: Return cached data if fresh
     if (
@@ -174,7 +175,7 @@ export class MonitoringService {
     detailed: boolean,
     signal: AbortSignal,
   ): Promise<SystemHealth> {
-    const timestamp = Date.now();
+    const timestamp = Timing.now();
     const response = await fetch(
       `/api/health?detailed=${detailed}&_t=${timestamp}`,
       {
@@ -211,7 +212,7 @@ export class MonitoringService {
    * ```
    */
   private async fetchMetricsData(signal: AbortSignal): Promise<MetricsData> {
-    const timestamp = Date.now();
+    const timestamp = Timing.now();
     const response = await fetch(`/api/metrics?_t=${timestamp}`, {
       signal,
       headers: { "Cache-Control": "no-cache" },

@@ -245,7 +245,7 @@ export class AIService {
         return completion;
       });
     } catch (error) {
-      const duration = Date.now() - startTime;
+      const duration = Timing.perf(startTime);
 
       logger.error("AI completion failed", {
         error: error instanceof Error ? error.message : String(error),
@@ -277,7 +277,7 @@ export class AIService {
    * Blueprint.md:33 integration
    */
   async conductResearch(request: ResearchRequest): Promise<ResearchResult> {
-    const startTime = Date.now();
+    const startTime = Timing.now();
     const context = { requestId: IdGenerators.REQUEST() };
 
     try {
@@ -299,7 +299,7 @@ export class AIService {
           hasAnswer: Boolean(cachedResearch.answer),
         });
 
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
         monitoringService.trackAIOperation("research", duration, true, {
           query: request.query,
           resultCount: cachedResearch.results.length,
@@ -364,7 +364,7 @@ export class AIService {
           answer: data.answer || "",
         };
 
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
 
         logger.info("Market research completed successfully", {
           query: request.query,
@@ -401,7 +401,7 @@ export class AIService {
         return result;
       });
     } catch (error) {
-      const duration = Date.now() - startTime;
+      const duration = Timing.perf(startTime);
 
       logger.error("Market research failed", {
         query: request.query,
