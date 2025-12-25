@@ -10,6 +10,7 @@ import { SystemHealthOverview } from "@/components/monitoring/system-health-over
 import { PerformanceMetrics } from "@/components/monitoring/performance-metrics";
 import { DashboardFooter } from "@/components/monitoring/dashboard-footer";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
+import { useEffect, useRef } from "react";
 
 export default function MonitoringDashboard() {
   const {
@@ -31,6 +32,26 @@ export default function MonitoringDashboard() {
     useMonitoringDashboardState();
 
   const hasData = !!(health || metrics);
+  const pageVisibleRef = useRef(true);
+
+  // Performance optimization: Pause refresh when page is not visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && autoRefresh) {
+        // Pause refresh when page is hidden
+        setAutoRefresh(false);
+        pageVisibleRef.current = false;
+      } else if (!document.hidden && !autoRefresh && !pageVisibleRef.current) {
+        // Resume refresh when page becomes visible again
+        setAutoRefresh(true);
+        pageVisibleRef.current = true;
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [autoRefresh, setAutoRefresh]);
 
   // Show skeleton loading state while loading initial data
   if (loading && !hasData) {

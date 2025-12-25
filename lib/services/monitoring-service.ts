@@ -41,6 +41,9 @@ import type {
  */
 export class MonitoringService {
   private readonly DEFAULT_TIMEOUT = 10000; // 10 seconds
+  private readonly PERFORMANCE_CACHE_DURATION = 5000; // 5 seconds for performance optimization
+  private cachedData: MonitoringData | null = null;
+  private lastCacheTime: number = 0;
 
   /**
    * Fetches comprehensive monitoring data (health and metrics)
@@ -75,6 +78,18 @@ export class MonitoringService {
     options: MonitoringServiceOptions = {},
   ): Promise<MonitoringData> {
     const { detailed = true, timeout = this.DEFAULT_TIMEOUT } = options;
+    const now = Date.now();
+
+    // Performance optimization: Return cached data if fresh
+    if (
+      this.cachedData &&
+      now - this.lastCacheTime < this.PERFORMANCE_CACHE_DURATION
+    ) {
+      logger.debug("Using cached monitoring data for performance", {
+        cacheAge: now - this.lastCacheTime,
+      });
+      return this.cachedData;
+    }
 
     try {
       logger.info("Fetching monitoring data", {
@@ -100,9 +115,14 @@ export class MonitoringService {
         metricsResponse,
       );
 
+      // Cache the successful result for performance optimization
+      this.cachedData = result;
+      this.lastCacheTime = now;
+
       logger.info("Monitoring data fetched successfully", {
         healthStatus: result.health?.status,
         metricsCount: result.metrics?.metrics.length,
+        cached: true,
       });
 
       return result;
@@ -115,7 +135,15 @@ export class MonitoringService {
         options,
       });
 
-      // Return partial data rather than throwing to maintain UI stability
+      // Return cached data if available during errors for performance stability
+      if (this.cachedData) {
+        logger.info("Using stale cached data during error", {
+          cacheAge: now - this.lastCacheTime,
+        });
+        return this.cachedData;
+      }
+
+      // Return fallback data if no cache available
       return this.getStaleDataFallback();
     }
   }

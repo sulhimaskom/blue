@@ -56,8 +56,8 @@ export async function GET(req: NextRequest) {
       };
     },
     {
-      ttl: 45, // Optimized: Cache for 45 seconds - smart caching for health status that changes gradually
-      tags: ["health-check", "system-status"],
+      ttl: 60, // Optimized: Extended to 60 seconds for better performance - health status changes infrequently
+      tags: ["health-check", "system-status", "dashboard"],
       varyBy: [], // Health checks are the same for all users
       initializeServices: true, // Enable runtime service initialization
       getStatus: (data) => {

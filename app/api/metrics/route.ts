@@ -67,8 +67,8 @@ export async function GET(req: NextRequest) {
       }
     },
     {
-      ttl: 30, // Optimized: Cache for 30 seconds - smart caching for metrics that change periodically
-      tags: ["metrics", "performance-data"],
+      ttl: 45, // Optimized: Extended to 45 seconds for better performance - metrics don't change rapidly
+      tags: ["metrics", "performance-data", "dashboard"],
       varyBy: [], // Metrics are the same for all users
       initializeServices: true, // Enable runtime service initialization
     },

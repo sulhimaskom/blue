@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { ChartIcon } from "@/components/ui/icons";
 import { MetricSummaryCard } from "@/components/ui/metric-card";
 import { BaseCard } from "@/components/ui/base-card";
-import { Skeleton, MetricCardSkeleton } from "@/components/ui/skeleton";
+import { MetricCardSkeleton } from "@/components/ui/skeleton";
 import { UI_TEXT } from "@/lib/constants/ui-text";
 import {
   BaseTable,
@@ -86,8 +86,9 @@ export const PerformanceMetrics = React.memo(
       [metrics],
     );
 
-    if (loading || !metrics) {
-      return (
+    // Memoize loading skeleton for performance - prevents recreating DOM
+    const loadingSkeleton = useMemo(
+      () => (
         <BaseCard className="mb-8 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
             <ChartIcon />
@@ -102,6 +103,7 @@ export const PerformanceMetrics = React.memo(
               <MetricCardSkeleton key={i} />
             ))}
           </div>
+          {/* Activity table skeleton */}
           <BaseCard>
             <h3
               className={cn(
@@ -117,18 +119,23 @@ export const PerformanceMetrics = React.memo(
                   key={i}
                   className="flex items-center space-x-4 p-3 border border-gray-200 rounded-lg"
                 >
-                  <div className="flex-1 grid grid-cols-4 gap-4">
-                    <Skeleton variant="text" className="h-4 w-16" />
-                    <Skeleton variant="text" className="h-4 w-12" />
-                    <Skeleton variant="text" className="h-4 w-10" />
-                    <Skeleton variant="text" className="h-4 w-20" />
+                  <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
                   </div>
+                  <div className="h-3 bg-gray-200 rounded w-16"></div>
                 </div>
               ))}
             </div>
           </BaseCard>
         </BaseCard>
-      );
+      ),
+      [], // Empty dependency array - skeleton never changes
+    );
+
+    if (loading || !metrics) {
+      return loadingSkeleton;
     }
 
     return (
