@@ -4,6 +4,7 @@ import React from "react";
 import { Button } from "./button";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 import { Environment } from "@/lib/utils/environment";
+import { getUIText } from "@/lib/constants/ui-text";
 import {
   getTextColor,
   getIconColor,
@@ -97,19 +98,19 @@ export class ErrorBoundary extends React.Component<
               <Button
                 onClick={this.handleReset}
                 className="w-full"
-                aria-label="Try again"
+                aria-label={getUIText("common", "tryAgain")}
               >
-                Try Again
+                {getUIText("common", "tryAgain")}
               </Button>
 
               <Button
                 variant="outline"
                 onClick={() => window.location.reload()}
                 className="w-full"
-                aria-label="Refresh page"
+                aria-label={getUIText("common", "refreshPage")}
               >
                 <RefreshCw className="h-4 w-4mr-2" />
-                Refresh Page
+                {getUIText("common", "refreshPage")}
               </Button>
             </div>
 

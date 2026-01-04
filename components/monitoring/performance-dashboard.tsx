@@ -16,6 +16,7 @@ import {
   TrendingUpIcon,
   AlertTriangleIcon,
 } from "@/components/ui/icons";
+import { getUIText } from "@/lib/constants/ui-text";
 import {
   getTextColor,
   getBackgroundColor,
@@ -270,7 +271,7 @@ export const PerformanceDashboard = React.memo(
           <MetricCard
             title="Active Alerts"
             value={performanceData?.performance?.alertCount || 0}
-            subtitle="Critical warnings"
+            subtitle={getUIText("monitoring", "criticalWarnings")}
             status={
               (performanceData?.performance?.alertCount || 0) === 0
                 ? "healthy"
@@ -310,7 +311,7 @@ export const PerformanceDashboard = React.memo(
                       <span className="text-sm opacity-75">
                         {alert.value > alert.threshold
                           ? `${Math.round(((alert.value - alert.threshold) / alert.threshold) * 100)}% over threshold`
-                          : "At threshold"}
+                          : getUIText("monitoring", "atThreshold")}
                       </span>
                     </div>
                     <p className="text-sm opacity-90">{alert.recommendation}</p>

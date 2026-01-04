@@ -5,6 +5,7 @@ import {
   StatusIndicator,
   type StatusType,
 } from "@/components/ui/status-indicator";
+import { getUIText } from "@/lib/constants/ui-text";
 import {
   getTextColor,
   getBackgroundColor,
@@ -78,10 +79,10 @@ export const PredictiveAnalyticsPanel = React.memo(
     }, [healthScore]);
 
     const healthDescription = useMemo(() => {
-      if (healthScore >= 90) return "Excellent";
-      if (healthScore >= 75) return "Good";
-      if (healthScore >= 60) return "Fair";
-      return "Needs Attention";
+      if (healthScore >= 90) return getUIText("monitoring", "excellent");
+      if (healthScore >= 75) return getUIText("monitoring", "good");
+      if (healthScore >= 60) return getUIText("monitoring", "fair");
+      return getUIText("monitoring", "needsAttention");
     }, [healthScore]);
     const getUrgencyStatus = (urgency: string): StatusType => {
       switch (urgency) {

@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorIcon, RefreshIcon, ActivityIcon } from "@/components/ui/icons";
 import { Gradients } from "@/lib/constants/gradients";
+import { getUIText } from "@/lib/constants/ui-text";
 import {
   STATUS_THEMES,
   ANIMATION_STATES,
@@ -54,8 +55,8 @@ interface DashboardHeaderProps {
  * ```
  */
 export function DashboardHeader({
-  title = "System Monitoring Dashboard",
-  description = "Real-time system health and performance metrics",
+  title = getUIText("monitoring", "dashboardTitle"),
+  description = getUIText("monitoring", "dashboardDescription"),
   autoRefresh,
   loading,
   onToggleAutoRefresh,
@@ -98,7 +99,7 @@ export function DashboardHeader({
                 className={ANIMATION_STATES.liveAnimated}
                 aria-hidden="true"
               />
-              <span>Auto-refresh ON</span>
+              <span>{getUIText("monitoring", "autoRefreshOn")}</span>
             </>
           ) : (
             <>
@@ -106,20 +107,26 @@ export function DashboardHeader({
                 className="w-2 h-2 bg-gray-400 rounded-full"
                 aria-hidden="true"
               />
-              <span>Auto-refresh OFF</span>
+              <span>{getUIText("monitoring", "autoRefreshOff")}</span>
             </>
           )}
         </Button>
         <Button
           onClick={onManualRefresh}
           disabled={loading}
-          aria-label={loading ? "Refreshing data" : "Refresh data now"}
+          aria-label={
+            loading
+              ? getUIText("monitoring", "refreshingData")
+              : getUIText("monitoring", "refreshNow")
+          }
           className="flex items-center gap-2"
         >
           <div className={loading ? "animate-spin" : ""} aria-hidden="true">
             <RefreshIcon />
           </div>
-          {loading ? "Refreshing..." : "Refresh Now"}
+          {loading
+            ? getUIText("monitoring", "refreshingNow")
+            : getUIText("monitoring", "refreshNow")}
         </Button>
       </div>
     </div>
@@ -156,7 +163,7 @@ interface ErrorBannerProps {
  */
 export function ErrorBanner({
   error,
-  title = "Connection Error",
+  title = getUIText("monitoring", "connectionError"),
 }: ErrorBannerProps) {
   return (
     <div
@@ -205,7 +212,7 @@ interface LoadingStateProps {
  * ```
  */
 export function LoadingState({
-  message = "Loading system data...",
+  message = getUIText("monitoring", "loadingSystemData"),
 }: LoadingStateProps) {
   return (
     <div className="flex items-center justify-center py-20">
