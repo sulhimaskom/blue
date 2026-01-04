@@ -19,7 +19,6 @@
     "typecheck": "tsc --noEmit",
     "typecheck:clean": "rm -rf .next && npm run build && tsc --noEmit",
     "optimize-db": "npx tsx scripts/optimize-database.ts",
-    "optimize-db": "npx tsx scripts/optimize-database.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
