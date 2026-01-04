@@ -35,7 +35,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        continue-on-error: true
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -59,7 +58,6 @@ jobs:
           fi
 
       - name: Setup
-        continue-on-error: true
         if: steps.detect-pm.outputs.pm == 'pnpm'
         uses: pnpm/action-setup@v4
         with:
@@ -67,19 +65,18 @@ jobs:
 
       - name: Setup Cache
         uses: actions/cache@v4
-        continue-on-error: false
         with:
           path: |
             ~/.pnpm-store
             ~/.npm
+            ~/.cache
             **/node_modules
-          key: ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v2-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v3-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock') }}
           restore-keys: |
+            ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v3-
             ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v2-
-            ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v1-
 
       - name: Install Dependencies
-        continue-on-error: false
         run: ${{ steps.detect-pm.outputs.install }}
 
       - name: Typecheck
