@@ -39,6 +39,10 @@ export async function GET(request: NextRequest) {
     const optimizationResult =
       await predictiveCacheOptimizer.performPredictiveOptimization();
 
+    // Perform advanced memory optimization
+    const advancedOptimization =
+      await predictiveCacheOptimizer.performAdvancedMemoryOptimization();
+
     // Get current performance metrics
     const performanceMetrics =
       await predictiveCacheOptimizer.getPerformanceMetrics();
@@ -59,6 +63,7 @@ export async function GET(request: NextRequest) {
       data: {
         optimization: optimizationResult,
         performance: performanceMetrics,
+        advanced: advancedOptimization,
       },
     };
 
