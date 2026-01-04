@@ -24,51 +24,11 @@ export function setupEnvironmentMocks() {
   // Clear any cached modules to reset imports with env variables
   jest.resetModules();
 
-  // Mock Next.js server utilities first
-  jest.mock("next/server", () => {
-    const MockResponse = class {
-      data: any;
-      status: number;
-      headers: Map<string, string> | any;
-
-      constructor(data: any, init?: { status?: number }) {
-        this.data = data;
-        this.status = init?.status || 200;
-        this.headers = new Map();
-      }
-
-      json() {
-        return Promise.resolve(this.data);
-      }
-
-      text() {
-        return Promise.resolve(JSON.stringify(this.data));
-      }
-    };
-
-    const MockNextResponse = class extends MockResponse {
-      static json(data: any, init?: { status?: number }) {
-        const response = new MockNextResponse(data, init);
-        response.status = init?.status || 200;
-        response.headers = {
-          set: jest.fn(),
-          get: jest.fn(),
-          has: jest.fn(),
-          delete: jest.fn(),
-        };
-        return response;
-      }
-
-      static redirect() {
-        return new MockNextResponse(null, { status: 302 });
-      }
-    };
-
-    return {
-      NextResponse: MockNextResponse,
-      Response: MockResponse,
-    };
-  });
+  // Mock Next.js server utilities first - use global mocks from jest.polyfills.js
+  jest.mock("next/server", () => ({
+    NextResponse: (global as any).NextResponse,
+    Response: (global as any).Response,
+  }));
 
   // Mock environment validation to bypass test requirements
   jest.mock("@/lib/env", () => ({

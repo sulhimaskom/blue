@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { StripePaymentService } from "@/lib/services/stripe-payment-service";
+import { SecurityService } from "@/lib/services/security-service";
 
 const stripeService = StripePaymentService.getInstance();
 
@@ -9,11 +10,34 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   try {
     const body = await request.text();
-    const signature = request.headers.get("stripe-signature");
 
-    // Validate webhook signature
+    // First verify using centralized security service
+    const isValid = SecurityService.verifyStripeWebhook(body, request.headers);
+    if (!isValid) {
+      SecurityService.logSecurityEvent(
+        "Webhook signature verification failed",
+        {
+          endpoint: "/api/stripe/webhook",
+          requestId,
+          hasSignature: !!request.headers.get("stripe-signature"),
+        },
+      );
+      return NextResponse.json(
+        { error: "Invalid webhook signature" },
+        { status: 401 },
+      );
+    }
+
+    // Log successful verification
+    SecurityService.logSecurityEvent("Webhook signature verified", {
+      endpoint: "/api/stripe/webhook",
+      requestId,
+    });
+
+    // Get signature for processing (after verification)
+    const signature = request.headers.get("stripe-signature");
     if (!signature) {
-      logger.error("Webhook missing stripe-signature header", { requestId });
+      // This should not happen after verification, but keep as safety check
       return NextResponse.json(
         { error: "Missing webhook signature" },
         { status: 400 },
@@ -32,6 +56,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ received: true, type: result.type });
   } catch (error) {
+    // Log security event for any processing errors
+    SecurityService.logSecurityEvent("Webhook processing error", {
+      endpoint: "/api/stripe/webhook",
+      requestId,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+
     logger.error("Webhook processing error", {
       requestId,
       error: error instanceof Error ? error.message : "Unknown error",
