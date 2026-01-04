@@ -132,11 +132,9 @@ class Logger {
         break;
     }
 
-    // In production, this would integrate with external logging services
-    // like Sentry, CloudWatch, DataDog, etc.
+    // Production logging service integration
     if (!isDevelopment && !isTest) {
-      // TODO: Add production logging service integration
-      // For now, errors are already handled above
+      this.sendToProductionLogging(logEntry);
     }
   }
 
@@ -242,6 +240,117 @@ class Logger {
       message,
       ...metadata,
     });
+  }
+
+  /**
+   * Send logs to production monitoring service
+   *
+   * Environment-aware production logging service integration
+   */
+  private sendToProductionLogging(logEntry: LogEntry): void {
+    try {
+      // Only send error and warn levels to production monitoring
+      if (logEntry.level === "error" || logEntry.level === "warn") {
+        // Use dynamic import to avoid build issues in Next.js client-side
+        if (typeof window === "undefined") {
+          // Server-side only - import error monitoring service
+          import("./services/error-monitoring-service")
+            .then(({ errorMonitoring }) => {
+              if (logEntry.level === "error") {
+                errorMonitoring.captureError(
+                  logEntry.error?.message || logEntry.message,
+                  {
+                    user: logEntry.userId ? { id: logEntry.userId } : undefined,
+                    tags: {
+                      logLevel: logEntry.level,
+                      method: logEntry.method || "unknown",
+                      path: logEntry.path || "unknown",
+                      service: "architect-platform-logger",
+                    },
+                    extra: {
+                      requestId: logEntry.requestId,
+                      correlationId: logEntry.correlationId,
+                      statusCode: logEntry.statusCode,
+                      duration: logEntry.duration,
+                      metadata: logEntry.metadata,
+                      timestamp: logEntry.timestamp,
+                    },
+                  },
+                  { level: "error" },
+                );
+              } else if (logEntry.level === "warn") {
+                errorMonitoring.captureBusinessEvent(logEntry.message, {
+                  category: "warning",
+                  component: "logger",
+                  metadata: {
+                    method: logEntry.method,
+                    path: logEntry.path,
+                    requestId: logEntry.requestId,
+                    statusCode: logEntry.statusCode,
+                    ...logEntry.metadata,
+                  },
+                });
+              }
+            })
+            .catch((error) => {
+              // eslint-disable-next-line no-console
+              console.error("Failed to import error monitoring service:", {
+                error: error instanceof Error ? error.message : String(error),
+              });
+            });
+        }
+      }
+    } catch (error) {
+      // Fallback to console if production logging fails
+      // eslint-disable-next-line no-console
+      console.error("Failed to send log to production service:", {
+        error: error instanceof Error ? error.message : String(error),
+        originalLog: logEntry,
+      });
+    }
+  }
+
+  /**
+   * Health check for logging system
+   *
+   * Checks both local logger and production service integration
+   */
+  public async healthCheck(): Promise<{
+    status: "healthy" | "degraded" | "unhealthy";
+    loggingService: "local";
+    productionService: string;
+    environment: string;
+  }> {
+    try {
+      if (typeof window === "undefined") {
+        const { errorMonitoring } =
+          await import("./services/error-monitoring-service");
+        const productionHealth = errorMonitoring.healthCheck();
+
+        return {
+          status: productionHealth.status,
+          loggingService: "local",
+          productionService: productionHealth.service,
+          environment: process.env.NODE_ENV || "development",
+        };
+      }
+    } catch (error) {
+      // Fallback health check if production service unavailable
+      return {
+        status: "degraded",
+        loggingService: "local",
+        productionService: "unavailable",
+        environment: process.env.NODE_ENV || "development",
+      };
+    }
+
+    // Default fallback
+    return {
+      status: "healthy",
+      loggingService: "local",
+      productionService: "fallback",
+      environment: process.env.NODE_ENV || "development",
+    };
   }
 }
 
