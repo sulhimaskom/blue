@@ -6,8 +6,19 @@ import {
   beforeEach,
   afterEach,
 } from "@jest/globals";
-import { POST, GET } from "@/app/api/stripe/webhook/route";
 import { NextRequest } from "next/server";
+
+// Mock NextResponse
+const mockJson = jest.fn();
+jest.mock("next/server", () => ({
+  NextRequest: jest.fn(),
+  NextResponse: {
+    json: mockJson,
+  },
+}));
+
+// Import after mocking
+let POST: any, GET: any;
 
 // Mock the StripePaymentService
 const mockStripeService = {
@@ -31,9 +42,36 @@ jest.mock("@/lib/logger", () => ({
   },
 }));
 
+beforeEach(() => {
+  // Reset mocks
+  mockJson.mockReset();
+  mockStripeService.processWebhookEvent.mockReset();
+  mockStripeService.isConfigured.mockReset();
+  mockStripeService.getPublishableKey.mockReset();
+
+  // Setup default mock responses
+  mockJson.mockImplementation((data: any, init?: any) => ({
+    status: init?.status || 200,
+    json: async () => data,
+  }));
+
+  // Import route handlers after setup
+  jest.isolateModules(() => {
+    const route = require("@/app/api/stripe/webhook/route");
+    POST = route.POST;
+    GET = route.GET;
+  });
+});
+
 describe("/api/stripe/webhook", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Re-setup mocks after clearing
+    mockJson.mockImplementation((data: any, init?: any) => ({
+      status: init?.status || 200,
+      json: async () => data,
+    }));
   });
 
   describe("POST", () => {
