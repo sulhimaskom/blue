@@ -6,6 +6,7 @@ import { CREDIT_RULES, PRICING_PACKAGES } from "@/lib/constants";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { IdGenerators } from "@/lib/utils/id-generator";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
+import { StripePaymentService } from "@/lib/services/stripe-payment-service";
 
 const addCreditsSchema = z.object({
   amount: z
@@ -14,6 +15,7 @@ const addCreditsSchema = z.object({
     .min(CREDIT_RULES.MINIMUM_PURCHASE, "Minimum $1.00 purchase")
     .max(CREDIT_RULES.MAXIMUM_PURCHASE, "Maximum $1000.00 purchase"),
   paymentMethodId: z.string().min(1, "Payment method required"),
+  confirmImmediate: z.boolean().optional().default(false),
 });
 
 export const POST = APIRouteHandler.createPOSTHandler({
@@ -21,58 +23,137 @@ export const POST = APIRouteHandler.createPOSTHandler({
   requireAuth: true,
   handler: async ({ context, user, data }) => {
     const amount = data!.amount;
+    const paymentMethodId = data!.paymentMethodId;
+    const confirmImmediate = data!.confirmImmediate || false;
 
-    // TODO: In Phase 4, this will integrate with actual Stripe payment processing
-    // For now, we'll simulate successful payment and add credits
-    // Credit conversion using constants
-    const creditsToAdd = Math.floor(amount / CREDIT_RULES.CONVERSION_RATE);
+    const stripeService = StripePaymentService.getInstance();
 
-    // Generate secure mock payment ID
-    const mockPaymentId = IdGenerators.PAYMENT();
+    // Check if Stripe is properly configured
+    if (!stripeService.isConfigured()) {
+      logger.warn("Stripe not configured - using fallback payment simulation", {
+        requestId: context.requestId,
+        userId: user!.id,
+        amount,
+      });
 
-    // Create transaction record
-    const newTransaction = await ProjectDataService.createTransaction(
-      user!.id,
-      amount,
-      creditsToAdd,
-      mockPaymentId,
-    );
+      // Fallback to mock payment for development/testing
+      const creditsToAdd = Math.floor(amount / CREDIT_RULES.CONVERSION_RATE);
+      const mockPaymentId = IdGenerators.PAYMENT();
 
-    // Update subscription tier if needed (non-critical, handled in service)
-    await UserService.updateSubscriptionTierIfNeeded(
-      user!.id,
-      creditsToAdd,
+      const newTransaction = await ProjectDataService.createTransaction(
+        user!.id,
+        amount,
+        creditsToAdd,
+        mockPaymentId,
+      );
+
+      await UserService.updateSubscriptionTierIfNeeded(
+        user!.id,
+        creditsToAdd,
+        context,
+      );
+      const updatedUser = await UserService.updateUserCredits(
+        user!.id,
+        creditsToAdd,
+        context,
+      );
+      await DatabaseQueryCache.invalidateUserCache(user!.id);
+
+      logger.userAction("Credits purchased (mock)", user!.clerkId, {
+        requestId: context.requestId,
+        transactionId: newTransaction.id,
+        amount: amount / 100,
+        creditsAdded: creditsToAdd,
+        paymentId: mockPaymentId,
+        newTotal: updatedUser.credits,
+      });
+
+      return {
+        transactionId: newTransaction.id,
+        creditsAdded: creditsToAdd,
+        totalCredits: updatedUser.credits,
+        amount: amount / 100,
+        subscriptionTier: updatedUser.subscriptionTier,
+        paymentId: mockPaymentId,
+        message: "Credits added successfully (development mode).",
+      };
+    }
+
+    // Real Stripe payment processing
+    const paymentIntent = await stripeService.createPaymentIntent(
+      {
+        amount,
+        paymentMethodId,
+        userId: user!.id.toString(),
+        metadata: {
+          clerkId: user!.clerkId,
+          source: "credits-api",
+        },
+      },
       context,
     );
 
-    // Update user credits using service
-    const updatedUser = await UserService.updateUserCredits(
-      user!.id,
-      creditsToAdd,
-      context,
-    );
+    // If payment is immediately confirmed and successful, process credits
+    if (confirmImmediate && paymentIntent.status === "succeeded") {
+      const creditsToAdd = Math.floor(amount / CREDIT_RULES.CONVERSION_RATE);
 
-    // Invalidate user cache when credits are updated
-    await DatabaseQueryCache.invalidateUserCache(user!.id);
+      const newTransaction = await ProjectDataService.createTransaction(
+        user!.id,
+        amount,
+        creditsToAdd,
+        paymentIntent.paymentIntentId,
+      );
 
-    logger.userAction("Credits purchased", user!.clerkId, {
+      await UserService.updateSubscriptionTierIfNeeded(
+        user!.id,
+        creditsToAdd,
+        context,
+      );
+      const updatedUser = await UserService.updateUserCredits(
+        user!.id,
+        creditsToAdd,
+        context,
+      );
+      await DatabaseQueryCache.invalidateUserCache(user!.id);
+
+      logger.userAction("Credits purchased (Stripe)", user!.clerkId, {
+        requestId: context.requestId,
+        transactionId: newTransaction.id,
+        amount: amount / 100,
+        creditsAdded: creditsToAdd,
+        paymentId: paymentIntent.paymentIntentId,
+        newTotal: updatedUser.credits,
+      });
+
+      return {
+        transactionId: newTransaction.id,
+        creditsAdded: creditsToAdd,
+        totalCredits: updatedUser.credits,
+        amount: amount / 100,
+        subscriptionTier: updatedUser.subscriptionTier,
+        paymentId: paymentIntent.paymentIntentId,
+        stripeClientSecret: paymentIntent.clientSecret,
+        paymentStatus: paymentIntent.status,
+        message: "Credits added successfully via Stripe payment.",
+      };
+    }
+
+    // Return payment intent for client-side confirmation
+    logger.userAction("Payment intent created", user!.clerkId, {
       requestId: context.requestId,
-      transactionId: newTransaction.id,
-      amount: (amount || 0) / 100,
-      creditsAdded: creditsToAdd,
-      paymentId: mockPaymentId,
-      newTotal: updatedUser.credits,
+      amount: amount / 100,
+      paymentIntentId: paymentIntent.paymentIntentId,
+      paymentStatus: paymentIntent.status,
     });
 
     return {
-      transactionId: newTransaction.id,
-      creditsAdded: creditsToAdd,
-      totalCredits: updatedUser.credits,
-      amount: amount / 100, // convert back to dollars
-      subscriptionTier: updatedUser.subscriptionTier,
-      paymentId: mockPaymentId,
-      message:
-        "Credits added successfully. Stripe payment integration will be available in Phase 4.",
+      requiresAction: true,
+      stripeClientSecret: paymentIntent.clientSecret,
+      paymentIntentId: paymentIntent.paymentIntentId,
+      amount: amount / 100,
+      paymentStatus: paymentIntent.status,
+      publishableKey: stripeService.getPublishableKey(),
+      message: "Payment initiated. Please confirm the payment to add credits.",
     };
   },
 });
@@ -80,6 +161,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: true,
   handler: async ({ context, user }) => {
+    const stripeService = StripePaymentService.getInstance();
     // Get transaction history with caching
     const transactionHistory = await DatabaseQueryCache.executeCachedQuery(
       "user-transactions",
@@ -107,6 +189,12 @@ export const GET = APIRouteHandler.createGETHandler({
       pricing: {
         creditValue: `$0.10 per credit`,
         packages: PRICING_PACKAGES,
+      },
+      stripeConfig: {
+        configured: stripeService.isConfigured(),
+        publishableKey: stripeService.isConfigured()
+          ? stripeService.getPublishableKey()
+          : null,
       },
     };
   },
