@@ -7,6 +7,7 @@
 | `architecture/blueprint.md` | **Main config** - Tech stack, features, schema |
 | `architecture/roadmap.md`   | Development timeline & progress                |
 | `deployment/SETUP.md`       | Deployment setup guide                         |
+| `TROUBLESHOOTING.md`        | **Complete troubleshooting guide & FAQ**       |
 | `prompt.md`                 | Blueprint generator prompt                     |
 | `task.md`                   | Task checklist                                 |
 | `bug.md`                    | Bug tracker                                    |
@@ -26,16 +27,17 @@
 
 ## 📁 Documentation Structure
 
-| File                        | Purpose                                     | Priority     |
-| --------------------------- | ------------------------------------------- | ------------ |
-| `architecture/blueprint.md` | **Technical specification & tech stack**    | 🔴 Critical  |
-| `API.md`                    | **Complete RESTful API reference**          | 🔴 Critical  |
-| `DEVELOPER_ONBOARDING.md`   | **Developer guide & architecture patterns** | 🔴 Critical  |
-| `deployment/SETUP.md`       | **Production deployment procedures**        | 🔴 Critical  |
-| `task.md`                   | **Task tracking & completion status**       | 🟡 Important |
-| `bug.md`                    | **Bug tracking & resolution metrics**       | 🟡 Important |
-| `roadmap.md`                | **Development timeline & progress**         | 🟡 Important |
-| `evaluasi.md`               | **Comprehensive code evaluation report**    | 🟢 Reference |
+| File                        | Purpose                                          | Priority     |
+| --------------------------- | ------------------------------------------------ | ------------ |
+| `architecture/blueprint.md` | **Technical specification & tech stack**         | 🔴 Critical  |
+| `API.md`                    | **Complete RESTful API reference**               | 🔴 Critical  |
+| `DEVELOPER_ONBOARDING.md`   | **Developer guide & architecture patterns**      | 🔴 Critical  |
+| `deployment/SETUP.md`       | **Production deployment procedures**             | 🔴 Critical  |
+| `TROUBLESHOOTING.md`        | **Troubleshooting guide & emergency procedures** | 🔴 Critical  |
+| `task.md`                   | **Task tracking & completion status**            | 🟡 Important |
+| `bug.md`                    | **Bug tracking & resolution metrics**            | 🟡 Important |
+| `roadmap.md`                | **Development timeline & progress**              | 🟡 Important |
+| `evaluasi.md`               | **Comprehensive code evaluation report**         | 🟢 Reference |
 
 ---
 
