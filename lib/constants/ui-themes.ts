@@ -7,9 +7,6 @@
  * Usage: Import themes from this file, never hardcode colors directly
  */
 
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
 /**
  * Status Themes - Used across indicators, badges, and alerts
  */
@@ -137,6 +134,16 @@ export const COLOR_THEMES = {
 } as const;
 
 /**
+ * Button Themes - Standardized button styling across all components
+ */
+export const BUTTON_THEMES = {
+  primary: "bg-blue-600 hover:bg-blue-700 text-white",
+  secondary: "bg-white hover:bg-gray-50 text-gray-900 border border-gray-300",
+  outline:
+    "border border-gray-300 bg-transparent hover:bg-gray-50 text-gray-900",
+} as const;
+
+/**
  * Size Variants - Standardized sizing across components
  */
 export const SIZE_VARIANTS = {
@@ -170,6 +177,7 @@ export type StatusThemeType = keyof typeof STATUS_THEMES;
 export type GradientThemeType = keyof typeof GRADIENT_THEMES;
 export type AnimationStateType = keyof typeof ANIMATION_STATES;
 export type CardVariantType = keyof typeof CARD_VARIANTS;
+export type ButtonThemeType = keyof typeof BUTTON_THEMES;
 export type SizeVariantType =
   | keyof typeof SIZE_VARIANTS.indicator
   | keyof typeof SIZE_VARIANTS.card;
@@ -179,12 +187,10 @@ export type IconColorType = keyof typeof COLOR_THEMES.icon;
 export type BackgroundType = keyof typeof COLOR_THEMES.background;
 
 /**
- * Utility function to combine theme classes with Tailwind's cn function
- * Prevents class conflicts and provides consistent theming
+ * Re-export cn utility from utils to maintain import compatibility
+ * Theme system uses centralized utility function for consistency
  */
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+export { cn } from "../utils";
 
 /**
  * Get a complete status theme by combining all related classes
@@ -284,4 +290,14 @@ export function getAccentColor(
   return COLOR_THEMES.accent[color][
     shade as keyof typeof COLOR_THEMES.accent.blue
   ];
+}
+
+/**
+ * Get button theme classes
+ *
+ * @param theme - The button theme type
+ * @returns Button className string
+ */
+export function getButtonTheme(theme: ButtonThemeType): string {
+  return BUTTON_THEMES[theme];
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { redisManager } from "../redis";
 import { logger } from "../logger";
 import crypto from "crypto";
+import { Timing } from "@/lib/utils/time-measurement";
 
 export interface UnifiedCacheOptions {
   ttl?: number; // Time to live in seconds
@@ -555,7 +556,7 @@ export class UnifiedCacheManager {
       // This would be enhanced with real hit rate tracking in a production environment
       // For now, return a simulated value based on time and some randomness
       const baseHitRate = 0.75;
-      const timeVariation = Math.sin(Date.now() / 100000) * 0.1;
+      const timeVariation = Math.sin(Timing.now() / 100000) * 0.1;
       const randomVariation = (Math.random() - 0.5) * 0.05;
 
       return Math.max(
@@ -600,7 +601,7 @@ export class UnifiedCacheManager {
 
     // Check age-based expiration
     if (entry.metadata?.createdAt && entry.metadata?.ttl) {
-      const age = Date.now() - new Date(entry.metadata.createdAt).getTime();
+      const age = Timing.now() - new Date(entry.metadata.createdAt).getTime();
       if (age > entry.metadata.ttl * 1000) {
         return false;
       }
@@ -721,7 +722,7 @@ export class UnifiedCacheManager {
       logger.debug("Cache hit", {
         key,
         prefix,
-        age: Date.now() - new Date(cached.metadata.createdAt).getTime(),
+        age: Timing.now() - new Date(cached.metadata.createdAt).getTime(),
       });
 
       return cached.data;
@@ -980,7 +981,7 @@ export class UnifiedCacheManager {
       response.headers.set(
         "x-cache-age",
         Math.floor(
-          (Date.now() - new Date(cached.metadata.createdAt).getTime()) / 1000,
+          (Timing.now() - new Date(cached.metadata.createdAt).getTime()) / 1000,
         ).toString(),
       );
 
@@ -1110,7 +1111,7 @@ export class UnifiedCacheManager {
     };
   }> {
     try {
-      const startTime = Date.now();
+      const startTime = Timing.now();
 
       const stats = await redisManager.executeWithFallback(
         async (client) => {
@@ -1192,7 +1193,7 @@ export class UnifiedCacheManager {
         }),
       );
 
-      const queryTime = Date.now() - startTime;
+      const queryTime = Timing.perf(startTime);
 
       // Get Redis performance metrics
       const redisPerformance = redisManager.getPerformanceMetrics();
@@ -1742,7 +1743,7 @@ export class UnifiedCacheManager {
     };
 
     return (
-      warmDataMap[pattern] || { pattern, warmedAt: Date.now(), data: null }
+      warmDataMap[pattern] || { pattern, warmedAt: Timing.now(), data: null }
     );
   }
 
@@ -1793,7 +1794,7 @@ export class UnifiedCacheManager {
       const warmupPromises = patterns.map(async (pattern) => {
         const skeletonData = {
           pattern,
-          timestamp: Date.now(),
+          timestamp: Timing.now(),
         };
 
         await this.cacheData("blueprint-skeleton", { pattern }, skeletonData, {

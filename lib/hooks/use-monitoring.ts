@@ -34,6 +34,11 @@ export function useMonitoring(
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const refreshData = useCallback(async () => {
+    // Prevent concurrent refresh calls for performance
+    if (loading) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -53,7 +58,7 @@ export function useMonitoring(
     } finally {
       setLoading(false);
     }
-  }, [detailed]);
+  }, [detailed, loading]);
 
   useEffect(() => {
     refreshData();

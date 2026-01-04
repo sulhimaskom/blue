@@ -136,22 +136,5 @@ export const PRICING_PACKAGES = [
   { credits: 500, price: "$50.00 (Pro tier)" },
 ] as const;
 
-// Homepage content constants
-export const HOMEPAGE = {
-  HERO: {
-    TITLE: "Architect Platform",
-    SUBTITLE:
-      "AI-powered platform for generating software blueprints and repositories",
-    ACTIONS: {
-      GET_STARTED: "Get Started",
-      VIEW_DEMO: "View Demo",
-    },
-  },
-  SECTIONS: {
-    FEATURES: {
-      TITLE: "Why Choose Architect Platform?",
-      DESCRIPTION:
-        "From idea to production-ready repository in minutes, not weeks.",
-    },
-  },
-} as const;
+// Homepage content constants moved to UI_TEXT system for complete centralization
+// Previously defined here, now available in lib/constants/ui-text.ts as UI_TEXT.homepage

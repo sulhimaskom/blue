@@ -175,18 +175,20 @@ CREATE TABLE transactions (
 
 ## 6. Environment Variables
 
-| Variable                | Description                                              | Required |
-| ----------------------- | -------------------------------------------------------- | -------- |
-| `DATABASE_URL`          | Neon Postgres Connection String                          | ✅ Yes   |
-| `REDIS_URL`             | Redis Connection String (Caching & Rate Limiting)        | ⚠️ Prod  |
-| `REDIS_PASSWORD`        | Redis Password (Optional)                                | —        |
-| `IFLOW_API_KEY`         | For IFlow (models.dev) Access                            | ✅ Yes   |
-| `IFLOW_BASE_URL`        | Custom Endpoint `https://api.models.dev/v1` (or similar) | ✅ Yes   |
-| `TAVILY_API_KEY`        | For Research Agent (Search)                              | ✅ Yes   |
-| `GITHUB_ACCESS_TOKEN`   | For Repo Creation (System Level)                         | ✅ Yes   |
-| `NEXT_PUBLIC_CLERK_KEY` | Auth Public Key                                          | ✅ Yes   |
-| `CLERK_SECRET_KEY`      | Auth Secret Key                                          | ✅ Yes   |
-| `STRIPE_SECRET_KEY`     | Payments                                                 | ✅ Yes   |
+| Variable                            | Description                                              | Required |
+| ----------------------------------- | -------------------------------------------------------- | -------- |
+| `DATABASE_URL`                      | Neon Postgres Connection String                          | ✅ Yes   |
+| `REDIS_URL`                         | Redis Connection String (Caching & Rate Limiting)        | ⚠️ Prod  |
+| `REDIS_PASSWORD`                    | Redis Password (Optional)                                | —        |
+| `IFLOW_API_KEY`                     | For IFlow (models.dev) Access                            | ✅ Yes   |
+| `IFLOW_BASE_URL`                    | Custom Endpoint `https://api.models.dev/v1` (or similar) | ✅ Yes   |
+| `TAVILY_API_KEY`                    | For Research Agent (Search)                              | ✅ Yes   |
+| `GITHUB_ACCESS_TOKEN`               | For Repo Creation (System Level)                         | ✅ Yes   |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Auth Public Key                                          | ✅ Yes   |
+| `CLERK_SECRET_KEY`                  | Auth Secret Key                                          | ✅ Yes   |
+| `CLERK_WEBHOOK_SECRET`              | Clerk Webhook Signature Verification                     | ⚠️ Prod  |
+| `STRIPE_SECRET_KEY`                 | Payments                                                 | ✅ Yes   |
+| `STRIPE_WEBHOOK_SECRET`             | Stripe Webhook Signature Verification                    | ⚠️ Prod  |
 
 ---
 

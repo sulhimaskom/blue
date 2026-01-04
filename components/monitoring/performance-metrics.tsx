@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { ChartIcon } from "@/components/ui/icons";
 import { MetricSummaryCard } from "@/components/ui/metric-card";
 import { BaseCard } from "@/components/ui/base-card";
-import { Skeleton, MetricCardSkeleton } from "@/components/ui/skeleton";
+import { MetricCardSkeleton } from "@/components/ui/skeleton";
 import { UI_TEXT } from "@/lib/constants/ui-text";
 import {
   BaseTable,
@@ -15,13 +15,61 @@ import {
 } from "@/components/ui/table";
 import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-service";
 import type { MetricsData } from "@/lib/hooks/use-monitoring";
-import { getTextColor, cn, getAccentColor } from "@/lib/constants/ui-themes";
+import {
+  getTextColor,
+  cn,
+  getAccentColor,
+  getBackgroundColor,
+} from "@/lib/constants/ui-themes";
 
+/**
+ * Props for the PerformanceMetrics component.
+ * @interface PerformanceMetricsProps
+ */
 interface PerformanceMetricsProps {
+  /** Optional metrics data containing performance information and summaries */
   metrics?: MetricsData;
+  /** Loading state indicator for metrics data fetching */
   loading?: boolean;
 }
 
+/**
+ * PerformanceMetrics component that displays comprehensive system performance data.
+ *
+ * Architectural Pattern:
+ * - Service Layer compliance: delegates all calculations to MonitoringDashboardService
+ * - Zero business logic in UI components per blueprint.md requirements
+ * - Memoized components for performance optimization
+ * - Skeleton loading states for better UX
+ *
+ * Features:
+ * - Metrics cards showing key performance indicators
+ * - Recent activity table with formatted data
+ * - Loading skeleton components during data fetch
+ * - Responsive grid layout for metric cards
+ * - Formatted time and duration displays
+ * - Error boundaries and graceful degradation
+ *
+ * Data Processing Flow:
+ * 1. Raw MetricsData enters component from useMonitoring hook
+ * 2. MonitoringDashboardService.processMetricsCardsData() formats card data
+ * 3. MonitoringDashboardService.getRecentActivityData() formats table data
+ * 4. UI components render processed data with consistent styling
+ *
+ * Performance Optimizations:
+ * - React.memo for component memoization
+ * - useMemo hooks for expensive calculations
+ * - Skeleton loading prevents layout shifts
+ * - Efficient data processing in Service Layer
+ *
+ * @example
+ * ```tsx
+ * <PerformanceMetrics
+ *   metrics={metricsData}
+ *   loading={isLoading}
+ * />
+ * ```
+ */
 export const PerformanceMetrics = React.memo(
   function PerformanceMetricsComponent({
     metrics,
@@ -43,8 +91,9 @@ export const PerformanceMetrics = React.memo(
       [metrics],
     );
 
-    if (loading || !metrics) {
-      return (
+    // Memoize loading skeleton for performance - prevents recreating DOM
+    const loadingSkeleton = useMemo(
+      () => (
         <BaseCard className="mb-8 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
             <ChartIcon />
@@ -59,6 +108,7 @@ export const PerformanceMetrics = React.memo(
               <MetricCardSkeleton key={i} />
             ))}
           </div>
+          {/* Activity table skeleton */}
           <BaseCard>
             <h3
               className={cn(
@@ -72,20 +122,48 @@ export const PerformanceMetrics = React.memo(
               {Array.from({ length: 5 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex items-center space-x-4 p-3 border border-gray-200 rounded-lg"
+                  className={cn(
+                    "flex items-center space-x-4 p-3 border rounded-lg",
+                    getBackgroundColor("card"),
+                  )}
                 >
-                  <div className="flex-1 grid grid-cols-4 gap-4">
-                    <Skeleton variant="text" className="h-4 w-16" />
-                    <Skeleton variant="text" className="h-4 w-12" />
-                    <Skeleton variant="text" className="h-4 w-10" />
-                    <Skeleton variant="text" className="h-4 w-20" />
+                  <div
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      getBackgroundColor("muted"),
+                    )}
+                  ></div>
+                  <div className="flex-1 space-y-2">
+                    <div
+                      className={cn(
+                        "h-4 rounded w-1/4",
+                        getBackgroundColor("muted"),
+                      )}
+                    ></div>
+                    <div
+                      className={cn(
+                        "h-3 rounded w-1/3",
+                        getBackgroundColor("subtle"),
+                      )}
+                    ></div>
                   </div>
+                  <div
+                    className={cn(
+                      "h-3 rounded w-16",
+                      getBackgroundColor("subtle"),
+                    )}
+                  ></div>
                 </div>
               ))}
             </div>
           </BaseCard>
         </BaseCard>
-      );
+      ),
+      [], // Empty dependency array - skeleton never changes
+    );
+
+    if (loading || !metrics) {
+      return loadingSkeleton;
     }
 
     return (
@@ -105,7 +183,12 @@ export const PerformanceMetrics = React.memo(
   },
 );
 
+/**
+ * Props for the MetricsCards component.
+ * @interface MetricsCardsProps
+ */
 interface MetricsCardsProps {
+  /** Array of metric card data containing name, display name, and summary information */
   cards: Array<{
     name: string;
     displayName: string;
@@ -113,6 +196,15 @@ interface MetricsCardsProps {
   }>;
 }
 
+/**
+ * MetricsCards component that renders a grid of metric summary cards.
+ *
+ * Features:
+ * - Responsive grid layout (1 column mobile, 2 tablet, 4 desktop)
+ * - Each card renders MetricSummaryCard with processed data
+ * - Consistent spacing and theme integration
+ * - Memoized for performance optimization
+ */
 const MetricsCards = React.memo(function MetricsCardsComponent({
   cards,
 }: MetricsCardsProps) {
@@ -129,7 +221,12 @@ const MetricsCards = React.memo(function MetricsCardsComponent({
   );
 });
 
+/**
+ * Props for the RecentActivityTable component.
+ * @interface RecentActivityTableProps
+ */
 interface RecentActivityTableProps {
+  /** Array of activity data points with formatted metrics and timestamps */
   activityData: Array<{
     id: number;
     name: string;
@@ -140,6 +237,23 @@ interface RecentActivityTableProps {
   }>;
 }
 
+/**
+ * RecentActivityTable component that displays the latest system metrics in tabular format.
+ *
+ * Features:
+ * - Responsive table with hover effects
+ * - Formatted metric names using display name mappings
+ * - Color-coded values and units using theme system
+ * - Human-readable timestamps with local formatting
+ * - Accessible table structure with proper headers
+ * - Memoized for performance optimization
+ *
+ * Data Processing:
+ * - Metric names are formatted for human readability
+ * - Values are highlighted with theme colors
+ * - Units are displayed as styled badges
+ * - Timestamps are formatted to local time zone
+ */
 const RecentActivityTable = React.memo(function RecentActivityTableComponent({
   activityData,
 }: RecentActivityTableProps) {

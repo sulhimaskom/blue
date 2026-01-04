@@ -1,94 +1,76 @@
-import { NextResponse } from "next/server";
-import { monitoringService } from "@/lib/monitoring";
+import { NextRequest, NextResponse } from "next/server";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
-import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
+import { monitoringService } from "@/lib/monitoring";
 import { APIMetricsService } from "@/lib/services/api-metrics-service";
-import { RuntimeServiceInitializer } from "@/lib/services/runtime-service-initializer";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
-import { IntelligentPrefetchService } from "@/lib/services/intelligent-prefetch-service";
-import { RealTimePerformanceMonitor } from "@/lib/services/real-time-performance-monitor";
 
-export const GET = APIRouteHandler.createGETHandler({
-  requireAuth: false,
-  handler: async ({ req }) => {
-    // Initialize runtime services safely (won't run during build)
-    await RuntimeServiceInitializer.initializeServices();
+export async function GET(req: NextRequest) {
+  return APIRouteHandler.createSimpleCachedGETHandler(
+    async (req: NextRequest) => {
+      const { searchParams } = new URL(req.url);
+      const detailed = searchParams.get("detailed") === "true";
 
-    // Initialize intelligent prefetch service for performance optimization
-    await IntelligentPrefetchService.initialize();
+      // Get basic system health
+      const systemHealth = await monitoringService.getSystemHealth();
 
-    // Initialize real-time performance monitoring
-    await RealTimePerformanceMonitor.initialize();
+      // Application health checks via service (eliminates code duplication)
+      const appChecks = APIMetricsService.getApplicationHealthChecks();
 
-    return UnifiedCacheManager.withCache(
-      req,
-      async () => {
-        const { searchParams } = new URL(req.url);
-        const detailed = searchParams.get("detailed") === "true";
+      const allChecks = [...systemHealth.checks, ...Object.values(appChecks)];
 
-        // Get basic system health
-        const systemHealth = await monitoringService.getSystemHealth();
+      // Determine overall status using service logic
+      const overallStatus = APIMetricsService.calculateOverallSystemStatus({
+        checks: allChecks,
+      });
 
-        // Application health checks via service (eliminates code duplication)
-        const appChecks = APIMetricsService.getApplicationHealthChecks();
+      // Get database cache statistics
+      const dbCacheStats = DatabaseQueryCache.getCacheStats();
+      const dbCacheHealth = {
+        service: "database-query-cache",
+        status: dbCacheStats.hitRate > 0.3 ? "healthy" : "degraded",
+        metrics: {
+          hitRate: Math.round(dbCacheStats.hitRate * 100),
+          totalQueries: dbCacheStats.totalQueries,
+          avgQueryTime: Math.round(dbCacheStats.avgQueryTime),
+        },
+      };
 
-        const allChecks = [...systemHealth.checks, ...Object.values(appChecks)];
+      const allEnhancedChecks = [...allChecks, dbCacheHealth];
 
-        // Determine overall status using service logic
-        const overallStatus = APIMetricsService.calculateOverallSystemStatus({
-          checks: allChecks,
-        });
-
-        // Get database cache statistics
-        const dbCacheStats = DatabaseQueryCache.getCacheStats();
-        const dbCacheHealth = {
-          service: "database-query-cache",
-          status: dbCacheStats.hitRate > 0.3 ? "healthy" : "degraded",
-          metrics: {
-            hitRate: Math.round(dbCacheStats.hitRate * 100),
-            totalQueries: dbCacheStats.totalQueries,
-            avgQueryTime: Math.round(dbCacheStats.avgQueryTime),
-          },
-        };
-
-        const allEnhancedChecks = [...allChecks, dbCacheHealth];
-
-        const response = {
-          status: overallStatus,
-          timestamp: new Date().toISOString(),
-          uptime: systemHealth.uptime,
-          version: process.env.npm_package_version || "1.0.0",
-          environment: process.env.NODE_ENV || "development",
-          checks: detailed
-            ? allEnhancedChecks
-            : allEnhancedChecks.map(({ service, status, ...rest }) => ({
-                service,
-                status,
-                error:
-                  status !== "healthy" && "error" in rest
-                    ? rest.error
-                    : undefined,
-              })),
-        };
-
-        // Return appropriate HTTP status
-        const httpStatus =
-          overallStatus === "healthy"
+      return {
+        status: overallStatus,
+        timestamp: new Date().toISOString(),
+        uptime: systemHealth.uptime,
+        version: process.env.npm_package_version || "1.0.0",
+        environment: process.env.NODE_ENV || "development",
+        checks: detailed
+          ? allEnhancedChecks
+          : allEnhancedChecks.map(({ service, status, ...rest }) => ({
+              service,
+              status,
+              error:
+                status !== "healthy" && "error" in rest
+                  ? rest.error
+                  : undefined,
+            })),
+      };
+    },
+    {
+      ttl: 45, // Optimized: Balanced 45 seconds allows quicker health status detection
+      tags: ["health-check", "system-status", "dashboard"],
+      varyBy: [], // Health checks are the same for all users
+      initializeServices: true, // Enable runtime service initialization
+      getStatus: (data) => {
+        // Return appropriate HTTP status based on health
+        return data.status === "healthy"
+          ? 200
+          : data.status === "degraded"
             ? 200
-            : overallStatus === "degraded"
-              ? 200
-              : 503;
-
-        return NextResponse.json(response, { status: httpStatus });
+            : 503;
       },
-      {
-        ttl: 15, // Cache for 15 seconds - health data changes frequently
-        tags: ["health-check", "system-status"],
-        varyBy: [], // Health checks are the same for all users
-      },
-    );
-  },
-});
+    },
+  )(req);
+}
 
 // Health check for load balancers (minimal response)
 export async function HEAD() {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodSchema, ZodError } from "zod";
 import { redisManager } from "./redis";
+import { Timing } from "./utils/time-measurement";
 
 // Validation middleware factory
 export function validateRequest<T>(
@@ -84,7 +85,7 @@ export function RateLimiter(maxRequests: number, windowMs: number) {
   return async (
     identifier: string,
   ): Promise<{ allowed: boolean; resetTime?: number }> => {
-    const now = Date.now();
+    const now = Timing.now();
     const windowSeconds = Math.ceil(windowMs / 1000);
     const key = `rate_limit:${identifier}`;
     const resetTime = now + windowMs;
@@ -184,6 +185,13 @@ export class DatabaseError extends Error {
   constructor(message: string = "Database operation failed") {
     super(message);
     this.name = "DatabaseError";
+  }
+}
+
+export class NotFoundError extends Error {
+  constructor(message: string = "Resource not found") {
+    super(message);
+    this.name = "NotFoundError";
   }
 }
 

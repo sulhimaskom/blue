@@ -50,6 +50,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: ${{ steps.detect-pm.outputs.pm }}
 
       - name: Detect Package Manager
         continue-on-error: true
@@ -139,15 +140,15 @@ jobs:
         run: |
           # Substitute variables in the prompt
           # We use simple string replacement since env vars like statuses are simple strings/words
-          
+
           # Read prompt from file
           PROMPT_CONTENT=$(cat .github/prompts/smart-ci.md)
-          
+
           # Replace placeholders
           PROMPT_CONTENT="${PROMPT_CONTENT//\{\{LINT_STATUS\}\}/$LINT_STATUS}"
           PROMPT_CONTENT="${PROMPT_CONTENT//\{\{TEST_STATUS\}\}/$TEST_STATUS}"
           PROMPT_CONTENT="${PROMPT_CONTENT//\{\{BUILD_STATUS\}\}/$BUILD_STATUS}"
-          
+
           opencode run "$PROMPT_CONTENT" \
             --model iflowcn/glm-4.6 \
             --share false \
@@ -157,7 +158,7 @@ jobs:
           echo "✅ All checks passed on agent-workspace."
           # Find the PR from agent-workspace to dev
           PR_URL=$(gh pr list --head agent-workspace --base dev --json url --jq '.[0].url')
-          
+
           if [ -n "$PR_URL" ]; then
             echo "Merging PR: $PR_URL"
             gh pr merge "$PR_URL" --merge --admin || gh pr merge "$PR_URL" --auto --merge
@@ -165,7 +166,3 @@ jobs:
           else
             echo "⚠️ No open PR found for agent-workspace to dev. Check if changes were actually pushed."
           fi
-
-
-
-

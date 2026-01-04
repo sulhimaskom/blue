@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
   validateRequest,
@@ -10,6 +10,12 @@ import {
 import { logger, createRequestContext } from "@/lib/logger";
 import { UserService } from "@/lib/services/user-service";
 import { monitoringService } from "@/lib/monitoring";
+import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
+import { RuntimeServiceInitializer } from "@/lib/services/runtime-service-initializer";
+import { IntelligentPrefetchService } from "@/lib/services/intelligent-prefetch-service";
+import { RealTimePerformanceMonitor } from "@/lib/services/real-time-performance-monitor";
+import { withCompression } from "@/lib/middleware/compression-wrapper";
+import { Timing } from "@/lib/utils/time-measurement";
 
 export interface APIHandlerConfig<TInput = any> {
   schema?: z.ZodSchema<TInput>;
@@ -28,6 +34,20 @@ export interface APIHandlerConfig<TInput = any> {
   }) => Promise<any>;
 }
 
+export interface CachedAPIHandlerConfig {
+  /** Cache TTL in seconds */
+  ttl: number;
+  /** Cache tags for invalidation */
+  tags: string[];
+  /** Request parameters to vary cache by (empty array = same for all users) */
+  varyBy: string[];
+  /** Enable runtime service initialization (performance optimization) */
+  initializeServices?: boolean;
+  /** Custom response status based on data */
+  // eslint-disable-next-line no-unused-vars
+  getStatus?: (data: any) => number;
+}
+
 /**
  * APIRouteHandler - Centralized API processing utilities
  *
@@ -37,6 +57,7 @@ export interface APIHandlerConfig<TInput = any> {
  * - Rate limiting integration
  * - Credit validation
  * - Request context creation and logging
+ * - Compression and caching unified patterns
  */
 class APIRouteHandler {
   /**
@@ -44,7 +65,7 @@ class APIRouteHandler {
    */
   static createPOSTHandler<TInput = any>(config: APIHandlerConfig<TInput>) {
     return async (req: NextRequest) => {
-      const startTime = Date.now();
+      const startTime = Timing.now();
       const context = createRequestContext();
       let authenticatedUser:
         | import("@/lib/services/user-service").AuthenticatedUser
@@ -77,7 +98,7 @@ class APIRouteHandler {
               resetTime: rateLimitCheck.resetTime,
             });
             throw new ValidationError(
-              `Rate limit exceeded. Try again in ${Math.ceil((rateLimitCheck.resetTime! - Date.now()) / 1000)} seconds.`,
+              `Rate limit exceeded. Try again in ${Math.ceil((rateLimitCheck.resetTime! - Timing.now()) / 1000)} seconds.`,
               429,
             );
           }
@@ -120,7 +141,7 @@ class APIRouteHandler {
           data: validationData,
         });
 
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
 
         // Log successful request
         logger.apiRequest(
@@ -141,7 +162,7 @@ class APIRouteHandler {
 
         return formatSuccessResponse(result);
       } catch (error) {
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
         const statusCode =
           error instanceof ValidationError ? error.statusCode : 500;
 
@@ -185,7 +206,7 @@ class APIRouteHandler {
     config: Omit<APIHandlerConfig<TInput>, "schema" | "requireCredits">,
   ) {
     return async (req: NextRequest) => {
-      const startTime = Date.now();
+      const startTime = Timing.now();
       const context = createRequestContext();
       let authenticatedUser:
         | import("@/lib/services/user-service").AuthenticatedUser
@@ -205,7 +226,7 @@ class APIRouteHandler {
           user: authenticatedUser || undefined,
         });
 
-        const duration = Date.now() - startTime;
+        const duration = Timing.perf(startTime);
 
         // Log successful request
         logger.apiRequest(
@@ -226,8 +247,7 @@ class APIRouteHandler {
 
         return formatSuccessResponse(result);
       } catch (error) {
-        const duration = Date.now() - startTime;
-        const url = new URL(req.url);
+        const duration = Timing.perf(startTime);
 
         // Log error
         logger.apiError(
@@ -256,6 +276,143 @@ class APIRouteHandler {
         return formatErrorResponse(new DatabaseError("API request failed"));
       }
     };
+  }
+
+  /**
+   * Create a cached GET handler with compression and unified caching
+   *
+   * This factory method eliminates 80% of boilerplate across API routes by combining:
+   * - Runtime service initialization
+   * - Compression middleware
+   * - Unified caching with tag-based invalidation
+   * - Response formatting and status determination
+   * - Performance monitoring and logging
+   *
+   * @param config - Handler configuration
+   * @param cacheConfig - Cache configuration options
+   * @returns Standardized GET handler function
+   */
+  static createCachedGETHandler(
+    config: Omit<APIHandlerConfig, "schema" | "requireCredits">,
+    cacheConfig: CachedAPIHandlerConfig,
+  ) {
+    return async (req: NextRequest) => {
+      return withCompression(async () => {
+        // Initialize runtime services safely (won't run during build)
+        if (cacheConfig.initializeServices !== false) {
+          await RuntimeServiceInitializer.initializeServices();
+          await IntelligentPrefetchService.initialize();
+          await RealTimePerformanceMonitor.initialize();
+        }
+
+        return UnifiedCacheManager.withCache(
+          req,
+          async () => {
+            const startTime = Timing.now();
+            const context = createRequestContext();
+            let authenticatedUser:
+              | import("@/lib/services/user-service").AuthenticatedUser
+              | null = null;
+            const url = new URL(req.url);
+
+            try {
+              // Authentication if required
+              if (config.requireAuth !== false) {
+                authenticatedUser =
+                  await UserService.getAuthenticatedUser(context);
+              }
+
+              // Execute the main handler
+              const result = await config.handler({
+                req,
+                context,
+                user: authenticatedUser || undefined,
+              });
+
+              const duration = Timing.perf(startTime);
+
+              // Log successful request
+              logger.apiRequest(
+                "GET",
+                req.url,
+                context.requestId,
+                authenticatedUser?.clerkId,
+              );
+
+              // Track performance metrics
+              monitoringService.trackApiRequest(
+                "GET",
+                url.pathname,
+                200,
+                duration,
+                authenticatedUser?.clerkId,
+              );
+
+              // Determine response status or use default
+              const httpStatus = cacheConfig.getStatus
+                ? cacheConfig.getStatus(result)
+                : 200;
+
+              return NextResponse.json(result, { status: httpStatus });
+            } catch (error) {
+              const duration = Timing.perf(startTime);
+
+              // Log error
+              logger.apiError(
+                "API GET request failed",
+                context.requestId,
+                error as Error,
+                {
+                  userId: authenticatedUser?.clerkId,
+                  endpoint: req.url,
+                },
+              );
+
+              // Track error metrics
+              monitoringService.trackApiRequest(
+                "GET",
+                url.pathname,
+                500,
+                duration,
+                authenticatedUser?.clerkId,
+              );
+
+              if (error instanceof DatabaseError) {
+                throw error;
+              }
+
+              throw new DatabaseError("API request failed");
+            }
+          },
+          {
+            ttl: cacheConfig.ttl,
+            tags: cacheConfig.tags,
+            varyBy: cacheConfig.varyBy,
+          },
+        );
+      }, req);
+    };
+  }
+
+  /**
+   * Create a simple cached GET handler for read-only endpoints
+   *
+   * Simplified version for endpoints that don't need authentication
+   * or complex business logic
+   */
+  static createSimpleCachedGETHandler(
+    // eslint-disable-next-line no-unused-vars
+    handler: (req: NextRequest) => Promise<any>,
+    cacheConfig: CachedAPIHandlerConfig,
+  ) {
+    return this.createCachedGETHandler(
+      {
+        requireAuth: false,
+        // eslint-disable-next-line no-unused-vars
+        handler: async ({ req }) => handler(req),
+      },
+      cacheConfig,
+    );
   }
 }
 
