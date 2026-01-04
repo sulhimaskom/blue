@@ -77,6 +77,28 @@ export const UI_TEXT = {
     loadingMetrics: "Loading performance metrics...",
     loadingHealthStatus: "Checking system health...",
     refreshingData: "Refreshing data...",
+    loadingSystemData: "Loading system data...",
+
+    // Dashboard Header Text
+    dashboardTitle: "System Monitoring Dashboard",
+    dashboardDescription: "Real-time system health and performance metrics",
+    connectionError: "Connection Error",
+
+    // Auto-refresh Controls
+    autoRefreshOn: "Auto-refresh ON",
+    autoRefreshOff: "Auto-refresh OFF",
+    refreshingNow: "Refreshing...",
+    refreshNow: "Refresh Now",
+
+    // Performance Status Labels
+    criticalWarnings: "Critical warnings",
+    atThreshold: "At threshold",
+
+    // Health Score Labels
+    excellent: "Excellent",
+    good: "Good",
+    fair: "Fair",
+    needsAttention: "Needs Attention",
   },
 
   // Authentication Pages
@@ -111,6 +133,8 @@ export const UI_TEXT = {
     back: "Back",
     next: "Next",
     previous: "Previous",
+    tryAgain: "Try Again",
+    refreshPage: "Refresh Page",
 
     // Status States
     active: "Active",
