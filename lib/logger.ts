@@ -21,6 +21,18 @@ interface LogEntry {
   metadata?: Record<string, any>;
 }
 
+/**
+ * Logger Configuration for Test Environments:
+ *
+ * To completely suppress all console output during tests, set:
+ * - SUPPRESS_TEST_LOGS=true (most effective for clean test output)
+ * - CI=true (automatically set in CI environments)
+ *
+ * To allow error logs during tests (useful for debugging), set:
+ * - ALLOW_TEST_ERRORS=true
+ *
+ * The --silent Jest flag also automatically suppresses all logs
+ */
 class Logger {
   private static instance: Logger;
   private context: string = "architect-platform";
@@ -60,18 +72,38 @@ class Logger {
       process.env.NEXT_PHASE === "phase-production-build" ||
       process.env.NEXT_BUILD === "true";
 
+    // Additional test environment control
+    const suppressAllTestLogs =
+      process.env.SUPPRESS_TEST_LOGS === "true" ||
+      process.env.CI === "true" || // CI environments typically suppress logs
+      process.argv.includes("--silent");
+
     // In production, send to logging service only (no console output)
     // In development, show all logs in console
-    // In test, silence console logs to avoid pollution
+    // In test, control console output to avoid pollution
     // During production build, minimize console output
     if (isProductionBuild && level !== "error") {
       // Only log errors during production builds to reduce console pollution
       return;
     }
 
-    if (isTest && level !== "error") {
-      // Only log errors during tests to avoid pollution
-      return;
+    if (isTest) {
+      // Enhanced test environment logging control
+      if (suppressAllTestLogs) {
+        // Completely silence all logs in test mode when explicitly requested
+        return;
+      }
+
+      if (level !== "error") {
+        // Only log errors during tests to avoid pollution
+        return;
+      }
+
+      // Error logs are allowed by default, but can be suppressed if explicitly requested
+      const suppressTestErrors = process.env.SUPPRESS_TEST_ERRORS === "true";
+      if (suppressTestErrors) {
+        return;
+      }
     }
 
     // Development mode or errors always go to console
