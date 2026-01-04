@@ -10,6 +10,16 @@
  */
 
 export const UI_TEXT = {
+  // Task Excellence Dashboard
+  dashboard: {
+    title: "Task Excellence Dashboard",
+    subtitle:
+      "Real-time monitoring of world-class engineering standards and task execution excellence",
+    status: "Status",
+    priority: "Priority",
+    impact: "Impact",
+  },
+
   // Monitoring Dashboard
   monitoring: {
     systemHealth: "System Health",
