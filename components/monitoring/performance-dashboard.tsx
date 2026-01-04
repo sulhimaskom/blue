@@ -4,6 +4,7 @@ import React, {
   useState,
   useCallback,
   useRef,
+  memo,
 } from "react";
 import { BaseCard } from "@/components/ui/base-card";
 import { MetricCard } from "@/components/ui/metric-card";
@@ -40,6 +41,31 @@ function useDebounce<T extends () => any>(callback: T, delay: number): T {
   ) as T;
 }
 
+// Optimized metrics calculation hook
+function usePerformanceMetrics(performanceData: any) {
+  return useMemo(() => {
+    if (!performanceData) return null;
+
+    const perf = performanceData.performance || {};
+    const bundle = performanceData.bundle || {};
+    const compression = performanceData.compression || {};
+
+    return {
+      performanceScore: perf.score || 0,
+      bundleSizeKB: Math.round((bundle.totalSize || 0) / 1024),
+      bundleSizeGzippedKB: Math.round((bundle.gzippedSize || 0) / 1024),
+      compressionRate: compression.compressionRatePercent || 0,
+      bandwidthSavedKB: compression.bandwidthSavedKB || 0,
+      alertCount: perf.alertCount || 0,
+      timestamp: performanceData.timestamp,
+      alerts: (perf.alerts || [])
+        .filter((alert: any) => alert.type === "critical")
+        .slice(0, 3),
+      quickWins: performanceData.optimization?.quickWins || [],
+    };
+  }, [performanceData]);
+}
+
 interface PerformanceDashboardProps {
   detailed?: boolean;
 }
@@ -55,13 +81,16 @@ interface PerformanceDashboardProps {
  * - Auto-optimization controls
  * - Historical performance trends
  */
-export const PerformanceDashboard = React.memo(
+export const PerformanceDashboard = memo(
   function PerformanceDashboardComponent({
     detailed = false,
   }: PerformanceDashboardProps) {
     const [performanceData, setPerformanceData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [autoRefresh, setAutoRefresh] = useState(true);
+
+    // Use optimized metrics hook
+    const metrics = usePerformanceMetrics(performanceData);
 
     // Optimized refresh function with request cancellation and debouncing
     const refreshPerformanceDataInner = useCallback(
@@ -132,7 +161,7 @@ export const PerformanceDashboard = React.memo(
         const data = await response.json();
 
         // Refresh data after optimization
-        await refreshPerformanceData();
+        refreshPerformanceData();
 
         // eslint-disable-next-line no-console
         console.log(
@@ -145,15 +174,14 @@ export const PerformanceDashboard = React.memo(
       }
     };
 
-    // Calculate performance status
-    const performanceStatus = useMemo(() => {
-      if (!performanceData) return "unknown";
+    // Calculate performance status using optimized metrics
+    const performanceStatus = useMemo((): StatusType => {
+      if (!metrics?.performanceScore) return "unknown";
 
-      const score = performanceData.performance?.score || 0;
-      if (score >= 90) return "healthy";
-      if (score >= 70) return "degraded";
+      if (metrics.performanceScore >= 90) return "healthy";
+      if (metrics.performanceScore >= 70) return "degraded";
       return "unhealthy";
-    }, [performanceData]);
+    }, [metrics?.performanceScore]);
 
     if (loading && !performanceData) {
       return (
@@ -238,50 +266,40 @@ export const PerformanceDashboard = React.memo(
           </div>
         </div>
 
-        {/* Performance Score Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <MetricCard
-            title="Performance Score"
-            value={`${performanceData?.performance?.score || 0}%`}
-            status={performanceStatus as StatusType}
-          />
+        {/* Performance Score Overview - Using optimized metrics hook */}
+        {metrics && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <MetricCard
+              title="Performance Score"
+              value={`${metrics.performanceScore}%`}
+              status={performanceStatus}
+            />
 
-          <MetricCard
-            title="Bundle Size"
-            value={`${Math.round((performanceData?.bundle?.totalSize || 0) / 1024)}KB`}
-            subtitle={`${Math.round((performanceData?.bundle?.gzippedSize || 0) / 1024)}KB gzipped`}
-            status={
-              (performanceData?.bundle?.totalSize || 0) > 1024 * 1024
-                ? "unhealthy"
-                : "healthy"
-            }
-          />
+            <MetricCard
+              title="Bundle Size"
+              value={`${metrics.bundleSizeKB}KB`}
+              subtitle={`${metrics.bundleSizeGzippedKB}KB gzipped`}
+              status={metrics.bundleSizeKB > 1024 ? "unhealthy" : "healthy"}
+            />
 
-          <MetricCard
-            title="Compression"
-            value={`${performanceData?.compression?.compressionRatePercent || 0}%`}
-            subtitle={`${performanceData?.compression?.bandwidthSavedKB || 0}KB saved`}
-            status={
-              (performanceData?.compression?.compressionRatePercent || 0) > 30
-                ? "healthy"
-                : "degraded"
-            }
-          />
+            <MetricCard
+              title="Compression"
+              value={`${metrics.compressionRate}%`}
+              subtitle={`${metrics.bandwidthSavedKB}KB saved`}
+              status={metrics.compressionRate > 30 ? "healthy" : "degraded"}
+            />
 
-          <MetricCard
-            title="Active Alerts"
-            value={performanceData?.performance?.alertCount || 0}
-            subtitle={getUIText("monitoring", "criticalWarnings")}
-            status={
-              (performanceData?.performance?.alertCount || 0) === 0
-                ? "healthy"
-                : "degraded"
-            }
-          />
-        </div>
+            <MetricCard
+              title="Active Alerts"
+              value={metrics.alertCount}
+              subtitle={getUIText("monitoring", "criticalWarnings")}
+              status={metrics.alertCount === 0 ? "healthy" : "degraded"}
+            />
+          </div>
+        )}
 
-        {/* Critical Alerts */}
-        {performanceData?.performance?.alerts?.length > 0 && (
+        {/* Critical Alerts - Using optimized metrics */}
+        {metrics?.alerts.length > 0 && (
           <div className="mb-6">
             <h3
               className={cn(
@@ -293,36 +311,30 @@ export const PerformanceDashboard = React.memo(
               Critical Performance Alerts
             </h3>
             <div className="space-y-2">
-              {performanceData.performance.alerts
-                .filter((alert: any) => alert.type === "critical")
-                .slice(0, 3)
-                .map((alert: any, index: number) => (
-                  <div
-                    key={index}
-                    className={cn(
-                      "p-3 rounded-lg",
-                      getStatusTheme("unhealthy"),
-                    )}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium capitalize">
-                        {alert.metric}
-                      </span>
-                      <span className="text-sm opacity-75">
-                        {alert.value > alert.threshold
-                          ? `${Math.round(((alert.value - alert.threshold) / alert.threshold) * 100)}% over threshold`
-                          : getUIText("monitoring", "atThreshold")}
-                      </span>
-                    </div>
-                    <p className="text-sm opacity-90">{alert.recommendation}</p>
+              {metrics!.alerts.map((alert: any, index: number) => (
+                <div
+                  key={index}
+                  className={cn("p-3 rounded-lg", getStatusTheme("unhealthy"))}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium capitalize">
+                      {alert.metric}
+                    </span>
+                    <span className="text-sm opacity-75">
+                      {alert.value > alert.threshold
+                        ? `${Math.round(((alert.value - alert.threshold) / alert.threshold) * 100)}% over threshold`
+                        : getUIText("monitoring", "atThreshold")}
+                    </span>
                   </div>
-                ))}
+                  <p className="text-sm opacity-90">{alert.recommendation}</p>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Quick Wins */}
-        {performanceData?.optimization?.quickWins?.length > 0 && (
+        {/* Quick Wins - Using optimized metrics */}
+        {metrics?.quickWins.length > 0 && (
           <div>
             <h3
               className={cn(
@@ -333,34 +345,29 @@ export const PerformanceDashboard = React.memo(
               Quick Performance Wins
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {performanceData.optimization.quickWins.map(
-                (win: string, index: number) => (
-                  <div
-                    key={index}
-                    className={cn(
-                      "p-3 rounded-lg border",
-                      getAccentColor("blue", "background"),
-                    )}
-                  >
-                    <p
-                      className={cn("text-sm", getAccentColor("blue", "text"))}
-                    >
-                      {win}
-                    </p>
-                  </div>
-                ),
-              )}
+              {metrics!.quickWins.map((win: string, index: number) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "p-3 rounded-lg border",
+                    getAccentColor("blue", "background"),
+                  )}
+                >
+                  <p className={cn("text-sm", getAccentColor("blue", "text"))}>
+                    {win}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Last Updated */}
-        <div className={cn("mt-4 text-xs", getTextColor("muted"))}>
-          Last updated:{" "}
-          {performanceData?.timestamp
-            ? new Date(performanceData.timestamp).toLocaleString()
-            : "Never"}
-        </div>
+        {/* Last Updated - Using optimized metrics */}
+        {metrics?.timestamp && (
+          <div className={cn("mt-4 text-xs", getTextColor("muted"))}>
+            Last updated: {new Date(metrics.timestamp).toLocaleString()}
+          </div>
+        )}
       </BaseCard>
     );
   },
