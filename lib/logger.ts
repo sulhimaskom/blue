@@ -54,27 +54,57 @@ class Logger {
       ...metadata,
     };
 
-    // In production, this would write to a proper logging service
-    // For now, we'll use console with structured format
+    const isDevelopment = process.env.NODE_ENV === "development";
+    const isTest = process.env.NODE_ENV === "test";
+    const isProductionBuild =
+      process.env.NEXT_PHASE === "phase-production-build" ||
+      process.env.NEXT_BUILD === "true";
+
+    // In production, send to logging service only (no console output)
+    // In development, show all logs in console
+    // In test, silence console logs to avoid pollution
+    // During production build, minimize console output
+    if (isProductionBuild && level !== "error") {
+      // Only log errors during production builds to reduce console pollution
+      return;
+    }
+
+    if (isTest && level !== "error") {
+      // Only log errors during tests to avoid pollution
+      return;
+    }
+
+    // Development mode or errors always go to console
     switch (level) {
       case "error":
         // eslint-disable-next-line no-console
         console.error(this.formatLog(logEntry));
         break;
       case "warn":
-        // eslint-disable-next-line no-console
-        console.warn(this.formatLog(logEntry));
+        if (isDevelopment) {
+          // eslint-disable-next-line no-console
+          console.warn(this.formatLog(logEntry));
+        }
         break;
       case "info":
-        // eslint-disable-next-line no-console
-        console.info(this.formatLog(logEntry));
+        if (isDevelopment) {
+          // eslint-disable-next-line no-console
+          console.info(this.formatLog(logEntry));
+        }
         break;
       case "debug":
-        if (process.env.NODE_ENV === "development") {
+        if (isDevelopment) {
           // eslint-disable-next-line no-console
           console.debug(this.formatLog(logEntry));
         }
         break;
+    }
+
+    // In production, this would integrate with external logging services
+    // like Sentry, CloudWatch, DataDog, etc.
+    if (!isDevelopment && !isTest) {
+      // TODO: Add production logging service integration
+      // For now, errors are already handled above
     }
   }
 
