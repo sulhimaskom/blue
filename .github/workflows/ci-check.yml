@@ -82,22 +82,34 @@ jobs:
       - name: Typecheck
         id: typecheck
         continue-on-error: false
-        run: ${{ steps.detect-pm.outputs.pm }} run typecheck --if-present
+        run: |
+          if grep -q '"typecheck"' package.json; then
+            ${{ steps.detect-pm.outputs.pm }} run typecheck
+          fi
 
       - name: Lint
         id: lint
         continue-on-error: false
-        run: ${{ steps.detect-pm.outputs.pm }} run lint --if-present
+        run: |
+          if grep -q '"lint"' package.json; then
+            ${{ steps.detect-pm.outputs.pm }} run lint
+          fi
 
       - name: Test
         id: test
         continue-on-error: false
-        run: ${{ steps.detect-pm.outputs.pm }} test --if-present
+        run: |
+          if grep -q '"test"' package.json; then
+            ${{ steps.detect-pm.outputs.pm }} test
+          fi
 
       - name: Build
         id: build
         continue-on-error: false
-        run: ${{ steps.detect-pm.outputs.pm }} run build --if-present
+        run: |
+          if grep -q '"build"' package.json; then
+            ${{ steps.detect-pm.outputs.pm }} run build
+          fi
 
       - name: Check Results
         continue-on-error: false
