@@ -9,7 +9,7 @@ const nextConfig = {
   // Performance optimization configurations
   experimental: {
     // Optimize bundle splitting for better caching
-    optimizePackageImports: ["@clerk/nextjs"],
+    optimizePackageImports: ["@clerk/nextjs", "lucide-react", "@/lib/services"],
   },
 
   // Advanced bundle analysis optimization with OpenTelemetry fix
@@ -29,7 +29,7 @@ const nextConfig = {
         // Improve chunk splitting for better caching
         splitChunks: {
           chunks: "all",
-          maxSize: 244000,
+          maxSize: 200000, // Reduced from 244000 for better granularity
           cacheGroups: {
             default: {
               minChunks: 2,
@@ -40,6 +40,12 @@ const nextConfig = {
               test: /[\\/]node_modules[\\/]/,
               name: "vendors",
               priority: 10,
+              reuseExistingChunk: true,
+            },
+            services: {
+              test: /[\\/]lib[\\/]services[\\/]/,
+              name: "services",
+              priority: 40,
               reuseExistingChunk: true,
             },
             clerk: {

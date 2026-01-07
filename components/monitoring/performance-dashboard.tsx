@@ -4,13 +4,13 @@ import {
   StatusIndicator,
   type StatusType,
 } from "@/components/ui/status-indicator";
+import { CardLoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { ActivityIcon, AlertTriangleIcon } from "@/components/ui/icons";
 import { getUIText } from "@/lib/constants/ui-text";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { logger } from "@/lib/logger";
 import {
   getTextColor,
-  getBackgroundColor,
   getStatusTheme,
   getAccentColor,
   cn,
@@ -194,17 +194,7 @@ export const PerformanceDashboard = memo(
               Performance Monitoring
             </h2>
           </div>
-          <div className="animate-pulse">
-            <div
-              className={cn(
-                "h-4 rounded w-1/4 mb-2",
-                getBackgroundColor("muted"),
-              )}
-            ></div>
-            <div
-              className={cn("h-3 rounded w-1/3", getBackgroundColor("muted"))}
-            ></div>
-          </div>
+          <CardLoadingSkeleton loading={loading} showHeader={false} lines={2} />
         </BaseCard>
       );
     }
