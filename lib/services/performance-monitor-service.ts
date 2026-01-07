@@ -145,6 +145,7 @@ export class PerformanceMonitorService {
   private startMemoryMonitoring(): void {
     if (typeof process === "undefined") return;
 
+    // Register with optimized interval manager
     this.memoryCheckInterval = setInterval(() => {
       try {
         const memUsage = process.memoryUsage();

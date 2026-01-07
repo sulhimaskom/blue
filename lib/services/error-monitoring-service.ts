@@ -394,6 +394,79 @@ export class ErrorMonitoringService {
   }
 
   /**
+   * Capture AI-specific errors with enhanced context
+   *
+   * Consolidated from AIErrorReporter for unified error monitoring
+   */
+  public captureAIError(
+    operation: "completion" | "research" | "validation",
+    error: string,
+    context: {
+      model?: string;
+      promptLength?: number;
+      responseTime: number;
+      retryAttempt?: number;
+      userId?: string;
+      requestId?: string;
+    },
+    severity: "low" | "medium" | "high" | "critical" = "medium",
+  ): void {
+    // Determine enhanced severity based on error patterns
+    const enhancedSeverity = this.determineAIErrorSeverity(
+      error,
+      severity,
+      context,
+    );
+
+    // Create AI-specific context
+    const aiContext: SentryContext = {
+      user: context.userId ? { id: context.userId } : undefined,
+      tags: {
+        errorType: "ai_operation",
+        aiOperation: operation,
+        aiModel: context.model || "unknown",
+        severity: enhancedSeverity,
+        operationResult: "failure",
+      },
+      extra: {
+        ai: {
+          operation,
+          model: context.model,
+          promptLength: context.promptLength,
+          responseTime: context.responseTime,
+          retryAttempt: context.retryAttempt,
+          requestId: context.requestId,
+        },
+        errorAnalysis: {
+          pattern: this.detectErrorPattern(error),
+          impact: this.assessErrorImpact(operation, error, enhancedSeverity),
+          recommendation: this.getAIErrorRecommendation(operation, error),
+        },
+      },
+    };
+
+    // Map AI severity to Sentry severity
+    const sentrySeverity: ErrorSeverity["level"] =
+      this.mapSeverityToSentry(enhancedSeverity);
+
+    this.captureError(`AI ${operation} failed: ${error}`, aiContext, {
+      level: sentrySeverity,
+    });
+
+    // Log structured AI error for debugging
+    logger.error("AI operation error captured", {
+      operation,
+      error,
+      model: context.model,
+      responseTime: context.responseTime,
+      enhancedSeverity,
+      retryAttempt: context.retryAttempt,
+      requestId: context.requestId,
+      userId: context.userId,
+    });
+  }
+
+  /**
    * Health check for monitoring service
    *
    * Validates error monitoring system is operational
@@ -426,6 +499,109 @@ export class ErrorMonitoringService {
     // Enable in production and staging environments
     const env = process.env.NODE_ENV || "development";
     return ["production"].includes(env) && !!process.env.SENTRY_DSN;
+  }
+
+  private determineAIErrorSeverity(
+    error: string,
+    baseSeverity: "low" | "medium" | "high" | "critical",
+    context: { responseTime: number; retryAttempt?: number },
+  ): "low" | "medium" | "high" | "critical" {
+    // Critical error patterns
+    const criticalPatterns = [
+      "rate limit",
+      "quota exceeded",
+      "authentication failed",
+      "invalid api key",
+      "billing",
+      "suspended",
+    ];
+
+    // Check for critical patterns
+    if (
+      criticalPatterns.some((pattern) => error.toLowerCase().includes(pattern))
+    ) {
+      return "critical";
+    }
+
+    // Upgrade severity based on context
+    if (
+      context.responseTime > 30000 ||
+      (context.retryAttempt && context.retryAttempt >= 3)
+    ) {
+      return "high";
+    }
+
+    return baseSeverity;
+  }
+
+  private detectErrorPattern(error: string): string {
+    const patterns = {
+      "rate limit": "rate_limiting",
+      quota: "quota_exceeded",
+      timeout: "timeout_error",
+      connection: "network_error",
+      authentication: "auth_error",
+      model: "model_error",
+      prompt: "prompt_error",
+    };
+
+    for (const [pattern, type] of Object.entries(patterns)) {
+      if (error.toLowerCase().includes(pattern)) {
+        return type;
+      }
+    }
+
+    return "unknown_error";
+  }
+
+  private assessErrorImpact(
+    _operation: string,
+    _error: string,
+    severity: string,
+  ): string {
+    const impactMap = {
+      critical: "Complete service disruption - immediate action required",
+      high: "Significant feature degradation affecting user experience",
+      medium: "Partial functionality loss with workarounds available",
+      low: "Minor issue with minimal user impact",
+    };
+
+    return (
+      impactMap[severity as keyof typeof impactMap] ||
+      "Impact assessment pending"
+    );
+  }
+
+  private getAIErrorRecommendation(_operation: string, error: string): string {
+    const recommendations = {
+      "rate limit":
+        "Implement exponential backoff and reduce request frequency",
+      "quota exceeded": "Check subscription limits and upgrade if necessary",
+      timeout: "Increase timeout values or implement retry logic",
+      authentication: "Verify API credentials and subscription status",
+      model: "Check model availability and fallback to alternative models",
+    };
+
+    for (const [pattern, recommendation] of Object.entries(recommendations)) {
+      if (error.toLowerCase().includes(pattern)) {
+        return recommendation;
+      }
+    }
+
+    return "Review AI service configuration and implement appropriate error handling";
+  }
+
+  private mapSeverityToSentry(
+    severity: "low" | "medium" | "high" | "critical",
+  ): ErrorSeverity["level"] {
+    const mapping = {
+      low: "info",
+      medium: "warning",
+      high: "error",
+      critical: "fatal",
+    };
+
+    return mapping[severity] as ErrorSeverity["level"];
   }
 
   private getProfileSampleRate(): number {

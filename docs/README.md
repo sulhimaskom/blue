@@ -2,16 +2,18 @@
 
 ## 📁 Documentation Structure
 
-| File                        | Description                                    |
-| --------------------------- | ---------------------------------------------- |
-| `architecture/blueprint.md` | **Main config** - Tech stack, features, schema |
-| `architecture/roadmap.md`   | Development timeline & progress                |
-| `deployment/SETUP.md`       | Deployment setup guide                         |
-| `TROUBLESHOOTING.md`        | **Complete troubleshooting guide & FAQ**       |
-| `prompt.md`                 | Blueprint generator prompt                     |
-| `task.md`                   | Task checklist                                 |
-| `bug.md`                    | Bug tracker                                    |
-| `evaluasi.md`               | Code evaluation report                         |
+| File                        | Purpose                                          | Priority     |
+| --------------------------- | ------------------------------------------------ | ------------ |
+| `architecture/blueprint.md` | **Technical specification & tech stack**         | 🔴 Critical  |
+| `architecture/roadmap.md`   | Development timeline & progress                  | 🟡 Important |
+| `API.md`                    | **Complete RESTful API reference**               | 🔴 Critical  |
+| `DEVELOPER_ONBOARDING.md`   | **Developer guide & architecture patterns**      | 🔴 Critical  |
+| `deployment/SETUP.md`       | **Production deployment procedures**             | 🔴 Critical  |
+| `TROUBLESHOOTING.md`        | **Troubleshooting guide & emergency procedures** | 🔴 Critical  |
+| `task.md`                   | **Task tracking & completion status**            | 🟡 Important |
+| `bug.md`                    | **Bug tracking & resolution metrics**            | 🟡 Important |
+| `evaluasi.md`               | **Comprehensive code evaluation report**         | 🟢 Reference |
+| `prompt.md`                 | Blueprint generator prompt                       | 🟢 Reference |
 
 ---
 
@@ -22,22 +24,6 @@
 3. **Configure**: Edit `architecture/blueprint.md` with your specifications
 4. **Track Progress**: Update `task.md` as work progresses
 5. **Monitor Quality**: Check `evaluasi.md` for comprehensive code health
-
----
-
-## 📁 Documentation Structure
-
-| File                        | Purpose                                          | Priority     |
-| --------------------------- | ------------------------------------------------ | ------------ |
-| `architecture/blueprint.md` | **Technical specification & tech stack**         | 🔴 Critical  |
-| `API.md`                    | **Complete RESTful API reference**               | 🔴 Critical  |
-| `DEVELOPER_ONBOARDING.md`   | **Developer guide & architecture patterns**      | 🔴 Critical  |
-| `deployment/SETUP.md`       | **Production deployment procedures**             | 🔴 Critical  |
-| `TROUBLESHOOTING.md`        | **Troubleshooting guide & emergency procedures** | 🔴 Critical  |
-| `task.md`                   | **Task tracking & completion status**            | 🟡 Important |
-| `bug.md`                    | **Bug tracking & resolution metrics**            | 🟡 Important |
-| `roadmap.md`                | **Development timeline & progress**              | 🟡 Important |
-| `evaluasi.md`               | **Comprehensive code evaluation report**         | 🟢 Reference |
 
 ---
 
