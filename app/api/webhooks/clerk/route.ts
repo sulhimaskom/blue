@@ -7,13 +7,17 @@ import { logger } from "@/lib/logger";
 import { WebhookService } from "@/lib/services/webhook-service";
 import { SecurityService } from "@/lib/services/security-service";
 import { WEBHOOK_EVENTS, CREDIT_RULES } from "@/lib/constants";
+import { ClerkWebhookEvent } from "@/lib/types/webhook-types";
 
 export async function POST(req: NextRequest) {
   return WebhookService.processWebhookWithReliability(req, {
     serviceName: "Clerk",
     verifySignature: SecurityService.verifyClerkWebhook,
     useQueue: true, // Enable reliable queue-based processing
-    processEvent: async (event: any, context) => {
+    processEvent: async (
+      event: ClerkWebhookEvent,
+      context: { requestId: string },
+    ) => {
       const database = db();
 
       // Handle user creation

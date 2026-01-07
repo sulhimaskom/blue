@@ -18,8 +18,8 @@
     "infrastructure:check": "node scripts/infrastructure-health-check.js",
     "infrastructure:recover": "node scripts/infrastructure-recovery.js",
     "infrastructure:report": "node scripts/infrastructure-report.js",
-    "migrate:up": "node -r ts-node/register migrations/0001_add_data_integrity_constraints.ts",
-    "migrate:down": "node -r ts-node/register migrations/0001_add_data_integrity_constraints.ts down"
+    "migrate:up": "npx tsx migrations/0001_add_data_integrity_constraints.ts",
+    "migrate:down": "npx tsx migrations/0001_add_data_integrity_constraints.ts down"
   },
   "dependencies": {
     "@clerk/nextjs": "^5.0.0",

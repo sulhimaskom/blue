@@ -1,70 +1,21 @@
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-  useCallback,
-  useRef,
-  memo,
-} from "react";
+import React, { useEffect, useMemo, useState, useCallback, memo } from "react";
 import { BaseCard } from "@/components/ui/base-card";
-import { MetricCard } from "@/components/ui/metric-card";
 import {
   StatusIndicator,
   type StatusType,
 } from "@/components/ui/status-indicator";
-import {
-  ActivityIcon,
-  TrendingUpIcon,
-  AlertTriangleIcon,
-} from "@/components/ui/icons";
-import { getUIText } from "@/lib/constants/ui-text";
+import { ActivityIcon } from "@/components/ui/icons";
 import {
   getTextColor,
   getBackgroundColor,
-  getAccentColor,
-  getStatusTheme,
   cn,
 } from "@/lib/constants/ui-themes";
-
-// Debounce hook for performance optimization
-function useDebounce<T extends () => any>(callback: T, delay: number): T {
-  const timeoutRef = useRef<NodeJS.Timeout>();
-
-  return useCallback(
-    (() => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      timeoutRef.current = setTimeout(() => callback(), delay);
-    }) as T,
-    [callback, delay],
-  ) as T;
-}
-
-// Optimized metrics calculation hook
-function usePerformanceMetrics(performanceData: any) {
-  return useMemo(() => {
-    if (!performanceData) return null;
-
-    const perf = performanceData.performance || {};
-    const bundle = performanceData.bundle || {};
-    const compression = performanceData.compression || {};
-
-    return {
-      performanceScore: perf.score || 0,
-      bundleSizeKB: Math.round((bundle.totalSize || 0) / 1024),
-      bundleSizeGzippedKB: Math.round((bundle.gzippedSize || 0) / 1024),
-      compressionRate: compression.compressionRatePercent || 0,
-      bandwidthSavedKB: compression.bandwidthSavedKB || 0,
-      alertCount: perf.alertCount || 0,
-      timestamp: performanceData.timestamp,
-      alerts: (perf.alerts || [])
-        .filter((alert: any) => alert.type === "critical")
-        .slice(0, 3),
-      quickWins: performanceData.optimization?.quickWins || [],
-    };
-  }, [performanceData]);
-}
+import { useDebounce } from "@/lib/hooks/use-debounce";
+import { usePerformanceMetrics } from "@/lib/hooks/use-performance-metrics";
+import { PerformanceMetrics } from "@/lib/types/webhook-types";
+import { AutoOptimizationControls } from "./auto-optimization-controls";
+import { AlertsPanel } from "./alerts-panel";
+import { PerformanceScoreOverview } from "./performance-score-overview";
 
 interface PerformanceDashboardProps {
   detailed?: boolean;
@@ -85,7 +36,8 @@ export const PerformanceDashboard = memo(
   function PerformanceDashboardComponent({
     detailed = false,
   }: PerformanceDashboardProps) {
-    const [performanceData, setPerformanceData] = useState<any>(null);
+    const [performanceData, setPerformanceData] =
+      useState<PerformanceMetrics | null>(null);
     const [loading, setLoading] = useState(true);
     const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -225,141 +177,29 @@ export const PerformanceDashboard = memo(
             />
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              className={cn(
-                "px-3 py-1 rounded-lg text-sm font-medium transition-colors",
-                autoRefresh
-                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                  : getBackgroundColor("subtle") + " " + getTextColor("body"),
-              )}
-            >
-              {autoRefresh ? "Auto-refresh ON" : "Auto-refresh OFF"}
-            </button>
-
-            <button
-              onClick={applyOptimizations}
-              className={cn(
-                "px-3 py-1 rounded-lg text-sm font-medium transition-colors",
-                getAccentColor("blue", "background"),
-                getAccentColor("blue", "text"),
-                "hover:bg-blue-200 dark:hover:bg-blue-800",
-              )}
-            >
-              Auto-Optimize
-            </button>
-
-            <button
-              onClick={refreshPerformanceData}
-              className={cn(
-                "p-2 transition-colors",
-                getTextColor("muted"),
-                "hover:text-gray-800 dark:hover:text-gray-200",
-              )}
-              disabled={loading}
-            >
-              <div className={loading ? "animate-spin" : ""}>
-                <TrendingUpIcon />
-              </div>
-            </button>
-          </div>
+          <AutoOptimizationControls
+            autoRefresh={autoRefresh}
+            loading={loading}
+            onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
+            onApplyOptimizations={applyOptimizations}
+            onRefresh={refreshPerformanceData}
+          />
         </div>
 
-        {/* Performance Score Overview - Using optimized metrics hook */}
         {metrics && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <MetricCard
-              title="Performance Score"
-              value={`${metrics.performanceScore}%`}
-              status={performanceStatus}
-            />
-
-            <MetricCard
-              title="Bundle Size"
-              value={`${metrics.bundleSizeKB}KB`}
-              subtitle={`${metrics.bundleSizeGzippedKB}KB gzipped`}
-              status={metrics.bundleSizeKB > 1024 ? "unhealthy" : "healthy"}
-            />
-
-            <MetricCard
-              title="Compression"
-              value={`${metrics.compressionRate}%`}
-              subtitle={`${metrics.bandwidthSavedKB}KB saved`}
-              status={metrics.compressionRate > 30 ? "healthy" : "degraded"}
-            />
-
-            <MetricCard
-              title="Active Alerts"
-              value={metrics.alertCount}
-              subtitle={getUIText("monitoring", "criticalWarnings")}
-              status={metrics.alertCount === 0 ? "healthy" : "degraded"}
-            />
-          </div>
+          <PerformanceScoreOverview
+            performanceScore={metrics.performanceScore}
+            bundleSizeKB={metrics.bundleSizeKB}
+            bundleSizeGzippedKB={metrics.bundleSizeGzippedKB}
+            compressionRate={metrics.compressionRate}
+            bandwidthSavedKB={metrics.bandwidthSavedKB}
+            alertCount={metrics.alertCount}
+            performanceStatus={performanceStatus as StatusType}
+          />
         )}
 
-        {/* Critical Alerts - Using optimized metrics */}
-        {metrics?.alerts.length > 0 && (
-          <div className="mb-6">
-            <h3
-              className={cn(
-                "text-lg font-medium mb-3 flex items-center gap-2",
-                getTextColor("heading"),
-              )}
-            >
-              <AlertTriangleIcon />
-              Critical Performance Alerts
-            </h3>
-            <div className="space-y-2">
-              {metrics!.alerts.map((alert: any, index: number) => (
-                <div
-                  key={index}
-                  className={cn("p-3 rounded-lg", getStatusTheme("unhealthy"))}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium capitalize">
-                      {alert.metric}
-                    </span>
-                    <span className="text-sm opacity-75">
-                      {alert.value > alert.threshold
-                        ? `${Math.round(((alert.value - alert.threshold) / alert.threshold) * 100)}% over threshold`
-                        : getUIText("monitoring", "atThreshold")}
-                    </span>
-                  </div>
-                  <p className="text-sm opacity-90">{alert.recommendation}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Quick Wins - Using optimized metrics */}
-        {metrics?.quickWins.length > 0 && (
-          <div>
-            <h3
-              className={cn(
-                "text-lg font-medium mb-3",
-                getTextColor("heading"),
-              )}
-            >
-              Quick Performance Wins
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {metrics!.quickWins.map((win: string, index: number) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "p-3 rounded-lg border",
-                    getAccentColor("blue", "background"),
-                  )}
-                >
-                  <p className={cn("text-sm", getAccentColor("blue", "text"))}>
-                    {win}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+        {metrics && (
+          <AlertsPanel alerts={metrics.alerts} quickWins={metrics.quickWins} />
         )}
 
         {/* Last Updated - Using optimized metrics */}
