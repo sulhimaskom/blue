@@ -7,13 +7,14 @@ import {
 import { logger } from "@/lib/logger";
 import { IdGenerators } from "@/lib/utils/id-generator";
 import { APIResponseFormatter } from "@/lib/services/api-response-formatter";
+import { WebhookEvent, type WebhookContext } from "@/lib/types/webhook-events";
 
-export interface WebhookHandlerConfig {
+export interface WebhookHandlerConfig<TEvent extends WebhookEvent> {
   serviceName: string;
   // eslint-disable-next-line no-unused-vars
   verifySignature: (_body: string, _headers: Headers) => boolean;
   // eslint-disable-next-line no-unused-vars
-  processEvent: (_event: any, _context: { requestId: string }) => Promise<void>;
+  processEvent: (_event: TEvent, _context: WebhookContext) => Promise<void>;
   useQueue?: boolean; // Enable queue-based processing for reliability
 }
 
@@ -64,9 +65,9 @@ export class WebhookService {
   /**
    * Centralized webhook processing with consistent error handling
    */
-  static async processWebhook(
+  static async processWebhook<TEvent extends WebhookEvent>(
     req: NextRequest,
-    config: WebhookHandlerConfig,
+    config: WebhookHandlerConfig<TEvent>,
   ): Promise<Response> {
     const context = { requestId: IdGenerators.REQUEST() };
 
@@ -92,9 +93,9 @@ export class WebhookService {
       }
 
       // Parse event
-      let event: any;
+      let event: TEvent;
       try {
-        event = JSON.parse(body);
+        event = JSON.parse(body) as TEvent;
       } catch (parseError) {
         logger.apiError(
           `${config.serviceName} webhook JSON parsing failed`,
@@ -199,9 +200,9 @@ export class WebhookService {
    * - Idempotency to prevent duplicate processing
    * - Queue-based processing for reliability
    */
-  static async processWebhookWithReliability(
+  static async processWebhookWithReliability<TEvent extends WebhookEvent>(
     req: NextRequest,
-    config: WebhookHandlerConfig,
+    config: WebhookHandlerConfig<TEvent>,
   ): Promise<Response> {
     const context = { requestId: IdGenerators.REQUEST() };
 

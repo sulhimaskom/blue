@@ -25,26 +25,40 @@ import {
   getStatusTheme,
   cn,
 } from "@/lib/constants/ui-themes";
+import {
+  type PerformanceData,
+  type PerformanceAlert,
+  type ComputedPerformanceMetrics,
+  getPerformanceStatus,
+  isPerformanceData,
+} from "@/lib/types/performance-types";
 
 // Debounce hook for performance optimization
-function useDebounce<T extends () => any>(callback: T, delay: number): T {
+function useDebounce<T extends (..._parameters: unknown[]) => unknown>( // eslint-disable-line no-unused-vars
+  callback: T,
+  delay: number,
+): T {
   const timeoutRef = useRef<NodeJS.Timeout>();
 
   return useCallback(
-    (() => {
+    ((...parameters: Parameters<T>) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-      timeoutRef.current = setTimeout(() => callback(), delay);
+      timeoutRef.current = setTimeout(() => callback(...parameters), delay);
     }) as T,
     [callback, delay],
-  ) as T;
+  );
 }
 
 // Optimized metrics calculation hook
-function usePerformanceMetrics(performanceData: any) {
+function usePerformanceMetrics(
+  performanceData: PerformanceData | null,
+): ComputedPerformanceMetrics | null {
   return useMemo(() => {
-    if (!performanceData) return null;
+    if (!performanceData || !isPerformanceData(performanceData)) {
+      return null;
+    }
 
     const perf = performanceData.performance || {};
     const bundle = performanceData.bundle || {};
@@ -59,7 +73,7 @@ function usePerformanceMetrics(performanceData: any) {
       alertCount: perf.alertCount || 0,
       timestamp: performanceData.timestamp,
       alerts: (perf.alerts || [])
-        .filter((alert: any) => alert.type === "critical")
+        .filter((alert: PerformanceAlert) => alert.type === "critical")
         .slice(0, 3),
       quickWins: performanceData.optimization?.quickWins || [],
     };
@@ -85,7 +99,8 @@ export const PerformanceDashboard = memo(
   function PerformanceDashboardComponent({
     detailed = false,
   }: PerformanceDashboardProps) {
-    const [performanceData, setPerformanceData] = useState<any>(null);
+    const [performanceData, setPerformanceData] =
+      useState<PerformanceData | null>(null);
     const [loading, setLoading] = useState(true);
     const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -127,13 +142,18 @@ export const PerformanceDashboard = memo(
     );
 
     // Debounced version to prevent rapid successive calls (for manual refresh)
-    const debouncedRefresh = useDebounce(refreshPerformanceDataInner, 1000);
+    const debouncedRefresh = useCallback(() => {
+      const controller = new AbortController();
+      refreshPerformanceDataInner(controller.signal);
+    }, [refreshPerformanceDataInner]);
+
+    // Debounced version wrapper
+    const debouncedRefreshWithDelay = useDebounce(debouncedRefresh, 1000);
 
     // Click handler for manual refresh
     const refreshPerformanceData = useCallback(() => {
-      const controller = new AbortController();
-      debouncedRefresh(controller.signal);
-    }, [debouncedRefresh]);
+      debouncedRefreshWithDelay();
+    }, [debouncedRefreshWithDelay]);
 
     // Auto-refresh function without debouncing for consistent intervals
     const autoRefreshData = useCallback(() => {
@@ -176,11 +196,8 @@ export const PerformanceDashboard = memo(
 
     // Calculate performance status using optimized metrics
     const performanceStatus = useMemo((): StatusType => {
-      if (!metrics?.performanceScore) return "unknown";
-
-      if (metrics.performanceScore >= 90) return "healthy";
-      if (metrics.performanceScore >= 70) return "degraded";
-      return "unhealthy";
+      const status = getPerformanceStatus(metrics?.performanceScore);
+      return status as StatusType;
     }, [metrics?.performanceScore]);
 
     if (loading && !performanceData) {
@@ -299,7 +316,7 @@ export const PerformanceDashboard = memo(
         )}
 
         {/* Critical Alerts - Using optimized metrics */}
-        {metrics?.alerts.length > 0 && (
+        {metrics?.alerts && metrics.alerts.length > 0 && (
           <div className="mb-6">
             <h3
               className={cn(
@@ -311,30 +328,35 @@ export const PerformanceDashboard = memo(
               Critical Performance Alerts
             </h3>
             <div className="space-y-2">
-              {metrics!.alerts.map((alert: any, index: number) => (
-                <div
-                  key={index}
-                  className={cn("p-3 rounded-lg", getStatusTheme("unhealthy"))}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium capitalize">
-                      {alert.metric}
-                    </span>
-                    <span className="text-sm opacity-75">
-                      {alert.value > alert.threshold
-                        ? `${Math.round(((alert.value - alert.threshold) / alert.threshold) * 100)}% over threshold`
-                        : getUIText("monitoring", "atThreshold")}
-                    </span>
+              {metrics!.alerts?.map(
+                (alert: PerformanceAlert, index: number) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "p-3 rounded-lg",
+                      getStatusTheme("unhealthy"),
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium capitalize">
+                        {alert.metric}
+                      </span>
+                      <span className="text-sm opacity-75">
+                        {alert.value > alert.threshold
+                          ? `${Math.round(((alert.value - alert.threshold) / alert.threshold) * 100)}% over threshold`
+                          : getUIText("monitoring", "atThreshold")}
+                      </span>
+                    </div>
+                    <p className="text-sm opacity-90">{alert.recommendation}</p>
                   </div>
-                  <p className="text-sm opacity-90">{alert.recommendation}</p>
-                </div>
-              ))}
+                ),
+              )}
             </div>
           </div>
         )}
 
         {/* Quick Wins - Using optimized metrics */}
-        {metrics?.quickWins.length > 0 && (
+        {metrics?.quickWins && metrics.quickWins.length > 0 && (
           <div>
             <h3
               className={cn(
@@ -345,19 +367,26 @@ export const PerformanceDashboard = memo(
               Quick Performance Wins
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {metrics!.quickWins.map((win: string, index: number) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "p-3 rounded-lg border",
-                    getAccentColor("blue", "background"),
-                  )}
-                >
-                  <p className={cn("text-sm", getAccentColor("blue", "text"))}>
-                    {win}
-                  </p>
-                </div>
-              ))}
+              {metrics!.quickWins !== undefined && metrics!.quickWins !== null
+                ? metrics!.quickWins.map((win: string, index: number) => (
+                    <div
+                      key={index}
+                      className={cn(
+                        "p-3 rounded-lg border",
+                        getAccentColor("blue", "background"),
+                      )}
+                    >
+                      <p
+                        className={cn(
+                          "text-sm",
+                          getAccentColor("blue", "text"),
+                        )}
+                      >
+                        {win}
+                      </p>
+                    </div>
+                  ))
+                : null}
             </div>
           </div>
         )}

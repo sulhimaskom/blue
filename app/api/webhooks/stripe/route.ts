@@ -6,18 +6,27 @@ import { eq } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 import { WebhookService } from "@/lib/services/webhook-service";
 import { SecurityService } from "@/lib/services/security-service";
-import { WEBHOOK_EVENTS, CREDIT_RULES } from "@/lib/constants";
+import { CREDIT_RULES } from "@/lib/constants";
+import {
+  StripeWebhookEvent,
+  isStripePaymentIntentSucceeded,
+  isStripeInvoicePaymentSucceeded,
+  type WebhookContext,
+} from "@/lib/types/webhook-events";
 
 export async function POST(req: NextRequest) {
   return WebhookService.processWebhookWithReliability(req, {
     serviceName: "Stripe",
     verifySignature: SecurityService.verifyStripeWebhook,
     useQueue: true, // Enable reliable queue-based processing
-    processEvent: async (event: any, context) => {
+    processEvent: async (
+      event: StripeWebhookEvent,
+      context: WebhookContext,
+    ) => {
       const database = db();
 
       // Handle payment intent succeeded
-      if (event.type === WEBHOOK_EVENTS.STRIPE.PAYMENT_INTENT_SUCCEEDED) {
+      if (isStripePaymentIntentSucceeded(event)) {
         const { metadata } = event.data.object;
 
         if (metadata?.userId && metadata?.creditsAdded) {
@@ -66,7 +75,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Handle invoice payment succeeded (subscriptions)
-      else if (event.type === WEBHOOK_EVENTS.STRIPE.INVOICE_PAYMENT_SUCCEEDED) {
+      else if (isStripeInvoicePaymentSucceeded(event)) {
         const { subscription } = event.data.object;
 
         // Enhanced subscription handling in Phase 4
