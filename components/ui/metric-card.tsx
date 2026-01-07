@@ -94,9 +94,20 @@ export function MetricCard({
                   "text-sm font-medium",
                   getTrendColor(trend.direction),
                 )}
+                aria-label={`${trend.direction === "up" ? "Increased" : trend.direction === "down" ? "Decreased" : "No change"} by ${Math.abs(trend.value)} percent`}
               >
-                {trendingUp ? "↑" : trendingDown ? "↓" : "→"}{" "}
-                {Math.abs(trend.value)}%
+                <span aria-hidden="true">
+                  {trendingUp ? "↑" : trendingDown ? "↓" : "→"}{" "}
+                  {Math.abs(trend.value)}%
+                </span>
+                <span className="sr-only">
+                  {trend.direction === "up"
+                    ? "Increased"
+                    : trend.direction === "down"
+                      ? "Decreased"
+                      : "No change"}{" "}
+                  by {Math.abs(trend.value)} percent
+                </span>
               </span>
             )}
           </div>

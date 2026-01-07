@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAuthSafe } from "@/lib/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,28 @@ interface NavigationProps {
 export function Navigation({ variant = "header", className }: NavigationProps) {
   const { isSignedIn, isLoaded } = useAuthSafe();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isMobileMenuOpen) {
+        closeMobileMenu();
+      }
+    };
+
+    if (isMobileMenuOpen) {
+      document.addEventListener("keydown", handleKeyDown);
+      return () => document.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [isMobileMenuOpen]);
 
   const navigationItems = [
     {
@@ -71,6 +93,7 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
                     ? "bg-blue-50 text-blue-700"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
                 )}
+                aria-current={item.active ? "page" : undefined}
               >
                 {item.label}
               </Link>
@@ -117,6 +140,7 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
                     ? "text-blue-600"
                     : "text-gray-500 hover:text-gray-900",
                 )}
+                aria-current={item.active ? "page" : undefined}
               >
                 {item.label}
               </Link>
@@ -153,13 +177,17 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
 
             <button
               className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={toggleMobileMenu}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-menu"
+              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
             >
               <svg
                 className="h-6 w-6"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 {isMobileMenuOpen ? (
                   <path
@@ -182,7 +210,7 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
         </div>
 
         {isMobileMenuOpen && (
-          <div className="md:hidden">
+          <div className="md:hidden" id="mobile-menu" ref={mobileMenuRef}>
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               {filteredItems.map((item) => (
                 <Link
@@ -194,7 +222,8 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
                       ? "bg-blue-50 text-blue-700"
                       : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
                   )}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={closeMobileMenu}
+                  aria-current={item.active ? "page" : undefined}
                 >
                   {item.label}
                 </Link>
