@@ -1,5 +1,10 @@
 import { logger, createRequestContext } from "@/lib/logger";
 import { IdGenerators } from "@/lib/utils/id-generator";
+import type {
+  ClerkWebhookPayload,
+  StripeWebhookPayload,
+  GitHubWebhookPayload,
+} from "./service-types";
 
 /**
  * Webhook Queue Service - Production-grade webhook reliability
@@ -26,9 +31,13 @@ export interface WebhookQueueConfig {
 
 export interface WebhookEvent {
   id: string;
-  serviceName: "Clerk" | "Stripe";
+  serviceName: "Clerk" | "Stripe" | "GitHub";
   eventType: string;
-  payload: any;
+  payload:
+    | ClerkWebhookPayload
+    | StripeWebhookPayload
+    | GitHubWebhookPayload
+    | Record<string, unknown>;
   headers: Record<string, string>;
   attemptCount: number;
   nextRetryAt?: number;
@@ -79,9 +88,13 @@ class WebhookQueueService {
    * Returns false if event was already processed (idempotency)
    */
   async enqueueWebhook(
-    serviceName: "Clerk" | "Stripe",
+    serviceName: "Clerk" | "Stripe" | "GitHub",
     eventType: string,
-    payload: any,
+    payload:
+      | ClerkWebhookPayload
+      | StripeWebhookPayload
+      | GitHubWebhookPayload
+      | Record<string, unknown>,
     headers: Record<string, string>,
   ): Promise<{ enqueued: boolean; eventId: string }> {
     const context = createRequestContext();
@@ -137,7 +150,11 @@ class WebhookQueueService {
     eventId: string,
     serviceName: string,
     eventType: string,
-    payload: any,
+    payload:
+      | ClerkWebhookPayload
+      | StripeWebhookPayload
+      | GitHubWebhookPayload
+      | Record<string, unknown>,
   ): void {
     const processedKey = `${serviceName}:${eventType}:${this.getEventIdempotencyKey(payload)}`;
     this.processedEvents.set(processedKey, Date.now());
@@ -230,21 +247,66 @@ class WebhookQueueService {
    * Generate idempotency key from webhook payload
    * Uses event-specific IDs when available (stripe event ID, clerk user ID)
    */
-  private getEventIdempotencyKey(payload: any): string {
+  private getEventIdempotencyKey(
+    payload:
+      | ClerkWebhookPayload
+      | StripeWebhookPayload
+      | GitHubWebhookPayload
+      | Record<string, unknown>,
+  ): string {
     // Stripe events have id field
-    if (payload?.id) {
+    if (this.isStripeWebhookPayload(payload) && payload.id) {
       return payload.id;
     }
 
     // Clerk events have data.id field
-    if (payload?.data?.id) {
+    if (this.isClerkWebhookPayload(payload) && payload.data?.id) {
       return payload.data.id;
     }
 
-    // Fallback to hash of entire payload
-    return Buffer.from(JSON.stringify(payload))
-      .toString("base64")
-      .substring(0, 32);
+    // GitHub events have repository.id or sender.id field
+    if (this.isGitHubWebhookPayload(payload)) {
+      return `${payload.repository.id}_${payload.action}`;
+    }
+
+    // Fallback to JSON string
+    return JSON.stringify(payload);
+  }
+
+  private isStripeWebhookPayload(
+    payload: unknown,
+  ): payload is StripeWebhookPayload {
+    return (
+      typeof payload === "object" &&
+      payload !== null &&
+      "id" in payload &&
+      "type" in payload &&
+      "api_version" in payload
+    );
+  }
+
+  private isClerkWebhookPayload(
+    payload: unknown,
+  ): payload is ClerkWebhookPayload {
+    return (
+      typeof payload === "object" &&
+      payload !== null &&
+      "object" in payload &&
+      "type" in payload &&
+      "data" in payload
+    );
+  }
+
+  private isGitHubWebhookPayload(
+    payload: unknown,
+  ): payload is GitHubWebhookPayload {
+    return (
+      typeof payload === "object" &&
+      payload !== null &&
+      "action" in payload &&
+      "repository" in payload &&
+      "sender" in payload
+    );
   }
 
   /**

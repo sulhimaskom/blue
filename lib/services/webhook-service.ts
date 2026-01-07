@@ -31,9 +31,9 @@ export class WebhookService {
   /**
    * Create standardized webhook response based on environment
    */
-  static createWebhookResponse(
+  static createWebhookResponse<T = Record<string, unknown>>(
     success: boolean,
-    data: any = { received: true },
+    data: T = { received: true } as T,
     error?: string,
   ): NextResponse | Response {
     // Handle test environment differently
@@ -154,9 +154,9 @@ export class WebhookService {
    * Enhanced webhook response using APIResponseFormatter
    * Provides consistent error handling and response structure
    */
-  static createStandardizedWebhookResponse(
+  static createStandardizedWebhookResponse<T = Record<string, unknown>>(
     success: boolean,
-    data: any = { received: true },
+    data: T = { received: true } as T,
     error?: Error,
     requestId?: string,
     service?: string,
