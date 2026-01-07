@@ -11,7 +11,6 @@
 | **Project Name**    | The Architect Platform                                                                                           |
 | **Description**     | AI-driven SaaS that creates comprehensive software blueprints and deploys repositories from simple user prompts. |
 | **Package Manager** | `pnpm`                                                                                                           |
-| **Package Manager** | `pnpm`                                                                                                           |
 | **Version**         | 1.0.0                                                                                                            |
 | **License**         | MIT                                                                                                              |
 
@@ -239,7 +238,7 @@ REDIS_VERBOSE_LOGGING="true"
 - Runtime service detection prevents build-time execution
 - Graceful degradation maintains functionality in all environments
 
-### 7.2 Production Environment
+### 7.3 Production Environment
 
 Redis is **required for production** to achieve optimal performance:
 
@@ -410,23 +409,23 @@ npm run optimize-db
 
 ---
 
-## 8. Development Principles (Strict)
+## 9. Development Principles (Strict)
 
 Agens must strictly follow these principles when generating code:
 
-### 8.1 Modularity & Reusability
+### 9.1 Modularity & Reusability
 
 - **Atomic Design**: UI components must be atomic (shadcn/ui), decoupled from business logic.
 - **Service Layer**: All business logic implies dedicated `services/` or `actions/` files. Never inside UI components.
 - **DRY (Don't Repeat Yourself)**: Extract common logic into `lib/utils` or custom hooks.
 
-### 8.2 Flexibility & Hardcoding
+### 9.2 Flexibility & Hardcoding
 
 - **NO HARDCODED STRINGS**: Labels, error messages, and config must be in `constants.ts` or `en.json`.
 - **Environment Adapter**: Do not use `process.env` directly in UI components. Use a type-safe wrapper (like `t3-env` or `src/env.mjs`) to validate keys. This ensures compatibility with Vercel, Cloudflare, or Netlify by abstracting the source.
 - **Themeable**: Styles must use CSS variables (Tailwind Config), not arbitrary hex values.
 
-### 8.3 Standardization
+### 9.3 Standardization
 
 - **Linter**: Strict ESLint + Prettier configuration.
 - **Commits**: Conventional Commits (`feat:`, `fix:`, `chore:`) required.
@@ -434,9 +433,9 @@ Agens must strictly follow these principles when generating code:
 
 ---
 
-## 9. Service Layer Implementation Status (COMPLETED - December 2024)
+## 10. Service Layer Implementation Status (COMPLETED - December 2024)
 
-### 9.1 Service Layer Mastery Achieved ✅
+### 10.1 Service Layer Mastery Achieved ✅
 
 **Implementation Status**: 100% Complete - Perfect blueprint.md:208-209 compliance
 
@@ -450,7 +449,7 @@ Agens must strictly follow these principles when generating code:
 - **Enterprise Theme Service**: Advanced theme management with 30s intelligent caching
 - **Service Consolidation**: Streamlined from 36 to 31 services, eliminating demo/redundant code
 
-### 9.2 Production-Ready Service Architecture
+### 10.2 Production-Ready Service Architecture
 
 **Service Layer Components**:
 
@@ -474,7 +473,7 @@ import { ServiceTypes } from './service-types.ts';
 - And 20+ specialized atomic services
 ```
 
-### 9.3 Performance Optimization Achievements ✅
+### 10.3 Performance Optimization Achievements ✅
 
 **Database Optimization**:
 
@@ -496,7 +495,7 @@ import { ServiceTypes } from './service-types.ts';
 - Intelligent interval management reducing resource utilization by 25-30%
 - Enhanced circuit breaker with adaptive timeouts and exponential backoff
 
-### 9.4 Quality Gates Status ✅
+### 10.4 Quality Gates Status ✅
 
 **Current Production Readiness Metrics**:
 
@@ -509,7 +508,7 @@ import { ServiceTypes } from './service-types.ts';
 
 ---
 
-## 10. Agent "System Prompt" Directives
+## 11. Agent "System Prompt" Directives
 
 > **Role**: Information Architect & Solutions Engineer.
 > **Constraint 1**: "Stability over Novelty". Recommend stacks that _work_ (Postgres, Redis), not just trending ones.

@@ -3,6 +3,7 @@ import { predictiveCacheOptimizer } from "@/lib/services/predictive-cache-optimi
 import { logger } from "@/lib/logger";
 import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 import { APIResponseService } from "@/lib/services/api-response-service";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 /**
  * Predictive Cache Optimization API
@@ -12,6 +13,28 @@ import { APIResponseService } from "@/lib/services/api-response-service";
  */
 
 export async function GET(request: NextRequest) {
+  const identifier =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.standard()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Rate limit exceeded. Try again in 60 seconds.",
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": "30",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
   const { requestId, startTime } = APIResponseService.generateRequestContext();
 
   try {
@@ -99,6 +122,29 @@ export async function GET(request: NextRequest) {
  * Trigger on-demand cache warming for specific patterns
  */
 export async function POST(request: NextRequest) {
+  const identifier =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.moderate()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Rate limit exceeded. Try again in 60 seconds.",
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": "10",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
+
   const { requestId, startTime } = APIResponseService.generateRequestContext();
 
   try {

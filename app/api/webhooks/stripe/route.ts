@@ -7,6 +7,7 @@ import { logger } from "@/lib/logger";
 import { WebhookService } from "@/lib/services/webhook-service";
 import { SecurityService } from "@/lib/services/security-service";
 import { CREDIT_RULES } from "@/lib/constants";
+import { RateLimiters } from "@/lib/rate-limit-config";
 import {
   StripeWebhookEvent,
   isStripePaymentIntentSucceeded,
@@ -15,6 +16,30 @@ import {
 } from "@/lib/types/webhook-events";
 
 export async function POST(req: NextRequest) {
+  const identifier =
+    req.headers.get("x-forwarded-for") ||
+    req.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.webhook()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "Rate limit exceeded. Try again in 60 seconds.",
+      }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "X-RateLimit-Limit": "100",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
+
   return WebhookService.processWebhookWithReliability(req, {
     serviceName: "Stripe",
     verifySignature: SecurityService.verifyStripeWebhook,

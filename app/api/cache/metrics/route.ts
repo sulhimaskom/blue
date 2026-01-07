@@ -3,9 +3,32 @@ import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 import { redisManager } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { metricsCalculator } from "@/lib/services/metrics-calculator-service";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
-// Enhanced cache monitoring endpoint with advanced analytics and response caching
 export async function GET(req: NextRequest) {
+  const identifier =
+    req.headers.get("x-forwarded-for") ||
+    req.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.standard()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Rate limit exceeded. Try again in 60 seconds.",
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": "30",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
+
   return UnifiedCacheManager.withCache(
     req,
     async () => {
