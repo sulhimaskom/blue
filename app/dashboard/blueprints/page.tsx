@@ -4,6 +4,11 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/constants/ui-themes";
+import { useBlueprintValidation } from "@/lib/hooks/use-blueprint-validation";
+import {
+  ValidatedInput,
+  FormProgress,
+} from "@/components/ui/validation-feedback";
 
 interface Project {
   id: string;
@@ -41,10 +46,23 @@ export default function BlueprintsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({
-    input: "",
-    projectName: "",
-  });
+
+  const {
+    formData,
+    validateForm,
+    resetValidation,
+    getFieldProps,
+    canSubmit,
+    validationState,
+    fieldStates,
+  } = useBlueprintValidation(
+    {
+      debounceMs: 300,
+      enableRealtimeValidation: true,
+      enableSuggestions: true,
+    },
+    {},
+  );
 
   useEffect(() => {
     fetchBlueprintsData();
@@ -111,8 +129,11 @@ export default function BlueprintsPage() {
   const handleCreateBlueprint = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.input.trim() || !formData.projectName.trim()) {
-      setError("Please fill in all required fields");
+    // Validate entire form before submission
+    const validationResult = await validateForm();
+
+    if (!validationResult.isValid) {
+      setError("Please fix the validation errors before submitting");
       return;
     }
 
@@ -135,7 +156,7 @@ export default function BlueprintsPage() {
 
       await response.json();
       setShowCreateForm(false);
-      setFormData({ input: "", projectName: "" });
+      resetValidation(); // Reset validation state
       fetchBlueprintsData(); // Refresh data
 
       // Show success message
@@ -239,7 +260,10 @@ export default function BlueprintsPage() {
                   <div className="p-6 text-center">
                     <p className="text-gray-500">No projects found</p>
                     <Button
-                      onClick={() => setShowCreateForm(true)}
+                      onClick={() => {
+                        setShowCreateForm(true);
+                        resetValidation(); // Reset validation when opening form
+                      }}
                       className="mt-4"
                     >
                       Create First Blueprint
@@ -286,7 +310,10 @@ export default function BlueprintsPage() {
                       {selectedProject.name} - Blueprints
                     </h2>
                     <Button
-                      onClick={() => setShowCreateForm(true)}
+                      onClick={() => {
+                        setShowCreateForm(true);
+                        resetValidation(); // Reset validation when opening form
+                      }}
                       variant="outline"
                     >
                       Create New Blueprint
@@ -409,7 +436,10 @@ export default function BlueprintsPage() {
                     Create New Blueprint
                   </h2>
                   <button
-                    onClick={() => setShowCreateForm(false)}
+                    onClick={() => {
+                      setShowCreateForm(false);
+                      resetValidation(); // Reset validation when closing form
+                    }}
                     className="text-gray-400 hover:text-gray-500"
                   >
                     <svg
@@ -429,56 +459,60 @@ export default function BlueprintsPage() {
                 </div>
               </div>
               <form onSubmit={handleCreateBlueprint} className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="projectName"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      Project Name *
-                    </label>
-                    <input
-                      type="text"
-                      id="projectName"
-                      name="projectName"
-                      value={formData.projectName}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          projectName: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter project name"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="input"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      Blueprint Description *
-                    </label>
-                    <textarea
-                      id="input"
-                      name="input"
-                      value={formData.input}
-                      onChange={(e) =>
-                        setFormData({ ...formData, input: e.target.value })
-                      }
-                      rows={6}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Describe the blueprint you want to generate (10-1000 characters)"
-                      required
-                      minLength={10}
-                      maxLength={1000}
-                    />
-                    <p className="mt-1 text-sm text-gray-500">
-                      Minimum 10 characters. This will be used to generate your
-                      AI-powered blueprint.
-                    </p>
-                  </div>
+                {/* Form Progress Indicator */}
+                <FormProgress
+                  fieldStates={fieldStates}
+                  formData={{
+                    projectName: formData.projectName,
+                    input: formData.input,
+                    projectDescription: formData.projectDescription || "",
+                  }}
+                  requiredFields={["projectName", "input"]}
+                />
+
+                <div className="space-y-6">
+                  <ValidatedInput
+                    label="Project Name"
+                    id="projectName"
+                    type="text"
+                    placeholder="Enter project name"
+                    required
+                    maxLength={50}
+                    validationProps={{
+                      value: getFieldProps("projectName").value || "",
+                      onChange: getFieldProps("projectName").onChange,
+                      onBlur: getFieldProps("projectName").onBlur,
+                      error: getFieldProps("projectName").error,
+                      warning: getFieldProps("projectName").warning,
+                      isValid: getFieldProps("projectName").isValid,
+                      isTouched: getFieldProps("projectName").isTouched,
+                      isValidating: getFieldProps("projectName").isValidating,
+                      suggestions: getFieldProps("projectName").suggestions,
+                    }}
+                    helperText="Use clear, descriptive naming (3-50 characters)"
+                  />
+
+                  <ValidatedInput
+                    label="Blueprint Description"
+                    id="input"
+                    type="textarea"
+                    placeholder="Describe the blueprint you want to generate (10-1000 characters)"
+                    required
+                    maxLength={1000}
+                    rows={6}
+                    validationProps={{
+                      value: getFieldProps("input").value || "",
+                      onChange: getFieldProps("input").onChange,
+                      onBlur: getFieldProps("input").onBlur,
+                      error: getFieldProps("input").error,
+                      warning: getFieldProps("input").warning,
+                      isValid: getFieldProps("input").isValid,
+                      isTouched: getFieldProps("input").isTouched,
+                      isValidating: getFieldProps("input").isValidating,
+                      suggestions: getFieldProps("input").suggestions,
+                    }}
+                    helperText="Be specific about features, target users, and purpose"
+                  />
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                     <div className="flex">
                       <svg
@@ -493,12 +527,21 @@ export default function BlueprintsPage() {
                         />
                       </svg>
                       <div className="text-sm text-blue-800">
-                        <p className="font-medium">Blueprint Generation</p>
+                        <p className="font-medium">
+                          Real-time Validation Active
+                        </p>
                         <p>
                           Creating a blueprint will deduct 1 credit from your
                           account. You currently have {credits} credits
-                          available.
+                          available. Your form is validated in real-time to help
+                          create better blueprints.
                         </p>
+                        {!canSubmit && (
+                          <p className="mt-2 text-yellow-700">
+                            Complete all required fields and fix validation
+                            errors to submit.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -507,12 +550,48 @@ export default function BlueprintsPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setShowCreateForm(false)}
+                    onClick={() => {
+                      setShowCreateForm(false);
+                      resetValidation();
+                    }}
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={credits < 1}>
-                    Create Blueprint (1 Credit)
+                  <Button
+                    type="submit"
+                    disabled={
+                      credits < 1 ||
+                      !canSubmit ||
+                      validationState.form.isSubmitting
+                    }
+                  >
+                    {validationState.form.isSubmitting ? (
+                      <>
+                        <svg
+                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Creating Blueprint...
+                      </>
+                    ) : (
+                      `Create Blueprint (1 Credit)`
+                    )}
                   </Button>
                 </div>
               </form>
