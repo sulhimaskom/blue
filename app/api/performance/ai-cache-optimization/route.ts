@@ -3,16 +3,17 @@
  *
  * Provides real-time metrics and analytics for AI cache optimization,
  * showing cost savings, performance improvements, and cache efficiency.
+ *
+ * Refactored to use standardized API response service
  */
 
 import { NextResponse } from "next/server";
+import { APIResponseService } from "@/lib/services/api-response-service";
 import { logger } from "@/lib/logger";
-import { Timing } from "@/lib/utils/time-measurement";
 import { redisManager } from "@/lib/redis";
 
 export async function GET() {
-  const startTime = Timing.now();
-  const requestId = `ai-cache-optimization-${Timing.now()}`;
+  const { requestId, startTime } = APIResponseService.generateRequestContext();
 
   try {
     logger.info("AI cache optimization metrics requested", {
@@ -22,44 +23,21 @@ export async function GET() {
 
     // Get current cache optimization statistics
     const optimizationMetrics = await getOptimizationMetrics(requestId);
+    const cacheHitRate = await getOverallCacheHitRate();
 
-    const duration = Timing.perf(startTime);
-
-    logger.info("AI cache optimization metrics generated", {
+    const response = APIResponseService.createPerformanceResponse(
       requestId,
-      duration: `${duration}ms`,
-      metricsCount: Object.keys(optimizationMetrics).length,
-    });
+      startTime,
+      optimizationMetrics,
+      cacheHitRate,
+    );
 
-    return NextResponse.json({
-      success: true,
-      data: optimizationMetrics,
-      metadata: {
-        requestId,
-        generatedAt: new Date().toISOString(),
-        responseTime: `${duration}ms`,
-        cacheHitRate: await getOverallCacheHitRate(),
-      },
-    });
+    return NextResponse.json(response);
   } catch (error) {
-    const duration = Timing.perf(startTime);
-
-    logger.error("Failed to generate AI cache optimization metrics", {
+    return APIResponseService.createErrorResponse(
       requestId,
-      error: error instanceof Error ? error.message : String(error),
-      duration: `${duration}ms`,
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to generate optimization metrics",
-        requestId,
-        metadata: {
-          generatedAt: new Date().toISOString(),
-          responseTime: `${duration}ms`,
-        },
-      },
+      startTime,
+      error instanceof Error ? error.message : String(error),
       { status: 500 },
     );
   }

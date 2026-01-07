@@ -2,17 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { predictiveCacheOptimizer } from "@/lib/services/predictive-cache-optimizer";
 import { logger } from "@/lib/logger";
 import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
+import { APIResponseService } from "@/lib/services/api-response-service";
 
 /**
  * Predictive Cache Optimization API
  * Provides intelligent cache optimization using machine learning-inspired patterns
+ *
+ * Refactored to use standardized API response service
  */
 
 export async function GET(request: NextRequest) {
-  const startTime = Date.now();
+  const { requestId, startTime } = APIResponseService.generateRequestContext();
 
   try {
     logger.info("Predictive cache optimization requested", {
+      requestId,
       userAgent: request.headers.get("user-agent"),
       ip: request.headers.get("x-forwarded-for") || "unknown",
     });
@@ -25,14 +29,18 @@ export async function GET(request: NextRequest) {
     );
 
     if (cachedResult) {
-      logger.debug("Returning cached optimization results");
-      return NextResponse.json({
-        success: true,
-        cached: true,
-        timestamp: new Date().toISOString(),
-        duration: Date.now() - startTime,
-        data: cachedResult,
-      });
+      logger.debug("Returning cached optimization results", { requestId });
+
+      const response = APIResponseService.createSuccessResponse(
+        requestId,
+        startTime,
+        {
+          data: cachedResult,
+          additionalMetadata: { cached: true },
+        },
+      );
+
+      return NextResponse.json(response);
     }
 
     // Perform predictive optimization analysis
@@ -55,43 +63,33 @@ export async function GET(request: NextRequest) {
       { ttl: 300 },
     );
 
-    const response = {
-      success: true,
-      cached: false,
-      timestamp: new Date().toISOString(),
-      duration: Date.now() - startTime,
-      data: {
-        optimization: optimizationResult,
-        performance: performanceMetrics,
-        advanced: advancedOptimization,
-      },
+    const data = {
+      optimization: optimizationResult,
+      performance: performanceMetrics,
+      advanced: advancedOptimization,
     };
 
+    const response = APIResponseService.createSuccessResponse(
+      requestId,
+      startTime,
+      {
+        data,
+        additionalMetadata: { cached: false },
+      },
+    );
+
     logger.info("Predictive cache optimization completed", {
+      requestId,
       totalOptimizations: optimizationResult.totalOptimizations,
       estimatedImprovement: optimizationResult.estimatedHitRateImprovement,
-      duration: Date.now() - startTime,
     });
 
     return NextResponse.json(response);
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-
-    logger.error("Predictive cache optimization failed", {
-      error: errorMessage,
-      duration: Date.now() - startTime,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Cache optimization failed",
-        message: errorMessage,
-        timestamp: new Date().toISOString(),
-        duration: Date.now() - startTime,
-      },
+    return APIResponseService.createErrorResponse(
+      requestId,
+      startTime,
+      error instanceof Error ? error.message : "Unknown error",
       { status: 500 },
     );
   }
@@ -101,25 +99,24 @@ export async function GET(request: NextRequest) {
  * Trigger on-demand cache warming for specific patterns
  */
 export async function POST(request: NextRequest) {
-  const startTime = Date.now();
+  const { requestId, startTime } = APIResponseService.generateRequestContext();
 
   try {
     const body = await request.json();
     const { patterns, priority = "medium" } = body;
 
     logger.info("On-demand cache warming requested", {
+      requestId,
       patterns,
       priority,
       userAgent: request.headers.get("user-agent"),
     });
 
     if (!patterns || !Array.isArray(patterns)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid request",
-          message: "patterns array is required",
-        },
+      return APIResponseService.createErrorResponse(
+        requestId,
+        startTime,
+        "Invalid request: patterns array is required",
         { status: 400 },
       );
     }
@@ -142,14 +139,14 @@ export async function POST(request: NextRequest) {
 
     const invalidPatterns = patterns.filter((p) => !validPatterns.includes(p));
     if (invalidPatterns.length > 0) {
-      return NextResponse.json(
+      return APIResponseService.createErrorResponse(
+        requestId,
+        startTime,
+        `Invalid patterns: ${invalidPatterns.join(", ")}`,
         {
-          success: false,
-          error: "Invalid patterns",
-          message: `Invalid patterns: ${invalidPatterns.join(", ")}`,
-          validPatterns,
+          status: 400,
+          context: { invalidPatterns, validPatterns },
         },
-        { status: 400 },
       );
     }
 
@@ -159,41 +156,32 @@ export async function POST(request: NextRequest) {
     // Invalidate optimization cache to ensure fresh results
     await UnifiedCacheManager.invalidateByTag("predictive-optimization");
 
-    const response = {
-      success: true,
-      timestamp: new Date().toISOString(),
-      duration: Date.now() - startTime,
-      data: {
-        patterns,
-        priority,
-        warmingCompleted: true,
-        nextOptimization: new Date(Date.now() + 300000).toISOString(), // 5 minutes
-      },
+    const data = {
+      patterns,
+      priority,
+      warmingCompleted: true,
+      nextOptimization: new Date(Date.now() + 300000).toISOString(), // 5 minutes
     };
 
+    const response = APIResponseService.createSuccessResponse(
+      requestId,
+      startTime,
+      {
+        data,
+      },
+    );
+
     logger.info("On-demand cache warming completed", {
+      requestId,
       patterns,
-      duration: Date.now() - startTime,
     });
 
     return NextResponse.json(response);
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-
-    logger.error("On-demand cache warming failed", {
-      error: errorMessage,
-      duration: Date.now() - startTime,
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Cache warming failed",
-        message: errorMessage,
-        timestamp: new Date().toISOString(),
-        duration: Date.now() - startTime,
-      },
+    return APIResponseService.createErrorResponse(
+      requestId,
+      startTime,
+      error instanceof Error ? error.message : "Cache warming failed",
       { status: 500 },
     );
   }
