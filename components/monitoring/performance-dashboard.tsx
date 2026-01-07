@@ -4,14 +4,18 @@ import {
   StatusIndicator,
   type StatusType,
 } from "@/components/ui/status-indicator";
-import {
-  ActivityIcon,
-  TrendingUpIcon,
-  AlertTriangleIcon,
-} from "@/components/ui/icons";
+import { ActivityIcon, AlertTriangleIcon } from "@/components/ui/icons";
 import { getUIText } from "@/lib/constants/ui-text";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { usePerformanceMetrics as usePerformanceMetricsHook } from "@/lib/hooks/use-performance-metrics";
+import { logger } from "@/lib/logger";
+import {
+  getTextColor,
+  getBackgroundColor,
+  getStatusTheme,
+  getAccentColor,
+  cn,
+} from "@/lib/constants/ui-themes";
 import { AutoOptimizationControls } from "./auto-optimization-controls";
 import { PerformanceScoreOverview } from "./performance-score-overview";
 import {
@@ -102,8 +106,12 @@ export const PerformanceDashboard = memo(
           setPerformanceData(data);
         } catch (error) {
           if (error instanceof Error && error.name !== "AbortError") {
-            // eslint-disable-next-line no-console
-            console.error("Failed to fetch performance data:", error);
+            logger.error("Failed to fetch performance data", {
+              error: error.name,
+              message: error.message,
+              component: "PerformanceDashboard",
+              action: "fetchPerformanceData",
+            });
           }
         } finally {
           setLoading(false);
@@ -154,14 +162,19 @@ export const PerformanceDashboard = memo(
         // Refresh data after optimization
         refreshPerformanceData();
 
-        // eslint-disable-next-line no-console
-        console.log(
-          "Auto-optimizations applied:",
-          data.optimization.autoOptimizations,
-        );
+        logger.info("Auto-optimizations applied successfully", {
+          optimizationsApplied:
+            data.optimization.autoOptimizations?.length || 0,
+          component: "PerformanceDashboard",
+          action: "applyAutoOptimizations",
+        });
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error("Failed to apply optimizations:", error);
+        logger.error("Failed to apply auto-optimizations", {
+          error: error instanceof Error ? error.name : "Unknown",
+          message: error instanceof Error ? error.message : "Unexpected error",
+          component: "PerformanceDashboard",
+          action: "applyAutoOptimizations",
+        });
       }
     };
 
