@@ -2,6 +2,20 @@
 
 ## Completed ✅
 
+- [x] ✅ **COMPLETED** (2026-01-07): CRITICAL DOCUMENTATION FIX - README.md outdated database setup commands
+  - **Issue**: README.md referenced non-existent database setup scripts (`pnpm run db:generate` and `pnpm run db:migrate`)
+  - **Impact**: Developers following README would encounter "command not found" errors
+  - **Resolution Applied**:
+    - Updated database setup section with correct migration commands (`npm run migrate:up` and `npm run migrate:down`)
+    - Updated package manager references from `pnpm` to `npm` to match package.json
+    - Enhanced "Available Scripts" section with all 15 npm scripts from package.json
+    - Added infrastructure scripts documentation (`infrastructure:check`, `infrastructure:recover`, `infrastructure:report`)
+    - Added test scripts documentation (`test:api`, `test:api:coverage`, `test:all`)
+  - **Files Updated**:
+    - `README.md` - Fixed database setup commands (lines 38-44), updated script section (lines 221-233)
+  - **Quality Gates Validation**: ✅ Build (5.8s, 27 static pages), ✅ Lint (0 warnings)
+  - **Business Impact**: **DEVELOPER EXPERIENCE EXCELLENCE** - Eliminated developer frustration with accurate, actionable setup instructions
+
 - [x] ✅ **COMPLETED** (2026-01-07): COMPREHENSIVE API DOCUMENTATION ENHANCEMENT - Missing endpoint documentation for production APIs
   - **Issue**: Multiple production-ready API endpoints were undocumented in API.md, creating integration friction and developer confusion
   - **Missing Documentation Found**:
