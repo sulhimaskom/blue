@@ -26,6 +26,7 @@ const customJestConfig = {
     // Temporarily ignore complex API integration tests
     "<rootDir>/__tests__/api/",
   ],
+  modulePathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
   transform: {
     "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }],
   },
