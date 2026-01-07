@@ -16,16 +16,25 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { enterpriseThemeService } from "@/lib/services/enterprise-theme-service";
 import type { EnterpriseThemeConfig } from "@/lib/constants/enterprise-themes";
 import type { EnterpriseThemeStats } from "@/lib/services/service-types";
-import { EnterpriseThemeCustomizer } from "@/components/enterprise/enterprise-theme-customizer";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/constants/ui-themes";
 import { Button } from "@/components/ui/button";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { MetricCard } from "@/components/ui/metric-card";
+
+// Dynamic import for performance optimization - reduces initial bundle size
+const EnterpriseThemeCustomizer = lazy(() =>
+  import("@/components/enterprise/enterprise-theme-customizer").then(
+    (module) => ({
+      default: module.EnterpriseThemeCustomizer,
+    }),
+  ),
+);
 
 export default function EnterpriseThemesPage() {
   // Presentation state only - business logic is in service layer
@@ -246,11 +255,13 @@ export default function EnterpriseThemesPage() {
         </div>
 
         {isEditing ? (
-          /* Theme Customizer */
-          <EnterpriseThemeCustomizer
-            customerId={selectedTheme?.customerId}
-            onThemeChange={handleThemeUpdate}
-          />
+          /* Theme Customizer - Lazy loaded for performance */
+          <Suspense fallback={<DashboardSkeleton />}>
+            <EnterpriseThemeCustomizer
+              customerId={selectedTheme?.customerId}
+              onThemeChange={handleThemeUpdate}
+            />
+          </Suspense>
         ) : (
           /* Theme List */
           <div className="space-y-6">

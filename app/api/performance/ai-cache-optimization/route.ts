@@ -11,8 +11,32 @@ import { NextResponse } from "next/server";
 import { APIResponseService } from "@/lib/services/api-response-service";
 import { logger } from "@/lib/logger";
 import { redisManager } from "@/lib/redis";
+import { RateLimiters } from "@/lib/rate-limit-config";
+import { NextRequest } from "next/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const identifier =
+    req.headers.get("x-forwarded-for") ||
+    req.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.standard()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Rate limit exceeded. Try again in 60 seconds.",
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": "30",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
   const { requestId, startTime } = APIResponseService.generateRequestContext();
 
   try {

@@ -40,35 +40,42 @@ const nextConfig = {
         // Improve chunk splitting for better caching
         splitChunks: {
           chunks: "all",
-          maxSize: 180000, // Further reduced from 200000 for better granularity
+          maxSize: 50000, // Reduced from 200000 to 50 kB for better granularity
+          minSize: 10000, // Minimum 10 kB to avoid too many tiny chunks
           cacheGroups: {
             default: {
               minChunks: 2,
               priority: -20,
               reuseExistingChunk: true,
             },
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: "vendors",
-              priority: 10,
-              reuseExistingChunk: true,
-            },
             services: {
               test: /[\\/]lib[\\/]services[\\/]/,
               name: "services",
-              priority: 40,
+              priority: 50,
               reuseExistingChunk: true,
             },
             clerk: {
               test: /[\\/]node_modules[\\/]@clerk[\\/]/,
               name: "clerk",
-              priority: 20,
+              priority: 30,
+              reuseExistingChunk: true,
+            },
+            sentry: {
+              test: /[\\/]node_modules[\\/]@sentry[\\/]/,
+              name: "sentry",
+              priority: 25,
+              reuseExistingChunk: true,
+            },
+            stripe: {
+              test: /[\\/]node_modules[\\/](stripe|@types\/stripe)[\\/]/,
+              name: "stripe",
+              priority: 25,
               reuseExistingChunk: true,
             },
             react: {
               test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
               name: "react",
-              priority: 30,
+              priority: 40,
               reuseExistingChunk: true,
             },
             common: {
@@ -89,6 +96,9 @@ const nextConfig = {
   // Compression and caching
   compress: true,
   poweredByHeader: false,
+
+  // Production optimizations
+  productionBrowserSourceMaps: false,
 
   // Image optimization
   images: {
@@ -112,17 +122,6 @@ const nextConfig = {
       return `prod-${Date.now()}`;
     }
     return "dev";
-  },
-
-  // Compiler options
-  compiler: {
-    removeConsole: process.env.NODE_ENV === "production",
-  },
-
-  // Build optimization for better performance
-  onDemandEntries: {
-    maxInactiveAge: 60 * 60 * 1000, // 1 hour
-    pagesBufferLength: 2,
   },
 };
 
