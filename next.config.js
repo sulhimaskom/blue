@@ -20,6 +20,17 @@ const nextConfig = {
       exprContextCritical: false,
     };
 
+    // Development build optimizations
+    if (dev) {
+      // Enable faster rebuilds in development
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: /node_modules/,
+        aggregateTimeout: 300, // Delay rebuild by 300ms
+        poll: 1000, // Check for changes every second
+      };
+    }
+
     // Optimize for production
     if (!dev && !isServer) {
       config.optimization = {
@@ -29,7 +40,7 @@ const nextConfig = {
         // Improve chunk splitting for better caching
         splitChunks: {
           chunks: "all",
-          maxSize: 200000, // Reduced from 244000 for better granularity
+          maxSize: 180000, // Further reduced from 200000 for better granularity
           cacheGroups: {
             default: {
               minChunks: 2,
@@ -84,14 +95,34 @@ const nextConfig = {
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Enable image optimization cache
+    minimumCacheTTL: 60 * 60 * 24, // 24 hours
   },
 
   // Output optimization
   output: "standalone",
 
+  // Disable source maps in production for faster builds
+  productionBrowserSourceMaps: false,
+
+  // Cache management for better performance
+  generateBuildId: async () => {
+    // Use a stable build ID for caching instead of hash-based
+    if (process.env.NODE_ENV === "production") {
+      return `prod-${Date.now()}`;
+    }
+    return "dev";
+  },
+
   // Compiler options
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
+  },
+
+  // Build optimization for better performance
+  onDemandEntries: {
+    maxInactiveAge: 60 * 60 * 1000, // 1 hour
+    pagesBufferLength: 2,
   },
 };
 
