@@ -54,12 +54,6 @@ const nextConfig = {
               priority: 20,
               reuseExistingChunk: true,
             },
-            lucide: {
-              test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
-              name: "lucide",
-              priority: 20,
-              reuseExistingChunk: true,
-            },
             react: {
               test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
               name: "react",
