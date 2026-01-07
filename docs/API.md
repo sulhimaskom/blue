@@ -1062,7 +1062,7 @@ if (monitoring.aiIflow.averageResponseTime > 3000) {
 
 ```bash
 # Core Configuration
-NEXT_PUBLIC_CLERK_KEY=pk_live_1234567890
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_1234567890
 CLERK_SECRET_KEY=sk_live_1234567890
 DATABASE_URL=postgresql://user:pass@host:5432/db
 

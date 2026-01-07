@@ -116,7 +116,9 @@ export const ApiSchemas = {
 // Environment variable validation (for runtime checks)
 export const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  NEXT_PUBLIC_CLERK_KEY: z.string().min(1, "Clerk public key is required"),
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z
+    .string()
+    .min(1, "Clerk public key is required"),
   CLERK_SECRET_KEY: z.string().min(1, "Clerk secret key is required"),
   // Add other required env vars as needed
 });

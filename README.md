@@ -90,7 +90,7 @@ The platform follows the **Model Context Protocol (MCP)** concept:
 DATABASE_URL=your_neon_postgres_url
 
 # Authentication
-NEXT_PUBLIC_CLERK_KEY=your_clerk_public_key
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_public_key
 CLERK_SECRET_KEY=your_clerk_secret_key
 
 # AI Services

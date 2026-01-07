@@ -73,7 +73,7 @@ REDIS_PASSWORD=your_redis_password
 # AUTHENTICATION & USERS
 # =============================================
 # Clerk Authentication
-NEXT_PUBLIC_CLERK_KEY=pk_test_your_clerk_public_key
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_public_key
 CLERK_SECRET_KEY=sk_test_your_clerk_secret_key
 
 # =============================================
