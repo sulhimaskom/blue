@@ -202,6 +202,32 @@ export class ProjectDataService {
   }
 
   /**
+   * Get all blueprints for a specific project
+   * Used by: /api/projects/[id]/blueprints (GET)
+   */
+  static async getProjectBlueprints(projectId: string, clerkId: string) {
+    const database = db();
+
+    // Verify project ownership first
+    const projectDetails = await this.verifyProjectOwnership(
+      projectId,
+      clerkId,
+    );
+
+    // Get all blueprints for this project
+    const projectBlueprints = await database
+      .select()
+      .from(blueprints)
+      .where(eq(blueprints.projectId, projectId))
+      .orderBy(desc(blueprints.createdAt));
+
+    return {
+      project: projectDetails.project,
+      blueprints: projectBlueprints,
+    };
+  }
+
+  /**
    * Create transaction record
    * Used by: /api/credits (POST)
    */
