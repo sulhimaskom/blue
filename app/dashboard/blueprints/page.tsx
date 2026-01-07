@@ -4,6 +4,24 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/constants/ui-themes";
+import { z } from "zod";
+
+// Validation schema matching the API
+const generateBlueprintSchema = z.object({
+  input: z
+    .string()
+    .min(10, "Input must be at least 10 characters")
+    .max(1000, "Input too long (max 1000 characters)"),
+  projectName: z
+    .string()
+    .min(3, "Project name must be at least 3 characters")
+    .max(100, "Name too long (max 100 characters)"),
+});
+
+interface ValidationErrors {
+  input?: string;
+  projectName?: string;
+}
 
 interface Project {
   id: string;
@@ -41,6 +59,11 @@ export default function BlueprintsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {},
+  );
   const [formData, setFormData] = useState({
     input: "",
     projectName: "",
@@ -49,6 +72,65 @@ export default function BlueprintsPage() {
   useEffect(() => {
     fetchBlueprintsData();
   }, []);
+
+  // Real-time validation function
+  const validateField = (name: keyof typeof formData, value: string) => {
+    try {
+      const partialData = { ...formData, [name]: value };
+      const result = generateBlueprintSchema.safeParse(partialData);
+
+      if (!result.success) {
+        const fieldError = result.error.issues.find(
+          (issue) => issue.path[0] === name,
+        );
+        return fieldError?.message;
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  // Handle field changes with validation
+  const handleFieldChange = (name: keyof typeof formData, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Clear previous error for this field
+    setValidationErrors((prev) => ({ ...prev, [name]: undefined }));
+
+    // Validate field if it has content
+    if (value.trim()) {
+      const error = validateField(name, value);
+      if (error) {
+        setValidationErrors((prev) => ({ ...prev, [name]: error }));
+      }
+    }
+  };
+
+  // Check if form is valid for submission
+  const isFormValid = () => {
+    if (!formData.input.trim() || !formData.projectName.trim()) {
+      return false;
+    }
+
+    const result = generateBlueprintSchema.safeParse(formData);
+    return result.success && credits >= 1;
+  };
+
+  // Simulate progress during generation
+  const simulateProgress = () => {
+    setGenerationProgress(0);
+    const interval = setInterval(() => {
+      setGenerationProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(interval);
+          return 90;
+        }
+        return prev + Math.random() * 15;
+      });
+    }, 800);
+    return interval;
+  };
 
   const fetchBlueprintsData = async () => {
     try {
@@ -111,10 +193,30 @@ export default function BlueprintsPage() {
   const handleCreateBlueprint = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.input.trim() || !formData.projectName.trim()) {
-      setError("Please fill in all required fields");
+    // Validate form before submission
+    const validationResult = generateBlueprintSchema.safeParse(formData);
+    if (!validationResult.success) {
+      const errors: ValidationErrors = {};
+      validationResult.error.issues.forEach((issue) => {
+        const field = issue.path[0] as keyof ValidationErrors;
+        errors[field] = issue.message;
+      });
+      setValidationErrors(errors);
       return;
     }
+
+    if (credits < 1) {
+      setError(
+        "Insufficient credits. Please purchase more credits to continue.",
+      );
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
+    // Start progress simulation
+    const progressInterval = simulateProgress();
 
     try {
       const response = await fetch("/api/blueprints", {
@@ -124,6 +226,9 @@ export default function BlueprintsPage() {
         },
         body: JSON.stringify(formData),
       });
+
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -136,14 +241,20 @@ export default function BlueprintsPage() {
       await response.json();
       setShowCreateForm(false);
       setFormData({ input: "", projectName: "" });
+      setValidationErrors({});
       fetchBlueprintsData(); // Refresh data
 
       // Show success message
       setError(null);
     } catch (err) {
+      clearInterval(progressInterval);
+      setGenerationProgress(0);
       setError(
         err instanceof Error ? err.message : "Failed to create blueprint",
       );
+    } finally {
+      setIsGenerating(false);
+      setTimeout(() => setGenerationProgress(0), 2000);
     }
   };
 
@@ -286,10 +397,12 @@ export default function BlueprintsPage() {
                       {selectedProject.name} - Blueprints
                     </h2>
                     <Button
-                      onClick={() => setShowCreateForm(true)}
-                      variant="outline"
+                      type="submit"
+                      disabled={!isFormValid() || isGenerating}
                     >
-                      Create New Blueprint
+                      {isGenerating
+                        ? "Generating..."
+                        : "Create Blueprint (1 Credit)"}
                     </Button>
                   </div>
                 </div>
@@ -443,15 +556,27 @@ export default function BlueprintsPage() {
                       name="projectName"
                       value={formData.projectName}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          projectName: e.target.value,
-                        })
+                        handleFieldChange("projectName", e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter project name"
+                      className={cn(
+                        "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:border-blue-500",
+                        validationErrors.projectName
+                          ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                          : "border-gray-300 focus:ring-blue-500",
+                      )}
+                      placeholder="Enter project name (3-100 characters)"
                       required
                     />
+                    <div className="mt-1 flex justify-between">
+                      <p className="text-sm text-gray-500">
+                        {formData.projectName.length}/100 characters
+                      </p>
+                      {validationErrors.projectName && (
+                        <p className="text-sm text-red-600">
+                          {validationErrors.projectName}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label
@@ -465,19 +590,30 @@ export default function BlueprintsPage() {
                       name="input"
                       value={formData.input}
                       onChange={(e) =>
-                        setFormData({ ...formData, input: e.target.value })
+                        handleFieldChange("input", e.target.value)
                       }
                       rows={6}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={cn(
+                        "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:border-blue-500",
+                        validationErrors.input
+                          ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                          : "border-gray-300 focus:ring-blue-500",
+                      )}
                       placeholder="Describe the blueprint you want to generate (10-1000 characters)"
                       required
                       minLength={10}
                       maxLength={1000}
                     />
-                    <p className="mt-1 text-sm text-gray-500">
-                      Minimum 10 characters. This will be used to generate your
-                      AI-powered blueprint.
-                    </p>
+                    <div className="mt-1 flex justify-between">
+                      <p className="text-sm text-gray-500">
+                        {formData.input.length}/1000 characters (minimum 10)
+                      </p>
+                      {validationErrors.input && (
+                        <p className="text-sm text-red-600">
+                          {validationErrors.input}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                     <div className="flex">
@@ -516,6 +652,33 @@ export default function BlueprintsPage() {
                   </Button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Generation Progress Overlay */}
+        {isGenerating && (
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Generating Blueprint...
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Our AI is analyzing your requirements and creating a
+                  comprehensive blueprint. This typically takes 1-2 minutes.
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${generationProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Progress: {Math.round(generationProgress)}%
+                </p>
+              </div>
             </div>
           </div>
         )}
