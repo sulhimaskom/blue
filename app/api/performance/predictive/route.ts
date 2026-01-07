@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { PredictivePerformanceAnalyzer } from "@/lib/services/predictive-performance-analyzer";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: false, // Performance monitoring can be public
+  rateLimiter: (identifier: string) =>
+    RateLimiters.performanceGet()(identifier),
   handler: async ({ context }) => {
     logger.info("Generating predictive performance analytics", {
       requestId: context.requestId,

@@ -14,6 +14,7 @@ import { z } from "zod";
 import { logger, createRequestContext } from "@/lib/logger";
 import { enterpriseThemeManager } from "@/lib/constants/enterprise-themes";
 import { ValidationError } from "@/lib/api-utils";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 // Validation schemas
 const CreateThemeSchema = z.object({
@@ -34,10 +35,22 @@ const CreateThemeSchema = z.object({
 });
 
 // GET /api/enterprise/themes - List all enterprise themes
-export async function GET() {
+export async function GET(request: NextRequest) {
   const context = createRequestContext();
+  const identifier = request.headers.get("x-forwarded-for") || "unknown";
 
   try {
+    const rateLimitCheck = await RateLimiters.themesGet()(identifier);
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Rate limit exceeded. Please try again later.",
+        },
+        { status: 429 },
+      );
+    }
+
     const themes = enterpriseThemeManager.getAllThemes();
     const activeTheme = enterpriseThemeManager.getActiveTheme();
 
@@ -74,8 +87,20 @@ export async function GET() {
 // POST /api/enterprise/themes - Create new enterprise theme
 export async function POST(request: NextRequest) {
   const context = createRequestContext();
+  const identifier = request.headers.get("x-forwarded-for") || "unknown";
 
   try {
+    const rateLimitCheck = await RateLimiters.themesPost()(identifier);
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Rate limit exceeded. Please try again later.",
+        },
+        { status: 429 },
+      );
+    }
+
     const body = await request.json();
     const validationResult = CreateThemeSchema.safeParse(body);
 

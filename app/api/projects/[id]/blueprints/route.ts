@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ProjectDataService } from "@/lib/services/project-data-service";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -12,6 +13,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 
   return APIRouteHandler.createGETHandler({
     requireAuth: true,
+    rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
     handler: async ({ context, user }) => {
       // Get all blueprints for a specific project
       const projectBlueprints = await ProjectDataService.getProjectBlueprints(

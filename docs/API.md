@@ -19,39 +19,76 @@ Production: https://your-domain.com/api
 - **Header**: `Authorization: Bearer <clerk_session_token>`
 - **Rate Limiting**: Redis-based distributed rate limiting per endpoint
 
+### Rate Limiting
+
+All API endpoints are protected by rate limiting to ensure system stability and prevent abuse:
+
+| Category       | Max Requests | Time Window | Description                  |
+| -------------- | ------------ | ----------- | ---------------------------- |
+| **Strict**     | 3 requests   | 1 minute    | AI generation, deployment    |
+| **Moderate**   | 10 requests  | 1 minute    | Write operations             |
+| **Standard**   | 30 requests  | 1 minute    | Read operations with caching |
+| **Permissive** | 60 requests  | 1 minute    | Public health/metrics        |
+| **Webhook**    | 100 requests | 1 minute    | Incoming webhook processing  |
+
+**Subscription Tier Multipliers:**
+
+- **Free**: 1x base limits
+- **Pro**: 5x base limits
+- **Enterprise**: 10x base limits
+
+**Rate Limit Headers:**
+When rate limits are enforced, responses include:
+
+- `X-RateLimit-Limit`: Maximum requests allowed
+- `X-RateLimit-Remaining`: Requests remaining in window
+- `X-RateLimit-Reset`: Unix timestamp when window resets
+
+**Response on Rate Limit Exceeded:**
+
+```json
+{
+  "success": false,
+  "error": "Rate limit exceeded. Try again in X seconds."
+}
+```
+
 ---
 
 ## 📋 Endpoints Overview
 
-| Category            | Endpoint                                   | Auth        | Credits | Description              |
-| ------------------- | ------------------------------------------ | ----------- | ------- | ------------------------ |
-| **Blueprints**      | `GET /blueprints`                          | ✅ Required | -       | List user blueprints     |
-|                     | `POST /blueprints`                         | ✅ Required | 1       | Generate new blueprint   |
-|                     | `GET /blueprints/[id]`                     | ✅ Required | -       | Get specific blueprint   |
-|                     | `PUT /blueprints/[id]`                     | ✅ Required | -       | Update blueprint         |
-| **Deployment**      | `POST /deploy/[id]`                        | ✅ Required | -       | Deploy to GitHub         |
-| **Credits**         | `GET /credits`                             | ✅ Required | -       | User credit balance      |
-| **System**          | `GET /health`                              | ❌ Optional | -       | System health status     |
-|                     | `GET /metrics`                             | ❌ Optional | -       | Performance metrics      |
-| **Monitoring**      | `GET /circuit-breakers/metrics`            | ❌ Optional | -       | Circuit breaker status   |
-|                     | `POST /circuit-breakers/reset`             | ❌ Optional | -       | Reset circuit breakers   |
-|                     | `GET /cache/metrics`                       | ❌ Optional | -       | Caching performance      |
-|                     | `GET /cache/enhanced-metrics`              | ❌ Optional | -       | Advanced cache analytics |
-| **Webhooks**        | `POST /webhooks/clerk`                     | ❌ N/A      | -       | Clerk user sync          |
-|                     | `POST /webhooks/stripe`                    | ❌ N/A      | -       | Stripe payment events    |
-| **Enterprise**      | `GET /enterprise/themes`                   | ❌ Optional | -       | List all themes          |
-|                     | `POST /enterprise/themes`                  | ❌ Optional | -       | Create theme             |
-|                     | `GET /enterprise/themes/[id]`              | ❌ Optional | -       | Get specific theme       |
-|                     | `PUT /enterprise/themes/[id]`              | ❌ Optional | -       | Update theme             |
-|                     | `DELETE /enterprise/themes/[id]`           | ❌ Optional | -       | Delete theme             |
-|                     | `POST /enterprise/themes/[id]/activate`    | ❌ Optional | -       | Activate theme           |
-| **Performance**     | `GET /performance`                         | ❌ Optional | -       | Performance report       |
-|                     | `GET /performance/ai-cache-optimization`   | ❌ Optional | -       | AI cache metrics         |
-|                     | `GET /performance/optimization`            | ❌ Optional | -       | Optimization data        |
-|                     | `GET /performance/predictive-optimization` | ❌ Optional | -       | Predictive optimization  |
-|                     | `GET /performance/predictive`              | ❌ Optional | -       | Predictive analysis      |
-| **Webhook Monitor** | `GET /webhooks/monitor`                    | ❌ Optional | -       | Queue monitoring         |
-|                     | `POST /webhooks/monitor`                   | ✅ Required | -       | Retry dead letter queue  |
+| Category            | Endpoint                                   | Auth        | Credits | Rate Limit | Description              |
+| ------------------- | ------------------------------------------ | ----------- | ------- | ---------- | ------------------------ |
+| **Blueprints**      | `GET /blueprints`                          | ✅ Required | -       | Standard   | List user blueprints     |
+|                     | `POST /blueprints`                         | ✅ Required | 1       | Strict     | Generate new blueprint   |
+|                     | `GET /blueprints/[id]`                     | ✅ Required | -       | Standard   | Get specific blueprint   |
+|                     | `PUT /blueprints/[id]`                     | ✅ Required | -       | Moderate   | Update blueprint         |
+| **Deployment**      | `POST /deploy/[id]`                        | ✅ Required | -       | Strict     | Deploy to GitHub         |
+| **Credits**         | `GET /credits`                             | ✅ Required | -       | Standard   | User credit balance      |
+|                     | `POST /credits`                            | ✅ Required | -       | Moderate   | Purchase credits         |
+| **System**          | `GET /health`                              | ❌ Optional | -       | Permissive | System health status     |
+|                     | `GET /metrics`                             | ❌ Optional | -       | Permissive | Performance metrics      |
+| **Monitoring**      | `GET /circuit-breakers/metrics`            | ❌ Optional | -       | Standard   | Circuit breaker status   |
+|                     | `POST /circuit-breakers/reset`             | ❌ Optional | -       | Moderate   | Reset circuit breakers   |
+|                     | `GET /cache/metrics`                       | ❌ Optional | -       | Standard   | Caching performance      |
+|                     | `GET /cache/enhanced-metrics`              | ❌ Optional | -       | Standard   | Advanced cache analytics |
+| **Webhooks**        | `POST /webhooks/clerk`                     | ❌ N/A      | -       | Webhook    | Clerk user sync          |
+|                     | `POST /webhooks/stripe`                    | ❌ N/A      | -       | Webhook    | Stripe payment events    |
+| **Enterprise**      | `GET /enterprise/themes`                   | ❌ Optional | -       | Standard   | List all themes          |
+|                     | `POST /enterprise/themes`                  | ❌ Optional | -       | Moderate   | Create theme             |
+|                     | `GET /enterprise/themes/[id]`              | ❌ Optional | -       | Standard   | Get specific theme       |
+|                     | `PUT /enterprise/themes/[id]`              | ❌ Optional | -       | Moderate   | Update theme             |
+|                     | `DELETE /enterprise/themes/[id]`           | ❌ Optional | -       | Moderate   | Delete theme             |
+|                     | `POST /enterprise/themes/[id]/activate`    | ❌ Optional | -       | Moderate   | Activate theme           |
+| **Performance**     | `GET /performance`                         | ❌ Optional | -       | Standard   | Performance report       |
+|                     | `GET /performance/ai-cache-optimization`   | ❌ Optional | -       | Standard   | AI cache metrics         |
+|                     | `GET /performance/optimization`            | ❌ Optional | -       | Standard   | Optimization data        |
+|                     | `GET /performance/predictive-optimization` | ❌ Optional | -       | Standard   | Predictive optimization  |
+|                     | `GET /performance/predictive`              | ❌ Optional | -       | Standard   | Predictive analysis      |
+| **Projects**        | `GET /projects/[id]/blueprints`            | ✅ Required | -       | Standard   | Get project blueprints   |
+| **Validation**      | `POST /validate`                           | ❌ Optional | -       | Standard   | Validate blueprint data  |
+| **Webhook Monitor** | `GET /webhooks/monitor`                    | ❌ Optional | -       | Standard   | Queue monitoring         |
+|                     | `POST /webhooks/monitor`                   | ✅ Required | -       | Moderate   | Retry dead letter queue  |
 
 ---
 

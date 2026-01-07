@@ -7,6 +7,7 @@ import { IdGenerators } from "@/lib/utils/id-generator";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
 import { StripePaymentService } from "@/lib/services/stripe-payment-service";
 import type { Transaction } from "@/lib/db/schema";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 const addCreditsSchema = z.object({
   amount: z
@@ -21,6 +22,7 @@ const addCreditsSchema = z.object({
 export const POST = APIRouteHandler.createPOSTHandler({
   schema: addCreditsSchema,
   requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.creditsPost()(identifier),
   handler: async ({ context, user, data }) => {
     const amount = data!.amount;
     const paymentMethodId = data!.paymentMethodId;
@@ -140,6 +142,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
 
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.creditsGet()(identifier),
   handler: async ({ context, user }) => {
     const stripeService = StripePaymentService.getInstance();
     // Get transaction history with caching

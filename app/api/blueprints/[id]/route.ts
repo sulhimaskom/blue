@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { blueprintEngine } from "@/lib/services/blueprint-engine";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ProjectDataService } from "@/lib/services/project-data-service";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 const refineBlueprintSchema = z.object({
   feedback: z
@@ -25,6 +26,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
   return APIRouteHandler.createPOSTHandler({
     schema: refineBlueprintSchema,
     requireAuth: true,
+    rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
     handler: async ({ context, user, data }) => {
       const { feedback, updateType } = data!;
 
@@ -68,6 +70,8 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 
   return APIRouteHandler.createGETHandler({
     requireAuth: true,
+    rateLimiter: (identifier: string) =>
+      RateLimiters.blueprintsGet()(identifier),
     handler: async ({ context, user }) => {
       // Optimized: Get blueprint with project and all versions in a single database operation
       const blueprintDetails =

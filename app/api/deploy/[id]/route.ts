@@ -8,6 +8,7 @@ import {
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ValidationError } from "@/lib/api-utils";
 import { ProjectDataService } from "@/lib/services/project-data-service";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 const deployRepoSchema = z.object({
   githubOrg: z
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   return APIRouteHandler.createPOSTHandler({
     schema: deployRepoSchema,
     requireAuth: true,
+    rateLimiter: (identifier: string) => RateLimiters.deployPost()(identifier),
     handler: async ({ context, user, data }) => {
       const { githubOrg, repoName, isPrivate } = data!;
 
