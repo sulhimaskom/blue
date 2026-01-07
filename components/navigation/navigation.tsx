@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAuthSafe } from "@/lib/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -17,14 +17,18 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
   const { isSignedIn, isLoaded } = useAuthSafe();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
+  const toggleMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen((prev) => !prev);
+  }, []);
 
-  const closeMobileMenu = () => {
+  const closeMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false);
-  };
+    if (mobileMenuButtonRef.current) {
+      mobileMenuButtonRef.current.focus();
+    }
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -33,11 +37,30 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
       }
     };
 
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(e.target as Node) &&
+        !mobileMenuButtonRef.current?.contains(e.target as Node)
+      ) {
+        closeMobileMenu();
+      }
+    };
+
     if (isMobileMenuOpen) {
+      const firstLink = mobileMenuRef.current?.querySelector("a");
+      if (firstLink) {
+        (firstLink as HTMLElement).focus();
+      }
+
       document.addEventListener("keydown", handleKeyDown);
-      return () => document.removeEventListener("keydown", handleKeyDown);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("keydown", handleKeyDown);
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
     }
-  }, [isMobileMenuOpen]);
+  }, [isMobileMenuOpen, closeMobileMenu]);
 
   const navigationItems = [
     {
@@ -181,11 +204,13 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
             )}
 
             <button
-              className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              ref={mobileMenuButtonRef}
+              className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-w-[44px] min-h-[44px]"
               onClick={toggleMobileMenu}
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-menu"
               aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-haspopup="true"
             >
               <svg
                 className="h-6 w-6"
@@ -215,20 +240,28 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
         </div>
 
         {isMobileMenuOpen && (
-          <div className="md:hidden" id="mobile-menu" ref={mobileMenuRef}>
+          <div
+            className="md:hidden"
+            id="mobile-menu"
+            ref={mobileMenuRef}
+            role="menu"
+            aria-label="Main navigation"
+          >
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              {filteredItems.map((item) => (
+              {filteredItems.map((item, index) => (
                 <Link
                   key={item.href}
                   href={item.href}
+                  role="menuitem"
                   className={cn(
-                    "block px-3 py-2 rounded-md text-base font-medium transition-colors",
+                    "block px-3 py-2 rounded-md text-base font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
                     item.active
                       ? "bg-blue-50 text-blue-700"
                       : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
                   )}
                   onClick={closeMobileMenu}
                   aria-current={item.active ? "page" : undefined}
+                  tabIndex={index === 0 ? 0 : -1}
                 >
                   {item.label}
                 </Link>

@@ -29,9 +29,15 @@ export const AutoOptimizationControls = memo(
     onRefresh,
   }: AutoOptimizationControlsProps) {
     return (
-      <div className="flex items-center gap-3">
+      <div
+        className="flex items-center gap-3"
+        role="toolbar"
+        aria-label="Performance dashboard controls"
+      >
         <button
           onClick={onToggleAutoRefresh}
+          aria-pressed={autoRefresh}
+          aria-label={`Auto-refresh is ${autoRefresh ? "enabled" : "disabled"}`}
           className={cn(
             "px-3 py-1 rounded-lg text-sm font-medium transition-colors",
             autoRefresh
@@ -44,6 +50,7 @@ export const AutoOptimizationControls = memo(
 
         <Button
           onClick={onApplyOptimizations}
+          aria-label="Apply performance optimizations automatically"
           className={cn(
             "px-3 py-1 rounded-lg text-sm font-medium transition-colors",
             getAccentColor("blue", "background"),
@@ -56,6 +63,10 @@ export const AutoOptimizationControls = memo(
 
         <button
           onClick={onRefresh}
+          aria-label={
+            loading ? "Refreshing data..." : "Refresh performance data"
+          }
+          aria-busy={loading}
           className={cn(
             "p-2 transition-colors",
             getTextColor("muted"),
@@ -63,7 +74,7 @@ export const AutoOptimizationControls = memo(
           )}
           disabled={loading}
         >
-          <div className={loading ? "animate-spin" : ""}>
+          <div className={loading ? "animate-spin" : ""} aria-hidden="true">
             <TrendingUpIcon />
           </div>
         </button>

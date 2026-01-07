@@ -9,7 +9,7 @@ const nextConfig = {
   // Performance optimization configurations
   experimental: {
     // Optimize bundle splitting for better caching
-    optimizePackageImports: ["@clerk/nextjs", "lucide-react"],
+    optimizePackageImports: ["@clerk/nextjs"],
   },
 
   // Advanced bundle analysis optimization with OpenTelemetry fix
@@ -45,12 +45,6 @@ const nextConfig = {
             clerk: {
               test: /[\\/]node_modules[\\/]@clerk[\\/]/,
               name: "clerk",
-              priority: 20,
-              reuseExistingChunk: true,
-            },
-            lucide: {
-              test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
-              name: "lucide",
               priority: 20,
               reuseExistingChunk: true,
             },

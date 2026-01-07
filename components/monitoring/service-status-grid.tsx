@@ -174,6 +174,9 @@ const ServiceCard = React.memo(function ServiceCardComponent({
     <BaseCard variant="hover" padding="sm">
       <button
         onClick={onToggle}
+        aria-expanded={isExpanded}
+        aria-controls={`service-details-${check.service}`}
+        aria-label={`Toggle details for ${check.service} service, currently ${isExpanded ? "expanded" : "collapsed"}`}
         className={cn(
           "w-full text-left focus:outline-none focus:ring-2 focus:ring-inset",
           "focus:ring-blue-500",
@@ -190,13 +193,21 @@ const ServiceCard = React.memo(function ServiceCardComponent({
               status={check.status as StatusType}
               size="sm"
               showText={false}
+              aria-label={`${check.service} service status: ${check.status}`}
             />
             {check.service}
           </h4>
           <div className="flex items-center gap-3">
             {isLive && (
-              <div className="flex items-center gap-1">
-                <div className={ANIMATION_STATES.liveAnimated} />
+              <div
+                className="flex items-center gap-1"
+                aria-live="polite"
+                aria-label="Data is live"
+              >
+                <div
+                  className={ANIMATION_STATES.liveAnimated}
+                  aria-hidden="true"
+                />
                 <span className={cn("text-xs", getTextColor("muted"))}>
                   Live
                 </span>
@@ -206,8 +217,9 @@ const ServiceCard = React.memo(function ServiceCardComponent({
               status={check.status as StatusType}
               size="sm"
               showIcon={false}
+              aria-label={`Service status: ${check.status}`}
             />
-            <ExpandIcon isExpanded={isExpanded} />
+            <ExpandIcon isExpanded={isExpanded} aria-hidden="true" />
           </div>
         </div>
         {check.responseTime && (
@@ -219,7 +231,9 @@ const ServiceCard = React.memo(function ServiceCardComponent({
       </button>
 
       {isExpanded && (
-        <ServiceDetailPanel detailData={detailData} error={check.error} />
+        <div id={`service-details-${check.service}`}>
+          <ServiceDetailPanel detailData={detailData} error={check.error} />
+        </div>
       )}
     </BaseCard>
   );
