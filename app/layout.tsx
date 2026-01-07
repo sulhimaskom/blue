@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { EnterpriseThemeProvider } from "@/components/enterprise/enterprise-theme-provider";
 import { NavigationBar } from "@/components/layout/navigation-bar";
+import { SkipLink } from "@/components/ui/skip-link";
 import { getUIText } from "@/lib/constants/ui-text";
 import "@/lib/sentry"; // Initialize error monitoring
 import "./globals.css";
@@ -39,8 +40,13 @@ export default function RootLayout({
       <html lang="en">
         <body className={inter.className}>
           <EnterpriseThemeProvider>
+            <SkipLink />
             <NavigationBar />
-            <ErrorBoundary>{children}</ErrorBoundary>
+            <ErrorBoundary>
+              <main id="main-content" className="min-h-screen">
+                {children}
+              </main>
+            </ErrorBoundary>
           </EnterpriseThemeProvider>
         </body>
       </html>
