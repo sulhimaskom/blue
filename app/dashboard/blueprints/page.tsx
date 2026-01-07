@@ -46,6 +46,7 @@ export default function BlueprintsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [credits, setCredits] = useState(0);
 
   const {
     formData,
@@ -167,8 +168,6 @@ export default function BlueprintsPage() {
       );
     }
   };
-
-  const [credits, setCredits] = useState(0);
 
   if (loading) {
     return (
