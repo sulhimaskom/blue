@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ZodSchema, ZodError } from "zod";
 import { redisManager } from "./redis";
 import { Timing } from "./utils/time-measurement";
+import { logger } from "./logger";
 
 // Validation middleware factory
 export function validateRequest<T>(
@@ -120,15 +121,20 @@ export function RateLimiter(maxRequests: number, windowMs: number) {
         },
         // Fallback to in-memory if Redis is unavailable
         async () => {
-          // eslint-disable-next-line no-console
-          console.warn("Redis unavailable, using fallback rate limiting");
+          logger.warn("Redis unavailable, using fallback rate limiting", {
+            component: "RateLimitMiddleware",
+            action: "redisFallback",
+          });
           // Simple fallback that allows requests but logs the issue
           return { allowed: true, resetTime };
         },
       );
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Rate limiting failed:", error);
+      logger.error("Rate limiting failed", {
+        error: error instanceof Error ? error.message : String(error),
+        component: "RateLimitMiddleware",
+        action: "rateLimitError",
+      });
       // Fail open - allow the request but log the error
       return { allowed: true, resetTime };
     }
