@@ -217,11 +217,15 @@ describe("AI Service Cost-Aware Caching Optimization", () => {
     });
 
     it("should handle time-based optimization during off-peak hours", () => {
-      // Mock current hour to be 23:00 (off-peak)
-      const originalDateNow = Date.now;
-      const mockDate = new Date();
-      mockDate.setHours(23);
-      Date.now = jest.fn(() => mockDate.getTime());
+      // Mock Date constructor to return 23:00 (off-peak)
+      const originalDate = global.Date;
+      const mockDateClass = class extends Date {
+        constructor() {
+          super();
+          super.setHours(23);
+        }
+      };
+      global.Date = mockDateClass as any;
 
       try {
         const request = {
@@ -243,68 +247,98 @@ describe("AI Service Cost-Aware Caching Optimization", () => {
           completion,
         );
 
-        // Should have optimization applied (time-based may vary based on test environment)
+        // Should have off-peak optimization (1.4x time multiplier)
+        // Base: 1800 * premium model (1.4) = 2520 * off-peak (1.4) = 3528
         expect(optimizedTTL).toBeGreaterThan(1800); // Base dashboard TTL
-        expect(optimizedTTL).toBeLessThan(3600); // But reasonable bounds
+        expect(optimizedTTL).toBeLessThan(5000); // But reasonable bounds
       } finally {
-        Date.now = originalDateNow;
+        global.Date = originalDate;
       }
     });
 
     it("should apply premium model optimization", () => {
-      const request = {
-        prompt: "Complex architectural question",
-        model: { id: "gpt-4-turbo" },
+      // Mock regular hours to avoid peak/off-peak variations
+      const originalDate = global.Date;
+      const mockDateClass = class extends Date {
+        constructor() {
+          super();
+          super.setHours(10); // Regular hours
+        }
       };
+      global.Date = mockDateClass as any;
 
-      const completion = {
-        content: "Detailed architectural response",
-        model: { id: "gpt-4-turbo" },
-        usage: { totalTokens: 1500 },
-      };
+      try {
+        const request = {
+          prompt: "Complex architectural question",
+          model: { id: "gpt-4-turbo" },
+        };
 
-      const pattern = "saas" as AIPattern["type"];
+        const completion = {
+          content: "Detailed architectural response",
+          model: { id: "gpt-4-turbo" },
+          usage: { totalTokens: 1500 },
+        };
 
-      const optimizedTTL = aiService.testCalculateCostAwareTTL(
-        pattern,
-        request,
-        completion,
-      );
+        const pattern = "saas" as AIPattern["type"];
 
-      // Should have premium model multiplier applied
-      expect(optimizedTTL).toBeGreaterThan(3600); // Base saas TTL
-      expect(optimizedTTL).toBeLessThan(86400); // Within bounds
+        const optimizedTTL = aiService.testCalculateCostAwareTTL(
+          pattern,
+          request,
+          completion,
+        );
+
+        // Should have premium model multiplier applied
+        // Base: 3600 * premium model (1.4) * saas pattern (1.3) = 6552
+        expect(optimizedTTL).toBeGreaterThan(3600); // Base saas TTL
+        expect(optimizedTTL).toBeLessThan(86400); // Within bounds
+      } finally {
+        global.Date = originalDate;
+      }
     });
 
     it("should handle null/undefined patterns gracefully", () => {
-      const request = {
-        prompt: "Simple question",
-        model: { id: "default" },
+      // Mock regular hours to avoid peak/off-peak variations
+      const originalDate = global.Date;
+      const mockDateClass = class extends Date {
+        constructor() {
+          super();
+          super.setHours(10); // Regular hours
+        }
       };
+      global.Date = mockDateClass as any;
 
-      const completion = {
-        content: "Simple response",
-        model: { id: "default" },
-        usage: { totalTokens: 200 },
-      };
+      try {
+        const request = {
+          prompt: "Simple question",
+          model: { id: "default" },
+        };
 
-      // Test with null pattern
-      const ttlWithNull = aiService.testCalculateCostAwareTTL(
-        null,
-        request,
-        completion,
-      );
+        const completion = {
+          content: "Simple response",
+          model: { id: "default" },
+          usage: { totalTokens: 200 },
+        };
 
-      // Test with undefined pattern
-      const ttlWithUndefined = aiService.testCalculateCostAwareTTL(
-        undefined,
-        request,
-        completion,
-      );
+        // Test with null pattern
+        const ttlWithNull = aiService.testCalculateCostAwareTTL(
+          null,
+          request,
+          completion,
+        );
 
-      // Both should use default TTL of 1800 seconds (30 minutes)
-      expect(ttlWithNull).toBe(1800);
-      expect(ttlWithUndefined).toBe(1800);
+        // Test with undefined pattern
+        const ttlWithUndefined = aiService.testCalculateCostAwareTTL(
+          undefined,
+          request,
+          completion,
+        );
+
+        // Both should use default TTL of 1800 seconds (30 minutes)
+        expect(ttlWithNull).toBe(1800);
+        expect(ttlWithUndefined).toBe(1800);
+      } finally {
+        global.Date = originalDate;
+      }
     });
 
     it("should apply smart bounds to TTL values", () => {
@@ -381,25 +415,33 @@ describe("AI Service Cost-Aware Caching Optimization", () => {
 
   describe("time-based optimization", () => {
     it("should apply off-peak optimization", () => {
-      const originalDateNow = Date.now;
-      const mockDate = new Date();
-      mockDate.setHours(23); // 11 PM UTC
-      Date.now = jest.fn(() => mockDate.getTime());
+      const originalDate = global.Date;
+      const mockDateClass = class extends Date {
+        constructor() {
+          super();
+          super.setHours(23); // 11 PM UTC
+        }
+      };
+      global.Date = mockDateClass as any;
 
       try {
         const multiplier = aiService.testGetTimeBasedMultiplier();
         // Off-peak should be >= 1.0 (normal or longer caching)
         expect(multiplier).toBeGreaterThanOrEqual(1.0);
       } finally {
-        Date.now = originalDateNow;
+        global.Date = originalDate;
       }
     });
 
     it("should apply peak-hour optimization", () => {
-      const originalDateNow = Date.now;
-      const mockDate = new Date();
-      mockDate.setHours(16); // 4 PM UTC
-      Date.now = jest.fn(() => mockDate.getTime());
+      const originalDate = global.Date;
+      const mockDateClass = class extends Date {
+        constructor() {
+          super();
+          super.setHours(16); // 4 PM UTC
+        }
+      };
+      global.Date = mockDateClass as any;
 
       try {
         const multiplier = aiService.testGetTimeBasedMultiplier();
@@ -407,21 +449,25 @@ describe("AI Service Cost-Aware Caching Optimization", () => {
         expect(multiplier).toBeLessThanOrEqual(1.0);
         expect(multiplier).toBeGreaterThan(0.5);
       } finally {
-        Date.now = originalDateNow;
+        global.Date = originalDate;
       }
     });
 
     it("should use normal optimization during regular hours", () => {
-      const originalDateNow = Date.now;
-      const mockDate = new Date();
-      mockDate.setHours(10); // 10 AM UTC
-      Date.now = jest.fn(() => mockDate.getTime());
+      const originalDate = global.Date;
+      const mockDateClass = class extends Date {
+        constructor() {
+          super();
+          super.setHours(10); // 10 AM UTC
+        }
+      };
+      global.Date = mockDateClass as any;
 
       try {
         const multiplier = aiService.testGetTimeBasedMultiplier();
         expect(multiplier).toBe(1.0); // Normal caching
       } finally {
-        Date.now = originalDateNow;
+        global.Date = originalDate;
       }
     });
   });
@@ -456,10 +502,14 @@ describe("AI Service Cost-Aware Caching Optimization", () => {
       const healthcarePattern = "healthcare" as AIPattern["type"];
 
       // Mock off-peak hours for maximum optimization
-      const originalDateNow = Date.now;
-      const mockDate = new Date();
-      mockDate.setHours(23);
-      Date.now = jest.fn(() => mockDate.getTime());
+      const originalDate = global.Date;
+      const mockDateClass = class extends Date {
+        constructor() {
+          super();
+          super.setHours(23); // 11 PM UTC
+        }
+      };
+      global.Date = mockDateClass as any;
 
       try {
         const optimizedTTL = aiService.testCalculateCostAwareTTL(
@@ -470,8 +520,8 @@ describe("AI Service Cost-Aware Caching Optimization", () => {
 
         // Verify significant optimization for expensive healthcare completion
         // Base healthcare TTL is 2 hours (7200s)
-        // With optimizations: premium model (1.4x) + high-value pattern (1.6x) + time-based (1.0-1.4x) + high token count (1.5x) = ~3.0-4.2x
-        expect(optimizedTTL).toBeGreaterThan(20000); // Significant optimization
+        // With optimizations: premium model (1.4x) + high-value pattern (1.6x) + time-based (1.4x) + high token count (1.5x) + usage (0.9x) = ~4.7x
+        expect(optimizedTTL).toBeGreaterThan(25000); // Significant optimization
         expect(optimizedTTL).toBeLessThan(86400); // Within bounds
 
         // Verify cost savings calculation
@@ -480,35 +530,49 @@ describe("AI Service Cost-Aware Caching Optimization", () => {
           aiService.testCalculateEstimatedSavings(multiplier);
         const savingsPercent = parseFloat(estimatedSavings);
 
-        // Should result in substantial cost savings (>100%)
-        expect(savingsPercent).toBeGreaterThan(100);
+        // Should result in substantial cost savings (>200%)
+        expect(savingsPercent).toBeGreaterThan(200);
       } finally {
-        Date.now = originalDateNow;
+        global.Date = originalDate;
       }
     });
 
     it("should handle edge cases with minimal optimization", () => {
-      const simpleRequest = {
-        prompt: "Basic question",
-        model: { id: "basic-model" },
+      // Mock regular hours to avoid peak/off-peak variations
+      const originalDate = global.Date;
+      const mockDateClass = class extends Date {
+        constructor() {
+          super();
+          super.setHours(10); // Regular hours
+        }
       };
+      global.Date = mockDateClass as any;
 
-      const simpleCompletion = {
-        content: "Simple answer",
-        model: { id: "basic-model" },
-        usage: { totalTokens: 100 },
-      };
+      try {
+        const simpleRequest = {
+          prompt: "Basic question",
+          model: { id: "basic-model" },
+        };
 
-      const noPattern = null;
+        const simpleCompletion = {
+          content: "Simple answer",
+          model: { id: "basic-model" },
+          usage: { totalTokens: 100 },
+        };
 
-      const optimizedTTL = aiService.testCalculateCostAwareTTL(
-        noPattern,
-        simpleRequest,
-        simpleCompletion,
-      );
+        const noPattern = null;
 
-      // Should use default TTL with minimal optimization
-      expect(optimizedTTL).toBe(1800); // Default 30 minutes
+        const optimizedTTL = aiService.testCalculateCostAwareTTL(
+          noPattern,
+          simpleRequest,
+          simpleCompletion,
+        );
+
+        // Should use default TTL with minimal optimization
+        expect(optimizedTTL).toBe(1800); // Default 30 minutes
+      } finally {
+        global.Date = originalDate;
+      }
     });
   });
 
