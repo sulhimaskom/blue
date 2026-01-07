@@ -51,6 +51,11 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
       requiresAuth: true,
     },
     {
+      href: "/dashboard/blueprints",
+      label: "Blueprints",
+      requiresAuth: true,
+    },
+    {
       href: "/dashboard/monitoring",
       label: getNavigationUI("navigation", "monitoring"),
       requiresAuth: true,
