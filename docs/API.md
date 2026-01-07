@@ -23,22 +23,35 @@ Production: https://your-domain.com/api
 
 ## 📋 Endpoints Overview
 
-| Category       | Endpoint                        | Auth        | Credits | Description              |
-| -------------- | ------------------------------- | ----------- | ------- | ------------------------ |
-| **Blueprints** | `GET /blueprints`               | ✅ Required | -       | List user blueprints     |
-|                | `POST /blueprints`              | ✅ Required | 1       | Generate new blueprint   |
-|                | `GET /blueprints/[id]`          | ✅ Required | -       | Get specific blueprint   |
-|                | `PUT /blueprints/[id]`          | ✅ Required | -       | Update blueprint         |
-| **Deployment** | `POST /deploy/[id]`             | ✅ Required | -       | Deploy to GitHub         |
-| **Credits**    | `GET /credits`                  | ✅ Required | -       | User credit balance      |
-| **System**     | `GET /health`                   | ❌ Optional | -       | System health status     |
-|                | `GET /metrics`                  | ❌ Optional | -       | Performance metrics      |
-| **Monitoring** | `GET /circuit-breakers/metrics` | ❌ Optional | -       | Circuit breaker status   |
-|                | `POST /circuit-breakers/reset`  | ❌ Optional | -       | Reset circuit breakers   |
-|                | `GET /cache/metrics`            | ❌ Optional | -       | Caching performance      |
-|                | `GET /cache/enhanced-metrics`   | ❌ Optional | -       | Advanced cache analytics |
-| **Webhooks**   | `POST /webhooks/clerk`          | ❌ N/A      | -       | Clerk user sync          |
-|                | `POST /webhooks/stripe`         | ❌ N/A      | -       | Stripe payment events    |
+| Category            | Endpoint                                   | Auth        | Credits | Description              |
+| ------------------- | ------------------------------------------ | ----------- | ------- | ------------------------ |
+| **Blueprints**      | `GET /blueprints`                          | ✅ Required | -       | List user blueprints     |
+|                     | `POST /blueprints`                         | ✅ Required | 1       | Generate new blueprint   |
+|                     | `GET /blueprints/[id]`                     | ✅ Required | -       | Get specific blueprint   |
+|                     | `PUT /blueprints/[id]`                     | ✅ Required | -       | Update blueprint         |
+| **Deployment**      | `POST /deploy/[id]`                        | ✅ Required | -       | Deploy to GitHub         |
+| **Credits**         | `GET /credits`                             | ✅ Required | -       | User credit balance      |
+| **System**          | `GET /health`                              | ❌ Optional | -       | System health status     |
+|                     | `GET /metrics`                             | ❌ Optional | -       | Performance metrics      |
+| **Monitoring**      | `GET /circuit-breakers/metrics`            | ❌ Optional | -       | Circuit breaker status   |
+|                     | `POST /circuit-breakers/reset`             | ❌ Optional | -       | Reset circuit breakers   |
+|                     | `GET /cache/metrics`                       | ❌ Optional | -       | Caching performance      |
+|                     | `GET /cache/enhanced-metrics`              | ❌ Optional | -       | Advanced cache analytics |
+| **Webhooks**        | `POST /webhooks/clerk`                     | ❌ N/A      | -       | Clerk user sync          |
+|                     | `POST /webhooks/stripe`                    | ❌ N/A      | -       | Stripe payment events    |
+| **Enterprise**      | `GET /enterprise/themes`                   | ❌ Optional | -       | List all themes          |
+|                     | `POST /enterprise/themes`                  | ❌ Optional | -       | Create theme             |
+|                     | `GET /enterprise/themes/[id]`              | ❌ Optional | -       | Get specific theme       |
+|                     | `PUT /enterprise/themes/[id]`              | ❌ Optional | -       | Update theme             |
+|                     | `DELETE /enterprise/themes/[id]`           | ❌ Optional | -       | Delete theme             |
+|                     | `POST /enterprise/themes/[id]/activate`    | ❌ Optional | -       | Activate theme           |
+| **Performance**     | `GET /performance`                         | ❌ Optional | -       | Performance report       |
+|                     | `GET /performance/ai-cache-optimization`   | ❌ Optional | -       | AI cache metrics         |
+|                     | `GET /performance/optimization`            | ❌ Optional | -       | Optimization data        |
+|                     | `GET /performance/predictive-optimization` | ❌ Optional | -       | Predictive optimization  |
+|                     | `GET /performance/predictive`              | ❌ Optional | -       | Predictive analysis      |
+| **Webhook Monitor** | `GET /webhooks/monitor`                    | ❌ Optional | -       | Queue monitoring         |
+|                     | `POST /webhooks/monitor`                   | ✅ Required | -       | Retry dead letter queue  |
 
 ---
 
@@ -56,13 +69,569 @@ headers: {
 }
 ```
 
-### Credit System
+---
 
-Some operations require user credits:
+## 🎨 Enterprise Theme Management
 
-- **Blueprint Generation**: 1 credit per blueprint
-- **Credits Deducted**: Automatically on successful operations
-- **Insufficient Credits**: Returns 402 Payment Required error
+### GET /enterprise/themes
+
+List all enterprise themes for white-label customization.
+
+**Request:**
+
+```http
+GET /api/enterprise/themes
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "themes": [
+      {
+        "customerId": "acme-corp",
+        "brandName": "ACME Corporation",
+        "primaryColor": "#1e40af",
+        "secondaryColor": "#3b82f6",
+        "accentColor": "#60a5fa",
+        "logoUrl": "https://acme.com/logo.png",
+        "faviconUrl": "https://acme.com/favicon.ico",
+        "customCSS": {},
+        "isActive": true,
+        "createdAt": "2025-12-24T10:00:00Z"
+      }
+    ],
+    "activeTheme": {
+      "customerId": "acme-corp",
+      "brandName": "ACME Corporation",
+      "primaryColor": "#1e40af",
+      "isActive": true
+    },
+    "total": 1
+  }
+}
+```
+
+---
+
+### POST /enterprise/themes
+
+Create a new enterprise theme for white-label customization.
+
+**Request:**
+
+```http
+POST /api/enterprise/themes
+Content-Type: application/json
+
+{
+  "brandName": "ACME Corporation",
+  "primaryColor": "#1e40af",
+  "secondaryColor": "#3b82f6",
+  "accentColor": "#60a5fa",
+  "logoUrl": "https://acme.com/logo.png",
+  "faviconUrl": "https://acme.com/favicon.ico",
+  "customCSS": {
+    "primaryButton": "background-color: #1e40af;"
+  },
+  "isActive": false
+}
+```
+
+**Parameters:**
+
+- `brandName` (string, required) - Brand/company name
+- `primaryColor` (string, required) - Hex color code (#RRGGBB)
+- `secondaryColor` (string, required) - Hex color code (#RRGGBB)
+- `accentColor` (string, required) - Hex color code (#RRGGBB)
+- `logoUrl` (string, optional) - URL to logo image
+- `faviconUrl` (string, optional) - URL to favicon
+- `customCSS` (object, optional) - Custom CSS overrides
+- `isActive` (boolean, optional) - Whether to activate immediately (default: false)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "theme": {
+      "customerId": "acme-corp",
+      "brandName": "ACME Corporation",
+      "primaryColor": "#1e40af",
+      "secondaryColor": "#3b82f6",
+      "accentColor": "#60a5fa",
+      "logoUrl": "https://acme.com/logo.png",
+      "isActive": false,
+      "createdAt": "2025-12-24T10:00:00Z"
+    },
+    "message": "Enterprise theme created successfully"
+  }
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request` - Validation error or duplicate theme
+- `500 Internal Server Error` - Theme storage error
+
+---
+
+### GET /enterprise/themes/[customerId]
+
+Get details of a specific enterprise theme.
+
+**Request:**
+
+```http
+GET /api/enterprise/themes/acme-corp
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "customerId": "acme-corp",
+    "brandName": "ACME Corporation",
+    "primaryColor": "#1e40af",
+    "secondaryColor": "#3b82f6",
+    "accentColor": "#60a5fa",
+    "logoUrl": "https://acme.com/logo.png",
+    "faviconUrl": "https://acme.com/favicon.ico",
+    "customCSS": {},
+    "isActive": true,
+    "createdAt": "2025-12-24T10:00:00Z"
+  }
+}
+```
+
+---
+
+### PUT /enterprise/themes/[customerId]
+
+Update an existing enterprise theme.
+
+**Request:**
+
+```http
+PUT /api/enterprise/themes/acme-corp
+Content-Type: application/json
+
+{
+  "primaryColor": "#2563eb",
+  "secondaryColor": "#3b82f6",
+  "accentColor": "#6366f1"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "customerId": "acme-corp",
+    "brandName": "ACME Corporation",
+    "primaryColor": "#2563eb",
+    "secondaryColor": "#3b82f6",
+    "accentColor": "#6366f1",
+    "logoUrl": "https://acme.com/logo.png",
+    "isActive": true,
+    "updatedAt": "2025-12-24T11:00:00Z"
+  },
+  "message": "Theme updated successfully"
+}
+```
+
+---
+
+### DELETE /enterprise/themes/[customerId]
+
+Delete an enterprise theme.
+
+**Request:**
+
+```http
+DELETE /api/enterprise/themes/acme-corp
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "deleted": true,
+    "customerId": "acme-corp"
+  },
+  "message": "Theme deleted successfully"
+}
+```
+
+---
+
+### POST /enterprise/themes/[customerId]/activate
+
+Activate a specific enterprise theme as the active white-label theme.
+
+**Request:**
+
+```http
+POST /api/enterprise/themes/acme-corp/activate
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "activated": true,
+    "customerId": "acme-corp",
+    "activatedAt": "2025-12-24T12:00:00Z"
+  },
+  "message": "Enterprise theme activated successfully"
+}
+```
+
+---
+
+## ⚡ Performance Monitoring
+
+### GET /performance
+
+Get comprehensive system performance report with cache and database metrics.
+
+**Request:**
+
+```http
+GET /api/performance?includeCache=true&includeDb=true&detailed=true
+```
+
+**Query Parameters:**
+
+- `includeCache` (boolean, optional) - Include cache performance metrics
+- `includeDb` (boolean, optional) - Include database performance metrics
+- `detailed` (boolean, optional) - Include detailed performance report
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "timestamp": "2025-12-24T10:00:00Z",
+  "performanceScore": 92,
+  "metrics": {
+    "cache": {
+      "totalRequests": 1250,
+      "cacheHits": 975,
+      "cacheMisses": 275,
+      "avgCacheTime": 15,
+      "avgDbTime": 45,
+      "hitRate": 0.78,
+      "performanceImprovement": 65,
+      "cachePatterns": [],
+      "recommendations": [
+        "Consider pre-warming cache for frequently accessed patterns"
+      ]
+    },
+    "database": {
+      "totalQueries": 1250,
+      "successRate": 99.2,
+      "averageDuration": 45,
+      "slowQueries": [],
+      "recentErrors": [],
+      "queryStats": {
+        "user_lookup": { "count": 450, "avgDuration": 12, "errorRate": 0 },
+        "blueprint_select": {
+          "count": 300,
+          "avgDuration": 25,
+          "errorRate": 0.01
+        }
+      }
+    }
+  },
+  "recommendations": [
+    "Cache performance is excellent (78% hit rate)",
+    "Database queries are performing optimally",
+    "System performance score: 92/100"
+  ]
+}
+```
+
+---
+
+### GET /performance/ai-cache-optimization
+
+Get AI service cache optimization metrics and cost savings.
+
+**Request:**
+
+```http
+GET /api/performance/ai-cache-optimization
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "timestamp": "2025-12-24T10:00:00Z",
+    "aiCacheOptimization": {
+      "totalRequests": 250,
+      "cacheHits": 175,
+      "cacheMisses": 75,
+      "hitRate": 0.7,
+      "estimatedCostSavings": 35.5,
+      "patterns": {
+        "marketplace": { "hitRate": 0.85, "savings": 12.25 },
+        "ecommerce": { "hitRate": 0.8, "savings": 10.5 },
+        "saas": { "hitRate": 0.75, "savings": 8.75 }
+      }
+    }
+  }
+}
+```
+
+---
+
+### GET /performance/optimization
+
+Get performance optimization recommendations and data.
+
+**Request:**
+
+```http
+GET /api/performance/optimization
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "timestamp": "2025-12-24T10:00:00Z",
+    "optimization": {
+      "database": {
+        "recommendations": [
+          "Consider adding index on projects.status for dashboard queries",
+          "Optimize user lookup queries with connection pooling"
+        ],
+        "potentialImprovement": "15-20%"
+      },
+      "cache": {
+        "recommendations": [
+          "Increase AI cache TTL from 30min to 45min for better hit rate",
+          "Pre-warm cache for top 5 blueprint patterns"
+        ],
+        "potentialImprovement": "10-15%"
+      },
+      "ai": {
+        "recommendations": [
+          "Implement request deduplication for concurrent identical requests",
+          "Add adaptive timeout based on pattern complexity"
+        ],
+        "potentialImprovement": "5-10%"
+      }
+    }
+  }
+}
+```
+
+---
+
+### GET /performance/predictive-optimization
+
+Get predictive performance optimization analysis.
+
+**Request:**
+
+```http
+GET /api/performance/predictive-optimization
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "timestamp": "2025-12-24T10:00:00Z",
+    "predictions": {
+      "nextHour": {
+        "expectedLoad": "medium",
+        "predictedRequests": 150,
+        "recommendations": [
+          "Pre-warm cache for expected marketplace patterns",
+          "Scale database connections to 20"
+        ]
+      },
+      "next24Hours": {
+        "expectedLoad": "high",
+        "predictedRequests": 3600,
+        "recommendations": [
+          "Enable predictive cache pre-warming",
+          "Consider scaling to 2 instances"
+        ]
+      },
+      "anomalies": [],
+      "healthScore": 92
+    }
+  }
+}
+```
+
+---
+
+### GET /performance/predictive
+
+Get predictive performance analysis with trends and forecasts.
+
+**Request:**
+
+```http
+GET /api/performance/predictive
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "timestamp": "2025-12-24T10:00:00Z",
+    "predictiveAnalysis": {
+      "currentPerformance": {
+        "apiResponseTime": 125,
+        "cacheHitRate": 0.78,
+        "databaseQueryTime": 45,
+        "healthScore": 92
+      },
+      "predictions": {
+        "responseTime": {
+          "current": 125,
+          "predicted": 130,
+          "trend": "stable",
+          "confidence": 0.85
+        },
+        "cacheHitRate": {
+          "current": 0.78,
+          "predicted": 0.82,
+          "trend": "improving",
+          "confidence": 0.78
+        }
+      },
+      "optimizations": [
+        {
+          "type": "cache",
+          "priority": "high",
+          "description": "Extend AI cache TTL for marketplace patterns",
+          "expectedImpact": "+5% hit rate"
+        },
+        {
+          "type": "database",
+          "priority": "medium",
+          "description": "Add composite index on dashboard queries",
+          "expectedImpact": "-20ms query time"
+        }
+      ],
+      "anomalies": []
+    }
+  }
+}
+```
+
+---
+
+## 📊 Webhook Queue Monitoring
+
+### GET /webhooks/monitor
+
+Get webhook queue statistics and monitoring data.
+
+**Request:**
+
+```http
+GET /api/webhooks/monitor
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "queue": {
+      "size": 5,
+      "processingStats": {
+        "processedEventsCount": 1250
+      },
+      "deadLetterQueue": {
+        "size": 2,
+        "events": [
+          {
+            "id": "webhook_abc123",
+            "serviceName": "Stripe",
+            "eventType": "payment_intent.succeeded",
+            "attemptCount": 5,
+            "createdAt": "2025-12-24T09:00:00Z",
+            "processedAt": null
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+**Metrics Provided:**
+
+- Queue size (pending events)
+- Processed events count
+- Dead letter queue size and events
+- Retry attempt counts
+- Event timestamps
+
+---
+
+### POST /webhooks/monitor
+
+Retry failed webhook events from dead letter queue (admin operation).
+
+**Request:**
+
+```http
+POST /api/webhooks/monitor
+Authorization: Bearer <admin_token>
+```
+
+**Headers:**
+
+- `Authorization: Bearer <admin_token>` - Admin authentication token (WEBHOOK_ADMIN_TOKEN env var)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "retried": 2,
+    "failed": 0,
+    "message": "Retried 2 dead letter events"
+  }
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid or missing admin token
+- `500 Internal Server Error` - Retry operation failed
 
 ---
 
