@@ -1,3 +1,7 @@
+const withBundleAnalyzer = require("@next/bundle-analyzer")({
+  enabled: process.env.ANALYZE === "true",
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   serverExternalPackages: ["@neondatabase/serverless"],
@@ -25,18 +29,43 @@ const nextConfig = {
         // Improve chunk splitting for better caching
         splitChunks: {
           chunks: "all",
+          maxSize: 244000,
           cacheGroups: {
+            default: {
+              minChunks: 2,
+              priority: -20,
+              reuseExistingChunk: true,
+            },
             vendor: {
               test: /[\\/]node_modules[\\/]/,
               name: "vendors",
-              chunks: "all",
               priority: 10,
+              reuseExistingChunk: true,
+            },
+            clerk: {
+              test: /[\\/]node_modules[\\/]@clerk[\\/]/,
+              name: "clerk",
+              priority: 20,
+              reuseExistingChunk: true,
+            },
+            lucide: {
+              test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
+              name: "lucide",
+              priority: 20,
+              reuseExistingChunk: true,
+            },
+            react: {
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+              name: "react",
+              priority: 30,
+              reuseExistingChunk: true,
             },
             common: {
               name: "common",
               minChunks: 2,
               chunks: "all",
               priority: 5,
+              reuseExistingChunk: true,
             },
           },
         },
@@ -48,8 +77,22 @@ const nextConfig = {
 
   // Compression and caching
   compress: true,
-
   poweredByHeader: false,
+
+  // Image optimization
+  images: {
+    formats: ["image/avif", "image/webp"],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+  },
+
+  // Output optimization
+  output: "standalone",
+
+  // Compiler options
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
+  },
 };
 
-module.exports = nextConfig;
+module.exports = withBundleAnalyzer(nextConfig);

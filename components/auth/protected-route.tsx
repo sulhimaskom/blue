@@ -2,7 +2,7 @@
 
 import { useAuthStatus } from "@/lib/hooks/use-auth";
 import { SignIn } from "@clerk/nextjs";
-import { Loader2 } from "lucide-react";
+import { Loader2Icon } from "@/components/ui/icons";
 import { AuthLayout } from "./auth-layout";
 
 interface ProtectedRouteProps {
@@ -16,7 +16,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   if (isLoading) {
     return (
       <AuthLayout>
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2Icon className="h-8 w-8" />
       </AuthLayout>
     );
   }

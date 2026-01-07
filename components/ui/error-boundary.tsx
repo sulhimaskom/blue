@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button } from "./button";
-import { RefreshCw, AlertTriangle } from "lucide-react";
+import { RefreshCwIcon, AlertTriangleIcon } from "./icons";
 import { Environment } from "@/lib/utils/environment";
 import { getUIText } from "@/lib/constants/ui-text";
 import {
@@ -74,7 +74,7 @@ export class ErrorBoundary extends React.Component<
               <div
                 className={cn("p-3 rounded-full", getBackgroundColor("subtle"))}
               >
-                <AlertTriangle
+                <AlertTriangleIcon
                   className={cn("h-6 w-6", getIconColor("error"))}
                 />
               </div>
@@ -109,7 +109,7 @@ export class ErrorBoundary extends React.Component<
                 className="w-full"
                 aria-label={getUIText("common", "refreshPage")}
               >
-                <RefreshCw className="h-4 w-4mr-2" />
+                <RefreshCwIcon className="h-4 w-4 mr-2" />
                 {getUIText("common", "refreshPage")}
               </Button>
             </div>

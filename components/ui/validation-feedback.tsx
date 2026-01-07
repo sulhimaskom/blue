@@ -1,12 +1,12 @@
 import React from "react";
 import { cn } from "@/lib/constants/ui-themes";
 import {
-  AlertCircle,
-  CheckCircle,
-  Info,
-  Lightbulb,
-  Loader2,
-} from "lucide-react";
+  AlertCircleIcon,
+  CheckCircleIcon,
+  InfoIcon,
+  LightbulbIcon,
+  Loader2Icon,
+} from "./icons";
 
 interface ValidationFeedbackProps {
   isValid: boolean;
@@ -36,7 +36,7 @@ export function ValidationFeedback({
   if (isValidating) {
     return (
       <div className="flex items-center space-x-2 text-gray-500 text-sm mt-1">
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2Icon className="w-4 h-4" />
         <span>Validating...</span>
       </div>
     );
@@ -52,7 +52,7 @@ export function ValidationFeedback({
       {/* Error state */}
       {error && (
         <div className="flex items-start space-x-2 text-red-600 text-sm">
-          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <AlertCircleIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
@@ -60,7 +60,7 @@ export function ValidationFeedback({
       {/* Warning state */}
       {warning && !error && (
         <div className="flex items-start space-x-2 text-yellow-600 text-sm">
-          <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <InfoIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>{warning}</span>
         </div>
       )}
@@ -68,7 +68,7 @@ export function ValidationFeedback({
       {/* Success state */}
       {isValid && !error && !warning && isTouched && (
         <div className="flex items-center space-x-2 text-green-600 text-sm">
-          <CheckCircle className="w-4 h-4" />
+          <CheckCircleIcon className="w-4 h-4" />
           <span>Looks good!</span>
         </div>
       )}
@@ -77,7 +77,7 @@ export function ValidationFeedback({
       {showSuggestions && suggestions.length > 0 && !error && (
         <div className="rounded-md bg-blue-50 p-3">
           <div className="flex items-start space-x-2">
-            <Lightbulb className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <LightbulbIcon className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium text-blue-800">Suggestions</p>
               <ul className="mt-1 text-sm text-blue-700 space-y-1">
