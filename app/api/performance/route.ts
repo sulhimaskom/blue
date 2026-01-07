@@ -1,9 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DatabasePerformanceOptimizer } from "@/lib/db/performance-optimizer";
 import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
-import { DatabaseQueryCache } from "@/lib/services/database-cache-service";
-import { DatabasePerformanceMonitor } from "@/lib/db/performance-monitor";
+import {
+  DatabaseQueryCache,
+  type QueryCacheStats,
+} from "@/lib/services/database-cache-service";
+import {
+  DatabasePerformanceMonitor,
+  type QueryMetrics,
+} from "@/lib/db/performance-monitor";
 import { logger } from "@/lib/logger";
+
+// Define proper types for performance metrics
+interface CacheMetrics {
+  totalRequests: number;
+  cacheHits: number;
+  cacheMisses: number;
+  avgCacheTime: number;
+  avgDbTime: number;
+  hitRate: number;
+  performanceImprovement: number;
+  cachePatterns: unknown[];
+  recommendations: string[];
+  databaseCacheStats?: QueryCacheStats;
+}
+
+interface DatabasePerformanceMetrics {
+  totalQueries: number;
+  successRate: number;
+  averageDuration: number;
+  slowQueries: QueryMetrics[];
+  recentErrors: QueryMetrics[];
+  queryStats: Record<
+    string,
+    { count: number; avgDuration: number; errorRate: number }
+  >;
+  performanceReport?: unknown;
+}
 
 async function handlePerformanceReport(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -12,14 +45,14 @@ async function handlePerformanceReport(req: NextRequest) {
   const detailed = searchParams.get("detailed") === "true";
 
   // Get cache performance metrics
-  let cacheMetrics: any = null;
+  let cacheMetrics: CacheMetrics | null = null;
   if (includeCache) {
     cacheMetrics = await UnifiedCacheManager.getPerformanceMetrics();
     cacheMetrics.databaseCacheStats = DatabaseQueryCache.getCacheStats();
   }
 
   // Get database performance metrics
-  let dbMetrics: any = null;
+  let dbMetrics: DatabasePerformanceMetrics | null = null;
   if (includeDb) {
     dbMetrics = DatabasePerformanceMonitor.getPerformanceMetrics();
 
@@ -51,7 +84,10 @@ async function handlePerformanceReport(req: NextRequest) {
   });
 }
 
-function calculatePerformanceScore(cacheMetrics: any, dbMetrics: any): number {
+function calculatePerformanceScore(
+  cacheMetrics: CacheMetrics | null,
+  dbMetrics: DatabasePerformanceMetrics | null,
+): number {
   let score = 100;
 
   // Cache performance impact
@@ -82,8 +118,8 @@ function calculatePerformanceScore(cacheMetrics: any, dbMetrics: any): number {
 }
 
 function generateOverallRecommendations(
-  cacheMetrics: any,
-  dbMetrics: any,
+  cacheMetrics: CacheMetrics | null,
+  dbMetrics: DatabasePerformanceMetrics | null,
 ): string[] {
   const recommendations: string[] = [];
 

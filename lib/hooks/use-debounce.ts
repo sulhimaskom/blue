@@ -1,40 +1,39 @@
-import { useRef, useCallback } from "react";
+import { useCallback, useRef } from "react";
 
 /**
- * useDebounce hook for performance optimization
+ * Custom hook for debouncing function calls
  *
- * Delays execution of a callback function until a specified delay has passed
- * since the last invocation. Useful for preventing rapid successive API calls,
- * search input handling, and other performance-sensitive operations.
+ * Delays the execution of a function until after a specified delay
+ * has elapsed since the last time the debounced function was invoked.
  *
- * @template T - Function type of callback
+ * @template T - Function type to debounce
  * @param callback - The function to debounce
- * @param delay - The delay in milliseconds before executing callback
- * @returns A debounced version of the callback function
+ * @param delay - Delay in milliseconds
+ * @returns Debounced function with same type signature as original
  *
  * @example
- * ```tsx
- * const debouncedSearch = useDebounce(
- *   () => searchApi(term),
- *   300
- * );
+ * ```typescript
+ * const debouncedSearch = useDebounce((query: string) => {
+ *   performSearch(query);
+ * }, 300);
  *
- * <input onChange={() => debouncedSearch(term)} />
+ * debouncedSearch('search term'); // Only executes after 300ms delay
  * ```
  */
-export function useDebounce<T extends () => any>(
+// eslint-disable-next-line no-unused-vars
+export function useDebounce<T extends (..._parameters: unknown[]) => unknown>(
   callback: T,
   delay: number,
 ): T {
   const timeoutRef = useRef<NodeJS.Timeout>();
 
   return useCallback(
-    (() => {
+    ((...parameters: Parameters<T>) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-      timeoutRef.current = setTimeout(() => callback(), delay);
+      timeoutRef.current = setTimeout(() => callback(...parameters), delay);
     }) as T,
     [callback, delay],
-  ) as T;
+  );
 }

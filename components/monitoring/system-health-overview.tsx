@@ -15,6 +15,14 @@ import {
 } from "@/lib/services/monitoring-dashboard-service";
 import type { SystemHealth } from "@/lib/hooks/use-monitoring";
 import { ServiceStatusGrid } from "./service-status-grid";
+
+// Define proper type for system overview data
+interface SystemOverviewData {
+  uptime: string;
+  totalServices: number;
+  healthyServices: number;
+  status: string;
+}
 import {
   HealthScoreCalculator,
   SVG_CIRCLES,
@@ -126,7 +134,7 @@ interface HealthScoreCardsProps {
   /** Calculated health score metrics from MonitoringDashboardService */
   healthMetrics: HealthScoreMetrics;
   /** System overview data including uptime and service counts */
-  overviewData: any;
+  overviewData: SystemOverviewData;
   /** Original system health data for reference */
   health: SystemHealth;
 }

@@ -79,56 +79,134 @@ export class SecurityService {
   }
 
   /**
-   * Verify Stripe webhook signature using Stripe's cryptographic verification
-   * Production-grade implementation with Stripe webhook construction
+   * Verify Stripe webhook signature using enhanced production-grade cryptographic verification
+   * Includes replay attack prevention, timestamp validation, and signature rotation support
    */
-  static verifyStripeWebhook(body: string, headers: Headers): boolean {
+  static verifyStripeWebhook(
+    body: string,
+    headers: Headers,
+    options: {
+      maxAge?: number; // Maximum age of webhook in seconds (default: 300)
+      enforceTimestamp?: boolean; // Enforce timestamp validation (default: true)
+    } = {},
+  ): boolean {
+    const requestId = crypto.randomUUID();
+    const { maxAge = 300, enforceTimestamp = true } = options;
+
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
     const signature = headers.get("stripe-signature");
 
     if (!stripeSecretKey || !signature) {
-      logger.security(
+      this.logSecurityEvent(
         "Stripe webhook signature verification failed - missing signature or secret",
         {
+          requestId,
           hasSignature: !!signature,
           hasSecretKey: !!stripeSecretKey,
+          endpoint: "stripe-webhook-verification",
         },
       );
       return false;
     }
 
+    // Enhanced signature format validation
+    if (!this.isValidStripeSignatureFormat(signature)) {
+      this.logSecurityEvent("Stripe webhook signature format invalid", {
+        requestId,
+        signaturePrefix: signature.substring(0, 10) + "...",
+        endpoint: "stripe-webhook-verification",
+      });
+      return false;
+    }
+
+    // Enhanced timestamp validation for replay attack prevention
+    const timestamp = this.extractTimestampFromSignature(signature);
+    if (enforceTimestamp && timestamp) {
+      if (!this.isTimestampValid(timestamp, maxAge)) {
+        this.logSecurityEvent(
+          "Stripe webhook timestamp validation failed - potential replay attack",
+          {
+            requestId,
+            timestamp,
+            ageSeconds: Math.floor(Date.now() / 1000 - timestamp),
+            maxAge,
+            endpoint: "stripe-webhook-verification",
+          },
+        );
+        return false;
+      }
+    }
+
     try {
-      // Note: In production, you should use STRIPE_WEBHOOK_SECRET instead of STRIPE_SECRET_KEY
-      // For now, we'll use the secret key as a fallback
-      const webhookSecret =
-        process.env.STRIPE_WEBHOOK_SECRET || stripeSecretKey;
+      // Production-grade: Use dedicated webhook secret with rotation support
+      const webhookSecrets = this.getStripeWebhookSecrets();
 
-      // Initialize Stripe with the secret key
-      const stripe = new Stripe(webhookSecret, {
-        apiVersion: "2025-02-24.acacia",
-      });
+      // Try each webhook secret (supports secret rotation)
+      let event: Stripe.Event | null = null;
+      let lastError: Error | null = null;
 
-      // Use Stripe's webhook signature verification
-      const event = stripe.webhooks.constructEvent(
-        body,
-        signature,
-        webhookSecret,
+      for (const webhookSecret of webhookSecrets) {
+        try {
+          // Initialize Stripe with the secret key (not webhook secret)
+          const stripe = new Stripe(stripeSecretKey, {
+            apiVersion: "2025-02-24.acacia",
+          });
+
+          // Use Stripe's webhook signature verification
+          event = stripe.webhooks.constructEvent(
+            body,
+            signature,
+            webhookSecret,
+          );
+
+          // Successful verification - break the loop
+          break;
+        } catch (error) {
+          lastError = error as Error;
+          continue; // Try next secret
+        }
+      }
+
+      if (!event) {
+        throw lastError || new Error("No valid webhook secret found");
+      }
+
+      // Enhanced logging with comprehensive security context
+      this.logSecurityEvent(
+        "Stripe webhook cryptographic verification successful",
+        {
+          requestId,
+          eventType: event.type,
+          eventId: event.id,
+          created: event.created,
+          signatureAlgorithm: "HMAC-SHA256",
+          timestampValid:
+            !enforceTimestamp ||
+            (timestamp && this.isTimestampValid(timestamp, maxAge)),
+          webhookAgeSeconds: timestamp
+            ? Math.floor(Date.now() / 1000 - timestamp)
+            : null,
+          endpoint: "stripe-webhook-verification",
+        },
       );
-
-      logger.security("Stripe webhook signature verified successfully", {
-        eventType: event.type,
-        eventId: event.id,
-      });
 
       return true;
     } catch (error) {
       const stripeError =
         error as Stripe.errors.StripeSignatureVerificationError;
-      logger.security("Stripe webhook signature verification failed", {
-        error: stripeError.message,
-        signature: signature.substring(0, 20) + "...",
-        type: stripeError.type,
-      });
+
+      this.logSecurityEvent(
+        "Stripe webhook cryptographic verification failed - security alert",
+        {
+          requestId,
+          error: stripeError.message,
+          type: stripeError.type,
+          code: (stripeError as any).code || "UNKNOWN",
+          signaturePrefix: signature.substring(0, 15) + "...",
+          endpoint: "stripe-webhook-verification",
+          potentialAttack: this.isPotentialAttack(signature, stripeError),
+        },
+      );
       return false;
     }
   }
@@ -199,5 +277,93 @@ export class SecurityService {
     metadata: Record<string, any> = {},
   ): void {
     logger.security(event, this.sanitizeForLogging(metadata));
+  }
+
+  /**
+   * Validate Stripe signature format
+   */
+  private static isValidStripeSignatureFormat(signature: string): boolean {
+    // Stripe signature format: t={timestamp},v1={hash}
+    const stripeSignatureRegex = /^t=\d+,v1=[a-f0-9]+(,v\d=[a-f0-9]+)*$/;
+    return stripeSignatureRegex.test(signature);
+  }
+
+  /**
+   * Get webhook secrets with rotation support
+   */
+  private static getStripeWebhookSecrets(): string[] {
+    // Primary webhook secret (from environment)
+    const primarySecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    // Support for multiple secrets (rotation)
+    const additionalSecrets = process.env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL
+      ? process.env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL.split(",")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
+      : [];
+
+    // Fallback to secret key only for development (not recommended for production)
+    const fallbackSecret =
+      process.env.NODE_ENV === "development"
+        ? process.env.STRIPE_SECRET_KEY
+        : null;
+
+    const secrets = [];
+
+    if (primarySecret) secrets.push(primarySecret);
+    if (additionalSecrets.length > 0) secrets.push(...additionalSecrets);
+    if (fallbackSecret && secrets.length === 0) secrets.push(fallbackSecret);
+
+    if (secrets.length === 0) {
+      this.logSecurityEvent(
+        "Stripe webhook configuration error - no valid secrets found",
+        {
+          environment: process.env.NODE_ENV,
+          hasPrimarySecret: !!primarySecret,
+          hasAdditionalSecrets: additionalSecrets.length > 0,
+          hasFallbackSecret: !!fallbackSecret,
+        },
+      );
+    }
+
+    return secrets;
+  }
+
+  /**
+   * Extract timestamp from Stripe signature
+   */
+  private static extractTimestampFromSignature(
+    signature: string,
+  ): number | null {
+    const match = signature.match(/t=(\d+)/);
+    return match ? parseInt(match[1], 10) : null;
+  }
+
+  /**
+   * Validate timestamp for replay attack prevention
+   */
+  private static isTimestampValid(
+    timestamp: number,
+    maxAgeSeconds: number,
+  ): boolean {
+    const now = Math.floor(Date.now() / 1000);
+    const age = now - timestamp;
+
+    // Timestamp should be in the past and not too old
+    return age >= 0 && age <= maxAgeSeconds;
+  }
+
+  /**
+   * Analyze error to determine potential attack patterns
+   */
+  private static isPotentialAttack(_signature: string, error: any): boolean {
+    const suspiciousPatterns = [
+      /no signatures found matching/i,
+      /timestamp provided is too old/i,
+      /timestamp provided is too new/i,
+      /invalid signature/i,
+    ];
+
+    return suspiciousPatterns.some((pattern) => pattern.test(error.message));
   }
 }

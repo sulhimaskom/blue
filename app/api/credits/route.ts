@@ -6,6 +6,7 @@ import { ProjectDataService } from "@/lib/services/project-data-service";
 import { IdGenerators } from "@/lib/utils/id-generator";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
 import { StripePaymentService } from "@/lib/services/stripe-payment-service";
+import type { Transaction } from "@/lib/db/schema";
 
 const addCreditsSchema = z.object({
   amount: z
@@ -158,7 +159,7 @@ export const GET = APIRouteHandler.createGETHandler({
     return {
       credits: user!.credits,
       subscriptionTier: user!.subscriptionTier,
-      transactions: transactionHistory.map((t: any) => ({
+      transactions: transactionHistory.map((t: Transaction) => ({
         id: t.id,
         amount: t.amount,
         creditsAdded: t.creditsAdded,

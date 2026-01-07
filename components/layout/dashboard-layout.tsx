@@ -2,19 +2,7 @@
 
 import { ReactNode } from "react";
 import { Navigation } from "@/components/navigation/navigation";
-import { useAuth } from "@clerk/nextjs";
-
-// Fallback for when ClerkProvider is not available
-const useAuthSafe = () => {
-  try {
-    return useAuth();
-  } catch (error) {
-    return {
-      isSignedIn: false,
-      isLoaded: true,
-    };
-  }
-};
+import { useAuthSafe } from "@/lib/hooks/use-auth";
 import { cn } from "@/lib/constants/ui-themes";
 
 interface DashboardLayoutProps {

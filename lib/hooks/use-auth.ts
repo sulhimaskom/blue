@@ -1,12 +1,31 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 
 export interface AuthUser {
   id: string;
   email: string;
   firstName?: string;
   lastName?: string;
+}
+
+/**
+ * Safe version of useAuth that provides fallback values when ClerkProvider is not available
+ *
+ * This hook wraps the Clerk useAuth hook with try-catch error handling to prevent
+ * rendering errors in components that might render outside of the ClerkProvider context.
+ *
+ * @returns Object with auth state, providing safe defaults when Clerk is unavailable
+ */
+export function useAuthSafe() {
+  try {
+    return useAuth();
+  } catch (error) {
+    return {
+      isSignedIn: false,
+      isLoaded: true,
+    };
+  }
 }
 
 export function useAuthStatus() {

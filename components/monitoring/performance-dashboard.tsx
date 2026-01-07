@@ -4,18 +4,55 @@ import {
   StatusIndicator,
   type StatusType,
 } from "@/components/ui/status-indicator";
-import { ActivityIcon } from "@/components/ui/icons";
+import { ActivityIcon, AlertTriangleIcon } from "@/components/ui/icons";
+import { getUIText } from "@/lib/constants/ui-text";
+import { useDebounce } from "@/lib/hooks/use-debounce";
+import { logger } from "@/lib/logger";
 import {
   getTextColor,
   getBackgroundColor,
+  getStatusTheme,
+  getAccentColor,
   cn,
 } from "@/lib/constants/ui-themes";
-import { useDebounce } from "@/lib/hooks/use-debounce";
-import { usePerformanceMetrics } from "@/lib/hooks/use-performance-metrics";
-import { PerformanceMetrics } from "@/lib/types/webhook-types";
 import { AutoOptimizationControls } from "./auto-optimization-controls";
-import { AlertsPanel } from "./alerts-panel";
 import { PerformanceScoreOverview } from "./performance-score-overview";
+import {
+  type PerformanceData,
+  type PerformanceAlert,
+  type ComputedPerformanceMetrics,
+  getPerformanceStatus,
+  isPerformanceData,
+} from "@/lib/types/performance-types";
+
+// Optimized metrics calculation hook
+function usePerformanceMetrics(
+  performanceData: PerformanceData | null,
+): ComputedPerformanceMetrics | null {
+  return useMemo(() => {
+    if (!performanceData || !isPerformanceData(performanceData)) {
+      return null;
+    }
+
+    const perf = performanceData.performance || {};
+    const bundle = performanceData.bundle || {};
+    const compression = performanceData.compression || {};
+
+    return {
+      performanceScore: perf.score || 0,
+      bundleSizeKB: Math.round((bundle.totalSize || 0) / 1024),
+      bundleSizeGzippedKB: Math.round((bundle.gzippedSize || 0) / 1024),
+      compressionRate: compression.compressionRatePercent || 0,
+      bandwidthSavedKB: compression.bandwidthSavedKB || 0,
+      alertCount: perf.alertCount || 0,
+      timestamp: performanceData.timestamp,
+      alerts: (perf.alerts || [])
+        .filter((alert: PerformanceAlert) => alert.type === "critical")
+        .slice(0, 3),
+      quickWins: performanceData.optimization?.quickWins || [],
+    };
+  }, [performanceData]);
+}
 
 interface PerformanceDashboardProps {
   detailed?: boolean;
@@ -37,7 +74,7 @@ export const PerformanceDashboard = memo(
     detailed = false,
   }: PerformanceDashboardProps) {
     const [performanceData, setPerformanceData] =
-      useState<PerformanceMetrics | null>(null);
+      useState<PerformanceData | null>(null);
     const [loading, setLoading] = useState(true);
     const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -68,8 +105,12 @@ export const PerformanceDashboard = memo(
           setPerformanceData(data);
         } catch (error) {
           if (error instanceof Error && error.name !== "AbortError") {
-            // eslint-disable-next-line no-console
-            console.error("Failed to fetch performance data:", error);
+            logger.error("Failed to fetch performance data", {
+              error: error.name,
+              message: error.message,
+              component: "PerformanceDashboard",
+              action: "fetchPerformanceData",
+            });
           }
         } finally {
           setLoading(false);
@@ -79,13 +120,18 @@ export const PerformanceDashboard = memo(
     );
 
     // Debounced version to prevent rapid successive calls (for manual refresh)
-    const debouncedRefresh = useDebounce(refreshPerformanceDataInner, 1000);
+    const debouncedRefresh = useCallback(() => {
+      const controller = new AbortController();
+      refreshPerformanceDataInner(controller.signal);
+    }, [refreshPerformanceDataInner]);
+
+    // Debounced version wrapper
+    const debouncedRefreshWithDelay = useDebounce(debouncedRefresh, 1000);
 
     // Click handler for manual refresh
     const refreshPerformanceData = useCallback(() => {
-      const controller = new AbortController();
-      debouncedRefresh(controller.signal);
-    }, [debouncedRefresh]);
+      debouncedRefreshWithDelay();
+    }, [debouncedRefreshWithDelay]);
 
     // Auto-refresh function without debouncing for consistent intervals
     const autoRefreshData = useCallback(() => {
@@ -115,24 +161,26 @@ export const PerformanceDashboard = memo(
         // Refresh data after optimization
         refreshPerformanceData();
 
-        // eslint-disable-next-line no-console
-        console.log(
-          "Auto-optimizations applied:",
-          data.optimization.autoOptimizations,
-        );
+        logger.info("Auto-optimizations applied successfully", {
+          optimizationsApplied:
+            data.optimization.autoOptimizations?.length || 0,
+          component: "PerformanceDashboard",
+          action: "applyAutoOptimizations",
+        });
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error("Failed to apply optimizations:", error);
+        logger.error("Failed to apply auto-optimizations", {
+          error: error instanceof Error ? error.name : "Unknown",
+          message: error instanceof Error ? error.message : "Unexpected error",
+          component: "PerformanceDashboard",
+          action: "applyAutoOptimizations",
+        });
       }
     };
 
     // Calculate performance status using optimized metrics
     const performanceStatus = useMemo((): StatusType => {
-      if (!metrics?.performanceScore) return "unknown";
-
-      if (metrics.performanceScore >= 90) return "healthy";
-      if (metrics.performanceScore >= 70) return "degraded";
-      return "unhealthy";
+      const status = getPerformanceStatus(metrics?.performanceScore);
+      return status as StatusType;
     }, [metrics?.performanceScore]);
 
     if (loading && !performanceData) {
@@ -198,8 +246,80 @@ export const PerformanceDashboard = memo(
           />
         )}
 
-        {metrics && (
-          <AlertsPanel alerts={metrics.alerts} quickWins={metrics.quickWins} />
+        {/* Critical Alerts - Using optimized metrics */}
+        {metrics?.alerts && metrics.alerts.length > 0 && (
+          <div className="mb-6">
+            <h3
+              className={cn(
+                "text-lg font-medium mb-3 flex items-center gap-2",
+                getTextColor("heading"),
+              )}
+            >
+              <AlertTriangleIcon />
+              Critical Performance Alerts
+            </h3>
+            <div className="space-y-2">
+              {metrics!.alerts?.map(
+                (alert: PerformanceAlert, index: number) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "p-3 rounded-lg",
+                      getStatusTheme("unhealthy"),
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium capitalize">
+                        {alert.metric}
+                      </span>
+                      <span className="text-sm opacity-75">
+                        {alert.value > alert.threshold
+                          ? `${Math.round(((alert.value - alert.threshold) / alert.threshold) * 100)}% over threshold`
+                          : getUIText("monitoring", "atThreshold")}
+                      </span>
+                    </div>
+                    <p className="text-sm opacity-90">{alert.recommendation}</p>
+                  </div>
+                ),
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Quick Wins - Using optimized metrics */}
+        {metrics?.quickWins && metrics.quickWins.length > 0 && (
+          <div>
+            <h3
+              className={cn(
+                "text-lg font-medium mb-3",
+                getTextColor("heading"),
+              )}
+            >
+              Quick Performance Wins
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {metrics!.quickWins !== undefined && metrics!.quickWins !== null
+                ? metrics!.quickWins.map((win: string, index: number) => (
+                    <div
+                      key={index}
+                      className={cn(
+                        "p-3 rounded-lg border",
+                        getAccentColor("blue", "background"),
+                      )}
+                    >
+                      <p
+                        className={cn(
+                          "text-sm",
+                          getAccentColor("blue", "text"),
+                        )}
+                      >
+                        {win}
+                      </p>
+                    </div>
+                  ))
+                : null}
+            </div>
+          </div>
         )}
 
         {/* Last Updated - Using optimized metrics */}

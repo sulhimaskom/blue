@@ -2,23 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useAuth } from "@clerk/nextjs";
+import { useAuthSafe } from "@/lib/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { getNavigationUI } from "@/lib/constants/navigation-ui";
 import { cn, getButtonTheme } from "@/lib/constants/ui-themes";
 import { Gradients } from "@/lib/constants/gradients";
-
-// Fallback for when ClerkProvider is not available
-const useAuthSafe = () => {
-  try {
-    return useAuth();
-  } catch (error) {
-    return {
-      isSignedIn: false,
-      isLoaded: true,
-    };
-  }
-};
 
 interface NavigationProps {
   variant?: "header" | "sidebar";

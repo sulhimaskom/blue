@@ -6,24 +6,24 @@ import { DatabaseError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { WebhookService } from "@/lib/services/webhook-service";
 import { SecurityService } from "@/lib/services/security-service";
-import { WEBHOOK_EVENTS, CREDIT_RULES } from "@/lib/constants";
-import { ClerkWebhookEvent } from "@/lib/types/webhook-types";
+import { CREDIT_RULES } from "@/lib/constants";
+import {
+  ClerkWebhookEvent,
+  type WebhookContext,
+} from "@/lib/types/webhook-events";
 
 export async function POST(req: NextRequest) {
   return WebhookService.processWebhookWithReliability(req, {
     serviceName: "Clerk",
     verifySignature: SecurityService.verifyClerkWebhook,
     useQueue: true, // Enable reliable queue-based processing
-    processEvent: async (
-      event: ClerkWebhookEvent,
-      context: { requestId: string },
-    ) => {
+    processEvent: async (event: ClerkWebhookEvent, context: WebhookContext) => {
       const database = db();
 
       // Handle user creation
-      if (event.type === WEBHOOK_EVENTS.CLERK.USER_CREATED) {
+      if (event.type === "user.created") {
         const { id, email_addresses } = event.data;
-        const primaryEmail = email_addresses[0]?.email_address;
+        const primaryEmail = email_addresses?.[0]?.email_address;
 
         if (!primaryEmail) {
           logger.error("No email found for user creation", {
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Handle user deletion
-      else if (event.type === WEBHOOK_EVENTS.CLERK.USER_DELETED) {
+      else if (event.type === "user.deleted") {
         const { id } = event.data;
 
         await database.delete(users).where(eq(users.clerkId, id));
@@ -76,9 +76,9 @@ export async function POST(req: NextRequest) {
       }
 
       // Handle user email update
-      else if (event.type === WEBHOOK_EVENTS.CLERK.USER_UPDATED) {
+      else if (event.type === "user.updated") {
         const { id, email_addresses } = event.data;
-        const primaryEmail = email_addresses[0]?.email_address;
+        const primaryEmail = email_addresses?.[0]?.email_address;
 
         if (primaryEmail) {
           await database
