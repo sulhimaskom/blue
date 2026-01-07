@@ -4,6 +4,8 @@ import {
   type EnterpriseThemeConfig,
 } from "../constants/enterprise-themes";
 import type { EnterpriseThemeStats, ServiceResult } from "./service-types";
+import { ClientStorageService } from "./client-storage-service";
+import { getUIText } from "../constants/ui-text";
 
 /**
  * Enterprise Theme Service Data Structure
@@ -137,6 +139,166 @@ export class EnterpriseThemeService {
         data: fallbackData,
         error: errorMessage,
       };
+    }
+  }
+
+  /**
+   * Detects and applies enterprise theme from URL, subdomain, or storage
+   *
+   * Business Logic:
+   * - Priority 1: URL parameter (?theme= or ?customer=)
+   * - Priority 2: Subdomain detection (customer.domain.com)
+   * - Priority 3: Client storage persistence
+   * - Validates theme existence before activation
+   * - Provides comprehensive logging for debugging
+   *
+   * Server-Side Safety:
+   * - Returns null on server-side (window undefined)
+   * - Only runs in browser environment
+   *
+   * @returns Promise resolving to detected customer ID or null if none found
+   *
+   * @example
+   * ```typescript
+   * const customerId = await enterpriseThemeService.detectAndApplyTheme();
+   * if (customerId) {
+   *   console.log(`Applied theme for customer: ${customerId}`);
+   * }
+   * ```
+   */
+  async detectAndApplyTheme(): Promise<string | null> {
+    try {
+      // Server-side safety check
+      if (typeof window === "undefined") {
+        logger.debug("Theme detection skipped - server-side environment");
+        return null;
+      }
+
+      logger.debug("Starting enterprise theme detection");
+
+      // Priority 1: URL parameter detection
+      const urlTheme = this.detectThemeFromUrl();
+      if (urlTheme) {
+        const success = await this.activateTheme(urlTheme);
+        if (success.success) {
+          logger.info("Theme applied from URL parameter", {
+            customerId: urlTheme,
+          });
+          return urlTheme;
+        }
+      }
+
+      // Priority 2: Subdomain detection
+      const subdomainTheme = this.detectThemeFromSubdomain();
+      if (subdomainTheme) {
+        const success = await this.activateTheme(subdomainTheme);
+        if (success.success) {
+          logger.info("Theme applied from subdomain", {
+            customerId: subdomainTheme,
+          });
+          return subdomainTheme;
+        }
+      }
+
+      // Priority 3: Client storage detection
+      const storedTheme = ClientStorageService.getTheme();
+      if (storedTheme) {
+        const success = await this.activateTheme(storedTheme);
+        if (success.success) {
+          logger.info("Theme applied from client storage", {
+            customerId: storedTheme,
+          });
+          return storedTheme;
+        }
+      }
+
+      logger.debug("No enterprise theme detected");
+      return null;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      logger.error("Theme detection failed", { error: errorMessage });
+      return null;
+    }
+  }
+
+  /**
+   * Updates document metadata for enterprise branding
+   *
+   * Business Logic:
+   * - Updates page title with brand name
+   * - Updates favicon if provided
+   * - Updates meta description
+   * - Stores theme preference in client storage
+   * - Handles DOM manipulation safely
+   *
+   * Server-Side Safety:
+   * - Returns early on server-side (document undefined)
+   * - Only runs in browser environment
+   *
+   * @param theme - Active enterprise theme configuration
+   *
+   * @example
+   * ```typescript
+   * await enterpriseThemeService.updateDocumentMetadata(activeTheme);
+   * ```
+   */
+  async updateDocumentMetadata(theme: EnterpriseThemeConfig): Promise<void> {
+    try {
+      // Server-side safety check
+      if (typeof document === "undefined") {
+        logger.debug(
+          "Document metadata update skipped - server-side environment",
+        );
+        return;
+      }
+
+      logger.debug("Updating document metadata for enterprise theme", {
+        customerId: theme.customerId,
+        brandName: theme.brandName,
+      });
+
+      // Update page title with brand name
+      if (theme.brandName && document.title) {
+        const platformName = getUIText("homepage", "hero.title");
+        document.title = `${theme.brandName} - ${platformName}`;
+        logger.debug("Updated page title", { title: document.title });
+      }
+
+      // Update favicon if provided
+      if (theme.faviconUrl) {
+        const favicon = document.querySelector(
+          'link[rel="icon"]',
+        ) as HTMLLinkElement;
+        if (favicon) {
+          favicon.href = theme.faviconUrl;
+          logger.debug("Updated favicon", { faviconUrl: theme.faviconUrl });
+        }
+      }
+
+      // Store theme preference in client storage
+      ClientStorageService.setTheme(theme.customerId);
+
+      // Update meta description for enterprise branding
+      const metaDescription = document.querySelector(
+        'meta[name="description"]',
+      ) as HTMLMetaElement;
+      if (metaDescription && theme.brandName) {
+        metaDescription.content = `${theme.brandName} - AI-powered platform for generating software blueprints`;
+        logger.debug("Updated meta description");
+      }
+
+      logger.info("Document metadata updated successfully", {
+        customerId: theme.customerId,
+        brandName: theme.brandName,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      logger.error("Failed to update document metadata", {
+        customerId: theme.customerId,
+        error: errorMessage,
+      });
     }
   }
 
@@ -459,6 +621,50 @@ export class EnterpriseThemeService {
       activeTheme: null,
       stats: fallbackStats,
     };
+  }
+
+  /**
+   * Detects theme from URL parameters
+   *
+   * @returns Customer ID from URL or null if not found
+   */
+  private detectThemeFromUrl(): string | null {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const themeParam = urlParams.get("theme") || urlParams.get("customer");
+      return themeParam?.trim() || null;
+    } catch (error) {
+      logger.warn("Failed to detect theme from URL", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Detects theme from subdomain
+   *
+   * @returns Customer ID from subdomain or null if not found
+   */
+  private detectThemeFromSubdomain(): string | null {
+    try {
+      const hostname = window.location.hostname;
+      const subdomain = hostname.split(".")[0];
+
+      // Exclude common subdomains
+      const excludedSubdomains = ["www", "localhost", "app"];
+
+      if (subdomain && !excludedSubdomains.includes(subdomain)) {
+        return subdomain;
+      }
+
+      return null;
+    } catch (error) {
+      logger.warn("Failed to detect theme from subdomain", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return null;
+    }
   }
 
   /**
