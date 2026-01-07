@@ -634,10 +634,17 @@ export class AIService {
   }
 
   /**
+   * Get current hour for time-based optimization (overridable for testing)
+   */
+  protected getCurrentHour(): number {
+    return new Date().getHours();
+  }
+
+  /**
    * Get time-based optimization multiplier (off-peak caching)
    */
   private getTimeBasedMultiplier(): number {
-    const currentHour = new Date().getHours();
+    const currentHour = this.getCurrentHour();
 
     // Off-peak hours: 22:00-06:00 UTC (US night/early morning)
     if (currentHour >= 22 || currentHour <= 6) {
