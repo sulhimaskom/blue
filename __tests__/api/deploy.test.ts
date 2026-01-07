@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { POST, GET } from "@/app/api/deploy/[id]/route";
 import { createApiTestHelper } from "../helpers/test-helper";
 
@@ -184,12 +184,6 @@ describe("Deployment API - Integration Tests", () => {
     });
 
     it("should validate payload and reject invalid inputs", async () => {
-      const invalidPayload = {
-        githubOrg: "", // Invalid: empty string
-        repoName: "valid-repo-name",
-        isPrivate: false,
-      };
-
       testHelper.withDbQuery([mockProject]);
 
       const request = testHelper.createRequest({
@@ -211,12 +205,6 @@ describe("Deployment API - Integration Tests", () => {
     });
 
     it("should support private repository deployment", async () => {
-      const privatePayload = {
-        githubOrg: "test-org",
-        repoName: "test-repo",
-        isPrivate: true,
-      };
-
       testHelper.withDbQuery([mockProject]);
 
       // Mock GitHub service to return private repo

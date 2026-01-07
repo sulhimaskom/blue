@@ -5,10 +5,7 @@
  * following the LEGO principle of atomic, reusable components.
  */
 
-import type { UserService } from "@/lib/services/user-service";
-import { GitHubServiceError } from "@/lib/services/github-service";
-
-export interface ServiceMock<T> {
+export interface ServiceMock {
   [key: string]: jest.Mock;
 }
 
@@ -17,12 +14,12 @@ export class MockFactory {
    * Creates a comprehensive service mock with proper Jest mock methods
    * and error classes for testing error scenarios.
    */
-  static createServiceMock<T extends object>(
+  static createServiceMock(
     serviceName: string,
     methods: string[],
     errorClassName?: string,
-  ): ServiceMock<T> {
-    const mock: ServiceMock<T> = {} as any;
+  ): ServiceMock {
+    const mock: ServiceMock = {} as any;
 
     // Create Jest mock for each method
     methods.forEach((method) => {
@@ -37,7 +34,8 @@ export class MockFactory {
     // Add error class if specified
     if (errorClassName) {
       mockModule[errorClassName] = class extends Error {
-        constructor(message: string, statusCode?: number) {
+        // eslint-disable-next-line no-unused-vars
+        constructor(message: string, _statusCode?: number) {
           super(message);
           this.name = errorClassName || "Error";
         }
