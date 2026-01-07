@@ -1,8 +1,15 @@
 /**
  * Enterprise Theme Management Dashboard
  *
- * Complete theme management interface for enterprise customers
- * Provides theme creation, editing, activation, and management capabilities
+ * Clean presentation component following Service Layer principles.
+ * All business logic is delegated to enterpriseThemeService.
+ * This component handles only UI state and user interactions.
+ *
+ * Service Layer Compliance:
+ * - Zero business logic in UI component (blueprint.md:208-209)
+ * - All data operations delegated to enterpriseThemeService
+ * - Component only manages presentation state
+ * - Proper error handling with user feedback
  *
  * @page Enterprise Themes Dashboard
  */
@@ -11,24 +18,17 @@
 
 import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import {
-  enterpriseThemeManager,
-  type EnterpriseThemeConfig,
-} from "@/lib/constants/enterprise-themes";
+import { enterpriseThemeService } from "@/lib/services/enterprise-theme-service";
+import type { EnterpriseThemeConfig } from "@/lib/constants/enterprise-themes";
+import type { EnterpriseThemeStats } from "@/lib/services/service-types";
 import { EnterpriseThemeCustomizer } from "@/components/enterprise/enterprise-theme-customizer";
 import { cn } from "@/lib/constants/ui-themes";
 import { Button } from "@/components/ui/button";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { MetricCard } from "@/components/ui/metric-card";
 
-interface ThemeStats {
-  totalThemes: number;
-  activeThemes: number;
-  enterpriseCustomers: number;
-  customizationRate: number;
-}
-
 export default function EnterpriseThemesPage() {
+  // Presentation state only - business logic is in service layer
   const [themes, setThemes] = useState<EnterpriseThemeConfig[]>([]);
   const [activeTheme, setActiveTheme] = useState<EnterpriseThemeConfig | null>(
     null,
@@ -36,67 +36,121 @@ export default function EnterpriseThemesPage() {
   const [selectedTheme, setSelectedTheme] =
     useState<EnterpriseThemeConfig | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [stats, setStats] = useState<ThemeStats>({
+  const [stats, setStats] = useState<EnterpriseThemeStats>({
     totalThemes: 0,
     activeThemes: 0,
     enterpriseCustomers: 0,
     customizationRate: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load themes and stats
+  // Load themes and stats using service layer
   useEffect(() => {
-    loadThemes();
+    loadThemeData();
   }, []);
 
-  const loadThemes = async () => {
+  /**
+   * Loads theme data using enterprise theme service
+   * All business logic is delegated to the service layer
+   */
+  const loadThemeData = async () => {
     setIsLoading(true);
+    setError(null);
 
     try {
-      // Load from local theme manager (in production, this would be from API)
-      const allThemes = enterpriseThemeManager.getAllThemes();
-      const activeThemeData = enterpriseThemeManager.getActiveTheme();
+      const result = await enterpriseThemeService.loadThemeData();
 
-      setThemes(allThemes);
-      setActiveTheme(activeThemeData);
-
-      // Calculate stats
-      setStats({
-        totalThemes: allThemes.length,
-        activeThemes: activeThemeData ? 1 : 0,
-        enterpriseCustomers: allThemes.filter((t) => t.isActive).length,
-        customizationRate:
-          allThemes.length > 0
-            ? (allThemes.filter((t) => t.logoUrl).length / allThemes.length) *
-              100
-            : 0,
-      });
+      if (result.success && result.data) {
+        setThemes(result.data.themes);
+        setActiveTheme(result.data.activeTheme);
+        setStats(result.data.stats);
+      } else {
+        // Handle service failure but maintain UI stability
+        setError(result.error || "Failed to load theme data");
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Unknown error occurred";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleActivateTheme = (themeId: string) => {
-    enterpriseThemeManager.setActiveTheme(themeId);
-    loadThemes(); // Refresh data
+  /**
+   * Handles theme activation using service layer
+   * Business logic delegated to enterpriseThemeService
+   */
+  const handleActivateTheme = async (themeId: string) => {
+    try {
+      const result = await enterpriseThemeService.activateTheme(themeId);
+
+      if (result.success) {
+        // Refresh data after successful activation
+        await loadThemeData();
+      } else {
+        setError(result.error || "Failed to activate theme");
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Unknown error occurred";
+      setError(errorMessage);
+    }
   };
 
-  const handleResetTheme = () => {
-    enterpriseThemeManager.resetTheme();
-    loadThemes(); // Refresh data
+  /**
+   * Handles theme reset using service layer
+   * Business logic delegated to enterpriseThemeService
+   */
+  const handleResetTheme = async () => {
+    try {
+      const result = await enterpriseThemeService.resetTheme();
+
+      if (result.success) {
+        // Refresh data after successful reset
+        await loadThemeData();
+      } else {
+        setError(result.error || "Failed to reset theme");
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Unknown error occurred";
+      setError(errorMessage);
+    }
   };
 
+  /**
+   * Handles theme selection for editing
+   * This is UI logic - business logic for theme updates is handled by the customizer component
+   */
   const handleSelectTheme = (theme: EnterpriseThemeConfig) => {
     setSelectedTheme(theme);
     setIsEditing(true);
+    setError(null); // Clear any previous errors when entering edit mode
   };
 
-  const handleThemeUpdate = () => {
-    loadThemes(); // Refresh themes and stats
+  /**
+   * Handles theme update completion
+   * Refreshes data and exits editing mode
+   */
+  const handleThemeUpdate = async () => {
+    await loadThemeData(); // Refresh themes and stats from service
     setIsEditing(false);
     setSelectedTheme(null);
   };
 
+  /**
+   * Handles new theme creation
+   * Enters editing mode with no selected theme
+   */
+  const handleCreateNewTheme = () => {
+    setSelectedTheme(null);
+    setIsEditing(true);
+    setError(null);
+  };
+
+  // Loading state presentation
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -110,6 +164,24 @@ export default function EnterpriseThemesPage() {
 
   return (
     <DashboardLayout>
+      {/* Error display */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <StatusIndicator status="unhealthy" />
+            <span className="ml-2 text-red-700">{error}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setError(null)}
+              className="ml-auto"
+            >
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <div className="flex justify-between items-center">
@@ -133,13 +205,13 @@ export default function EnterpriseThemesPage() {
             <Button onClick={handleResetTheme} variant="outline">
               Reset to Default
             </Button>
-            <Button onClick={() => setIsEditing(true)}>Create New Theme</Button>
+            <Button onClick={handleCreateNewTheme}>Create New Theme</Button>
           </div>
         </div>
       </div>
 
       <div>
-        {/* Stats Overview */}
+        {/* Stats Overview - Data from service layer */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <MetricCard
             title="Total Themes"
