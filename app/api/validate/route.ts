@@ -1,32 +1,34 @@
-import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { blueprintValidationService } from "@/lib/services/blueprint-validation-service";
-import {
-  withRateLimiter,
-  ValidationError,
-  formatErrorResponse,
-} from "@/lib/api-utils";
+import { RateLimiters } from "@/lib/rate-limit-config";
+import type { BlueprintFormData } from "@/lib/services/blueprint-validation-service";
 
-export async function POST(request: NextRequest) {
-  return withRateLimiter(request, "standard", async () => {
-    try {
-      const body = await request.json();
-      const { field, value, formData } = body;
+// Validation schema for blueprint field validation requests
+const validateFieldSchema = z.object({
+  field: z.enum(["projectName", "input", "projectDescription"], {
+    errorMap: () => ({
+      message: "Field must be one of: projectName, input, projectDescription",
+    }),
+  }),
+  value: z.string(), // Value must be string for validation
+  formData: z.record(z.string().optional()).optional().default({}),
+});
 
-      if (!field || value === undefined) {
-        throw new ValidationError("Field and value are required");
-      }
+export const POST = APIRouteHandler.createPOSTHandler({
+  schema: validateFieldSchema,
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+  handler: async ({ data }) => {
+    const { field, value, formData } = data!;
 
-      const validationResult = await blueprintValidationService.validateField(
-        field,
-        value,
-        formData,
-      );
+    // Delegate to the blueprint validation service
+    const validationResult = await blueprintValidationService.validateField(
+      field as keyof BlueprintFormData,
+      value,
+      formData as Partial<BlueprintFormData>,
+    );
 
-      return NextResponse.json(validationResult);
-    } catch (error) {
-      return formatErrorResponse(
-        error instanceof Error ? error : new Error("Validation failed"),
-      );
-    }
-  });
-}
+    return validationResult;
+  },
+});
