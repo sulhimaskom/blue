@@ -3,9 +3,24 @@ import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { EnterpriseThemeProvider } from "@/components/enterprise/enterprise-theme-provider";
+import { NavigationBar } from "@/components/layout/navigation-bar";
 import { getUIText } from "@/lib/constants/ui-text";
 import "@/lib/sentry"; // Initialize error monitoring
 import "./globals.css";
+
+const clerkAppearance = {
+  variables: {
+    colorPrimary: "#2563eb",
+  },
+};
+
+const clerkOptions = {
+  appearance: clerkAppearance,
+  signInUrl: "/sign-in",
+  signUpUrl: "/sign-up",
+  afterSignInUrl: "/dashboard/monitoring",
+  afterSignUpUrl: "/dashboard/monitoring",
+};
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,10 +35,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider {...clerkOptions}>
       <html lang="en">
         <body className={inter.className}>
           <EnterpriseThemeProvider>
+            <NavigationBar />
             <ErrorBoundary>{children}</ErrorBoundary>
           </EnterpriseThemeProvider>
         </body>

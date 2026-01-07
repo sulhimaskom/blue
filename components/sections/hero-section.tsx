@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 import { getUIText } from "@/lib/constants/ui-text";
 import { Gradients } from "@/lib/constants/gradients";
@@ -38,11 +39,11 @@ export function HeroSection({
             </p>
           )}
           <div className="mt-8 flex gap-4 justify-center lg:justify-start">
-            <Button size="lg" className={getButtonTheme("primary")}>
-              {getStartedText}
+            <Button size="lg" className={getButtonTheme("primary")} asChild>
+              <Link href="/sign-up">{getStartedText}</Link>
             </Button>
-            <Button variant="outline" size="lg">
-              {viewDemoText}
+            <Button variant="outline" size="lg" asChild>
+              <Link href="/dashboard/monitoring">{viewDemoText}</Link>
             </Button>
           </div>
         </div>
