@@ -84,10 +84,21 @@ const nextConfig = {
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Enable image optimization cache
+    minimumCacheTTL: 60 * 60 * 24, // 24 hours
   },
 
   // Output optimization
   output: "standalone",
+
+  // Cache management for better performance
+  generateBuildId: async () => {
+    // Use a stable build ID for caching instead of hash-based
+    if (process.env.NODE_ENV === "production") {
+      return `prod-${Date.now()}`;
+    }
+    return "dev";
+  },
 
   // Compiler options
   compiler: {

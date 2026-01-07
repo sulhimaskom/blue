@@ -8,6 +8,7 @@
     "build": "next build",
     "build:clean": "rm -rf .next && next build",
     "build:analyze": "ANALYZE=true next build",
+    "dev:perf": "next dev --turbo",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
