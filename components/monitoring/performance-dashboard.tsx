@@ -1,11 +1,4 @@
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-  useCallback,
-  useRef,
-  memo,
-} from "react";
+import React, { useEffect, useMemo, useState, useCallback, memo } from "react";
 import { BaseCard } from "@/components/ui/base-card";
 import { MetricCard } from "@/components/ui/metric-card";
 import {
@@ -25,21 +18,7 @@ import {
   getStatusTheme,
   cn,
 } from "@/lib/constants/ui-themes";
-
-// Debounce hook for performance optimization
-function useDebounce<T extends () => any>(callback: T, delay: number): T {
-  const timeoutRef = useRef<NodeJS.Timeout>();
-
-  return useCallback(
-    (() => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      timeoutRef.current = setTimeout(() => callback(), delay);
-    }) as T,
-    [callback, delay],
-  ) as T;
-}
+import { useDebounce } from "@/lib/hooks/use-debounce";
 
 // Optimized metrics calculation hook
 function usePerformanceMetrics(performanceData: any) {
