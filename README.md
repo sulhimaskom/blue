@@ -17,7 +17,7 @@
 ### Prerequisites
 
 - **Node.js 20+** (LTS)
-- **pnpm** (recommended) or npm/yarn
+- **npm** (package manager)
 - **Redis** (optional for development, required for production)
 
 ### 1. Clone & Install
@@ -25,7 +25,7 @@
 ```bash
 git clone https://github.com/your-org/architect-platform.git
 cd architect-platform
-pnpm install
+npm install
 ```
 
 ### 2. Environment Configuration
@@ -38,9 +38,11 @@ cp .env.example .env
 ### 3. Database Setup
 
 ```bash
-# Generate and run migrations
-pnpm run db:generate
-pnpm run db:migrate
+# Run database migrations
+npm run migrate:up
+
+# Optional: Rollback migrations if needed
+npm run migrate:down
 ```
 
 ### 4. Start Development
@@ -218,16 +220,24 @@ architect-platform/
 
 ## 🚀 Available Scripts
 
-| Command                  | Description                  |
-| ------------------------ | ---------------------------- |
-| `pnpm run dev`           | Start development server     |
-| `pnpm run build`         | Create production build      |
-| `pnpm run start`         | Start production server      |
-| `pnpm run lint`          | Run ESLint validation        |
-| `pnpm run typecheck`     | TypeScript type checking     |
-| `pnpm run test`          | Run all test suites          |
-| `pnpm run test:coverage` | Run tests with coverage      |
-| `pnpm run optimize-db`   | Database optimization script |
+| Command                          | Description                                   |
+| -------------------------------- | --------------------------------------------- |
+| `npm run dev`                    | Start development server                      |
+| `npm run build`                  | Create production build                       |
+| `npm run start`                  | Start production server                       |
+| `npm run lint`                   | Run ESLint validation                         |
+| `npm run typecheck`              | TypeScript type checking                      |
+| `npm run test`                   | Run all test suites                           |
+| `npm run test:coverage`          | Run tests with coverage                       |
+| `npm run test:api`               | Run API integration tests                     |
+| `npm run test:api:coverage`      | Run API tests with coverage                   |
+| `npm run test:all`               | Run all test suites including API integration |
+| `npm run optimize-db`            | Database optimization script                  |
+| `npm run migrate:up`             | Run database migrations                       |
+| `npm run migrate:down`           | Rollback database migrations                  |
+| `npm run infrastructure:check`   | Check infrastructure health                   |
+| `npm run infrastructure:recover` | Auto-recover from infrastructure issues       |
+| `npm run infrastructure:report`  | Generate infrastructure health report         |
 
 ---
 
