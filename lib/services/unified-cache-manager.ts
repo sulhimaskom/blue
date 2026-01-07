@@ -1286,16 +1286,19 @@ export class UnifiedCacheManager {
         (a, b) => a.priority - b.priority,
       );
 
-      // Batch high-priority strategies first
-      const highPriorityStrategies = sortedStrategies.filter(
-        (s) => s.priority <= 3,
-      );
-      const aiStrategies = sortedStrategies.filter(
-        (s) => s.priority > 3 && s.priority <= 6,
-      );
-      const lowPriorityStrategies = sortedStrategies.filter(
-        (s) => s.priority > 6,
-      );
+      const highPriorityStrategies: CacheWarmingStrategy[] = [];
+      const aiStrategies: CacheWarmingStrategy[] = [];
+      const lowPriorityStrategies: CacheWarmingStrategy[] = [];
+
+      for (const strategy of sortedStrategies) {
+        if (strategy.priority <= 3) {
+          highPriorityStrategies.push(strategy);
+        } else if (strategy.priority > 3 && strategy.priority <= 6) {
+          aiStrategies.push(strategy);
+        } else {
+          lowPriorityStrategies.push(strategy);
+        }
+      }
 
       // Phase 1: Critical infrastructure (parallel execution)
       const phase1Promises = highPriorityStrategies.map((strategy) =>
@@ -1397,8 +1400,15 @@ export class UnifiedCacheManager {
       });
 
       const results = await Promise.allSettled(warmingPromises);
-      const successful = results.filter((r) => r.status === "fulfilled").length;
-      const failed = results.filter((r) => r.status === "rejected").length;
+      let successful = 0;
+      let failed = 0;
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          successful++;
+        } else {
+          failed++;
+        }
+      }
 
       logger.info("Adaptive cache warming completed", {
         warmingIntensity,
