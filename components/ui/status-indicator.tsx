@@ -65,6 +65,9 @@ export function StatusIndicator({
 
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-label={`${config.text} status`}
       className={cn(
         "inline-flex items-center gap-2 rounded-full border font-medium",
         getSizeClasses(size),
@@ -72,7 +75,7 @@ export function StatusIndicator({
         className,
       )}
     >
-      {showIcon && IconComponent && <IconComponent />}
+      {showIcon && IconComponent && <IconComponent aria-hidden="true" />}
       {showText && <span>{config.text}</span>}
     </div>
   );
