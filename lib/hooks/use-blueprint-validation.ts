@@ -1,5 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { debounce } from "lodash";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   blueprintValidationService,
   type BlueprintFormData,
@@ -131,9 +130,25 @@ export function useBlueprintValidation(
     [formData, enableRealtimeValidation, enableSuggestions, setValidationState],
   );
 
-  // Debounced field validation function
-  const debouncedFieldValidation = useMemo(
-    () => debounce(validateField, debounceMs),
+  // Simple debounce implementation
+  const debounceTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  const debouncedFieldValidation = useCallback(
+    (field: keyof BlueprintFormData, value: string) => {
+      const key = `${field}-${value}`;
+      const timeout = debounceTimeoutRef.current.get(key);
+
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+
+      const newTimeout = setTimeout(() => {
+        validateField(field, value);
+        debounceTimeoutRef.current.delete(key);
+      }, debounceMs);
+
+      debounceTimeoutRef.current.set(key, newTimeout);
+    },
     [validateField, debounceMs],
   );
 
@@ -294,10 +309,12 @@ export function useBlueprintValidation(
 
   // Cleanup debounce on unmount
   useEffect(() => {
+    const timeoutMap = debounceTimeoutRef.current;
     return () => {
-      debouncedFieldValidation.cancel();
+      timeoutMap.forEach((timeout) => clearTimeout(timeout));
+      timeoutMap.clear();
     };
-  }, [debouncedFieldValidation]);
+  }, []);
 
   return {
     // Form data
