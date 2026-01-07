@@ -203,6 +203,21 @@ export const UI_TEXT = {
       },
     },
   },
+
+  // Brand Information
+  brand: {
+    name: "Architect Platform",
+  },
+
+  // Navigation Elements
+  navigation: {
+    home: "Home",
+    monitoring: "Monitoring",
+    enterprise: "Enterprise",
+    signIn: "Sign In",
+    signUp: "Sign Up",
+    signOut: "Sign Out",
+  },
 } as const;
 
 /**
