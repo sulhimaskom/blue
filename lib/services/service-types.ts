@@ -247,14 +247,22 @@ export interface DatabasePerformanceMetrics {
 // ERROR HANDLING TYPES
 // =============================================================================
 
+export interface APIErrorResponse {
+  message: string;
+  type?: string;
+  code?: string;
+  status?: number;
+  details?: Record<string, unknown>;
+}
+
 export interface ServiceError {
   name: string;
   message: string;
   statusCode?: number;
-  response?: any;
+  response?: APIErrorResponse;
   timestamp: string;
   service?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export interface CircuitBreakerState {
@@ -294,7 +302,61 @@ export interface UserMetrics {
 // WEBHOOK SERVICE TYPES
 // =============================================================================
 
-export interface WebhookEvent<T = any> {
+export interface ClerkWebhookPayload {
+  object: string;
+  type: string;
+  data: {
+    id: string;
+    object?: string;
+    email_addresses?: Array<{
+      email_address: string;
+      verification: { status: string };
+    }>;
+    first_name?: string;
+    last_name?: string;
+  };
+}
+
+export interface StripeWebhookPayload {
+  id: string;
+  object: string;
+  api_version: string;
+  created: number;
+  data: {
+    object: {
+      id: string;
+      object: string;
+      amount?: number;
+      currency?: string;
+      customer?: string;
+      status?: string;
+      subscription?: string;
+    };
+  };
+  type: string;
+}
+
+export interface GitHubWebhookPayload {
+  action: string;
+  repository: {
+    id: number;
+    name: string;
+    full_name: string;
+    owner: {
+      login: string;
+      id: number;
+    };
+    private: boolean;
+  };
+  sender: {
+    login: string;
+    id: number;
+  };
+}
+
+export interface WebhookEvent<
+  T = ClerkWebhookPayload | StripeWebhookPayload | GitHubWebhookPayload,
+> {
   id: string;
   type: string;
   source: "clerk" | "stripe" | "github";
@@ -303,10 +365,10 @@ export interface WebhookEvent<T = any> {
   signature?: string;
 }
 
-export interface WebhookProcessingResult {
+export interface WebhookProcessingResult<T = unknown> {
   success: boolean;
   processed: boolean;
-  response?: any;
+  response?: T;
   error?: string;
   duration: number;
 }

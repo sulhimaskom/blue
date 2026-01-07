@@ -5,6 +5,7 @@ import * as crypto from "crypto";
 import type {
   GitHubRepoConfig,
   GitHubCreateRepoResponse,
+  APIErrorResponse,
 } from "./service-types";
 
 /**
@@ -17,9 +18,13 @@ import type {
 class GitHubServiceError extends Error {
   // Public properties for error serialization and debugging
   public statusCode?: number;
-  public response?: any;
+  public response?: APIErrorResponse;
 
-  constructor(message: string, statusCode?: number, response?: any) {
+  constructor(
+    message: string,
+    statusCode?: number,
+    response?: APIErrorResponse,
+  ) {
     super(message);
     this.name = "GitHubServiceError";
     this.statusCode = statusCode;
@@ -210,19 +215,24 @@ class GitHubService {
         );
 
         if (!createResponse.ok) {
-          const error = await createResponse.text();
+          const errorText = await createResponse.text();
+          const apiErrorResponse: APIErrorResponse = {
+            message: `Failed to create repository: ${createResponse.statusText}`,
+            status: createResponse.status,
+            details: { error: errorText },
+          };
           logger.error("Failed to create repository", {
             requestId: context.requestId,
             org: config.org,
             name: config.name,
             status: createResponse.status,
-            error,
+            error: errorText,
             circuitState: this.circuitBreaker.getMetrics().state,
           });
           throw new GitHubServiceError(
             `Failed to create repository: ${createResponse.statusText}`,
             createResponse.status,
-            error,
+            apiErrorResponse,
           );
         }
 
