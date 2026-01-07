@@ -2,13 +2,36 @@ import { NextRequest, NextResponse } from "next/server";
 import { formatSuccessResponse, formatErrorResponse } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { webhookQueueService } from "@/lib/services/webhook-queue-service";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 /**
  * API endpoint for webhook queue monitoring and management
  * Provides visibility into webhook processing health
  */
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const identifier =
+    req.headers.get("x-forwarded-for") ||
+    req.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.standard()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Rate limit exceeded. Try again in 60 seconds.",
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": "30",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
   try {
     // Get queue statistics
     const stats = webhookQueueService.getQueueStats();
@@ -57,6 +80,29 @@ export async function GET(): Promise<NextResponse> {
  * Retry dead letter queue events (admin operation)
  */
 export async function POST(req: NextRequest) {
+  const identifier =
+    req.headers.get("x-forwarded-for") ||
+    req.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.moderate()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Rate limit exceeded. Try again in 60 seconds.",
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": "10",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
+
   try {
     // Verify this is an admin operation (simplified check)
     // In production, implement proper admin authentication

@@ -4,6 +4,7 @@ import { circuitBreakerRegistry } from "@/lib/circuit-breaker";
 import { formatSuccessResponse, formatErrorResponse } from "@/lib/api-utils";
 import { metricsCalculator } from "@/lib/services/metrics-calculator-service";
 import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 /**
  * GET /api/circuit-breakers/metrics
@@ -11,6 +12,30 @@ import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
  * Returns circuit breaker metrics for monitoring with response caching
  */
 export async function GET(req: NextRequest) {
+  const identifier =
+    req.headers.get("x-forwarded-for") ||
+    req.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.standard()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "Rate limit exceeded. Try again in 60 seconds.",
+      }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "X-RateLimit-Limit": "30",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
+
   return UnifiedCacheManager.withCache(
     req,
     async () => {

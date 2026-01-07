@@ -4,8 +4,32 @@ import { monitoringService } from "@/lib/monitoring";
 import { APIMetricsService } from "@/lib/services/api-metrics-service";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
 import { logger } from "@/lib/logger";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 export async function GET(req: NextRequest) {
+  const identifier =
+    req.headers.get("x-forwarded-for") ||
+    req.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.permissive()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Rate limit exceeded. Try again in 60 seconds.",
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": "60",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
+
   return APIRouteHandler.createSimpleCachedGETHandler(
     async (req: NextRequest) => {
       const { searchParams } = new URL(req.url);
