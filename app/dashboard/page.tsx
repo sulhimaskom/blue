@@ -66,14 +66,36 @@ export default function DashboardPage() {
               Analytics
             </h3>
             <p className="text-gray-600 mb-4">
-              View detailed analytics and insights about your platform usage.
+              View detailed analytics and insights about your platform usage,
+              performance metrics, and API statistics.
             </p>
-            <button
-              disabled
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-50 cursor-not-allowed"
+            <a
+              href="/api/metrics"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              Coming Soon
-            </button>
+              View Analytics
+              <svg
+                className="ml-2 w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                ></path>
+              </svg>
+            </a>
+            <p className="mt-3 text-sm text-gray-500">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Live Data
+              </span>
+              Real-time metrics, API performance, cache analytics, and more
+            </p>
           </div>
         </div>
 

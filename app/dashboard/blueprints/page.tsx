@@ -4,24 +4,11 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/constants/ui-themes";
-import { z } from "zod";
-
-// Validation schema matching the API
-const generateBlueprintSchema = z.object({
-  input: z
-    .string()
-    .min(10, "Input must be at least 10 characters")
-    .max(1000, "Input too long (max 1000 characters)"),
-  projectName: z
-    .string()
-    .min(3, "Project name must be at least 3 characters")
-    .max(100, "Name too long (max 100 characters)"),
-});
-
-interface ValidationErrors {
-  input?: string;
-  projectName?: string;
-}
+import { useBlueprintValidation } from "@/lib/hooks/use-blueprint-validation";
+import {
+  ValidatedInput,
+  FormProgress,
+} from "@/components/ui/validation-feedback";
 
 interface Project {
   id: string;
@@ -59,78 +46,27 @@ export default function BlueprintsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+
+  const {
+    formData,
+    validateForm,
+    resetValidation,
+    getFieldProps,
+    canSubmit,
+    validationState,
+    fieldStates,
+  } = useBlueprintValidation(
+    {
+      debounceMs: 300,
+      enableRealtimeValidation: true,
+      enableSuggestions: true,
+    },
     {},
   );
-  const [formData, setFormData] = useState({
-    input: "",
-    projectName: "",
-  });
 
   useEffect(() => {
     fetchBlueprintsData();
   }, []);
-
-  // Real-time validation function
-  const validateField = (name: keyof typeof formData, value: string) => {
-    try {
-      const partialData = { ...formData, [name]: value };
-      const result = generateBlueprintSchema.safeParse(partialData);
-
-      if (!result.success) {
-        const fieldError = result.error.issues.find(
-          (issue) => issue.path[0] === name,
-        );
-        return fieldError?.message;
-      }
-      return undefined;
-    } catch {
-      return undefined;
-    }
-  };
-
-  // Handle field changes with validation
-  const handleFieldChange = (name: keyof typeof formData, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-
-    // Clear previous error for this field
-    setValidationErrors((prev) => ({ ...prev, [name]: undefined }));
-
-    // Validate field if it has content
-    if (value.trim()) {
-      const error = validateField(name, value);
-      if (error) {
-        setValidationErrors((prev) => ({ ...prev, [name]: error }));
-      }
-    }
-  };
-
-  // Check if form is valid for submission
-  const isFormValid = () => {
-    if (!formData.input.trim() || !formData.projectName.trim()) {
-      return false;
-    }
-
-    const result = generateBlueprintSchema.safeParse(formData);
-    return result.success && credits >= 1;
-  };
-
-  // Simulate progress during generation
-  const simulateProgress = () => {
-    setGenerationProgress(0);
-    const interval = setInterval(() => {
-      setGenerationProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(interval);
-          return 90;
-        }
-        return prev + Math.random() * 15;
-      });
-    }, 800);
-    return interval;
-  };
 
   const fetchBlueprintsData = async () => {
     try {
@@ -193,30 +129,13 @@ export default function BlueprintsPage() {
   const handleCreateBlueprint = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate form before submission
-    const validationResult = generateBlueprintSchema.safeParse(formData);
-    if (!validationResult.success) {
-      const errors: ValidationErrors = {};
-      validationResult.error.issues.forEach((issue) => {
-        const field = issue.path[0] as keyof ValidationErrors;
-        errors[field] = issue.message;
-      });
-      setValidationErrors(errors);
+    // Validate entire form before submission
+    const validationResult = await validateForm();
+
+    if (!validationResult.isValid) {
+      setError("Please fix the validation errors before submitting");
       return;
     }
-
-    if (credits < 1) {
-      setError(
-        "Insufficient credits. Please purchase more credits to continue.",
-      );
-      return;
-    }
-
-    setIsGenerating(true);
-    setError(null);
-
-    // Start progress simulation
-    const progressInterval = simulateProgress();
 
     try {
       const response = await fetch("/api/blueprints", {
@@ -226,9 +145,6 @@ export default function BlueprintsPage() {
         },
         body: JSON.stringify(formData),
       });
-
-      clearInterval(progressInterval);
-      setGenerationProgress(100);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -240,21 +156,15 @@ export default function BlueprintsPage() {
 
       await response.json();
       setShowCreateForm(false);
-      setFormData({ input: "", projectName: "" });
-      setValidationErrors({});
+      resetValidation(); // Reset validation state
       fetchBlueprintsData(); // Refresh data
 
       // Show success message
       setError(null);
     } catch (err) {
-      clearInterval(progressInterval);
-      setGenerationProgress(0);
       setError(
         err instanceof Error ? err.message : "Failed to create blueprint",
       );
-    } finally {
-      setIsGenerating(false);
-      setTimeout(() => setGenerationProgress(0), 2000);
     }
   };
 
@@ -350,7 +260,10 @@ export default function BlueprintsPage() {
                   <div className="p-6 text-center">
                     <p className="text-gray-500">No projects found</p>
                     <Button
-                      onClick={() => setShowCreateForm(true)}
+                      onClick={() => {
+                        setShowCreateForm(true);
+                        resetValidation(); // Reset validation when opening form
+                      }}
                       className="mt-4"
                     >
                       Create First Blueprint
@@ -397,12 +310,13 @@ export default function BlueprintsPage() {
                       {selectedProject.name} - Blueprints
                     </h2>
                     <Button
-                      type="submit"
-                      disabled={!isFormValid() || isGenerating}
+                      onClick={() => {
+                        setShowCreateForm(true);
+                        resetValidation(); // Reset validation when opening form
+                      }}
+                      variant="outline"
                     >
-                      {isGenerating
-                        ? "Generating..."
-                        : "Create Blueprint (1 Credit)"}
+                      Create New Blueprint
                     </Button>
                   </div>
                 </div>
@@ -522,7 +436,10 @@ export default function BlueprintsPage() {
                     Create New Blueprint
                   </h2>
                   <button
-                    onClick={() => setShowCreateForm(false)}
+                    onClick={() => {
+                      setShowCreateForm(false);
+                      resetValidation(); // Reset validation when closing form
+                    }}
                     className="text-gray-400 hover:text-gray-500"
                   >
                     <svg
@@ -542,79 +459,60 @@ export default function BlueprintsPage() {
                 </div>
               </div>
               <form onSubmit={handleCreateBlueprint} className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="projectName"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      Project Name *
-                    </label>
-                    <input
-                      type="text"
-                      id="projectName"
-                      name="projectName"
-                      value={formData.projectName}
-                      onChange={(e) =>
-                        handleFieldChange("projectName", e.target.value)
-                      }
-                      className={cn(
-                        "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:border-blue-500",
-                        validationErrors.projectName
-                          ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                          : "border-gray-300 focus:ring-blue-500",
-                      )}
-                      placeholder="Enter project name (3-100 characters)"
-                      required
-                    />
-                    <div className="mt-1 flex justify-between">
-                      <p className="text-sm text-gray-500">
-                        {formData.projectName.length}/100 characters
-                      </p>
-                      {validationErrors.projectName && (
-                        <p className="text-sm text-red-600">
-                          {validationErrors.projectName}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="input"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      Blueprint Description *
-                    </label>
-                    <textarea
-                      id="input"
-                      name="input"
-                      value={formData.input}
-                      onChange={(e) =>
-                        handleFieldChange("input", e.target.value)
-                      }
-                      rows={6}
-                      className={cn(
-                        "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:border-blue-500",
-                        validationErrors.input
-                          ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                          : "border-gray-300 focus:ring-blue-500",
-                      )}
-                      placeholder="Describe the blueprint you want to generate (10-1000 characters)"
-                      required
-                      minLength={10}
-                      maxLength={1000}
-                    />
-                    <div className="mt-1 flex justify-between">
-                      <p className="text-sm text-gray-500">
-                        {formData.input.length}/1000 characters (minimum 10)
-                      </p>
-                      {validationErrors.input && (
-                        <p className="text-sm text-red-600">
-                          {validationErrors.input}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                {/* Form Progress Indicator */}
+                <FormProgress
+                  fieldStates={fieldStates}
+                  formData={{
+                    projectName: formData.projectName,
+                    input: formData.input,
+                    projectDescription: formData.projectDescription || "",
+                  }}
+                  requiredFields={["projectName", "input"]}
+                />
+
+                <div className="space-y-6">
+                  <ValidatedInput
+                    label="Project Name"
+                    id="projectName"
+                    type="text"
+                    placeholder="Enter project name"
+                    required
+                    maxLength={50}
+                    validationProps={{
+                      value: getFieldProps("projectName").value || "",
+                      onChange: getFieldProps("projectName").onChange,
+                      onBlur: getFieldProps("projectName").onBlur,
+                      error: getFieldProps("projectName").error,
+                      warning: getFieldProps("projectName").warning,
+                      isValid: getFieldProps("projectName").isValid,
+                      isTouched: getFieldProps("projectName").isTouched,
+                      isValidating: getFieldProps("projectName").isValidating,
+                      suggestions: getFieldProps("projectName").suggestions,
+                    }}
+                    helperText="Use clear, descriptive naming (3-50 characters)"
+                  />
+
+                  <ValidatedInput
+                    label="Blueprint Description"
+                    id="input"
+                    type="textarea"
+                    placeholder="Describe the blueprint you want to generate (10-1000 characters)"
+                    required
+                    maxLength={1000}
+                    rows={6}
+                    validationProps={{
+                      value: getFieldProps("input").value || "",
+                      onChange: getFieldProps("input").onChange,
+                      onBlur: getFieldProps("input").onBlur,
+                      error: getFieldProps("input").error,
+                      warning: getFieldProps("input").warning,
+                      isValid: getFieldProps("input").isValid,
+                      isTouched: getFieldProps("input").isTouched,
+                      isValidating: getFieldProps("input").isValidating,
+                      suggestions: getFieldProps("input").suggestions,
+                    }}
+                    helperText="Be specific about features, target users, and purpose"
+                  />
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                     <div className="flex">
                       <svg
@@ -629,12 +527,21 @@ export default function BlueprintsPage() {
                         />
                       </svg>
                       <div className="text-sm text-blue-800">
-                        <p className="font-medium">Blueprint Generation</p>
+                        <p className="font-medium">
+                          Real-time Validation Active
+                        </p>
                         <p>
                           Creating a blueprint will deduct 1 credit from your
                           account. You currently have {credits} credits
-                          available.
+                          available. Your form is validated in real-time to help
+                          create better blueprints.
                         </p>
+                        {!canSubmit && (
+                          <p className="mt-2 text-yellow-700">
+                            Complete all required fields and fix validation
+                            errors to submit.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -643,42 +550,51 @@ export default function BlueprintsPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setShowCreateForm(false)}
+                    onClick={() => {
+                      setShowCreateForm(false);
+                      resetValidation();
+                    }}
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={credits < 1}>
-                    Create Blueprint (1 Credit)
+                  <Button
+                    type="submit"
+                    disabled={
+                      credits < 1 ||
+                      !canSubmit ||
+                      validationState.form.isSubmitting
+                    }
+                  >
+                    {validationState.form.isSubmitting ? (
+                      <>
+                        <svg
+                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Creating Blueprint...
+                      </>
+                    ) : (
+                      `Create Blueprint (1 Credit)`
+                    )}
                   </Button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-
-        {/* Generation Progress Overlay */}
-        {isGenerating && (
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-md w-full p-6">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Generating Blueprint...
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Our AI is analyzing your requirements and creating a
-                  comprehensive blueprint. This typically takes 1-2 minutes.
-                </p>
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${generationProgress}%` }}
-                  ></div>
-                </div>
-                <p className="text-xs text-gray-500">
-                  Progress: {Math.round(generationProgress)}%
-                </p>
-              </div>
             </div>
           </div>
         )}
