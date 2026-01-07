@@ -1,9 +1,10 @@
 import { AIPatternDetector, type AIPattern } from "./ai-pattern-detector";
 import { logger } from "../logger";
+import { optimizedIntervalManager } from "./optimized-interval-manager";
 
 /**
  * Automated Cache Warming Service
- * Provides intelligent, proactive cache warming for optimal performance and cost savings
+ * Provides intelligent, proactive cache warming with optimized interval management
  */
 export interface WarmingSchedule {
   interval: number; // minutes
@@ -50,7 +51,6 @@ class AutomatedCacheWarmingService {
     },
   ];
 
-  private static warmingInterval: NodeJS.Timeout | null = null;
   private static metrics: WarmingMetrics = {
     lastRun: 0,
     warmedEntries: 0,
@@ -61,46 +61,53 @@ class AutomatedCacheWarmingService {
   };
 
   /**
-   * Start the automated warming service
+   * Start the automated warming service using optimized interval manager
    */
   static start(): void {
-    if (this.warmingInterval) {
-      logger.warn("Automated cache warming service already running");
-      return;
-    }
+    logger.info(
+      "Starting automated cache warming service with optimized intervals",
+    );
 
-    logger.info("Starting automated cache warming service");
+    // Register each warming schedule with the interval manager
+    this.WARMING_SCHEDULES.forEach((schedule, index) => {
+      const intervalId = `cache-warming-${schedule.priority}-${index}`;
 
-    // Run initial warming
-    this.performScheduledWarming().catch((error) => {
-      logger.error("Initial cache warming failed", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      optimizedIntervalManager.registerInterval(
+        intervalId,
+        async () => {
+          await this.performWarmingForSchedule(schedule);
+        },
+        schedule.interval * 60 * 1000, // Convert minutes to milliseconds
+        {
+          enabled: schedule.enabled,
+          maxRunTime: 300000, // 5 minutes max run time
+          maxRetries: 2,
+        },
+      );
+
+      logger.debug("Cache warming schedule registered", {
+        intervalId,
+        interval: schedule.interval,
+        priority: schedule.priority,
+        enabled: schedule.enabled,
       });
     });
 
-    // Schedule periodic warming based on priority
-    this.warmingInterval = setInterval(
-      () => {
-        this.performScheduledWarming().catch((error) => {
-          logger.error("Scheduled cache warming failed", {
-            error: error instanceof Error ? error.message : "Unknown error",
-          });
+    // Run initial warming for high-priority schedules
+    this.WARMING_SCHEDULES.filter(
+      (s) => s.enabled && s.priority === "high",
+    ).forEach((schedule) => {
+      this.performWarmingForSchedule(schedule).catch((error) => {
+        logger.error("Initial high-priority cache warming failed", {
+          priority: schedule.priority,
+          error: error instanceof Error ? error.message : "Unknown error",
         });
-      },
-      Math.min(
-        ...this.WARMING_SCHEDULES.filter((s) => s.enabled).map(
-          (s) => s.interval * 60 * 1000,
-        ),
-      ),
-    );
+      });
+    });
 
     logger.info("Automated cache warming service started", {
       schedulesCount: this.WARMING_SCHEDULES.filter((s) => s.enabled).length,
-      intervalMinutes: Math.min(
-        ...this.WARMING_SCHEDULES.filter((s) => s.enabled).map(
-          (s) => s.interval,
-        ),
-      ),
+      intervalManagerHealth: optimizedIntervalManager.healthCheck(),
     });
   }
 
@@ -108,42 +115,36 @@ class AutomatedCacheWarmingService {
    * Stop the automated warming service
    */
   static stop(): void {
-    if (this.warmingInterval) {
-      clearInterval(this.warmingInterval);
-      this.warmingInterval = null;
-      logger.info("Automated cache warming service stopped");
-    }
+    logger.info("Stopping automated cache warming service");
+
+    // Unregister all warming intervals
+    this.WARMING_SCHEDULES.forEach((schedule, index) => {
+      const intervalId = `cache-warming-${schedule.priority}-${index}`;
+      optimizedIntervalManager.unregisterInterval(intervalId);
+    });
+
+    logger.info("Automated cache warming service stopped");
   }
 
   /**
-   * Perform scheduled warming based on current time and schedules
+   * Perform warming for specific schedule
    */
-  private static async performScheduledWarming(): Promise<void> {
+  private static async performWarmingForSchedule(
+    schedule: WarmingSchedule,
+  ): Promise<void> {
     const startTime = Date.now();
-    const currentMinute = Math.floor(startTime / 60000);
 
-    // Determine which schedules should run now
-    const activeSchedules = this.WARMING_SCHEDULES.filter(
-      (schedule) => schedule.enabled && currentMinute % schedule.interval === 0,
-    );
-
-    if (activeSchedules.length === 0) {
-      return;
-    }
-
-    logger.info("Performing scheduled cache warming", {
-      activeSchedules: activeSchedules.length,
-      patterns: activeSchedules.flatMap((s) => s.patterns),
+    logger.info("Performing cache warming for schedule", {
+      priority: schedule.priority,
+      interval: schedule.interval,
+      patterns: schedule.patterns,
     });
 
     try {
-      // Combine patterns from all active schedules
-      const allPatterns = [
-        ...new Set(activeSchedules.flatMap((s) => s.patterns)),
-      ];
-
       // Generate mock recent requests for pattern analysis
-      const mockRecentRequests = this.generateMockRecentRequests(allPatterns);
+      const mockRecentRequests = this.generateMockRecentRequests(
+        schedule.patterns,
+      );
 
       // Perform intelligent warming
       const warmingResult =
@@ -159,9 +160,14 @@ class AutomatedCacheWarmingService {
         duration: Date.now() - startTime,
       };
 
-      logger.info("Scheduled cache warming completed", this.metrics);
+      logger.info("Cache warming completed for schedule", {
+        priority: schedule.priority,
+        warmedEntries: this.metrics.warmedEntries,
+        duration: this.metrics.duration,
+      });
     } catch (error) {
-      logger.error("Scheduled cache warming failed", {
+      logger.error("Cache warming failed for schedule", {
+        priority: schedule.priority,
         error: error instanceof Error ? error.message : "Unknown error",
         duration: Date.now() - startTime,
       });
@@ -323,24 +329,20 @@ class AutomatedCacheWarmingService {
     schedules: WarmingSchedule[];
     lastWarming: number;
     nextWarming: number;
+    intervalManagerHealth: any;
   } {
     const now = Date.now();
-    const nextWarming = this.warmingInterval
-      ? now +
-        Math.min(
-          ...this.WARMING_SCHEDULES.filter((s) => s.enabled).map(
-            (s) => s.interval,
-          ),
-        ) *
-          60 *
-          1000
-      : 0;
+    const nextInterval = Math.min(
+      ...this.WARMING_SCHEDULES.filter((s) => s.enabled).map((s) => s.interval),
+    );
+    const nextWarming = nextInterval > 0 ? now + nextInterval * 60 * 1000 : 0;
 
     return {
-      running: this.warmingInterval !== null,
+      running: true, // Using interval manager
       schedules: this.WARMING_SCHEDULES,
       lastWarming: this.metrics.lastRun,
       nextWarming,
+      intervalManagerHealth: optimizedIntervalManager.healthCheck(),
     };
   }
 

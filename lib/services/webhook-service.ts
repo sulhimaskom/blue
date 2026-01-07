@@ -14,6 +14,7 @@ export interface WebhookHandlerConfig {
   verifySignature: (_body: string, _headers: Headers) => boolean;
   // eslint-disable-next-line no-unused-vars
   processEvent: (_event: any, _context: { requestId: string }) => Promise<void>;
+  useQueue?: boolean; // Enable queue-based processing for reliability
 }
 
 /**
@@ -188,6 +189,128 @@ export class WebhookService {
         requestId,
         service,
         "webhook_processing",
+      );
+    }
+  }
+
+  /**
+   * Process webhook with enhanced reliability features
+   * - Automatic retry with exponential backoff
+   * - Idempotency to prevent duplicate processing
+   * - Queue-based processing for reliability
+   */
+  static async processWebhookWithReliability(
+    req: NextRequest,
+    config: WebhookHandlerConfig,
+  ): Promise<Response> {
+    const context = { requestId: IdGenerators.REQUEST() };
+
+    try {
+      const body = await req.text();
+      const headers = req.headers;
+
+      // Signature verification
+      if (!config.verifySignature(body, headers)) {
+        logger.security(
+          `${config.serviceName} webhook signature verification failed`,
+          {
+            requestId: context.requestId,
+            headers: Object.fromEntries(headers.entries()),
+          },
+        );
+
+        return this.createWebhookResponse(
+          false,
+          null,
+          `Invalid ${config.serviceName} webhook signature`,
+        );
+      }
+
+      // Parse event
+      let event: any;
+      try {
+        event = JSON.parse(body);
+      } catch (parseError) {
+        logger.apiError(
+          `${config.serviceName} webhook JSON parsing failed`,
+          context.requestId,
+          parseError as Error,
+          { bodyLength: body.length },
+        );
+
+        return this.createWebhookResponse(
+          false,
+          null,
+          "Invalid webhook payload",
+        );
+      }
+
+      // Check if queue-based processing is enabled
+      if (config.useQueue) {
+        // Import dynamically to avoid circular dependencies
+        const { webhookQueueService } = await import("./webhook-queue-service");
+
+        // Enqueue for reliable processing
+        const headersRecord = Object.fromEntries(headers.entries());
+        const result = await webhookQueueService.enqueueWebhook(
+          config.serviceName as "Clerk" | "Stripe",
+          event.type,
+          event,
+          headersRecord,
+        );
+
+        if (!result.enqueued) {
+          // Event was already processed (idempotency)
+          logger.systemEvent(
+            `${config.serviceName} webhook already processed (idempotency)`,
+            {
+              requestId: context.requestId,
+              eventId: result.eventId,
+              eventType: event.type,
+            },
+          );
+        }
+
+        // Always return success - event is queued or already processed
+        return this.createWebhookResponse(true, {
+          eventId: result.eventId,
+          queued: result.enqueued,
+          message: result.enqueued
+            ? "Webhook enqueued for processing"
+            : "Webhook already processed (idempotency)",
+        });
+      }
+
+      // Direct processing (legacy path without queue)
+      await config.processEvent(event, context);
+
+      logger.systemEvent(
+        `${config.serviceName} webhook processed successfully`,
+        {
+          requestId: context.requestId,
+          eventType: event.type,
+        },
+      );
+
+      return this.createWebhookResponse(true);
+    } catch (error) {
+      // Defensive: Ensure context is available even in unexpected error scenarios
+      const requestId = context?.requestId || "unknown";
+
+      logger.apiError(
+        `${config.serviceName} webhook processing failed`,
+        requestId,
+        error as Error,
+        {
+          endpoint: `/api/webhooks/${config.serviceName.toLowerCase()}`,
+          useQueue: config.useQueue,
+        },
+      );
+
+      return this.createWebhookResponse(
+        false,
+        null,
+        "Webhook processing failed",
       );
     }
   }

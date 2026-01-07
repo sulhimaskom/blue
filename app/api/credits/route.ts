@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { logger } from "@/lib/logger";
-import { UserService } from "@/lib/services/user-service";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { CREDIT_RULES, PRICING_PACKAGES } from "@/lib/constants";
 import { ProjectDataService } from "@/lib/services/project-data-service";
@@ -40,24 +39,14 @@ export const POST = APIRouteHandler.createPOSTHandler({
       const creditsToAdd = Math.floor(amount / CREDIT_RULES.CONVERSION_RATE);
       const mockPaymentId = IdGenerators.PAYMENT();
 
-      const newTransaction = await ProjectDataService.createTransaction(
-        user!.id,
-        amount,
-        creditsToAdd,
-        mockPaymentId,
-      );
-
-      await UserService.updateSubscriptionTierIfNeeded(
-        user!.id,
-        creditsToAdd,
-        context,
-      );
-      const updatedUser = await UserService.updateUserCredits(
-        user!.id,
-        creditsToAdd,
-        context,
-      );
-      await DatabaseQueryCache.invalidateUserCache(user!.id);
+      const { transaction: newTransaction, user: updatedUser } =
+        await ProjectDataService.processCreditPurchase(
+          user!.id,
+          amount,
+          creditsToAdd,
+          mockPaymentId,
+          context,
+        );
 
       logger.userAction("Credits purchased (mock)", user!.clerkId, {
         requestId: context.requestId,
@@ -97,24 +86,14 @@ export const POST = APIRouteHandler.createPOSTHandler({
     if (confirmImmediate && paymentIntent.status === "succeeded") {
       const creditsToAdd = Math.floor(amount / CREDIT_RULES.CONVERSION_RATE);
 
-      const newTransaction = await ProjectDataService.createTransaction(
-        user!.id,
-        amount,
-        creditsToAdd,
-        paymentIntent.paymentIntentId,
-      );
-
-      await UserService.updateSubscriptionTierIfNeeded(
-        user!.id,
-        creditsToAdd,
-        context,
-      );
-      const updatedUser = await UserService.updateUserCredits(
-        user!.id,
-        creditsToAdd,
-        context,
-      );
-      await DatabaseQueryCache.invalidateUserCache(user!.id);
+      const { transaction: newTransaction, user: updatedUser } =
+        await ProjectDataService.processCreditPurchase(
+          user!.id,
+          amount,
+          creditsToAdd,
+          paymentIntent.paymentIntentId,
+          context,
+        );
 
       logger.userAction("Credits purchased (Stripe)", user!.clerkId, {
         requestId: context.requestId,

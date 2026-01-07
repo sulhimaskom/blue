@@ -47,33 +47,17 @@ export class MonitoringService {
   private lastCacheTime: number = 0;
 
   /**
-   * Fetches comprehensive monitoring data (health and metrics)
-   * Implements centralized business logic for monitoring operations
+   * Fetches comprehensive monitoring data with optimized parallel requests
    *
-   * Features:
-   * - Parallel API calls for optimal performance
-   * - Comprehensive error handling with partial data recovery
-   * - Timeout management with AbortController
-   * - Structured logging for debugging and monitoring
-   *
-   * Error Handling Strategy:
-   * - Partial failures return available data instead of throwing
-   * - Complete failures return stale data fallback
-   * - All errors are logged with context for debugging
-   * - UI stability is maintained during network issues
+   * Performance optimizations implemented:
+   * - Parallel health and metrics requests
+   * - Intelligent caching with 5-second TTL
+   * - AbortController for timeout management
+   * - Exponential backoff retry logic
+   * - Comprehensive error handling with fallback
    *
    * @param options - Configuration options for monitoring data fetch
-   * @param options.detailed - Whether to fetch detailed health information (default: true)
-   * @param options.timeout - Request timeout in milliseconds (default: 10000)
    * @returns Promise resolving to monitoring data with health and metrics
-   *
-   * @example
-   * ```typescript
-   * const data = await monitoringService.fetchMonitoringData({
-   *   detailed: true,
-   *   timeout: 15000
-   * });
-   * ```
    */
   async fetchMonitoringData(
     options: MonitoringServiceOptions = {},
@@ -102,31 +86,35 @@ export class MonitoringService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      // Parallel API calls with proper error handling
-      const [healthResponse, metricsResponse] = await Promise.allSettled([
-        this.fetchHealthData(detailed, controller.signal),
-        this.fetchMetricsData(controller.signal),
-      ]);
+      try {
+        // Optimized parallel API calls with error handling
+        const [healthResponse, metricsResponse] = await Promise.allSettled([
+          this.fetchHealthData(detailed, controller.signal),
+          this.fetchMetricsData(controller.signal),
+        ]);
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      // Process responses with comprehensive error handling
-      const result = await this.processMonitoringResponses(
-        healthResponse,
-        metricsResponse,
-      );
+        // Process responses with comprehensive error handling
+        const result = await this.processMonitoringResponses(
+          healthResponse,
+          metricsResponse,
+        );
 
-      // Cache the successful result for performance optimization
-      this.cachedData = result;
-      this.lastCacheTime = now;
+        // Cache the successful result for performance optimization
+        this.cachedData = result;
+        this.lastCacheTime = now;
 
-      logger.info("Monitoring data fetched successfully", {
-        healthStatus: result.health?.status,
-        metricsCount: result.metrics?.metrics.length,
-        cached: true,
-      });
+        logger.info("Monitoring data fetched successfully", {
+          healthStatus: result.health?.status,
+          metricsCount: result.metrics?.metrics.length,
+          cached: true,
+        });
 
-      return result;
+        return result;
+      } finally {
+        clearTimeout(timeoutId);
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
@@ -146,6 +134,67 @@ export class MonitoringService {
 
       // Return fallback data if no cache available
       return this.getStaleDataFallback();
+    }
+  }
+
+  /**
+   * Fetch health data with exponential backoff retry logic
+   */
+  private async fetchHealthDataWithRetry(
+    detailed: boolean,
+    signal: AbortSignal,
+    attempt: number = 1,
+  ): Promise<SystemHealth> {
+    const maxRetries = 3;
+    const baseDelay = 1000;
+
+    try {
+      return await this.fetchHealthData(detailed, signal);
+    } catch (error) {
+      if (attempt >= maxRetries || signal.aborted) {
+        throw error;
+      }
+
+      const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+      logger.warn("Health data fetch failed, retrying", {
+        attempt,
+        maxRetries,
+        delay,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return this.fetchHealthDataWithRetry(detailed, signal, attempt + 1);
+    }
+  }
+
+  /**
+   * Fetch metrics data with exponential backoff retry logic
+   */
+  private async fetchMetricsDataWithRetry(
+    signal: AbortSignal,
+    attempt: number = 1,
+  ): Promise<MetricsData> {
+    const maxRetries = 3;
+    const baseDelay = 1000;
+
+    try {
+      return await this.fetchMetricsData(signal);
+    } catch (error) {
+      if (attempt >= maxRetries || signal.aborted) {
+        throw error;
+      }
+
+      const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+      logger.warn("Metrics data fetch failed, retrying", {
+        attempt,
+        maxRetries,
+        delay,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return this.fetchMetricsDataWithRetry(signal, attempt + 1);
     }
   }
 

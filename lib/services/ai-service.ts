@@ -1,17 +1,12 @@
 import { env } from "../env";
 import { logger } from "../logger";
 import { monitoringService } from "../monitoring";
-import { AIErrorReporter } from "./ai-error-reporter";
+import { errorMonitoring } from "./error-monitoring-service";
 import { circuitBreakerRegistry, SERVICE_CONFIGS } from "../circuit-breaker";
 import { UnifiedCacheManager } from "./unified-cache-manager";
 import { AIPatternDetector } from "./ai-pattern-detector";
 import { IdGenerators } from "../utils/id-generator";
 import { Timing } from "../utils/time-measurement";
-// Error monitoring imports for future use
-// import {
-//   captureApiError,
-//   createMonitoredError,
-// } from "./error-monitoring-service";
 import type {
   AIModel,
   AICompletionRequest,
@@ -218,10 +213,14 @@ export class AIService {
         });
 
         // Report structured success for enhanced monitoring
-        AIErrorReporter.reportSuccess("completion", {
-          model: completion.model,
-          responseTime: duration,
-          tokens: completion.usage.totalTokens,
+        errorMonitoring.captureBusinessEvent("ai_completion_success", {
+          category: "ai_operations",
+          component: "ai-service",
+          metadata: {
+            model: completion.model,
+            responseTime: duration,
+            tokens: completion.usage.totalTokens,
+          },
         });
 
         // Cache the successful response with cost-aware intelligent TTL
@@ -239,19 +238,7 @@ export class AIService {
           intelligentTTL,
         );
 
-        await UnifiedCacheManager.cacheData(
-          "iflow-completion",
-          cacheData,
-          completion,
-          {
-            key: optimizedCacheKey,
-            ttl: intelligentTTL,
-            tags: detectedPattern.pattern
-              ? ["ai-completion", model.id, detectedPattern.pattern]
-              : ["ai-completion", model.id],
-          },
-        );
-
+        // Cache with request deduplication to prevent redundant cache operations
         await UnifiedCacheManager.cacheData(
           "iflow-completion",
           cacheData,
@@ -279,7 +266,8 @@ export class AIService {
       });
 
       // Report structured error for enhanced monitoring
-      AIErrorReporter.reportCompletionError(
+      errorMonitoring.captureAIError(
+        "completion",
         error instanceof Error ? error.message : String(error),
         {
           model: request.model?.id,
@@ -287,6 +275,7 @@ export class AIService {
           responseTime: duration,
           requestId: context.requestId,
         },
+        "high",
       );
 
       throw new Error(
@@ -406,8 +395,12 @@ export class AIService {
         });
 
         // Report structured success for enhanced monitoring
-        AIErrorReporter.reportSuccess("research", {
-          responseTime: duration,
+        errorMonitoring.captureBusinessEvent("ai_research_success", {
+          category: "ai_operations",
+          component: "ai-service",
+          metadata: {
+            responseTime: duration,
+          },
         });
 
         // Cache the successful research result
@@ -435,14 +428,14 @@ export class AIService {
       });
 
       // Report structured error for enhanced monitoring
-      AIErrorReporter.reportResearchError(
+      errorMonitoring.captureAIError(
+        "research",
         error instanceof Error ? error.message : String(error),
         {
-          query: request.query,
           responseTime: duration,
-          resultCount: 0,
           requestId: context.requestId,
         },
+        "high",
       );
 
       throw new Error(
@@ -634,10 +627,17 @@ export class AIService {
   }
 
   /**
+   * Get current hour for time-based optimization (overridable for testing)
+   */
+  protected getCurrentHour(): number {
+    return new Date().getHours();
+  }
+
+  /**
    * Get time-based optimization multiplier (off-peak caching)
    */
   private getTimeBasedMultiplier(): number {
-    const currentHour = new Date().getHours();
+    const currentHour = this.getCurrentHour();
 
     // Off-peak hours: 22:00-06:00 UTC (US night/early morning)
     if (currentHour >= 22 || currentHour <= 6) {
