@@ -224,10 +224,33 @@ export class AIService {
           tokens: completion.usage.totalTokens,
         });
 
-        // Cache the successful response with intelligent TTL
-        const intelligentTTL = detectedPattern.pattern
-          ? this.getPatternTypicalTTL(detectedPattern.pattern) * 0.5 // Half of pattern TTL for fresh data
-          : 1800; // Default 30 minutes
+        // Cache the successful response with cost-aware intelligent TTL
+        const intelligentTTL = this.calculateCostAwareTTL(
+          detectedPattern.pattern,
+          request,
+          completion,
+        );
+
+        // Track cache optimization metrics
+        this.trackCacheOptimizationMetrics(
+          detectedPattern.pattern,
+          request,
+          completion,
+          intelligentTTL,
+        );
+
+        await UnifiedCacheManager.cacheData(
+          "iflow-completion",
+          cacheData,
+          completion,
+          {
+            key: optimizedCacheKey,
+            ttl: intelligentTTL,
+            tags: detectedPattern.pattern
+              ? ["ai-completion", model.id, detectedPattern.pattern]
+              : ["ai-completion", model.id],
+          },
+        );
 
         await UnifiedCacheManager.cacheData(
           "iflow-completion",
@@ -464,6 +487,43 @@ export class AIService {
   }
 
   /**
+   * Track cache optimization metrics for performance analysis
+   */
+  private trackCacheOptimizationMetrics(
+    pattern: AIPattern["type"] | null | undefined,
+    request: any,
+    completion: any,
+    optimizedTTL: number,
+  ): void {
+    const baseTTL = pattern ? this.getPatternTypicalTTL(pattern) : 1800;
+    const optimizationMultiplier = optimizedTTL / baseTTL;
+
+    // Log performance optimization metrics
+    logger.info("AI cache optimization applied", {
+      pattern,
+      baseTTL,
+      optimizedTTL,
+      optimizationMultiplier: optimizationMultiplier.toFixed(2),
+      requestComplexity: request?.prompt?.length || 0,
+      responseTokens: completion?.usage?.totalTokens || 0,
+      modelId: request?.model?.id || "unknown",
+      estimatedCostSavings: this.calculateEstimatedSavings(
+        optimizationMultiplier,
+      ),
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Calculate estimated cost savings from cache optimization
+   */
+  private calculateEstimatedSavings(multiplier: number): string {
+    // Rough estimation: each 10% increase in TTL = 8% cost reduction
+    const costReduction = (multiplier - 1.0) * 0.8;
+    return `${(costReduction * 100).toFixed(1)}%`;
+  }
+
+  /**
    * Get circuit breaker metrics for monitoring
    */
   getCircuitBreakerMetrics() {
@@ -480,6 +540,137 @@ export class AIService {
     this.iflowCircuitBreaker.reset();
     this.tavilyCircuitBreaker.reset();
     logger.info("AI service circuit breakers reset");
+  }
+
+  /**
+   * Calculate cost-aware TTL with intelligent scaling
+   */
+  private calculateCostAwareTTL(
+    pattern: AIPattern["type"] | null | undefined,
+    request: any,
+    completion: any,
+  ): number {
+    const baseTTL = pattern ? this.getPatternTypicalTTL(pattern) : 1800;
+
+    // Cost optimization factors
+    const costFactors = this.calculateCostOptimizationFactors(
+      request,
+      completion,
+    );
+
+    // Pattern-based optimization
+    const patternMultiplier = this.getPatternMultiplier(pattern || undefined);
+
+    // Time-based optimization (off-peak hours)
+    const timeMultiplier = this.getTimeBasedMultiplier();
+
+    // Usage frequency optimization
+    const usageMultiplier = this.getUsageMultiplier(pattern || undefined);
+
+    // Calculate final TTL with intelligent scaling
+    let optimizedTTL =
+      baseTTL *
+      costFactors *
+      patternMultiplier *
+      timeMultiplier *
+      usageMultiplier;
+
+    // Apply smart bounds - minimum 5 minutes, maximum 24 hours
+    optimizedTTL = Math.max(300, Math.min(86400, optimizedTTL));
+
+    return Math.floor(optimizedTTL);
+  }
+
+  /**
+   * Calculate cost optimization factors based on request characteristics
+   */
+  private calculateCostOptimizationFactors(
+    request: any,
+    completion: any,
+  ): number {
+    let multiplier = 1.0;
+
+    // High-cost optimization: longer cache for expensive completions
+    if (completion?.usage?.totalTokens > 2000) {
+      multiplier *= 1.5; // 50% longer for expensive responses
+    }
+
+    // Prompt complexity factor
+    if (request?.prompt?.length > 500) {
+      multiplier *= 1.3; // 30% longer for complex prompts
+    }
+
+    // Model-specific optimization
+    const modelId = request?.model?.id || "default";
+    if (modelId.includes("gpt-4") || modelId.includes("claude-3")) {
+      multiplier *= 1.4; // 40% longer for premium models
+    }
+
+    return multiplier;
+  }
+
+  /**
+   * Get pattern-based optimization multiplier
+   */
+  private getPatternMultiplier(
+    pattern: AIPattern["type"] | null | undefined,
+  ): number {
+    if (!pattern) return 1.0;
+
+    // High-value patterns get longer cache times
+    const highValuePatterns = ["fintech", "healthcare", "marketplace"];
+    const mediumValuePatterns = ["saas", "ecommerce", "realestate"];
+    const standardPatterns = ["dashboard", "api-service", "mobile-app"];
+
+    if (highValuePatterns.includes(pattern)) {
+      return 1.6; // 60% longer for regulated/high-value industries
+    } else if (mediumValuePatterns.includes(pattern)) {
+      return 1.3; // 30% longer for business-critical patterns
+    } else if (standardPatterns.includes(pattern)) {
+      return 1.1; // 10% longer for standard patterns
+    }
+
+    return 1.0;
+  }
+
+  /**
+   * Get time-based optimization multiplier (off-peak caching)
+   */
+  private getTimeBasedMultiplier(): number {
+    const currentHour = new Date().getHours();
+
+    // Off-peak hours: 22:00-06:00 UTC (US night/early morning)
+    if (currentHour >= 22 || currentHour <= 6) {
+      return 1.4; // 40% longer during off-peak hours
+    }
+
+    // Peak hours: 14:00-18:00 UTC (US business hours)
+    if (currentHour >= 14 && currentHour <= 18) {
+      return 0.8; // 20% shorter during peak hours for freshness
+    }
+
+    return 1.0; // Normal caching during other hours
+  }
+
+  /**
+   * Get usage-based optimization multiplier
+   */
+  private getUsageMultiplier(
+    pattern: AIPattern["type"] | null | undefined,
+  ): number {
+    if (!pattern) return 1.0;
+
+    // This would integrate with usage analytics - for now using heuristics
+    const highFrequencyPatterns = ["dashboard", "api-service", "saas"];
+    const lowFrequencyPatterns = ["fintech", "healthcare", "realestate"];
+
+    if (highFrequencyPatterns.includes(pattern)) {
+      return 1.2; // 20% longer for frequently used patterns
+    } else if (lowFrequencyPatterns.includes(pattern)) {
+      return 0.9; // 10% shorter for infrequently used patterns
+    }
+
+    return 1.0;
   }
 
   /**
