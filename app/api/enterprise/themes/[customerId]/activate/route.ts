@@ -10,6 +10,7 @@ import { z } from "zod";
 import { logger, createRequestContext } from "@/lib/logger";
 import { enterpriseThemeManager } from "@/lib/constants/enterprise-themes";
 import { ValidationError, NotFoundError } from "@/lib/api-utils";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 // Validation schema
 const ActivateThemeSchema = z.object({
@@ -27,6 +28,36 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const context = createRequestContext();
   const { customerId } = await params;
   let activate: boolean = false;
+
+  // Rate limiting
+  const identifier =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.moderate()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    logger.warn("Rate limit exceeded for enterprise theme activation", {
+      requestId: context.requestId,
+      customerId,
+      identifier,
+    });
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Rate limit exceeded. Please try again later.",
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": "10",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
 
   try {
     const body = await request.json();

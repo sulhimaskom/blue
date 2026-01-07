@@ -10,6 +10,7 @@ import { z } from "zod";
 import { logger, createRequestContext } from "@/lib/logger";
 import { enterpriseThemeManager } from "@/lib/constants/enterprise-themes";
 import { ValidationError, NotFoundError } from "@/lib/api-utils";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 // Validation schemas
 const UpdateThemeSchema = z.object({
@@ -42,6 +43,36 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const context = createRequestContext();
   const { customerId } = await params;
+
+  // Rate limiting
+  const identifier =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.standard()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    logger.warn("Rate limit exceeded for enterprise theme GET", {
+      requestId: context.requestId,
+      customerId,
+      identifier,
+    });
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Rate limit exceeded. Please try again later.",
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": "30",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
 
   try {
     const theme = enterpriseThemeManager.getTheme(customerId);
@@ -103,6 +134,36 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   const context = createRequestContext();
   const { customerId } = await params;
+
+  // Rate limiting
+  const identifier =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.moderate()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    logger.warn("Rate limit exceeded for enterprise theme PUT", {
+      requestId: context.requestId,
+      customerId,
+      identifier,
+    });
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Rate limit exceeded. Please try again later.",
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": "10",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
 
   try {
     const body = await request.json();
@@ -206,6 +267,36 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const context = createRequestContext();
   const { customerId } = await params;
+
+  // Rate limiting
+  const identifier =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimitCheck = await RateLimiters.moderate()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    logger.warn("Rate limit exceeded for enterprise theme DELETE", {
+      requestId: context.requestId,
+      customerId,
+      identifier,
+    });
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Rate limit exceeded. Please try again later.",
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": "10",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+        },
+      },
+    );
+  }
 
   try {
     const existingTheme = enterpriseThemeManager.getTheme(customerId);

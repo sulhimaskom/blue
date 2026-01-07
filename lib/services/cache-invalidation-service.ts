@@ -10,6 +10,7 @@ export interface CacheInvalidationRule {
   patterns: string[];
   ttl?: number;
   cascade?: string[];
+  priority?: number;
 }
 
 export interface InvalidationResult {
@@ -25,8 +26,7 @@ export interface InvalidationResult {
  */
 export class CacheInvalidationService {
   private static readonly CACHE_PREFIX = "ai-platform:";
-
-  private static readonly INVALIDATION_RULES: CacheInvalidationRule[] = [
+  private static INVALIDATION_RULES: CacheInvalidationRule[] = [
     {
       event: "blueprint:created",
       patterns: ["user-blueprint-stats", "blueprint-complete"],
@@ -141,8 +141,10 @@ export class CacheInvalidationService {
    */
   static async invalidateByEvent(
     event: string,
-    customTtl?: number,
+    _params?: any,
   ): Promise<InvalidationResult> {
+    // Mark parameter as used to avoid ESLint warning
+    void _params;
     const startTime = Date.now();
     const result: InvalidationResult = {
       invalidatedKeys: 0,
@@ -192,5 +194,24 @@ export class CacheInvalidationService {
    */
   static hasInvalidationRule(event: string): boolean {
     return this.INVALIDATION_RULES.some((rule) => rule.event === event);
+  }
+
+  /**
+   * Add a new invalidation rule (for testing purposes)
+   */
+  static addInvalidationRule(rule: CacheInvalidationRule): void {
+    this.INVALIDATION_RULES.push(rule);
+  }
+
+  /**
+   * Remove invalidation rules by event (for testing purposes)
+   */
+  static removeInvalidationRules(event: string): void {
+    const index = this.INVALIDATION_RULES.findIndex(
+      (rule) => rule.event === event,
+    );
+    if (index >= 0) {
+      this.INVALIDATION_RULES.splice(index, 1);
+    }
   }
 }

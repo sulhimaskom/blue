@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { StripePaymentService } from "@/lib/services/stripe-payment-service";
 import { SecurityService } from "@/lib/services/security-service";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 const stripeService = StripePaymentService.getInstance();
 
@@ -9,6 +10,34 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const requestId = crypto.randomUUID();
 
   try {
+    // Rate limiting for webhook endpoint
+    const identifier =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      "anonymous";
+    const rateLimitCheck = await RateLimiters.webhook()(identifier);
+
+    if (!rateLimitCheck.allowed) {
+      logger.warn("Rate limit exceeded for Stripe webhook", {
+        requestId,
+        identifier,
+      });
+
+      return NextResponse.json(
+        {
+          error: "Rate limit exceeded. Please try again later.",
+        },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": "100",
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+          },
+        },
+      );
+    }
+
     const body = await request.text();
 
     // First verify using centralized security service
@@ -84,10 +113,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 // Health check endpoint for monitoring
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const requestId = crypto.randomUUID();
 
   try {
+    // Rate limiting for health check endpoint
+    const identifier =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      "anonymous";
+    const rateLimitCheck = await RateLimiters.permissive()(identifier);
+
+    if (!rateLimitCheck.allowed) {
+      logger.warn("Rate limit exceeded for Stripe webhook health check", {
+        requestId,
+        identifier,
+      });
+
+      return NextResponse.json(
+        {
+          error: "Rate limit exceeded. Please try again later.",
+        },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": "60",
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
+          },
+        },
+      );
+    }
+
     const isConfigured = stripeService.isConfigured();
     const publishableKey = isConfigured
       ? stripeService.getPublishableKey()
