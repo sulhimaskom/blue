@@ -2751,6 +2751,99 @@ All documentation is now world-class and ready to support immediate customer acq
     - Remove duplicate manual verification code
     - Ensure all webhooks use queue-based processing for reliability
     - Standardize webhook response format and error handling
-  - **Priority**: Medium (consistency & reliability)
-  - **Effort**: Small (clear migration path)
-  - **Impact**: Consistent webhook handling, reduced code duplication, improved reliability
+    - **Priority**: Medium (consistency & reliability)
+    - **Effort**: Small (clear migration path)
+    - **Impact**: Consistent webhook handling, reduced code duplication, improved reliability
+
+- [ ] **[REFACTOR]** Remove Duplicate CacheWarmingService Implementations
+  - **Location**: `lib/services/cache-warming-service.ts` (old) and `lib/services/cache/cache-warming-service.ts` (new)
+  - **Issue**: Two different CacheWarmingService implementations exist causing confusion and potential maintainability issues
+    - Old version: `./lib/services/cache-warming-service.ts` (200+ lines)
+    - New version: `./lib/services/cache/cache-warming-service.ts` (444 lines) with advanced features
+    - The new version is already being imported by `cache-orchestrator.ts`
+  - **Suggestion**:
+    - Verify new version has all functionality from old version
+    - Remove old `lib/services/cache-warming-service.ts`
+    - Update any remaining imports to point to new location
+    - Add deprecation notice or migration documentation if needed
+  - **Priority**: High (code deduplication & clarity)
+  - **Effort**: Small (verification and removal)
+  - **Impact**: Eliminates 200+ lines of duplicate code, reduces confusion, single source of truth
+
+- [ ] **[REFACTOR]** Replace Console Statements with Logger in Production Code
+  - **Location**: `lib/monitoring.ts:329,359` in `trackError()` and `trackSecurityEvent()` methods
+  - **Issue**: Production code contains direct `console.error()` calls instead of using the centralized logger
+    - Line 329: `console.error("CRITICAL ERROR:", event)` in production error tracking
+    - Line 359: `console.error("CRITICAL SECURITY EVENT:", monitoringEvent)` in security event tracking
+    - These bypass the structured logging system and are inconsistent with codebase patterns
+  - **Suggestion**:
+    - Replace `console.error()` calls with `logger.error()` for consistency
+    - Ensure critical events are still properly tracked in production
+    - Verify that logger properly handles critical severity events
+    - Add integration with external monitoring services (Sentry/DataDog) if needed
+  - **Priority**: Medium (consistency & maintainability)
+  - **Effort**: Small (2 lines to fix)
+  - **Impact**: Consistent logging across codebase, proper structured error tracking, better production debugging
+
+- [ ] **[REFACTOR]** Eliminate Type Safety Violations in Service Layer
+  - **Location**: Multiple service files with `any` type usage
+    - `lib/services/performance-optimization-service.ts`: 5+ instances (lines 18, 46, 53-54, 59, 234)
+    - `lib/services/ai-service.ts`: 4 instances in request/completion type handling
+    - `lib/services/cache-warming-service.ts`: 1 instance (generateWarmData returns any)
+    - `lib/services/database-cache-service.ts`: 1 instance in parameters
+  - **Issue**: Violates blueprint.md principle 8.3 ("no-explicit-any is strictly enforced")
+    - Reduces TypeScript's compile-time safety benefits
+    - Makes IntelliSense less effective for developers
+    - Can lead to runtime errors that should be caught at compile time
+  - **Suggestion**:
+    - Create proper interfaces for `any` types in PerformanceOptimizationService:
+      - `PerformanceMetrics` interface replacing `metrics: any`
+      - `AlertType` interface replacing `alerts: any[]`
+      - `CompressionConfig` interface replacing `[key: string]: any`
+    - Type AI request/completion parameters in AIService
+    - Create `WarmData` interface for cache warming service
+    - Type database query parameters in DatabaseQueryCache
+    - Add tests to verify type safety improvements
+  - **Priority**: High (type safety & blueprint compliance)
+  - **Effort**: Medium (requires interface creation and testing)
+  - **Impact**: Enhanced compile-time safety, better IntelliSense, reduced runtime errors, full blueprint.md compliance
+
+- [ ] **[REFACTOR]** Standardize Error Response Patterns Across Services
+  - **Location**: `lib/services/` directory with 114 `logger.error()` calls and 29 try-catch blocks in API routes
+  - **Issue**: Inconsistent error handling patterns across services and API routes
+    - Some services return specific error types, others throw generic errors
+    - Error messages and formats vary between services
+    - API routes have inconsistent error response structures
+  - **Suggestion**:
+    - Create centralized error response service with consistent format
+    - Define error types: `ServiceError`, `ValidationError`, `AuthenticationError`, `DatabaseError`
+    - Implement error factory methods for consistent error creation
+    - Standardize error logging context (requestId, userId, timestamp)
+    - Add error code mapping for client-side handling
+    - Create tests to verify error response consistency
+  - **Priority**: Medium (consistency & developer experience)
+  - **Effort**: Medium (requires service-level changes)
+  - **Impact**: Consistent API responses, better debugging, improved error handling, unified error format
+
+- [ ] **[REFACTOR]** Optimize Large Service Files Through Decomposition
+  - **Location**: Several services exceeding 900 lines, violating single responsibility principle
+    - `lib/services/ai-pattern-detector.ts`: 1,197 lines (already has task for decomposing UnifiedCacheManager)
+    - `lib/services/predictive-cache-optimizer.ts`: 1,086 lines
+    - `lib/services/blueprint-engine.ts`: 919 lines
+    - `lib/services/intelligent-prefetch-service.ts`: 853 lines
+  - **Issue**: Large files are difficult to maintain, test, and understand
+    - High cyclomatic complexity increases bug risk
+    - Multiple responsibilities in single service
+    - Difficult to locate specific functionality
+  - **Suggestion**:
+    - Audit each large service to identify distinct responsibilities
+    - Extract sub-services for specific concerns:
+      - Pattern detection logic from AIPatternDetector
+      - Cache optimization strategies from PredictiveCacheOptimizer
+      - Blueprint generation phases from BlueprintEngine
+      - Prefetch algorithms from IntelligentPrefetchService
+    - Maintain facade pattern for backward compatibility
+    - Add comprehensive tests for each extracted service
+  - **Priority**: Medium (architectural purity & maintainability)
+  - **Effort**: Large (comprehensive refactoring)
+  - **Impact**: Improved maintainability, easier testing, better code organization, reduced complexity
