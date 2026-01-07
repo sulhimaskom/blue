@@ -1,11 +1,4 @@
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-  useCallback,
-  useRef,
-  memo,
-} from "react";
+import React, { useEffect, useMemo, useState, useCallback, memo } from "react";
 import { BaseCard } from "@/components/ui/base-card";
 import { MetricCard } from "@/components/ui/metric-card";
 import {
@@ -18,6 +11,7 @@ import {
   AlertTriangleIcon,
 } from "@/components/ui/icons";
 import { getUIText } from "@/lib/constants/ui-text";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 import {
   getTextColor,
   getBackgroundColor,
@@ -32,24 +26,6 @@ import {
   getPerformanceStatus,
   isPerformanceData,
 } from "@/lib/types/performance-types";
-
-// Debounce hook for performance optimization
-function useDebounce<T extends (..._parameters: unknown[]) => unknown>( // eslint-disable-line no-unused-vars
-  callback: T,
-  delay: number,
-): T {
-  const timeoutRef = useRef<NodeJS.Timeout>();
-
-  return useCallback(
-    ((...parameters: Parameters<T>) => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      timeoutRef.current = setTimeout(() => callback(...parameters), delay);
-    }) as T,
-    [callback, delay],
-  );
-}
 
 // Optimized metrics calculation hook
 function usePerformanceMetrics(
