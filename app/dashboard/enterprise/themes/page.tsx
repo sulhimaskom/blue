@@ -274,7 +274,7 @@ export default function EnterpriseThemesPage() {
                   <Button
                     variant="outline"
                     onClick={handleResetTheme}
-                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     Deactivate
                   </Button>

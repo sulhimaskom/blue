@@ -19,38 +19,11 @@ import {
   cn,
 } from "@/lib/constants/ui-themes";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { usePerformanceMetrics } from "@/lib/hooks/use-performance-metrics";
 import {
   PerformanceMetrics,
-  DashboardPerformanceMetrics,
   PerformanceAlert,
 } from "@/lib/types/webhook-types";
-
-// Optimized metrics calculation hook
-function usePerformanceMetrics(
-  performanceData: PerformanceMetrics | null,
-): DashboardPerformanceMetrics | null {
-  return useMemo(() => {
-    if (!performanceData) return null;
-
-    const perf = performanceData.performance || {};
-    const bundle = performanceData.bundle || {};
-    const compression = performanceData.compression || {};
-
-    return {
-      performanceScore: perf.score || 0,
-      bundleSizeKB: Math.round((bundle.totalSize || 0) / 1024),
-      bundleSizeGzippedKB: Math.round((bundle.gzippedSize || 0) / 1024),
-      compressionRate: compression.compressionRatePercent || 0,
-      bandwidthSavedKB: compression.bandwidthSavedKB || 0,
-      alertCount: perf.alertCount || 0,
-      timestamp: performanceData.timestamp,
-      alerts: (perf.alerts || [])
-        .filter((alert: PerformanceAlert) => alert.type === "critical")
-        .slice(0, 3),
-      quickWins: performanceData.optimization?.quickWins || [],
-    };
-  }, [performanceData]);
-}
 
 interface PerformanceDashboardProps {
   detailed?: boolean;
