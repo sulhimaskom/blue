@@ -20,7 +20,7 @@ import { useCallback, useRef } from "react";
  * debouncedSearch('search term'); // Only executes after 300ms delay
  * ```
  */
-function useDebounce<T extends (..._parameters: unknown[]) => unknown>( // eslint-disable-line no-unused-vars
+export function useDebounce<T extends (..._parameters: unknown[]) => unknown>(
   callback: T,
   delay: number,
 ): T {
@@ -36,5 +36,3 @@ function useDebounce<T extends (..._parameters: unknown[]) => unknown>( // eslin
     [callback, delay],
   );
 }
-
-export { useDebounce };

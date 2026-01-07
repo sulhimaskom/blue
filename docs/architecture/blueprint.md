@@ -12,7 +12,7 @@
 | **Description**     | AI-driven SaaS that creates comprehensive software blueprints and deploys repositories from simple user prompts. |
 | **Package Manager** | `pnpm`                                                                                                           |
 | **Package Manager** | `pnpm`                                                                                                           |
-| **Version**         | 1.0.0 (Alpha)                                                                                                    |
+| **Version**         | 1.0.0                                                                                                            |
 | **License**         | MIT                                                                                                              |
 
 ---

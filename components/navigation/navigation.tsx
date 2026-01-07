@@ -152,7 +152,7 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
             )}
 
             <button
-              className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+              className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               <svg

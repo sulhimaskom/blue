@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, memo } from "react";
 import { BaseCard } from "@/components/ui/base-card";
-import { MetricCard } from "@/components/ui/metric-card";
 import {
   StatusIndicator,
   type StatusType,
@@ -15,10 +14,13 @@ import { useDebounce } from "@/lib/hooks/use-debounce";
 import {
   getTextColor,
   getBackgroundColor,
-  getAccentColor,
   getStatusTheme,
+  getAccentColor,
   cn,
 } from "@/lib/constants/ui-themes";
+import { AutoOptimizationControls } from "./auto-optimization-controls";
+import { AlertsPanel } from "./alerts-panel";
+import { PerformanceScoreOverview } from "./performance-score-overview";
 import {
   type PerformanceData,
   type PerformanceAlert,
@@ -218,77 +220,25 @@ export const PerformanceDashboard = memo(
             />
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              className={cn(
-                "px-3 py-1 rounded-lg text-sm font-medium transition-colors",
-                autoRefresh
-                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                  : getBackgroundColor("subtle") + " " + getTextColor("body"),
-              )}
-            >
-              {autoRefresh ? "Auto-refresh ON" : "Auto-refresh OFF"}
-            </button>
-
-            <button
-              onClick={applyOptimizations}
-              className={cn(
-                "px-3 py-1 rounded-lg text-sm font-medium transition-colors",
-                getAccentColor("blue", "background"),
-                getAccentColor("blue", "text"),
-                "hover:bg-blue-200 dark:hover:bg-blue-800",
-              )}
-            >
-              Auto-Optimize
-            </button>
-
-            <button
-              onClick={refreshPerformanceData}
-              className={cn(
-                "p-2 transition-colors",
-                getTextColor("muted"),
-                "hover:text-gray-800 dark:hover:text-gray-200",
-              )}
-              disabled={loading}
-            >
-              <div className={loading ? "animate-spin" : ""}>
-                <TrendingUpIcon />
-              </div>
-            </button>
-          </div>
+          <AutoOptimizationControls
+            autoRefresh={autoRefresh}
+            loading={loading}
+            onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
+            onApplyOptimizations={applyOptimizations}
+            onRefresh={refreshPerformanceData}
+          />
         </div>
 
-        {/* Performance Score Overview - Using optimized metrics hook */}
         {metrics && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <MetricCard
-              title="Performance Score"
-              value={`${metrics.performanceScore}%`}
-              status={performanceStatus}
-            />
-
-            <MetricCard
-              title="Bundle Size"
-              value={`${metrics.bundleSizeKB}KB`}
-              subtitle={`${metrics.bundleSizeGzippedKB}KB gzipped`}
-              status={metrics.bundleSizeKB > 1024 ? "unhealthy" : "healthy"}
-            />
-
-            <MetricCard
-              title="Compression"
-              value={`${metrics.compressionRate}%`}
-              subtitle={`${metrics.bandwidthSavedKB}KB saved`}
-              status={metrics.compressionRate > 30 ? "healthy" : "degraded"}
-            />
-
-            <MetricCard
-              title="Active Alerts"
-              value={metrics.alertCount}
-              subtitle={getUIText("monitoring", "criticalWarnings")}
-              status={metrics.alertCount === 0 ? "healthy" : "degraded"}
-            />
-          </div>
+          <PerformanceScoreOverview
+            performanceScore={metrics.performanceScore}
+            bundleSizeKB={metrics.bundleSizeKB}
+            bundleSizeGzippedKB={metrics.bundleSizeGzippedKB}
+            compressionRate={metrics.compressionRate}
+            bandwidthSavedKB={metrics.bandwidthSavedKB}
+            alertCount={metrics.alertCount}
+            performanceStatus={performanceStatus as StatusType}
+          />
         )}
 
         {/* Critical Alerts - Using optimized metrics */}

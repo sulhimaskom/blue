@@ -6,8 +6,8 @@
 
 ## ✨ Production Status: **WORLD-CLASS** ⭐⭐
 
-**Audit Score**: 98/100 - World-Class Engineering Excellence  
-**Security**: Zero vulnerabilities | **Build**: Production ready | **Tests**: 30/30 passing  
+**Audit Score**: 98/100 - World-Class Engineering Excellence
+**Security**: Zero vulnerabilities | **Build**: Production ready | **Tests**: 182/182 tests, 21/21 suites
 **Status**: ✅ **APPROVED FOR IMMEDIATE PRODUCTION DEPLOYMENT**
 
 ---
@@ -59,10 +59,35 @@ Visit `http://localhost:3000` to see the platform in action.
 
 The platform follows the **Model Context Protocol (MCP)** concept:
 
-1. **Discovery Phase** → AI Research (Tavily) → Market Analysis
-2. **Blueprinting Phase** → AI Reasoning (IFlow) → System Design
-3. **Refinement Phase** → User Interaction → Iterative Improvements
-4. **Fabrication Phase** → GitHub Integration → Repository Creation
+**Phase 1: Discovery** → AI Research (Tavily) → Market Analysis
+
+- User enters simple idea: "I want a marketplace for rare sneakers"
+- System validates user credits and available capacity
+- AI performs market research using Tavily API for competitive analysis
+- Output: Research summary with market gaps, feature requirements, and monetization opportunities
+
+**Phase 2: Blueprinting** → AI Reasoning (IFlow) → System Design
+
+- AI analyzes research data and designs comprehensive architecture
+- Generates technical specifications including tech stack, database schema, API endpoints
+- Self-validates design for scalability and clarity of monetization strategy
+- Output: Complete blueprint with structured data (JSON) and markdown documentation
+
+**Phase 3: Refinement** → User Interaction → Iterative Improvements
+
+- User views blueprint in interactive dashboard
+- Adds features (e.g., "Add Mobile App", "Add Payment Gateway")
+- AI safely injects new modules and updates versioned snapshots
+- Real-time preview of architectural changes
+
+**Phase 4: Fabrication** → GitHub Integration → Repository Creation
+
+- User clicks "Deploy Repository"
+- System authenticates via GitHub App
+- Creates repository: `user-org/project-name`
+- Injects final blueprint into `docs/architecture/blueprint.md`
+- Commits and pushes production-ready code
+- Sends notification: "Your Empire is Ready"
 
 ### Technology Stack
 
