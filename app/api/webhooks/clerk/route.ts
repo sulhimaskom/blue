@@ -9,9 +9,10 @@ import { SecurityService } from "@/lib/services/security-service";
 import { WEBHOOK_EVENTS, CREDIT_RULES } from "@/lib/constants";
 
 export async function POST(req: NextRequest) {
-  return WebhookService.processWebhook(req, {
+  return WebhookService.processWebhookWithReliability(req, {
     serviceName: "Clerk",
     verifySignature: SecurityService.verifyClerkWebhook,
+    useQueue: true, // Enable reliable queue-based processing
     processEvent: async (event: any, context) => {
       const database = db();
 
