@@ -7,7 +7,6 @@ import {
 import { ActivityIcon, AlertTriangleIcon } from "@/components/ui/icons";
 import { getUIText } from "@/lib/constants/ui-text";
 import { useDebounce } from "@/lib/hooks/use-debounce";
-import { usePerformanceMetrics as usePerformanceMetricsHook } from "@/lib/hooks/use-performance-metrics";
 import { logger } from "@/lib/logger";
 import {
   getTextColor,
