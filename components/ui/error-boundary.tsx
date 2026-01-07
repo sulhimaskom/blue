@@ -5,6 +5,7 @@ import { Button } from "./button";
 import { RefreshCwIcon, AlertTriangleIcon } from "./icons";
 import { Environment } from "@/lib/utils/environment";
 import { getUIText } from "@/lib/constants/ui-text";
+import { logger } from "@/lib/logger";
 import {
   getTextColor,
   getIconColor,
@@ -47,11 +48,15 @@ export class ErrorBoundary extends React.Component<
       errorInfo,
     });
 
-    // Log error to monitoring service
-    // eslint-disable-next-line no-console
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    logger.error("ErrorBoundary caught an error", {
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      },
+      componentStack: errorInfo.componentStack,
+    });
 
-    // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
   }
 
