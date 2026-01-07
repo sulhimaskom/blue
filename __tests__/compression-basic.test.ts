@@ -33,8 +33,6 @@ describe("Compression Middleware Basic Tests", () => {
     });
 
     it("should reset statistics correctly", () => {
-      // First set some initial state
-      const initialStats = responseCompressor.getStats();
       responseCompressor.resetStats();
 
       // Verify reset worked
