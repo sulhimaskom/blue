@@ -242,3 +242,45 @@ export function formatSuccessResponse<T>(
     ...(message && { message }),
   });
 }
+
+// Unified rate limiting middleware function
+// Encapsulates rate limit checking and 429 response generation
+// Usage: return withRateLimiter(req, "standard", async () => { ... });
+export async function withRateLimiter(
+  req: NextRequest,
+  rateLimitCategory:
+    | "strict"
+    | "moderate"
+    | "standard"
+    | "permissive"
+    | "webhook",
+  handler: () => Promise<NextResponse>,
+): Promise<NextResponse> {
+  const { RateLimiters } = await import("./rate-limit-config");
+
+  const identifier =
+    req.headers.get("x-forwarded-for") ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+  const rateLimitCheck = await RateLimiters[rateLimitCategory]()(identifier);
+
+  if (!rateLimitCheck.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Rate limit exceeded. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(
+            Math.ceil(
+              rateLimitCheck.resetTime
+                ? (rateLimitCheck.resetTime - Date.now()) / 1000
+                : 60,
+            ),
+          ),
+        },
+      },
+    );
+  }
+
+  return handler();
+}
