@@ -1,11 +1,9 @@
 "use client";
 
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useMonitoring } from "@/lib/hooks/use-monitoring";
 import { useMonitoringDashboardState } from "@/lib/hooks/use-monitoring-dashboard-state";
-import {
-  DashboardHeader,
-  DashboardLayout,
-} from "@/components/monitoring/dashboard-layout";
+import { DashboardHeader } from "@/components/monitoring/dashboard-layout";
 import { SystemHealthOverview } from "@/components/monitoring/system-health-overview";
 import { PerformanceMetrics } from "@/components/monitoring/performance-metrics";
 import { DashboardFooter } from "@/components/monitoring/dashboard-footer";
@@ -66,42 +64,62 @@ export default function MonitoringDashboard() {
   }
 
   return (
-    <DashboardLayout
-      header={
-        <DashboardHeader
-          autoRefresh={autoRefresh}
-          loading={loading}
-          onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
-          onManualRefresh={refreshData}
-        />
-      }
-      error={error}
-      loading={loading}
-      hasData={hasData}
-    >
-      {/* System Health Overview */}
-      {health && (
-        <SystemHealthOverview
-          health={health}
-          expandedService={expandedService}
-          onToggleServiceExpansion={toggleServiceExpansion}
-        />
-      )}
+    <DashboardLayout>
+      <div className="max-w-7xl mx-auto">
+        {/* Dashboard Header */}
+        <div className="mb-8">
+          <DashboardHeader
+            autoRefresh={autoRefresh}
+            loading={loading}
+            onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
+            onManualRefresh={refreshData}
+          />
+        </div>
 
-      {/* Performance Metrics with loading state */}
-      <PerformanceMetrics metrics={metrics || undefined} loading={loading} />
+        {/* Error Handling */}
+        {error && (
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800">
+              Error loading monitoring data: {error}
+            </p>
+          </div>
+        )}
 
-      {/* Advanced Performance Optimization Dashboard - Lazy loaded for performance */}
-      <Suspense fallback={<DashboardSkeleton />}>
-        <PerformanceDashboard detailed={false} />
-      </Suspense>
+        {/* System Health Overview */}
+        {health && (
+          <div className="mb-8">
+            <SystemHealthOverview
+              health={health}
+              expandedService={expandedService}
+              onToggleServiceExpansion={toggleServiceExpansion}
+            />
+          </div>
+        )}
 
-      {/* Footer with Enhanced Status */}
-      <DashboardFooter
-        loading={loading}
-        autoRefresh={autoRefresh}
-        lastRefresh={lastRefresh}
-      />
+        {/* Performance Metrics with loading state */}
+        <div className="mb-8">
+          <PerformanceMetrics
+            metrics={metrics || undefined}
+            loading={loading}
+          />
+        </div>
+
+        {/* Advanced Performance Optimization Dashboard - Lazy loaded for performance */}
+        <div className="mb-8">
+          <Suspense fallback={<DashboardSkeleton />}>
+            <PerformanceDashboard detailed={false} />
+          </Suspense>
+        </div>
+
+        {/* Footer with Enhanced Status */}
+        <div>
+          <DashboardFooter
+            loading={loading}
+            autoRefresh={autoRefresh}
+            lastRefresh={lastRefresh}
+          />
+        </div>
+      </div>
     </DashboardLayout>
   );
 }
