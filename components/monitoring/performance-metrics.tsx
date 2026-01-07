@@ -14,7 +14,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { MonitoringDashboardService } from "@/lib/services/monitoring-dashboard-service";
-import type { MetricsData } from "@/lib/hooks/use-monitoring";
+import type { MetricsData, MetricSummary } from "@/lib/services/service-types";
 import {
   getTextColor,
   cn,
@@ -192,7 +192,7 @@ interface MetricsCardsProps {
   cards: Array<{
     name: string;
     displayName: string;
-    summary: any;
+    summary: MetricSummary;
   }>;
 }
 
