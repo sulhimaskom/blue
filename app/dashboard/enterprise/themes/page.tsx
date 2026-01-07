@@ -10,6 +10,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
   enterpriseThemeManager,
   type EnterpriseThemeConfig,
@@ -108,40 +109,36 @@ export default function EnterpriseThemesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <DashboardLayout>
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Enterprise Themes
-              </h1>
-              <p className="mt-1 text-gray-600">
-                Manage white-label themes for enterprise customers
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              {activeTheme && (
-                <div className="flex items-center gap-2">
-                  <StatusIndicator status="healthy" />
-                  <span className="text-sm text-green-600">
-                    Active: {activeTheme.brandName}
-                  </span>
-                </div>
-              )}
-              <Button onClick={handleResetTheme} variant="outline">
-                Reset to Default
-              </Button>
-              <Button onClick={() => setIsEditing(true)}>
-                Create New Theme
-              </Button>
-            </div>
+      <div className="mb-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Enterprise Themes
+            </h1>
+            <p className="mt-1 text-gray-600">
+              Manage white-label themes for enterprise customers
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            {activeTheme && (
+              <div className="flex items-center gap-2">
+                <StatusIndicator status="healthy" />
+                <span className="text-sm text-green-600">
+                  Active: {activeTheme.brandName}
+                </span>
+              </div>
+            )}
+            <Button onClick={handleResetTheme} variant="outline">
+              Reset to Default
+            </Button>
+            <Button onClick={() => setIsEditing(true)}>Create New Theme</Button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div>
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <MetricCard
@@ -319,6 +316,6 @@ export default function EnterpriseThemesPage() {
           </div>
         )}
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
