@@ -8,18 +8,31 @@ import type { AIPattern } from "@/lib/services/service-types";
 
 // Test the private methods via reflection-style access
 describe("AI Service Cost-Aware Caching Optimization", () => {
-  // Mock AI Service class to test private methods
+  // Mock AI Service class to test private methods with enhanced time mocking
   class TestAIService {
     private mockHour: number | null = null;
+    private mockDate: Date | null = null;
 
     /**
-     * Override getCurrentHour for testing
+     * Override getCurrentHour for testing with enhanced determinism
      */
     protected getCurrentHour(): number {
       if (this.mockHour !== null) {
         return this.mockHour;
       }
-      return new Date().getHours();
+      // Always use a fixed time for deterministic results when not mocked
+      return 10; // 10 AM UTC - normal hours
+    }
+
+    /**
+     * Get current date for time-dependent calculations
+     */
+    protected getCurrentDate(): Date {
+      if (this.mockDate !== null) {
+        return this.mockDate;
+      }
+      // Use a fixed date for consistent test results
+      return new Date("2026-01-07T10:00:00.000Z");
     }
 
     /**
@@ -30,10 +43,18 @@ describe("AI Service Cost-Aware Caching Optimization", () => {
     }
 
     /**
-     * Clear mock hour
+     * Set mock date for edge case testing
      */
-    public clearMockHour(): void {
+    public setMockDate(date: Date): void {
+      this.mockDate = date;
+    }
+
+    /**
+     * Clear mock values
+     */
+    public clearMockValues(): void {
       this.mockHour = null;
+      this.mockDate = null;
     }
 
     /**
@@ -204,21 +225,24 @@ describe("AI Service Cost-Aware Caching Optimization", () => {
     public testCalculateCostAwareTTL = this.calculateCostAwareTTL.bind(this);
     public testCalculateEstimatedSavings =
       this.calculateEstimatedSavings.bind(this);
+    public testCalculateCostOptimizationFactors =
+      this.calculateCostOptimizationFactors.bind(this);
     public testGetPatternMultiplier = this.getPatternMultiplier.bind(this);
     public testGetTimeBasedMultiplier = this.getTimeBasedMultiplier.bind(this);
     public testGetUsageMultiplier = this.getUsageMultiplier.bind(this);
+    public testGetPatternTypicalTTL = this.getPatternTypicalTTL.bind(this);
   }
 
   let aiService: TestAIService;
 
   beforeEach(() => {
     aiService = new TestAIService();
-    // Clear any mock hour before each test
-    aiService.clearMockHour();
+    // Clear any mock values before each test
+    aiService.clearMockValues();
   });
 
   afterEach(() => {
-    aiService.clearMockHour();
+    aiService.clearMockValues();
   });
 
   describe("calculateCostAwareTTL", () => {
@@ -449,6 +473,58 @@ describe("AI Service Cost-Aware Caching Optimization", () => {
     });
   });
 
+  describe("cost factors calculation", () => {
+    it("should calculate cost optimization factors correctly", () => {
+      const expensiveRequest = {
+        prompt: "A".repeat(600), // Over 500 chars
+        model: { id: "gpt-4-turbo" },
+      };
+
+      const expensiveCompletion = {
+        content: "Expensive response",
+        model: { id: "gpt-4-turbo" },
+        usage: { totalTokens: 2500 }, // Over 2000 tokens
+      };
+
+      const factors = aiService.testCalculateCostOptimizationFactors(
+        expensiveRequest,
+        expensiveCompletion,
+      );
+
+      // Should apply: 1.5 (expensive) * 1.3 (complex) * 1.4 (premium) = 2.73
+      expect(factors).toBeCloseTo(2.73, 2);
+    });
+
+    it("should return 1.0 for cheap requests", () => {
+      const cheapRequest = {
+        prompt: "Simple",
+        model: { id: "basic-model" },
+      };
+
+      const cheapCompletion = {
+        content: "Simple",
+        model: { id: "basic-model" },
+        usage: { totalTokens: 100 },
+      };
+
+      const factors = aiService.testCalculateCostOptimizationFactors(
+        cheapRequest,
+        cheapCompletion,
+      );
+
+      expect(factors).toBe(1.0);
+    });
+  });
+
+  describe("pattern TTL mapping", () => {
+    it("should return correct TTL for each pattern", () => {
+      expect(aiService.testGetPatternTypicalTTL("fintech")).toBe(10800);
+      expect(aiService.testGetPatternTypicalTTL("healthcare")).toBe(7200);
+      expect(aiService.testGetPatternTypicalTTL("dashboard")).toBe(1800);
+      expect(aiService.testGetPatternTypicalTTL("saas")).toBe(3600);
+    });
+  });
+
   describe("cost savings calculation", () => {
     it("should calculate estimated savings correctly", () => {
       // 1.5x multiplier should result in 40% savings
@@ -528,6 +604,81 @@ describe("AI Service Cost-Aware Caching Optimization", () => {
 
       // Should be base TTL with normal hours
       expect(optimizedTTL).toBe(1800); // 1800 * 1.0 (normal hours)
+    });
+
+    it("should handle boundary hours correctly", () => {
+      const testRequest = {
+        prompt: "Test request",
+        model: { id: "test-model" },
+      };
+
+      const testCompletion = {
+        content: "Test response",
+        model: { id: "test-model" },
+        usage: { totalTokens: 500 },
+      };
+
+      // Test boundary: exactly 22:00 (start of off-peak)
+      aiService.setMockHour(22);
+      const offPeakStart = aiService.testCalculateCostAwareTTL(
+        null,
+        testRequest,
+        testCompletion,
+      );
+      expect(offPeakStart).toBe(Math.floor(1800 * 1.4)); // Off-peak multiplier
+
+      // Test boundary: exactly 6:00 (end of off-peak)
+      aiService.setMockHour(6);
+      const offPeakEnd = aiService.testCalculateCostAwareTTL(
+        null,
+        testRequest,
+        testCompletion,
+      );
+      expect(offPeakEnd).toBe(Math.floor(1800 * 1.4)); // Still off-peak
+
+      // Test boundary: exactly 14:00 (start of peak)
+      aiService.setMockHour(14);
+      const peakStart = aiService.testCalculateCostAwareTTL(
+        null,
+        testRequest,
+        testCompletion,
+      );
+      expect(peakStart).toBe(Math.floor(1800 * 0.8)); // Peak multiplier
+
+      // Test boundary: exactly 18:00 (end of peak)
+      aiService.setMockHour(18);
+      const peakEnd = aiService.testCalculateCostAwareTTL(
+        null,
+        testRequest,
+        testCompletion,
+      );
+      expect(peakEnd).toBe(Math.floor(1800 * 0.8)); // Still peak
+    });
+
+    it("should handle floating point precision in TTL calculations", () => {
+      const request = {
+        prompt: "A".repeat(501), // Just over complexity threshold
+        model: { id: "gpt-4" },
+      };
+
+      const completion = {
+        content: "Test",
+        model: { id: "gpt-4" },
+        usage: { totalTokens: 2001 }, // Just over expensive threshold
+      };
+
+      // Mock normal hours to isolate precision issues
+      aiService.setMockHour(10);
+
+      const optimizedTTL = aiService.testCalculateCostAwareTTL(
+        "dashboard" as AIPattern["type"],
+        request,
+        completion,
+      );
+
+      // Should handle floating point calculation with Math.floor
+      const expected = Math.floor(1800 * 1.5 * 1.3 * 1.4 * 1.1 * 1.0 * 1.2);
+      expect(optimizedTTL).toBe(expected);
     });
   });
 
