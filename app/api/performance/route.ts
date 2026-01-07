@@ -1,14 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { DatabasePerformanceOptimizer } from "@/lib/db/performance-optimizer";
 import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
-import { DatabaseQueryCache } from "@/lib/services/database-cache-service";
+import {
+  DatabaseQueryCache,
+  type QueryCacheStats,
+} from "@/lib/services/database-cache-service";
 import {
   DatabasePerformanceMonitor,
   type QueryMetrics,
 } from "@/lib/db/performance-monitor";
 import { logger } from "@/lib/logger";
-import { RateLimiters } from "@/lib/rate-limit-config";
+import { formatSuccessResponse, formatErrorResponse } from "@/lib/api-utils";
 
+// Define proper types for performance metrics
 interface CacheMetrics {
   totalRequests: number;
   cacheHits: number;
@@ -19,7 +23,7 @@ interface CacheMetrics {
   performanceImprovement: number;
   cachePatterns: unknown[];
   recommendations: string[];
-  databaseCacheStats?: unknown;
+  databaseCacheStats?: QueryCacheStats;
 }
 
 interface DatabasePerformanceMetrics {
@@ -35,86 +39,12 @@ interface DatabasePerformanceMetrics {
   performanceReport?: unknown;
 }
 
-export async function GET(req: NextRequest) {
-  const identifier =
-    req.headers.get("x-forwarded-for") ||
-    req.headers.get("x-real-ip") ||
-    "anonymous";
-  const rateLimitCheck = await RateLimiters.standard()(identifier);
-
-  if (!rateLimitCheck.allowed) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Rate limit exceeded. Try again in 60 seconds.",
-      },
-      {
-        status: 429,
-        headers: {
-          "X-RateLimit-Limit": "30",
-          "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
-        },
-      },
-    );
-  }
-
-  return handlePerformanceReport(req);
-}
-
-async function handlePerformanceReport(req: NextRequest) {
-  const searchParams = req.nextUrl.searchParams;
-  const includeCache = searchParams.get("includeCache") === "true";
-  const includeDb = searchParams.get("includeDb") === "true";
-  const detailed = searchParams.get("detailed") === "true";
-
-  // Get cache performance metrics
-  let cacheMetrics: CacheMetrics | null = null;
-  if (includeCache) {
-    cacheMetrics = await UnifiedCacheManager.getPerformanceMetrics();
-    cacheMetrics.databaseCacheStats = DatabaseQueryCache.getCacheStats();
-  }
-
-  // Get database performance metrics
-  let dbMetrics: DatabasePerformanceMetrics | null = null;
-  if (includeDb) {
-    dbMetrics = DatabasePerformanceMonitor.getPerformanceMetrics();
-
-    if (detailed) {
-      dbMetrics.performanceReport =
-        await DatabasePerformanceOptimizer.getPerformanceReport();
-    }
-  }
-
-  // Calculate overall performance score
-  const performanceScore = calculatePerformanceScore(cacheMetrics, dbMetrics);
-
-  logger.info("Performance report generated", {
-    includeCache,
-    includeDb,
-    detailed,
-    performanceScore,
-  });
-
-  return NextResponse.json({
-    success: true,
-    timestamp: new Date().toISOString(),
-    performanceScore,
-    metrics: {
-      cache: cacheMetrics,
-      database: dbMetrics,
-    },
-    recommendations: generateOverallRecommendations(cacheMetrics, dbMetrics),
-  });
-}
-
 function calculatePerformanceScore(
   cacheMetrics: CacheMetrics | null,
   dbMetrics: DatabasePerformanceMetrics | null,
 ): number {
   let score = 100;
 
-  // Cache performance impact
   if (cacheMetrics) {
     if (cacheMetrics.hitRate < 0.5) score -= 20;
     else if (cacheMetrics.hitRate < 0.7) score -= 10;
@@ -124,7 +54,6 @@ function calculatePerformanceScore(
     else if (cacheMetrics.performanceImprovement > 50) score += 5;
   }
 
-  // Database performance impact
   if (dbMetrics) {
     if (dbMetrics.successRate < 95) score -= 20;
     else if (dbMetrics.successRate < 98) score -= 10;
@@ -148,20 +77,17 @@ function generateOverallRecommendations(
   const recommendations: string[] = [];
 
   if (cacheMetrics) {
-    // Add cache-related recommendations
     if (cacheMetrics.recommendations) {
       recommendations.push(...cacheMetrics.recommendations);
     }
   }
 
   if (dbMetrics) {
-    // Add database-related recommendations
     const dbRecommendations =
       DatabasePerformanceMonitor.getPerformanceRecommendations();
     recommendations.push(...dbRecommendations);
   }
 
-  // Add overall system recommendations
   if (recommendations.length === 0) {
     recommendations.push(
       "System performance is optimal - all components performing well",
@@ -169,4 +95,71 @@ function generateOverallRecommendations(
   }
 
   return recommendations;
+}
+
+export async function GET(req: NextRequest) {
+  return UnifiedCacheManager.withCache(
+    req,
+    async () => {
+      try {
+        const searchParams = req.nextUrl.searchParams;
+        const includeCache = searchParams.get("includeCache") === "true";
+        const includeDb = searchParams.get("includeDb") === "true";
+        const detailed = searchParams.get("detailed") === "true";
+
+        let cacheMetrics: CacheMetrics | null = null;
+        if (includeCache) {
+          cacheMetrics = await UnifiedCacheManager.getPerformanceMetrics();
+          cacheMetrics.databaseCacheStats = DatabaseQueryCache.getCacheStats();
+        }
+
+        let dbMetrics: DatabasePerformanceMetrics | null = null;
+        if (includeDb) {
+          dbMetrics = DatabasePerformanceMonitor.getPerformanceMetrics();
+
+          if (detailed) {
+            dbMetrics.performanceReport =
+              await DatabasePerformanceOptimizer.getPerformanceReport();
+          }
+        }
+
+        const performanceScore = calculatePerformanceScore(
+          cacheMetrics,
+          dbMetrics,
+        );
+
+        logger.info("Performance report generated", {
+          includeCache,
+          includeDb,
+          detailed,
+          performanceScore,
+        });
+
+        return formatSuccessResponse({
+          timestamp: new Date().toISOString(),
+          performanceScore,
+          metrics: {
+            cache: cacheMetrics,
+            database: dbMetrics,
+          },
+          recommendations: generateOverallRecommendations(
+            cacheMetrics,
+            dbMetrics,
+          ),
+        });
+      } catch (error) {
+        logger.error("Performance report generation failed", {
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+        return formatErrorResponse(
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      }
+    },
+    {
+      ttl: 60,
+      tags: ["performance", "monitoring", "dashboard"],
+      varyBy: [],
+    },
+  );
 }

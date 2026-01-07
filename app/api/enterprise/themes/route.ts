@@ -9,11 +9,11 @@
  * - POST /api/enterprise/themes - Create new theme
  */
 
-import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { logger, createRequestContext } from "@/lib/logger";
+import { logger } from "@/lib/logger";
 import { enterpriseThemeManager } from "@/lib/constants/enterprise-themes";
 import { ValidationError } from "@/lib/api-utils";
+import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { RateLimiters } from "@/lib/rate-limit-config";
 
 // Validation schemas
@@ -31,26 +31,13 @@ const CreateThemeSchema = z.object({
   logoUrl: z.string().url().optional(),
   faviconUrl: z.string().url().optional(),
   customCSS: z.record(z.string()).optional(),
-  isActive: z.boolean().default(false),
 });
 
 // GET /api/enterprise/themes - List all enterprise themes
-export async function GET(request: NextRequest) {
-  const context = createRequestContext();
-  const identifier = request.headers.get("x-forwarded-for") || "unknown";
-
-  try {
-    const rateLimitCheck = await RateLimiters.themesGet()(identifier);
-    if (!rateLimitCheck.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Rate limit exceeded. Please try again later.",
-        },
-        { status: 429 },
-      );
-    }
-
+export const GET = APIRouteHandler.createGETHandler({
+  requireAuth: false,
+  rateLimiter: (identifier: string) => RateLimiters.themesGet()(identifier),
+  handler: async ({ context }) => {
     const themes = enterpriseThemeManager.getAllThemes();
     const activeTheme = enterpriseThemeManager.getActiveTheme();
 
@@ -60,60 +47,23 @@ export async function GET(request: NextRequest) {
       hasActiveTheme: !!activeTheme,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        themes,
-        activeTheme,
-        total: themes.length,
-      },
-    });
-  } catch (error) {
-    logger.error("Failed to list enterprise themes", {
-      requestId: context.requestId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to retrieve themes",
-      },
-      { status: 500 },
-    );
-  }
-}
+    return {
+      themes,
+      activeTheme,
+      total: themes.length,
+    };
+  },
+});
 
 // POST /api/enterprise/themes - Create new enterprise theme
-export async function POST(request: NextRequest) {
-  const context = createRequestContext();
-  const identifier = request.headers.get("x-forwarded-for") || "unknown";
-
-  try {
-    const rateLimitCheck = await RateLimiters.themesPost()(identifier);
-    if (!rateLimitCheck.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Rate limit exceeded. Please try again later.",
-        },
-        { status: 429 },
-      );
-    }
-
-    const body = await request.json();
-    const validationResult = CreateThemeSchema.safeParse(body);
-
-    if (!validationResult.success) {
-      throw new ValidationError(
-        `Validation failed: ${validationResult.error.message}`,
-      );
-    }
-
-    const themeData = validationResult.data;
+export const POST = APIRouteHandler.createPOSTHandler({
+  schema: CreateThemeSchema,
+  requireAuth: false,
+  rateLimiter: (identifier: string) => RateLimiters.themesPost()(identifier),
+  handler: async ({ context, data }) => {
+    const themeData = data!;
     const customerId = themeData.brandName.toLowerCase().replace(/\s+/g, "-");
 
-    // Check if theme already exists
     const existingTheme = enterpriseThemeManager.getTheme(customerId);
     if (existingTheme) {
       throw new ValidationError(
@@ -123,7 +73,8 @@ export async function POST(request: NextRequest) {
 
     const newTheme = {
       customerId,
-      ...themeData,
+      ...themeData!,
+      isActive: false,
     };
 
     enterpriseThemeManager.registerTheme(newTheme);
@@ -135,43 +86,9 @@ export async function POST(request: NextRequest) {
       hasLogo: !!themeData.logoUrl,
     });
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          theme: newTheme,
-          message: "Enterprise theme created successfully",
-        },
-      },
-      { status: 201 },
-    );
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      logger.warn("Theme creation validation failed", {
-        requestId: context.requestId,
-        error: error.message,
-      });
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
-        { status: 400 },
-      );
-    }
-
-    logger.error("Failed to create enterprise theme", {
-      requestId: context.requestId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to create theme",
-      },
-      { status: 500 },
-    );
-  }
-}
+    return {
+      theme: newTheme,
+      message: "Enterprise theme created successfully",
+    };
+  },
+});

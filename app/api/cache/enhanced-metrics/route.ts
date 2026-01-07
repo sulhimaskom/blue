@@ -1,36 +1,13 @@
-import { NextResponse } from "next/server";
 import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 import { AIPatternDetector } from "@/lib/services/ai-pattern-detector";
 import { automatedCacheWarmingService } from "@/lib/services/automated-cache-warming";
 import { RuntimeServiceInitializer } from "@/lib/services/runtime-service-initializer";
 import { logger } from "@/lib/logger";
 import { metricsCalculator } from "@/lib/services/metrics-calculator-service";
-import { RateLimiters } from "@/lib/rate-limit-config";
-import { NextRequest } from "next/server";
+import { formatSuccessResponse, formatErrorResponse } from "@/lib/api-utils";
 
-export async function GET(req: NextRequest) {
-  const identifier =
-    req.headers.get("x-forwarded-for") ||
-    req.headers.get("x-real-ip") ||
-    "anonymous";
-  const rateLimitCheck = await RateLimiters.standard()(identifier);
-
-  if (!rateLimitCheck.allowed) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Rate limit exceeded. Try again in 60 seconds.",
-      },
-      {
-        status: 429,
-        headers: {
-          "X-RateLimit-Limit": "30",
-          "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
-        },
-      },
-    );
-  }
+// Enhanced AI cache metrics with pattern detection insights
+export async function GET() {
   try {
     // Initialize runtime services safely (won't run during build)
     await RuntimeServiceInitializer.initializeServices();
@@ -142,15 +119,19 @@ export async function GET(req: NextRequest) {
       patternsDetected: aiAnalytics.patternDistribution,
     });
 
-    return NextResponse.json(enhancedMetrics);
+    return formatSuccessResponse(
+      enhancedMetrics,
+      "Enhanced AI cache metrics retrieved successfully",
+    );
   } catch (error) {
     logger.error("Enhanced AI cache metrics retrieval failed", {
       error: error instanceof Error ? error.message : "Unknown error",
     });
 
-    return NextResponse.json(
-      { error: "Failed to retrieve enhanced AI cache metrics" },
-      { status: 500 },
+    return formatErrorResponse(
+      error instanceof Error
+        ? error
+        : new Error("Failed to retrieve enhanced AI cache metrics"),
     );
   }
 }
