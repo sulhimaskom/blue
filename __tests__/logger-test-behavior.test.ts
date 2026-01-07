@@ -77,11 +77,15 @@ describe("Logger Test Environment Behavior", () => {
       delete process.env.CI; // Temporarily disable CI
       delete process.env.SUPPRESS_TEST_ERRORS;
 
+      const originalArgv = process.argv;
+      process.argv = process.argv.filter((arg) => arg !== "--silent");
+
       logger.error("Error message");
       expect(mockConsoleError).toHaveBeenCalled();
 
-      // Restore CI
+      // Restore CI and argv
       if (originalCI) process.env.CI = originalCI;
+      process.argv = originalArgv;
     });
 
     it("should suppress error logs when SUPPRESS_TEST_ERRORS=true", () => {
@@ -94,15 +98,19 @@ describe("Logger Test Environment Behavior", () => {
 
   describe("API-specific Methods", () => {
     let originalCI: string | undefined;
+    let originalArgv: string[];
 
     beforeEach(() => {
       originalCI = process.env.CI;
       delete process.env.CI; // Disable CI for these tests
       delete process.env.SUPPRESS_TEST_ERRORS;
+      originalArgv = process.argv;
+      process.argv = process.argv.filter((arg) => arg !== "--silent");
     });
 
     afterEach(() => {
       if (originalCI) process.env.CI = originalCI;
+      process.argv = originalArgv;
     });
 
     it("should handle apiError method correctly", () => {
