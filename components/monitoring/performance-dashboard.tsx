@@ -19,9 +19,16 @@ import {
   cn,
 } from "@/lib/constants/ui-themes";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import {
+  PerformanceMetrics,
+  DashboardPerformanceMetrics,
+  PerformanceAlert,
+} from "@/lib/types/webhook-types";
 
 // Optimized metrics calculation hook
-function usePerformanceMetrics(performanceData: any) {
+function usePerformanceMetrics(
+  performanceData: PerformanceMetrics | null,
+): DashboardPerformanceMetrics | null {
   return useMemo(() => {
     if (!performanceData) return null;
 
@@ -38,7 +45,7 @@ function usePerformanceMetrics(performanceData: any) {
       alertCount: perf.alertCount || 0,
       timestamp: performanceData.timestamp,
       alerts: (perf.alerts || [])
-        .filter((alert: any) => alert.type === "critical")
+        .filter((alert: PerformanceAlert) => alert.type === "critical")
         .slice(0, 3),
       quickWins: performanceData.optimization?.quickWins || [],
     };
@@ -64,7 +71,8 @@ export const PerformanceDashboard = memo(
   function PerformanceDashboardComponent({
     detailed = false,
   }: PerformanceDashboardProps) {
-    const [performanceData, setPerformanceData] = useState<any>(null);
+    const [performanceData, setPerformanceData] =
+      useState<PerformanceMetrics | null>(null);
     const [loading, setLoading] = useState(true);
     const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -278,7 +286,7 @@ export const PerformanceDashboard = memo(
         )}
 
         {/* Critical Alerts - Using optimized metrics */}
-        {metrics?.alerts.length > 0 && (
+        {metrics && metrics.alerts.length > 0 && (
           <div className="mb-6">
             <h3
               className={cn(
@@ -290,7 +298,7 @@ export const PerformanceDashboard = memo(
               Critical Performance Alerts
             </h3>
             <div className="space-y-2">
-              {metrics!.alerts.map((alert: any, index: number) => (
+              {metrics!.alerts.map((alert: PerformanceAlert, index: number) => (
                 <div
                   key={index}
                   className={cn("p-3 rounded-lg", getStatusTheme("unhealthy"))}
@@ -313,7 +321,7 @@ export const PerformanceDashboard = memo(
         )}
 
         {/* Quick Wins - Using optimized metrics */}
-        {metrics?.quickWins.length > 0 && (
+        {metrics && metrics.quickWins.length > 0 && (
           <div>
             <h3
               className={cn(

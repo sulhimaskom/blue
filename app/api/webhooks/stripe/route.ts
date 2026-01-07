@@ -7,13 +7,17 @@ import { logger } from "@/lib/logger";
 import { WebhookService } from "@/lib/services/webhook-service";
 import { SecurityService } from "@/lib/services/security-service";
 import { WEBHOOK_EVENTS, CREDIT_RULES } from "@/lib/constants";
+import { StripeWebhookEvent } from "@/lib/types/webhook-types";
 
 export async function POST(req: NextRequest) {
   return WebhookService.processWebhookWithReliability(req, {
     serviceName: "Stripe",
     verifySignature: SecurityService.verifyStripeWebhook,
     useQueue: true, // Enable reliable queue-based processing
-    processEvent: async (event: any, context) => {
+    processEvent: async (
+      event: StripeWebhookEvent,
+      context: { requestId: string },
+    ) => {
       const database = db();
 
       // Handle payment intent succeeded
