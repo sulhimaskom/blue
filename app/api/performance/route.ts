@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DatabasePerformanceOptimizer } from "@/lib/db/performance-optimizer";
-import { PerformanceCacheOptimizer } from "@/lib/services/performance-cache-optimizer";
+import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
 import { DatabaseQueryCache } from "@/lib/services/database-cache-service";
 import { DatabasePerformanceMonitor } from "@/lib/db/performance-monitor";
 import { logger } from "@/lib/logger";
@@ -14,7 +14,7 @@ async function handlePerformanceReport(req: NextRequest) {
   // Get cache performance metrics
   let cacheMetrics: any = null;
   if (includeCache) {
-    cacheMetrics = PerformanceCacheOptimizer.getPerformanceMetrics();
+    cacheMetrics = await UnifiedCacheManager.getPerformanceMetrics();
     cacheMetrics.databaseCacheStats = DatabaseQueryCache.getCacheStats();
   }
 

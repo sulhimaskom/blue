@@ -477,5 +477,29 @@ export function isCircuitBreakerState(obj: any): obj is CircuitBreakerState {
 }
 
 // =============================================================================
+// ENTERPRISE THEME TYPES
+// =============================================================================
+
+/**
+ * Enterprise Theme Statistics
+ * Business logic output for theme dashboard analytics
+ */
+export interface EnterpriseThemeStats {
+  totalThemes: number;
+  activeThemes: number;
+  enterpriseCustomers: number;
+  customizationRate: number;
+}
+
+/**
+ * Service result wrapper for consistent error handling
+ */
+export interface ServiceResult<T = void> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+// =============================================================================
 // ALL TYPES ARE ALREADY EXPORTED ABOVE FOR CONVENIENT IMPORTING
 // =============================================================================

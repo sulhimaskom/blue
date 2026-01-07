@@ -2,6 +2,7 @@ import { logger } from "../logger";
 import { UnifiedCacheManager } from "./unified-cache-manager";
 import { redisManager } from "../redis";
 import { PREFETCH_TIMEOUTS } from "../constants";
+import { optimizedIntervalManager } from "./optimized-interval-manager";
 
 /**
  * Intelligent prefetching strategies for API performance optimization
@@ -687,21 +688,39 @@ export class IntelligentPrefetchService {
   }
 
   /**
-   * Start background prefetch scheduler
+   * Start background prefetch scheduler using optimized interval manager
    */
   private static async startPrefetchScheduler(): Promise<void> {
     try {
-      // Schedule prefetch strategy evaluation every 30 seconds
-      setInterval(async () => {
-        await this.evaluateAndExecuteStrategies();
-      }, PREFETCH_TIMEOUTS.STRATEGY_EVALUATION);
+      // Register strategy evaluation interval
+      optimizedIntervalManager.registerInterval(
+        "prefetch-strategy-evaluation",
+        async () => {
+          await this.evaluateAndExecuteStrategies();
+        },
+        PREFETCH_TIMEOUTS.STRATEGY_EVALUATION,
+        {
+          enabled: true,
+          maxRunTime: 10000, // 10 seconds max run time
+          maxRetries: 2,
+        },
+      );
 
-      // Schedule comprehensive prefetch every 5 minutes
-      setInterval(async () => {
-        await this.performComprehensivePrefetch();
-      }, PREFETCH_TIMEOUTS.COMPREHENSIVE_PREFETCH);
+      // Register comprehensive prefetch interval
+      optimizedIntervalManager.registerInterval(
+        "prefetch-comprehensive",
+        async () => {
+          await this.performComprehensivePrefetch();
+        },
+        PREFETCH_TIMEOUTS.COMPREHENSIVE_PREFETCH,
+        {
+          enabled: true,
+          maxRunTime: 60000, // 1 minute max run time
+          maxRetries: 1,
+        },
+      );
 
-      logger.info("Prefetch scheduler started");
+      logger.info("Prefetch scheduler started with optimized intervals");
     } catch (error) {
       logger.error("Failed to start prefetch scheduler", {
         error: error instanceof Error ? error.message : "Unknown error",
