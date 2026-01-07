@@ -4,14 +4,16 @@ import {
   StatusIndicator,
   type StatusType,
 } from "@/components/ui/status-indicator";
-import {
-  ActivityIcon,
-  TrendingUpIcon,
-  AlertTriangleIcon,
-} from "@/components/ui/icons";
+import { ActivityIcon, AlertTriangleIcon } from "@/components/ui/icons";
 import { getUIText } from "@/lib/constants/ui-text";
+import {
+  cn,
+  getTextColor,
+  getBackgroundColor,
+  getStatusTheme,
+  getAccentColor,
+} from "@/lib/constants/ui-themes";
 import { useDebounce } from "@/lib/hooks/use-debounce";
-import { usePerformanceMetrics as usePerformanceMetricsHook } from "@/lib/hooks/use-performance-metrics";
 import { AutoOptimizationControls } from "./auto-optimization-controls";
 import { PerformanceScoreOverview } from "./performance-score-overview";
 import {
