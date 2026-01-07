@@ -386,6 +386,17 @@ export default function BlueprintsPage() {
                               <Button variant="outline" size="sm">
                                 Edit
                               </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                                onClick={() => {
+                                  // Redirect to projects page with this blueprint selected
+                                  window.location.href = `/dashboard/projects?blueprint=${blueprint.id}`;
+                                }}
+                              >
+                                Deploy
+                              </Button>
                             </div>
                           </div>
                         </div>
