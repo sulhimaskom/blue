@@ -158,7 +158,8 @@ describe("Stripe Webhook API - Integration Tests", () => {
 
       mockSecurityService.verifyStripeWebhook.mockResolvedValue(false);
       mockWebhookService.processWebhook.mockImplementation(
-        async (req, options) => {
+        // eslint-disable-next-line no-unused-vars
+        async (_req, _options) => {
           const error = new Error("Invalid webhook signature");
           throw error;
         },
@@ -585,7 +586,8 @@ describe("Stripe Webhook API - Integration Tests", () => {
 
       mockSecurityService.verifyStripeWebhook.mockResolvedValue(false);
       mockWebhookService.processWebhook.mockImplementation(
-        async (req, options) => {
+        // eslint-disable-next-line no-unused-vars
+        async (_req, _options) => {
           throw new Error("Missing signature");
         },
       );

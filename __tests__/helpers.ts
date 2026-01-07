@@ -33,6 +33,7 @@ class MockHeaders {
   }
 
   forEach(
+    // eslint-disable-next-line no-unused-vars
     callback: (value: string, name: string, headers: Headers) => void,
   ): void {
     this.headers.forEach((value, name) => callback(value, name, this as any));
@@ -64,7 +65,6 @@ class MockResponse {
 
 // Mock Next.js Response and NextResponse properly BEFORE any imports
 const originalResponse = global.Response;
-const originalNextResponse = (global as any).NextResponse;
 
 class MockNextResponse extends MockResponse {
   static json(data: unknown, init?: { status?: number }) {

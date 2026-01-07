@@ -130,10 +130,6 @@ describe("Credits API - Integration Tests", () => {
     });
 
     it("should reject invalid package amounts", async () => {
-      const invalidPurchaseData = {
-        package: 75, // Not a valid package size
-      };
-
       const request = testHelper.createRequest({
         method: "POST",
         path: "/api/credits",
