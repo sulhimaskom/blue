@@ -31,6 +31,9 @@ const envSchema = z.object({
   // Redis (Optional - will fall back to in-memory if not provided)
   REDIS_URL: z.string().url().optional(),
   REDIS_PASSWORD: z.string().optional(),
+
+  // Application Configuration
+  NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
 });
 
 type Env = z.infer<typeof envSchema>;
@@ -49,6 +52,7 @@ function validateEnv(): Env {
       STRIPE_SECRET_KEY: "placeholder",
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "placeholder",
       GITHUB_ACCESS_TOKEN: "placeholder",
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000",
     } as Env;
   }
 
