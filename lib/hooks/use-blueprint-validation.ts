@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { debounce } from "lodash";
 import {
   blueprintValidationService,
@@ -74,9 +74,9 @@ export function useBlueprintValidation(
     },
   });
 
-  // Debounced field validation function
-  const debouncedFieldValidation = useCallback(
-    debounce(async (field: keyof BlueprintFormData, value: string) => {
+  // Field validation function
+  const validateField = useCallback(
+    async (field: keyof BlueprintFormData, value: string) => {
       if (!enableRealtimeValidation) return;
 
       setValidationState((prev) => ({
@@ -127,14 +127,14 @@ export function useBlueprintValidation(
           },
         }));
       }
-    }, debounceMs),
-    [
-      formData,
-      debounceMs,
-      enableRealtimeValidation,
-      enableSuggestions,
-      setValidationState,
-    ],
+    },
+    [formData, enableRealtimeValidation, enableSuggestions, setValidationState],
+  );
+
+  // Debounced field validation function
+  const debouncedFieldValidation = useMemo(
+    () => debounce(validateField, debounceMs),
+    [validateField, debounceMs],
   );
 
   // Handle field value change
