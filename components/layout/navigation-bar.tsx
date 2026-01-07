@@ -44,12 +44,19 @@ export function NavigationBar() {
   ];
 
   return (
-    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav
+      aria-label="Main navigation"
+      className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+    >
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo/Brand */}
           <div className="flex items-center space-x-4">
-            <Link href="/" className="text-xl font-bold">
+            <Link
+              href="/"
+              className="text-xl font-bold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-md px-2 py-1"
+              aria-current={isActive("/") ? "page" : undefined}
+            >
               Architect Platform
             </Link>
           </div>
@@ -57,15 +64,16 @@ export function NavigationBar() {
           {/* Navigation Items */}
           <div className="flex items-center space-x-6">
             {/* Public Items */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4" role="none">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "text-sm font-medium transition-colors hover:text-primary",
+                    "text-sm font-medium transition-colors hover:text-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-md px-2 py-1",
                     item.active ? "text-primary" : "text-muted-foreground",
                   )}
+                  aria-current={item.active ? "page" : undefined}
                 >
                   {item.label}
                 </Link>
@@ -74,15 +82,19 @@ export function NavigationBar() {
 
             {/* Dashboard Items (only show when signed in) */}
             {isLoaded && isSignedIn && (
-              <div className="flex items-center space-x-4 border-l pl-6">
+              <div
+                className="flex items-center space-x-4 border-l pl-6"
+                role="none"
+              >
                 {dashboardItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "text-sm font-medium transition-colors hover:text-primary",
+                      "text-sm font-medium transition-colors hover:text-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-md px-2 py-1",
                       item.active ? "text-primary" : "text-muted-foreground",
                     )}
+                    aria-current={item.active ? "page" : undefined}
                   >
                     {item.label}
                   </Link>
@@ -91,21 +103,27 @@ export function NavigationBar() {
             )}
 
             {/* Auth Actions */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2" role="none">
               {isLoaded && !isSignedIn && (
                 <>
                   <Button variant="ghost" asChild>
-                    <Link href="/sign-in">Sign In</Link>
+                    <Link href="/sign-in" aria-label="Sign in to your account">
+                      Sign In
+                    </Link>
                   </Button>
                   <Button asChild>
-                    <Link href="/sign-up">Sign Up</Link>
+                    <Link href="/sign-up" aria-label="Create a new account">
+                      Sign Up
+                    </Link>
                   </Button>
                 </>
               )}
 
               {isLoaded && isSignedIn && (
                 <Button variant="outline" asChild>
-                  <Link href="/sign-in">Sign Out</Link>
+                  <Link href="/sign-in" aria-label="Sign out of your account">
+                    Sign Out
+                  </Link>
                 </Button>
               )}
             </div>

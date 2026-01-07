@@ -25,22 +25,35 @@ export function HeroSection({
 
   return (
     <AppLayout>
-      <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      <main className="flex min-h-screen flex-col items-center justify-between p-6 md:p-24">
         <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-          <div className="text-center lg:text-left">
-            <h1 className={`text-4xl font-bold ${Gradients.HERO_TEXT}`}>
+          <div className="text-center lg:text-left w-full">
+            <h1
+              className={`text-4xl md:text-5xl lg:text-6xl font-bold ${Gradients.HERO_TEXT}`}
+              id="hero-title"
+            >
               {heroTitle}
             </h1>
             {description ? (
-              <p className={cn("mt-4 text-lg", getTextColor("body"))}>
+              <p
+                className={cn("mt-4 text-lg md:text-xl", getTextColor("body"))}
+                id="hero-description"
+              >
                 {description}
               </p>
             ) : (
-              <p className={cn("mt-4 text-lg", getTextColor("body"))}>
+              <p
+                className={cn("mt-4 text-lg md:text-xl", getTextColor("body"))}
+                id="hero-description"
+              >
                 {heroSubtitle}
               </p>
             )}
-            <div className="mt-8 flex gap-4 justify-center lg:justify-start">
+            <div
+              className="mt-8 flex gap-4 justify-center lg:justify-start flex-wrap"
+              role="group"
+              aria-label="Hero actions"
+            >
               <Button size="lg" className={getButtonTheme("primary")} asChild>
                 <Link href="/sign-up">{getStartedText}</Link>
               </Button>

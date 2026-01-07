@@ -7,10 +7,12 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children, className }: AuthLayoutProps) {
   return (
-    <div
+    <main
       className={cn("flex min-h-screen items-center justify-center", className)}
+      role="main"
+      aria-label="Authentication"
     >
       {children}
-    </div>
+    </main>
   );
 }
