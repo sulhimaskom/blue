@@ -3,6 +3,7 @@ import { blueprints, projects, users, transactions } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { ValidationError } from "@/lib/api-utils";
 import { UserService } from "@/lib/services/user-service";
+import { RequestContext } from "@/lib/services/user-service";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
 
 /**
@@ -264,7 +265,7 @@ export class ProjectDataService {
     amount: number,
     creditsToAdd: number,
     paymentId: string,
-    context: any,
+    context: RequestContext,
   ) {
     const newTransaction = await this.createTransaction(
       userId,
