@@ -11,15 +11,8 @@ import {
 } from "@/components/ui/icons";
 import { getUIText } from "@/lib/constants/ui-text";
 import { useDebounce } from "@/lib/hooks/use-debounce";
-import {
-  getTextColor,
-  getBackgroundColor,
-  getStatusTheme,
-  getAccentColor,
-  cn,
-} from "@/lib/constants/ui-themes";
+import { usePerformanceMetrics as usePerformanceMetricsHook } from "@/lib/hooks/use-performance-metrics";
 import { AutoOptimizationControls } from "./auto-optimization-controls";
-import { AlertsPanel } from "./alerts-panel";
 import { PerformanceScoreOverview } from "./performance-score-overview";
 import {
   type PerformanceData,
