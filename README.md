@@ -23,8 +23,8 @@
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-org/architect-platform.git
-cd architect-platform
+git clone https://github.com/sulhimaskom/blue
+cd blue
 pnpm install
 ```
 
@@ -39,10 +39,13 @@ cp .env.example .env
 
 ```bash
 # Run database migrations
-pnpm run migrate:up
+npm run db:migrate
+
+# Optional: Push schema changes without migration
+npm run db:push
 
 # Optional: Rollback migrations if needed
-pnpm run migrate:down
+npm run db:rollback
 ```
 
 ### 4. Start Development
@@ -233,8 +236,10 @@ architect-platform/
 | `pnpm run test:api:coverage`      | Run API tests with coverage                   |
 | `pnpm run test:all`               | Run all test suites including API integration |
 | `pnpm run optimize-db`            | Database optimization script                  |
-| `pnpm run migrate:up`             | Run database migrations                       |
-| `pnpm run migrate:down`           | Rollback database migrations                  |
+| `pnpm run db:migrate`             | Run database migrations                       |
+| `pnpm run db:push`                | Push schema changes without migration         |
+| `pnpm run db:rollback`            | Rollback database migrations                  |
+| `pnpm run db:status`              | Check migration status                        |
 | `pnpm run infrastructure:check`   | Check infrastructure health                   |
 | `pnpm run infrastructure:recover` | Auto-recover from infrastructure issues       |
 | `pnpm run infrastructure:report`  | Generate infrastructure health report         |
