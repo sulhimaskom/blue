@@ -7,34 +7,23 @@ import { CacheTTLService } from "./cache/ttl-calculator-service";
 import { CacheInvalidationService } from "./cache/cache-invalidation-service";
 import { CacheWarmingService } from "./cache/cache-warming-service";
 import { CacheStatisticsService } from "./cache/cache-statistics-service";
+import { CacheTimerService } from "./cache/cache-timer-service";
+import { HttpCacheService } from "./cache/http-cache-service";
+
+/**
+ * Re-export CachedResponse for backward compatibility
+ */
+export type { CachedResponse } from "./cache/http-cache-service";
 
 /**
  * Main cache options interface
  */
 export interface UnifiedCacheOptions {
-  ttl?: number; // Time to live in seconds
-  key?: string; // Custom cache key (auto-generated if not provided)
-  tags?: string[]; // Cache tags for invalidation
-  varyBy?: string[]; // Request headers to vary cache by (for responses)
-  compress?: boolean; // Enable compression for larger responses
-}
-
-/**
- * Cached response interface
- */
-export interface CachedResponse {
-  data: any;
-  status: number;
-  headers: Record<string, string>;
-  metadata: {
-    createdAt: string;
-    etag: string;
-    compressed: boolean;
-    size: number;
-    originalSize?: number;
-    compressionRatio?: string;
-    tags: string[];
-  };
+  ttl?: number;
+  key?: string;
+  tags?: string[];
+  varyBy?: string[];
+  compress?: boolean;
 }
 
 /**
@@ -47,6 +36,8 @@ export interface CachedResponse {
  * - CacheInvalidationService: Cache invalidation and cleanup
  * - CacheWarmingService: Proactive cache warming
  * - CacheStatisticsService: Statistics and monitoring
+ * - HttpCacheService: HTTP-specific caching operations
+ * - CacheTimerService: Performance measurement
  */
 export class UnifiedCacheManager {
   /**
@@ -56,7 +47,7 @@ export class UnifiedCacheManager {
     key: string,
     options: UnifiedCacheOptions = {},
   ): Promise<T | null> {
-    const timer = new Timer("cache:get");
+    const timer = CacheTimerService.forGet(key);
 
     try {
       const fullKey =
@@ -71,6 +62,7 @@ export class UnifiedCacheManager {
       if (!cached) {
         await CacheStatisticsService.updateStats({ type: "miss" });
         logger.debug("Cache miss", { key: fullKey });
+        timer.finish({ status: "miss" });
         return null;
       }
 
@@ -91,7 +83,7 @@ export class UnifiedCacheManager {
         compressed: parsed.metadata?.compressed,
       });
 
-      timer.finish();
+      timer.finish({ status: "hit" });
       return data;
     } catch (error) {
       logger.error("Cache get failed", {
@@ -100,6 +92,7 @@ export class UnifiedCacheManager {
       });
 
       await CacheStatisticsService.updateStats({ type: "miss" });
+      timer.finish({ status: "error" });
       return null;
     }
   }
@@ -112,7 +105,7 @@ export class UnifiedCacheManager {
     data: any,
     options: UnifiedCacheOptions = {},
   ): Promise<void> {
-    const timer = new Timer("cache:set");
+    const timer = CacheTimerService.forSet(key);
 
     try {
       const fullKey =
@@ -177,172 +170,50 @@ export class UnifiedCacheManager {
         size: cacheEntry.metadata.size,
       });
 
-      timer.finish();
+      timer.finish({ status: "set" });
     } catch (error) {
       logger.error("Cache set failed", {
         key,
         error: error instanceof Error ? error.message : error,
       });
+
+      timer.finish({ status: "error" });
     }
   }
 
   /**
-   * Get cached response
+   * Get cached response - delegates to HttpCacheService
    */
   static async getCachedResponse(
     request: NextRequest,
     options: UnifiedCacheOptions = {},
   ): Promise<NextResponse | null> {
-    const timer = new Timer("cache:response:get");
-
-    try {
-      const cacheKey = CacheKeyGeneratorService.generateResponseKey(
-        request,
-        options.varyBy,
-      );
-
-      const cached = await redisManager.executeWithFallback(
-        async (client) => await client.get(cacheKey),
-        async () => null,
-      );
-
-      if (!cached) {
-        await CacheStatisticsService.updateStats({ type: "miss" });
-        return null;
-      }
-
-      const parsed: CachedResponse = JSON.parse(cached);
-
-      // Check ETag if request has If-None-Match header
-      const ifNoneMatch = request.headers.get("if-none-match");
-      if (ifNoneMatch && ifNoneMatch === parsed.metadata.etag) {
-        return new NextResponse(null, { status: 304 });
-      }
-
-      // Decompress response data if needed
-      const data = await CacheCompressionService.decompressResponseData(
-        parsed.data,
-        parsed.metadata.compressed,
-      );
-
-      const response = new NextResponse(data.data, {
-        status: parsed.status,
-        headers: parsed.headers,
-      });
-
-      // Add cache headers
-      response.headers.set("ETag", parsed.metadata.etag);
-      response.headers.set("X-Cache", "HIT");
-      response.headers.set(
-        "X-Cache-Compressed",
-        parsed.metadata.compressed.toString(),
-      );
-
-      if (parsed.metadata.compressionRatio) {
-        response.headers.set(
-          "X-Cache-Compression-Ratio",
-          parsed.metadata.compressionRatio,
-        );
-      }
-
-      await CacheStatisticsService.updateStats({
-        type: "hit",
-        pattern: "response",
-      });
-
-      timer.finish();
-      return response;
-    } catch (error) {
-      logger.error("Cache response get failed", {
-        error: error instanceof Error ? error.message : error,
-      });
-
-      await CacheStatisticsService.updateStats({ type: "miss" });
-      return null;
-    }
+    return HttpCacheService.getCachedResponse(request, {
+      ...options,
+      conditional: true, // Enable ETag by default
+    });
   }
 
   /**
-   * Cache response
+   * Cache response - delegates to HttpCacheService
    */
   static async setCachedResponse(
     request: NextRequest,
     response: NextResponse,
     options: UnifiedCacheOptions = {},
   ): Promise<void> {
-    const timer = new Timer("cache:response:set");
+    return HttpCacheService.setCachedResponse(request, response, options);
+  }
 
-    try {
-      const responseClone = response.clone();
-      const data = await responseClone.text();
-
-      const cacheKey = CacheKeyGeneratorService.generateResponseKey(
-        request,
-        options.varyBy,
-      );
-
-      // Calculate appropriate TTL for responses
-      const ttl = CacheTTLService.calculateTTL(
-        "response",
-        { url: request.url, status: response.status },
-        {
-          customTTL: options.ttl,
-          isUserSpecific: request.url.includes("user"),
-        },
-      );
-
-      // Compress response data if beneficial
-      const shouldCompress =
-        options.compress || CacheCompressionService.shouldCompress(data);
-      const processedData = shouldCompress
-        ? await CacheCompressionService.compressResponseData(data)
-        : data;
-
-      // Create cache entry
-      const cacheEntry: CachedResponse = {
-        data: processedData,
-        status: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
-        metadata: {
-          createdAt: new Date().toISOString(),
-          etag: CacheKeyGeneratorService.generateETag(data),
-          compressed: shouldCompress,
-          size: JSON.stringify(processedData).length,
-          originalSize: data.length,
-          compressionRatio: shouldCompress
-            ? `${(1 - (JSON.stringify(processedData).length / data.length) * 100).toFixed(1)}%`
-            : undefined,
-          tags: options.tags || [],
-        },
-      };
-
-      // Store in cache
-      await redisManager.executeWithFallback(
-        async (client) => {
-          await client.setEx(cacheKey, ttl, JSON.stringify(cacheEntry));
-        },
-        async () => {
-          logger.warn("Cache response fallback", { url: request.url });
-        },
-      );
-
-      // Store tag relationships
-      if (options.tags) {
-        await this.storeTagRelationships(cacheKey, options.tags);
-      }
-
-      await CacheStatisticsService.updateStats({
-        type: "set",
-        pattern: "response",
-      });
-
-      timer.finish();
-    } catch (error) {
-      logger.error("Cache response set failed", {
-        url: request.url,
-        error: error instanceof Error ? error.message : error,
-      });
-    }
+  /**
+   * HTTP response caching wrapper - delegates to HttpCacheService
+   */
+  static async withCache(
+    request: NextRequest,
+    handler: () => Promise<NextResponse>,
+    options: UnifiedCacheOptions = {},
+  ): Promise<NextResponse> {
+    return HttpCacheService.withCache(request, handler, options);
   }
 
   /**
@@ -350,18 +221,26 @@ export class UnifiedCacheManager {
    */
 
   static async invalidateKey(key: string): Promise<void> {
+    const timer = CacheTimerService.forInvalidation("key", key);
     await CacheInvalidationService.invalidateKey(key);
+    timer.finish();
   }
 
   static async invalidateByTag(tag: string): Promise<void> {
+    const timer = CacheTimerService.forInvalidation("tag", tag);
     await CacheInvalidationService.invalidateByTag(tag);
+    timer.finish();
   }
 
   static async invalidateByEvent(
     event: string,
     cascade: string[] = [],
   ): Promise<void> {
+    const timer = CacheTimerService.forInvalidation("event", event, {
+      cascade,
+    });
     await CacheInvalidationService.invalidateByEvent(event, cascade);
+    timer.finish();
   }
 
   static async getCacheStats() {
@@ -369,15 +248,24 @@ export class UnifiedCacheManager {
   }
 
   static async performIntelligentWarming() {
-    return CacheWarmingService.performIntelligentWarming();
+    const timer = CacheTimerService.forWarming("intelligent");
+    const result = CacheWarmingService.performIntelligentWarming();
+    timer.finish();
+    return result;
   }
 
   static async performAdaptiveWarming() {
-    return CacheWarmingService.performAdaptiveWarming();
+    const timer = CacheTimerService.forWarming("adaptive");
+    const result = CacheWarmingService.performAdaptiveWarming();
+    timer.finish();
+    return result;
   }
 
   static async warmupPatternCache(patterns: string[]) {
-    return CacheWarmingService.warmupPatternCache(patterns);
+    const timer = CacheTimerService.forWarming("pattern", { patterns });
+    const result = CacheWarmingService.warmupPatternCache(patterns);
+    timer.finish();
+    return result;
   }
 
   static async getPerformanceMetrics() {
@@ -402,28 +290,10 @@ export class UnifiedCacheManager {
   }
 
   /**
-   * Check if response is cacheable
+   * Check if response is cacheable - delegates to HttpCacheService
    */
   static isCacheable(response: NextResponse): boolean {
-    const status = response.status;
-    const contentType = response.headers.get("content-type");
-
-    // Only cache successful responses
-    if (status < 200 || status >= 300) {
-      return false;
-    }
-
-    // Don't cache streaming responses
-    if (contentType?.includes("text/event-stream")) {
-      return false;
-    }
-
-    // Don't cache already cached responses
-    if (response.headers.get("x-cache") === "HIT") {
-      return false;
-    }
-
-    return true;
+    return HttpCacheService.isResponseCacheable(response);
   }
 
   /**
@@ -465,26 +335,6 @@ export class UnifiedCacheManager {
    */
   private static extractPrefix(): string {
     return "ai-platform";
-  }
-
-  /**
-   * HTTP response caching wrapper - cache miss → execute handler → cache result
-   */
-  static async withCache(
-    request: NextRequest,
-    handler: () => Promise<NextResponse>,
-    options: UnifiedCacheOptions = {},
-  ): Promise<NextResponse> {
-    const cachedResponse = await this.getCachedResponse(request, options);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-
-    const freshResponse = await handler();
-    await this.setCachedResponse(request, freshResponse, options);
-    freshResponse.headers.set("x-cache-status", "MISS");
-
-    return freshResponse;
   }
 
   /**
@@ -568,23 +418,5 @@ export class UnifiedCacheManager {
     const key =
       options.key || CacheKeyGeneratorService.generateKey(prefix, inputData);
     return this.getData(key, options);
-  }
-}
-
-/**
- * Timer utility for performance measurement
- */
-class Timer {
-  private operation: string;
-  private start: number;
-
-  constructor(operation: string) {
-    this.operation = operation;
-    this.start = Date.now();
-  }
-
-  finish(): void {
-    const duration = Date.now() - this.start;
-    logger.debug(`Operation completed: ${this.operation}`, { duration });
   }
 }
