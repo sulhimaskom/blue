@@ -8,6 +8,7 @@ import { SystemHealthOverview } from "@/components/monitoring/system-health-over
 import { PerformanceMetrics } from "@/components/monitoring/performance-metrics";
 import { DashboardFooter } from "@/components/monitoring/dashboard-footer";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
+import { BaseCard } from "@/components/ui/base-card";
 import { useEffect, useRef, lazy, Suspense } from "react";
 
 // Dynamic imports for performance optimization - reduces initial bundle size
@@ -102,6 +103,37 @@ export default function MonitoringDashboard() {
             metrics={metrics || undefined}
             loading={loading}
           />
+        </div>
+
+        {/* Quick Navigation to Related Monitoring Tools */}
+        <div className="mb-8">
+          <BaseCard className="p-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-3">
+              Advanced Monitoring Tools
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href="/dashboard/circuit-breakers"
+                className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+              >
+                ⚡ Circuit Breakers
+              </a>
+              <button
+                className="inline-flex items-center px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 transition-colors cursor-not-allowed opacity-60"
+                disabled
+                title="Coming soon"
+              >
+                🔄 Advanced Performance
+              </button>
+              <button
+                className="inline-flex items-center px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 transition-colors cursor-not-allowed opacity-60"
+                disabled
+                title="Coming soon"
+              >
+                🔗 Webhook Monitor
+              </button>
+            </div>
+          </BaseCard>
         </div>
 
         {/* Advanced Performance Optimization Dashboard - Lazy loaded for performance */}
