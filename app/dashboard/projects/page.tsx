@@ -1,33 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
+import { useProjectsData } from "@/lib/hooks/use-dashboard-data";
 
-interface Project {
-  id: string;
-  name: string;
-  description: string;
-  blueprintCount: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  deploymentStatus?: {
-    isDeployed: boolean;
-    repoUrl?: string;
-    deployedAt?: string;
-    githubOrg?: string;
-    repoName?: string;
-  };
-}
-
-interface Blueprint {
-  id: string;
-  title: string;
-  description: string;
-  version: number;
-  status: string;
-  createdAt: string;
+interface DeploymentForm {
+  githubOrg: string;
+  repoName: string;
+  isPrivate: boolean;
 }
 
 interface DeploymentForm {
@@ -37,89 +18,23 @@ interface DeploymentForm {
 }
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [blueprints, setBlueprints] = useState<Blueprint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showDeployModal, setShowDeployModal] = useState(false);
-  const [deploying, setDeploying] = useState(false);
   const [deploymentForm, setDeploymentForm] = useState<DeploymentForm>({
     githubOrg: "",
     repoName: "",
     isPrivate: false,
   });
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const fetchProjects = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/blueprints", {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch projects: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const projectsWithDeployment = (data.projects || []).map(
-        (project: Project) => ({
-          ...project,
-          deploymentStatus: {
-            isDeployed: Math.random() > 0.5, // Mock deployment status
-            repoUrl: project.name
-              ? `https://github.com/demo/${project.name}`
-              : undefined,
-            deployedAt: project.updatedAt,
-            githubOrg: "demo",
-            repoName: project.name,
-          },
-        }),
-      );
-      setProjects(projectsWithDeployment);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load projects");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchProjectBlueprints = async (project: Project) => {
-    try {
-      const response = await fetch(`/api/projects/${project.id}/blueprints`, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch project blueprints: ${response.statusText}`,
-        );
-      }
-
-      const data = await response.json();
-      setBlueprints(data.blueprints || []);
-    } catch (err) {
-      setBlueprints([]);
-    }
-  };
-
-  const handleProjectSelect = (project: Project) => {
-    setSelectedProject(project);
-    fetchProjectBlueprints(project);
-    setDeploymentForm({
-      githubOrg: project.deploymentStatus?.githubOrg || "",
-      repoName: project.deploymentStatus?.repoName || project.name,
-      isPrivate: false,
-    });
-  };
+  const {
+    projects,
+    selectedProject,
+    blueprints,
+    loading,
+    error,
+    deploying,
+    handleProjectSelect,
+    deployToRepository,
+  } = useProjectsData();
 
   const handleDeploy = async (blueprintId?: string) => {
     if (!selectedProject) return;
@@ -127,52 +42,10 @@ export default function ProjectsPage() {
     const deployId = blueprintId || selectedProject.id;
 
     try {
-      setDeploying(true);
-      setError(null);
-
-      const response = await fetch(`/api/deploy/${deployId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(deploymentForm),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || `Deployment failed: ${response.statusText}`,
-        );
-      }
-
-      const data = await response.json();
-
-      // Update project deployment status
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === selectedProject.id
-            ? {
-                ...p,
-                deploymentStatus: {
-                  isDeployed: true,
-                  repoUrl: data.repoUrl,
-                  deployedAt: new Date().toISOString(),
-                  githubOrg: deploymentForm.githubOrg,
-                  repoName: deploymentForm.repoName,
-                },
-              }
-            : p,
-        ),
-      );
-
+      await deployToRepository(deployId, deploymentForm);
       setShowDeployModal(false);
-
-      // Show success message
-      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Deployment failed");
-    } finally {
-      setDeploying(false);
+      // Error is handled by the hook
     }
   };
 

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, lazy, Suspense } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useBlueprintValidation } from "@/lib/hooks/use-blueprint-validation";
+import { useBlueprintsData } from "@/lib/hooks/use-dashboard-data";
 import { StatsOverview } from "@/components/dashboard/stats-overview";
 import { ProjectList } from "@/components/dashboard/project-list";
 import { BlueprintList } from "@/components/dashboard/blueprint-list";
@@ -22,34 +23,9 @@ interface Project {
   updatedAt: string;
 }
 
-interface Blueprint {
-  id: string;
-  title: string;
-  description: string;
-  version: number;
-  status: string;
-  projectId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface BlueprintStats {
-  totalProjects: number;
-  totalBlueprints: number;
-  completedBlueprints: number;
-  draftBlueprints: number;
-  lastActivity: string;
-}
-
 export default function BlueprintsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [blueprints, setBlueprints] = useState<Blueprint[]>([]);
-  const [stats, setStats] = useState<BlueprintStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [credits, setCredits] = useState(0);
 
   const { formData, validateForm, resetValidation } = useBlueprintValidation(
     {
@@ -60,66 +36,20 @@ export default function BlueprintsPage() {
     {},
   );
 
-  useEffect(() => {
-    fetchBlueprintsData();
-  }, []);
-
-  const fetchBlueprintsData = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/blueprints", {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch blueprints: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      setProjects(data.projects || []);
-      setStats({
-        totalProjects: data.projects?.length || 0,
-        totalBlueprints: data.performanceMetrics?.totalOptimizations || 0,
-        completedBlueprints: data.performanceMetrics?.totalOptimizations || 0,
-        draftBlueprints: 0,
-        lastActivity: new Date().toISOString(),
-      });
-      setCredits(data.credits || 0);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load blueprints",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchProjectBlueprints = async (project: Project) => {
-    try {
-      const response = await fetch(`/api/projects/${project.id}/blueprints`, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch project blueprints: ${response.statusText}`,
-        );
-      }
-
-      const data = await response.json();
-      setBlueprints(data.blueprints || []);
-    } catch (err) {
-      setBlueprints([]);
-    }
-  };
+  const {
+    projects,
+    stats,
+    credits,
+    loading,
+    error,
+    fetchProjectBlueprints,
+    selectedProjectBlueprints,
+    createBlueprint,
+  } = useBlueprintsData();
 
   const handleProjectSelect = (project: Project) => {
     setSelectedProject(project);
-    fetchProjectBlueprints(project);
+    fetchProjectBlueprints(project.id);
   };
 
   const handleCreateBlueprint = async (e: React.FormEvent) => {
@@ -129,38 +59,16 @@ export default function BlueprintsPage() {
     const validationResult = await validateForm();
 
     if (!validationResult.isValid) {
-      setError("Please fix the validation errors before submitting");
-      return;
+      // Error will be handled by the hook's error state
+      throw new Error("Please fix the validation errors before submitting");
     }
 
     try {
-      const response = await fetch("/api/blueprints", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error ||
-            `Failed to create blueprint: ${response.statusText}`,
-        );
-      }
-
-      await response.json();
+      await createBlueprint(formData);
       setShowCreateForm(false);
       resetValidation(); // Reset validation state
-      fetchBlueprintsData(); // Refresh data
-
-      // Show success message
-      setError(null);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create blueprint",
-      );
+      // Error is handled by the hook
     }
   };
 
@@ -226,7 +134,7 @@ export default function BlueprintsPage() {
           />
           <BlueprintList
             selectedProject={selectedProject}
-            blueprints={blueprints}
+            blueprints={selectedProjectBlueprints}
             onCreateBlueprint={() => setShowCreateForm(true)}
           />
         </div>

@@ -1,65 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useState } from "react";
+
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { useCreditsData } from "@/lib/hooks/use-dashboard-data";
 import { PRICING_PACKAGES } from "@/lib/constants";
 
-interface Transaction {
-  id: string;
-  amount: number;
-  creditsAdded: number;
-  createdAt: string;
-  paymentId?: string;
-}
-
-interface CreditsData {
-  credits: number;
-  subscriptionTier: string;
-  transactions: Transaction[];
-  pricing: {
-    creditValue: string;
-    packages: typeof PRICING_PACKAGES;
-  };
-  stripeConfig: {
-    configured: boolean;
-    publishableKey?: string | null;
-  };
-}
-
 export default function CreditsPage() {
-  const { isSignedIn } = useUser();
-  const [creditsData, setCreditsData] = useState<CreditsData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<
     (typeof PRICING_PACKAGES)[number] | null
   >(null);
-  const [purchaseLoading, setPurchaseLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isSignedIn) {
-      fetchCreditsData();
-    }
-  }, [isSignedIn]);
-
-  const fetchCreditsData = async () => {
-    try {
-      const response = await fetch("/api/credits");
-      if (!response.ok) throw new Error("Failed to fetch credits data");
-      const data = await response.json();
-      setCreditsData(data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load credits data",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data: creditsData,
+    loading,
+    error,
+    purchaseLoading,
+    refetch,
+    purchaseCredits,
+  } = useCreditsData();
 
   const handlePurchase = async (
     packageData: (typeof PRICING_PACKAGES)[number],
@@ -71,39 +33,17 @@ export default function CreditsPage() {
   const confirmPurchase = async () => {
     if (!selectedPackage) return;
 
-    setPurchaseLoading(true);
-    setError(null);
-
     try {
       // Convert price string to cents amount
       const priceString = selectedPackage.price.replace(/[^0-9.]/g, "");
       const amount = Math.round(parseFloat(priceString) * 100);
 
-      const response = await fetch("/api/credits", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount,
-          paymentMethodId: "mock_payment_method", // In production, this would come from Stripe Elements
-          confirmImmediate: true,
-        }),
-      });
+      await purchaseCredits(amount, "mock_payment_method", true);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Purchase failed");
-      }
-
-      await response.json();
-
-      // Refresh credits data
-      await fetchCreditsData();
       setPurchaseModalOpen(false);
       setSelectedPackage(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Purchase failed");
-    } finally {
-      setPurchaseLoading(false);
+      // Error is handled by the hook
     }
   };
 
@@ -134,7 +74,7 @@ export default function CreditsPage() {
             <p className="text-red-600">
               {error || "Unable to load credits data"}
             </p>
-            <Button onClick={fetchCreditsData} className="mt-4">
+            <Button onClick={refetch} className="mt-4">
               Try Again
             </Button>
           </div>
@@ -225,7 +165,7 @@ export default function CreditsPage() {
             <h2 className="text-xl font-semibold text-gray-900">
               Transaction History
             </h2>
-            <Button onClick={fetchCreditsData} variant="outline" size="sm">
+            <Button onClick={refetch} variant="outline" size="sm">
               Refresh
             </Button>
           </div>
@@ -288,7 +228,6 @@ export default function CreditsPage() {
           onClose={() => {
             setPurchaseModalOpen(false);
             setSelectedPackage(null);
-            setError(null);
           }}
           title="Confirm Purchase"
           size="md"
@@ -330,7 +269,6 @@ export default function CreditsPage() {
               onClick={() => {
                 setPurchaseModalOpen(false);
                 setSelectedPackage(null);
-                setError(null);
               }}
               disabled={purchaseLoading}
             >
