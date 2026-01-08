@@ -1,9 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { AdvancedPerformanceDashboard } from "@/components/monitoring/advanced-performance-dashboard";
 import { useNotification } from "@/lib/hooks/use-notification";
+
+const AdvancedPerformanceDashboard = lazy(() =>
+  import("@/components/monitoring/advanced-performance-dashboard").then(
+    (module) => ({ default: module.AdvancedPerformanceDashboard }),
+  ),
+);
 
 /**
  * Advanced Performance Monitoring Dashboard page.
@@ -54,10 +59,21 @@ export default function AdvancedPerformanceDashboardPage() {
           </div>
         )}
 
-        <AdvancedPerformanceDashboard
-          onError={showError}
-          onSuccess={showSuccess}
-        />
+        <Suspense
+          fallback={
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="animate-pulse space-y-4">
+                <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+                <div className="h-32 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          }
+        >
+          <AdvancedPerformanceDashboard
+            onError={showError}
+            onSuccess={showSuccess}
+          />
+        </Suspense>
 
         {/* Additional Performance Information */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

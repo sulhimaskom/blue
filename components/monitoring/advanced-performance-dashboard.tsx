@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/icons";
 import { UnifiedMetricsCalculator } from "@/lib/services/unified-metrics-calculator";
 import { usePerformanceStatus } from "@/lib/hooks/use-performance-status";
+import { monitoringAPI } from "@/lib/services/monitoring-api";
 
 /**
  * Comprehensive advanced performance metrics data structure containing system,
@@ -39,7 +40,7 @@ import { usePerformanceStatus } from "@/lib/hooks/use-performance-status";
  * - slowQueries: Count of queries exceeding performance threshold
  * - cacheHitRate: Cache success percentage (0-100)
  */
-interface AdvancedPerformanceMetrics {
+export interface AdvancedPerformanceMetrics {
   /** ISO timestamp when metrics were collected */
   timestamp: string;
   /** System-level performance indicators */
@@ -94,7 +95,7 @@ interface AdvancedPerformanceMetrics {
  * - pendingOptimizations: Count of available but unapplied optimizations
  * - hitRateImprovement: Expected cache hit rate percentage improvement
  */
-interface AICacheOptimizationMetrics {
+export interface AICacheOptimizationMetrics {
   /** ISO timestamp when AI analysis was performed */
   timestamp: string;
   /** Array of optimization recommendations */
@@ -141,7 +142,7 @@ interface AICacheOptimizationMetrics {
  * - medium: Attention required, preventive action advised
  * - high: Immediate action needed to prevent performance degradation
  */
-interface PredictivePerformanceData {
+export interface PredictivePerformanceData {
   /** ISO timestamp when predictive analysis was performed */
   timestamp: string;
   /** Array of performance predictions with recommendations */
@@ -263,33 +264,10 @@ export const AdvancedPerformanceDashboard: React.FC<
 
   const fetchAdvancedMetrics = useCallback(async () => {
     try {
-      const [metricsResponse, aiResponse, predictiveResponse] =
-        await Promise.all([
-          fetch("/api/performance/advanced-monitoring"),
-          fetch("/api/performance/ai-cache-optimization"),
-          fetch("/api/performance/predictive"),
-        ]);
-
-      if (!metricsResponse.ok) {
-        throw new Error(
-          `Metrics HTTP ${metricsResponse.status}: ${metricsResponse.statusText}`,
-        );
-      }
-      if (!aiResponse.ok) {
-        throw new Error(
-          `AI Optimization HTTP ${aiResponse.status}: ${aiResponse.statusText}`,
-        );
-      }
-      if (!predictiveResponse.ok) {
-        throw new Error(
-          `Predictive HTTP ${predictiveResponse.status}: ${predictiveResponse.statusText}`,
-        );
-      }
-
       const [metricsData, aiData, predictiveData] = await Promise.all([
-        metricsResponse.json(),
-        aiResponse.json(),
-        predictiveResponse.json(),
+        monitoringAPI.getAdvancedMonitoring(),
+        monitoringAPI.getAICacheOptimization(),
+        monitoringAPI.getPredictivePerformance(),
       ]);
 
       setMetrics(metricsData);
@@ -313,29 +291,19 @@ export const AdvancedPerformanceDashboard: React.FC<
 
     try {
       const optimization = aiMetrics.optimizations[optimizationIndex];
-      const response = await fetch("/api/performance/predictive-optimization", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      await monitoringAPI.getPredictiveOptimization({
+        optimizationType: optimization.type,
+        parameters: {
+          description: optimization.description,
+          estimatedSavings: optimization.estimatedSavings,
+          confidence: optimization.confidence,
         },
-        body: JSON.stringify({
-          optimizationType: optimization.type,
-          parameters: {
-            description: optimization.description,
-            estimatedSavings: optimization.estimatedSavings,
-            confidence: optimization.confidence,
-          },
-        }),
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
 
       onSuccess?.(
         `Optimization "${optimization.description}" applied successfully`,
       );
-      fetchAdvancedMetrics(); // Refresh data
+      fetchAdvancedMetrics();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       onError?.(`Failed to apply optimization: ${errorMessage}`);

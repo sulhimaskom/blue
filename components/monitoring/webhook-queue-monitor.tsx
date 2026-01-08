@@ -2,28 +2,10 @@
 
 import React, { useState, useCallback } from "react";
 import { useInterval } from "@/lib/hooks/use-interval";
-
-interface WebhookEvent {
-  id: string;
-  serviceName: string;
-  eventType: string;
-  attemptCount: number;
-  createdAt: string;
-  processedAt: string | null;
-}
-
-interface WebhookQueueStats {
-  queue: {
-    size: number;
-    processingStats: {
-      processedEventsCount: number;
-    };
-    deadLetterQueue: {
-      size: number;
-      events: WebhookEvent[];
-    };
-  };
-}
+import {
+  monitoringAPI,
+  WebhookQueueStats,
+} from "@/lib/services/monitoring-api";
 
 interface WebhookQueueMonitorProps {
   enableAutoRefresh?: boolean;
@@ -50,19 +32,11 @@ export function WebhookQueueMonitor({
 
   const fetchWebhookStats = useCallback(async () => {
     try {
-      const response = await fetch("/api/webhooks/monitor");
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      const data = await response.json();
-      if (data.success) {
-        setStats(data.data);
-        setLastRefresh(new Date());
-        setError(null);
-        onEventsUpdate?.(data.data);
-      } else {
-        throw new Error(data.error || "Failed to fetch webhook stats");
-      }
+      const data = await monitoringAPI.getWebhookQueueStats();
+      setStats(data);
+      setLastRefresh(new Date());
+      setError(null);
+      onEventsUpdate?.(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -80,25 +54,8 @@ export function WebhookQueueMonitor({
 
   const handleRetryDeadLetter = async () => {
     try {
-      const response = await fetch("/api/webhooks/monitor", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_WEBHOOK_ADMIN_TOKEN || "admin-debug-token"}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        // Refresh stats after retry
-        fetchWebhookStats();
-      } else {
-        throw new Error(data.error || "Failed to retry dead letter events");
-      }
+      await monitoringAPI.retryDeadLetterEvents();
+      fetchWebhookStats();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to retry events");
     }
