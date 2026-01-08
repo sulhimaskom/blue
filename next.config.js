@@ -4,7 +4,7 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@neondatabase/serverless"],
+  transpilePackages: [],
 
   // Performance optimization configurations (Next.js 15 compatible)
   experimental: {
@@ -20,6 +20,10 @@ const nextConfig = {
       "drizzle-orm",
       "redis",
       "@sentry/nextjs",
+      "@radix-ui/react-slot",
+      "class-variance-authority",
+      "clsx",
+      "tailwind-merge",
     ],
     // Enable incremental caching improvements
     optimizeCss: true,
@@ -33,6 +37,19 @@ const nextConfig = {
       exprContextCritical: false,
     };
 
+    // Enable parallel processing for faster builds
+    if (!dev) {
+      config.parallelism = 4; // Use 4 parallel workers for production builds
+
+      // Aggressive production optimizations
+      config.cache = {
+        type: "filesystem",
+        buildDependencies: {
+          config: [__filename],
+        },
+      };
+    }
+
     // Development build optimizations
     if (dev) {
       // Enable faster rebuilds in development
@@ -43,6 +60,17 @@ const nextConfig = {
         poll: 800, // Check for changes more frequently
       };
     }
+
+    // Optimize resolve performance
+    config.resolve = {
+      ...config.resolve,
+      alias: {
+        ...config.resolve.alias,
+        // Reduce module resolution overhead
+        "@": require("path").resolve(__dirname, "."),
+      },
+      extensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
+    };
 
     // Optimize for production
     if (!dev && !isServer) {
