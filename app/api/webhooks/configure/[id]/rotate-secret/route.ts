@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { WebhookConfigurationService } from "@/lib/services/webhook-configuration-service";
 import { logger } from "@/lib/logger";
@@ -14,7 +13,7 @@ export async function POST(
   return APIRouteHandler.createPOSTHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
-    handler: async ({ context, user }) => {
+    handler: async ({ context: _context, user }) => {
       if (!user) {
         throw new ValidationError("Authentication required");
       }
@@ -23,14 +22,14 @@ export async function POST(
 
       // Verify ownership before rotating secret
       const existingConfig =
-        await WebhookConfigurationService.getConfigurationById(id, user.id);
+        await WebhookConfigurationService.getConfigurationById(user.id, id);
       if (!existingConfig) {
         throw new NotFoundError("Webhook configuration not found");
       }
 
       const result = await WebhookConfigurationService.rotateSecret(
-        id,
         user.id,
+        id,
       );
 
       logger.security("webhook_secret_rotated_via_api", {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BaseCard } from "@/components/ui/base-card";
 import { Alert } from "@/components/ui/alert";
@@ -12,9 +12,7 @@ interface WebhookTestModalProps {
 }
 
 export function WebhookTestModal({ config, onClose }: WebhookTestModalProps) {
-  const [selectedEvent, setSelectedEvent] = useState<string>(
-    config.events[0] || "test.event",
-  );
+  const [selectedEvent, setSelectedEvent] = useState<string>("test.event");
   const [testResult, setTestResult] = useState<any>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);

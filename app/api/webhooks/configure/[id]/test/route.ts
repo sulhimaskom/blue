@@ -10,10 +10,6 @@ const testWebhookSchema = z.object({
   eventType: z.string().optional(),
 });
 
-const retryWebhookSchema = z.object({
-  // Empty - just path parameter needed
-});
-
 // POST /api/webhooks/configure/[id]/test - Test webhook delivery
 export async function POST(
   req: NextRequest,
@@ -23,7 +19,7 @@ export async function POST(
     requireAuth: true,
     schema: testWebhookSchema,
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
-    handler: async ({ context, user, data }) => {
+    handler: async ({ context: _context, user, data }) => {
       if (!user) {
         throw new ValidationError("Authentication required");
       }
@@ -32,15 +28,15 @@ export async function POST(
 
       // Verify ownership before testing
       const existingConfig =
-        await WebhookConfigurationService.getConfigurationById(id, user.id);
+        await WebhookConfigurationService.getConfigurationById(user.id, id);
       if (!existingConfig) {
         throw new NotFoundError("Webhook configuration not found");
       }
 
       const testResult = await WebhookConfigurationService.testWebhook(
-        id,
         user.id,
-        data?.eventType,
+        id,
+        { eventType: data?.eventType || "test.event" },
       );
 
       logger.userAction("webhook_test_executed", user.id.toString(), {
@@ -48,7 +44,7 @@ export async function POST(
         configName: existingConfig.name,
         eventType: data?.eventType || "default",
         success: testResult.success,
-        latency: testResult.latency,
+        latency: testResult.responseTime,
       });
 
       return {
