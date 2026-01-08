@@ -3,7 +3,7 @@ import { logger } from "../logger";
 import { db } from "../db";
 import { blueprints, projects } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { UnifiedCacheManager } from "./unified-cache-manager";
+import { UnifiedCacheManager } from "./cache-orchestrator";
 import { AIPatternDetector, type AIPattern } from "./ai-pattern-detector";
 import DatabaseQueryCache from "./database-cache-service";
 import { ValidationError, DatabaseError } from "./service-error-handler";
@@ -268,9 +268,8 @@ CRITICAL CONSTRAINTS:
         ? this.getPatternBasedTTL(detectedPattern.pattern, "complete")
         : 7200; // Default 2 hours
 
-      await UnifiedCacheManager.cacheData(
-        "blueprint-complete",
-        { projectId },
+      await UnifiedCacheManager.setData(
+        `blueprint-complete:${projectId}`,
         cacheData,
         {
           ttl: intelligentTTL,
@@ -283,12 +282,8 @@ CRITICAL CONSTRAINTS:
       );
 
       // Cache blueprint skeleton with pattern-aware key
-      await UnifiedCacheManager.cacheData(
-        "blueprint-skeleton",
-        {
-          pattern: blueprint.projectName,
-          type: this.extractBlueprintType(blueprint),
-        },
+      await UnifiedCacheManager.setData(
+        `blueprint-skeleton:${blueprint.projectName}:${this.extractBlueprintType(blueprint)}`,
         {
           techStack: blueprint.techStack,
           features: blueprint.features,
@@ -322,10 +317,8 @@ CRITICAL CONSTRAINTS:
   } | null> {
     try {
       // Use enhanced unified caching with pattern-aware keys
-      const cacheData = { projectId };
       const cached = await UnifiedCacheManager.getData(
-        "blueprint-complete",
-        cacheData,
+        `blueprint-complete:${projectId}`,
         {
           tags: ["blueprint", "complete", `project-${projectId}`],
         },
@@ -363,11 +356,9 @@ CRITICAL CONSTRAINTS:
   }> {
     try {
       // Check cache first
-      const cacheKey = { userId, type: "user-stats" };
-      const cached = await UnifiedCacheManager.getData(
-        "user-blueprint-stats",
-        cacheKey,
-      );
+      const cacheKey = `user-blueprint-stats:${userId}`;
+
+      const cached = await UnifiedCacheManager.getData(cacheKey);
 
       if (cached) {
         logger.debug("User blueprint stats from cache", { userId });
@@ -396,15 +387,10 @@ CRITICAL CONSTRAINTS:
       };
 
       // Cache the results with enhanced tagging
-      await UnifiedCacheManager.cacheData(
-        "user-blueprint-stats",
-        cacheKey,
-        stats,
-        {
-          ttl: 600, // 10 minutes for user stats
-          tags: ["user-stats", `user-${userId}`, "stats-cache"],
-        },
-      );
+      await UnifiedCacheManager.setData(cacheKey, stats, {
+        ttl: 600, // 10 minutes for user stats
+        tags: ["user-stats", `user-${userId}`, "stats-cache"],
+      });
 
       return stats;
     } catch (error) {

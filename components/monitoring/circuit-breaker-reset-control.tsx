@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { BaseCard } from "@/components/ui/base-card";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { cn } from "@/lib/constants/ui-themes";
+import { useNotification } from "@/lib/hooks/use-notification";
 
 interface ResetResult {
   timestamp: string;
@@ -37,9 +38,9 @@ export function CircuitBreakerResetControl({
   buttonText = "Reset All Circuit Breakers",
 }: CircuitBreakerResetControlProps) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const { notification, showError, showSuccess, hideNotification } =
+    useNotification();
 
   // Handle circuit breaker reset
   const handleReset = async () => {
@@ -50,8 +51,7 @@ export function CircuitBreakerResetControl({
 
     try {
       setLoading(true);
-      setError(null);
-      setSuccess(null);
+      hideNotification();
 
       const response = await fetch("/api/circuit-breakers/reset", {
         method: "POST",
@@ -66,7 +66,7 @@ export function CircuitBreakerResetControl({
 
       const data = await response.json();
       if (data.success) {
-        setSuccess(data.message || "Circuit breakers reset successfully");
+        showSuccess(data.message || "Circuit breakers reset successfully");
         onResetComplete?.(data.data);
 
         // Auto-refresh metrics after successful reset
@@ -77,7 +77,7 @@ export function CircuitBreakerResetControl({
         throw new Error(data.error || "Failed to reset circuit breakers");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      showError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
       setShowConfirm(false);
@@ -87,8 +87,7 @@ export function CircuitBreakerResetControl({
   // Cancel confirmation
   const handleCancel = () => {
     setShowConfirm(false);
-    setError(null);
-    setSuccess(null);
+    hideNotification();
   };
 
   return (
@@ -197,7 +196,7 @@ export function CircuitBreakerResetControl({
         )}
 
         {/* Success Message */}
-        {success && (
+        {notification?.type === "success" && (
           <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
@@ -207,7 +206,9 @@ export function CircuitBreakerResetControl({
                 <h4 className="text-sm font-medium text-green-800">
                   Reset Successful
                 </h4>
-                <p className="text-sm text-green-700 mt-1">{success}</p>
+                <p className="text-sm text-green-700 mt-1">
+                  {notification.message}
+                </p>
                 <p className="text-xs text-green-600 mt-2">
                   Circuit breakers are now accepting requests. Monitor the
                   status above to confirm recovery.
@@ -218,7 +219,7 @@ export function CircuitBreakerResetControl({
         )}
 
         {/* Error Message */}
-        {error && (
+        {notification?.type === "error" && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
@@ -228,7 +229,9 @@ export function CircuitBreakerResetControl({
                 <h4 className="text-sm font-medium text-red-800">
                   Reset Failed
                 </h4>
-                <p className="text-sm text-red-700 mt-1">{error}</p>
+                <p className="text-sm text-red-700 mt-1">
+                  {notification.message}
+                </p>
                 <div className="mt-3">
                   <button
                     onClick={handleReset}
