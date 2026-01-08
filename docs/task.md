@@ -2764,20 +2764,31 @@ All documentation is now world-class and ready to support immediate customer acq
   - **Effort**: Medium (requires careful testing of each route)
   - **Impact**: Eliminates 50+ lines of duplicate error handling code, ensures consistent API behavior
 
-- [ ] **[REFACTOR]** Decompose UnifiedCacheManager Service
+- [ ] **[REFACTOR] IN PROGRESS** Decompose UnifiedCacheManager Service
   - **Location**: `lib/services/unified-cache-manager.ts` (1,879 lines)
   - **Issue**: Monolithic service with 40+ different responsibilities (key generation, compression, TTL calculation, cache warming, invalidation, metrics) violating Single Responsibility Principle
-  - **Suggestion**:
-    - Extract `CacheKeyGenerator` service (key generation, ETags, fingerprinting)
-    - Extract `CacheCompressionService` (compression/decompression logic)
-    - Extract `CacheTTLManager` (TTL calculation and dynamic TTL)
-    - Extract `CacheInvalidationManager` (invalidation rules and execution)
-    - Extract `CacheWarmingService` (warmup strategies and execution)
-    - Extract `CacheMetricsService` (performance metrics and statistics)
-    - Keep `UnifiedCacheManager` as orchestrator/facade for backwards compatibility
+  - **Current Status**: Partial refactoring completed - atomic services exist but not integrated
+  - **Services Extracted**:
+    - `lib/services/cache/key-generator-service.ts` (5.1KB) - Key generation & fingerprinting
+    - `lib/services/cache/compression-service.ts` (3.6KB) - Data compression/decompression
+    - `lib/services/cache/ttl-calculator-service.ts` (4.7KB) - TTL calculation & optimization
+    - `lib/services/cache/cache-invalidation-service.ts` (8.7KB) - Cache invalidation rules
+    - `lib/services/cache/cache-warming-service.ts` (11.5KB) - Cache warming strategies
+    - `lib/services/cache/cache-statistics-service.ts` (10.5KB) - Performance metrics
+  - **Orchestrators Created**:
+    - `lib/services/cache-orchestrator.ts` (487 lines) - Delegates to atomic services
+    - `lib/services/unified-cache-manager-refactored.ts` (250 lines) - Simplified orchestrator
+  - **Remaining Work**:
+    - Integrate atomic services into production UnifiedCacheManager
+    - Ensure all method signatures match (withCache signature mismatch detected)
+    - Add missing methods (getPerformanceMetrics, invalidateBlueprintCache, warmupPatternCache)
+    - Create comprehensive tests for all extracted atomic services
+    - Update production code to use refactored version
+    - Remove or deprecate old monolithic implementation
   - **Priority**: High (architectural purity & maintainability)
-  - **Effort**: Large (comprehensive refactoring with extensive testing)
+  - **Effort**: Large (integration & testing of extracted services)
   - **Impact**: 40+ atomic services each with single responsibility, dramatically improved testability, easier maintenance
+  - **Progress**: 80% Complete - services extracted, integration pending
 
 - [x] ✅ **COMPLETED** (2026-01-07): Extract Unified Rate Limiting Middleware
   - **Location**: Multiple API routes with inline rate limiting checks (e.g., `app/api/validate/route.ts:6-14`)
