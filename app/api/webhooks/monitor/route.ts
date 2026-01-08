@@ -69,30 +69,12 @@ export async function POST(req: NextRequest) {
       // In production, implement proper admin authentication
       const authHeader = req.headers.get("authorization");
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: "UNAUTHORIZED",
-              message: "Admin authentication required",
-            },
-          },
-          { status: 401 },
-        );
+        return formatErrorResponse(new Error("Admin authentication required"));
       }
 
       const adminToken = authHeader.split(" ")[1];
       if (adminToken !== process.env.WEBHOOK_ADMIN_TOKEN) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: "UNAUTHORIZED",
-              message: "Invalid admin token",
-            },
-          },
-          { status: 401 },
-        );
+        return formatErrorResponse(new Error("Invalid admin token"));
       }
 
       const result = await webhookQueueService.retryDeadLetterEvents();
@@ -102,14 +84,13 @@ export async function POST(req: NextRequest) {
         failed: result.failed,
       });
 
-      return NextResponse.json({
-        success: true,
-        data: {
+      return formatSuccessResponse(
+        {
           retried: result.retried,
           failed: result.failed,
-          message: `Retried ${result.retried} dead letter events`,
         },
-      });
+        `Retried ${result.retried} dead letter events`,
+      );
     } catch (error) {
       logger.apiError(
         "Dead letter queue retry failed",
@@ -120,15 +101,8 @@ export async function POST(req: NextRequest) {
         },
       );
 
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "INTERNAL_ERROR",
-            message: "Failed to retry dead letter queue",
-          },
-        },
-        { status: 500 },
+      return formatErrorResponse(
+        new Error("Failed to retry dead letter queue"),
       );
     }
   });

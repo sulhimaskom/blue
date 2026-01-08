@@ -8,6 +8,7 @@ import { WebhookService } from "@/lib/services/webhook-service";
 import { SecurityService } from "@/lib/services/security-service";
 import { CREDIT_RULES } from "@/lib/constants";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { formatErrorResponse } from "@/lib/api-utils";
 import {
   StripeWebhookEvent,
   isStripePaymentIntentSucceeded,
@@ -23,20 +24,8 @@ export async function POST(req: NextRequest) {
   const rateLimitCheck = await RateLimiters.webhook()(identifier);
 
   if (!rateLimitCheck.allowed) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: "Rate limit exceeded. Try again in 60 seconds.",
-      }),
-      {
-        status: 429,
-        headers: {
-          "Content-Type": "application/json",
-          "X-RateLimit-Limit": "100",
-          "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
-        },
-      },
+    return formatErrorResponse(
+      new Error("Rate limit exceeded. Try again in 60 seconds."),
     );
   }
 
