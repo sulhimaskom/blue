@@ -20,9 +20,9 @@ jest.mock("@/lib/services/api-metrics-service", () => ({
   },
 }));
 
-// Mock cache manager
-jest.mock("@/lib/services/unified-cache-manager", () => ({
-  UnifiedCacheManager: {
+// Mock cache orchestrator
+jest.mock("@/lib/services/cache/cache-orchestrator.service", () => ({
+  CacheOrchestratorService: {
     withCache: jest.fn(),
   },
 }));

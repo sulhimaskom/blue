@@ -14,6 +14,15 @@ const customJestConfig = {
     "^@clerk/backend$": "<rootDir>/__tests__/mocks/clerk-backend.js",
   },
   testEnvironment: "jest-environment-jsdom",
+  // Performance optimizations for faster CI/CD
+  maxWorkers: 4, // Use parallel workers for faster execution
+  testTimeout: 10000, // 10s timeout per test
+  collectCoverageFrom: [
+    "lib/**/*.{js,ts,tsx}",
+    "app/**/*.{js,ts,tsx}",
+    "!**/*.d.ts",
+    "!**/node_modules/**",
+  ],
   testPathIgnorePatterns: [
     "<rootDir>/.next/",
     "<rootDir>/node_modules/",
