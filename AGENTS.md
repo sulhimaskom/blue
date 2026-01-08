@@ -68,6 +68,151 @@ Agents are **Information Architects & Solutions Engineers** focused on building 
 
 ---
 
+## API Design & Standards
+
+### 📡 **API Architecture Requirements**
+
+**Route Handler Patterns**:
+
+1. **Use APIRouteHandler Factory Methods**:
+   - `APIRouteHandler.createGETHandler({...})` - For GET requests
+   - `APIRouteHandler.createPOSTHandler({...})` - For POST requests
+   - `APIRouteHandler.createPUTHandler({...})` - For PUT requests
+   - `APIRouteHandler.createCachedGETHandler({...}, cacheConfig)` - For cached GET requests
+   - `APIRouteHandler.createSimpleCachedGETHandler({...}, cacheConfig)` - For simple cached GET requests
+
+2. **Direct Export Pattern** (Most Routes):
+
+   ```typescript
+   export const GET = APIRouteHandler.createGETHandler({
+     requireAuth: true,
+     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+     handler: async ({ context, user }) => {
+       // Handler logic here
+       return { data: "response" };
+     },
+   });
+   ```
+
+3. **Manual Export Pattern** (Routes with Dynamic Parameters):
+
+   ```typescript
+   interface RouteParams {
+     params: Promise<{ id: string }>;
+   }
+
+   export async function GET(req: NextRequest, { params }: RouteParams) {
+     const { id } = await params;
+
+     return APIRouteHandler.createGETHandler({
+       requireAuth: true,
+       handler: async ({ context, user }) => {
+         // Handler logic here
+         return { data: "response" };
+       },
+     })(req);
+   }
+   ```
+
+**Response Format Standards**:
+
+1. **Unified Success Response** (Auto-wrapped by APIRouteHandler):
+
+   ```json
+   {
+     "success": true,
+     "data": {
+       // Route-specific fields
+     },
+     "message": "Optional success message"
+   }
+   ```
+
+2. **Unified Error Response** (Auto-wrapped by APIRouteHandler):
+
+   ```json
+   {
+     "success": false,
+     "error": "Error message",
+     "details": "Optional error details (dev only)"
+   }
+   ```
+
+3. **Rate Limit Headers** (Added by APIRouteHandler):
+   - `X-RateLimit-Limit`: Maximum requests allowed
+   - `X-RateLimit-Remaining`: Requests remaining in window
+   - `X-RateLimit-Reset`: Unix timestamp when window resets
+
+### 🔤 **Route Configuration Requirements**
+
+**Required Config Options**:
+
+- `requireAuth`: `true` (default) or `false` for public endpoints
+- `rateLimiter`: Function returning rate limit promise
+- `handler`: Async function with request context
+
+**Optional Config Options**:
+
+- `schema`: Zod schema for request body validation (POST/PUT only)
+- `requireCredits`: Number of credits required (POST only)
+
+**Rate Limiter Categories** (from `lib/rate-limit-config.ts`):
+
+- `strict`: 3 requests/minute (AI generation, deployment)
+- `moderate`: 10 requests/minute (Write operations)
+- `standard`: 30 requests/minute (Read operations with caching)
+- `permissive`: 60 requests/minute (Public health/metrics)
+- `webhook`: 100 requests/minute (Incoming webhooks)
+
+### 📋 **Endpoint Design Principles**
+
+1. **RESTful Conventions**:
+   - Use HTTP methods correctly (GET, POST, PUT, DELETE)
+   - Use plural resource names: `/blueprints`, `/projects`, `/credits`
+   - Use path parameters for specific resources: `/blueprints/[id]`, `/projects/[id]`
+   - Use query parameters for filtering and pagination
+
+2. **Naming Conventions**:
+   - Route files: `app/api/{resource}/route.ts` or `app/api/{resource}/{id}/route.ts`
+   - Handler exports: `export const GET`, `export const POST`, `export const PUT`, `export const DELETE`
+   - Schema variables: `{resource}Schema`, e.g., `blueprintSchema`, `projectSchema`
+   - Service functions: Descriptive names, e.g., `getUserProjects`, `getBlueprintById`, `createProject`
+
+3. **Error Handling**:
+   - Throw appropriate error classes: `ValidationError`, `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `DatabaseError`, `RateLimitError`
+   - Never return raw errors; let APIRouteHandler format them
+   - Log errors with context: `logger.apiError(message, requestId, error, context)`
+
+4. **Logging Requirements**:
+   - Log user actions: `logger.userAction(action, userId, context)`
+   - Log API requests: `logger.apiRequest(method, url, requestId, userId)` (auto-logged by APIRouteHandler)
+   - Log security events: `logger.security(message, context)`
+   - Include requestId in all log entries
+
+### 🚨 **Common Anti-Patterns to Avoid**
+
+1. **Direct NextResponse Usage**:
+   ❌ `return NextResponse.json({ data: "...", success: true })`
+   ✅ Use APIRouteHandler: `export const GET = APIRouteHandler.createGETHandler({...})`
+
+2. **Manual Error Handling**:
+   ❌ Try/catch with manual NextResponse.json error construction
+   ✅ Throw error classes: `throw new ValidationError("Invalid input")`
+
+3. **Missing Authentication**:
+   ❌ Public endpoints without explicit `requireAuth: false`
+   ✅ Set `requireAuth: false` for public endpoints, defaults to `true`
+
+4. **Rate Limiting Bypass**:
+   ❌ Endpoints without rate limit configuration
+   ✅ All endpoints must have `rateLimiter` configured
+
+5. **Inconsistent Response Formats**:
+   ❌ Different field names or structures across endpoints
+   ✅ Let APIRouteHandler wrap responses in unified format
+
+---
+
 ## Workflow Integration
 
 ### 📊 **Evaluation Process**

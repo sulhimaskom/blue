@@ -87,7 +87,12 @@ When rate limits are enforced, responses include:
 |                     | `GET /performance/optimization`            | ❌ Optional | -       | Standard   | Optimization data        |
 |                     | `GET /performance/predictive-optimization` | ❌ Optional | -       | Standard   | Predictive optimization  |
 |                     | `GET /performance/predictive`              | ❌ Optional | -       | Standard   | Predictive analysis      |
-| **Projects**        | `GET /projects/[id]/blueprints`            | ✅ Required | -       | Standard   | Get project blueprints   |
+| **Projects**        | `GET /projects`                            | ✅ Required | -       | Standard   | List all projects        |
+|                     | `POST /projects`                           | ✅ Required | -       | Moderate   | Create project           |
+|                     | `GET /projects/[id]`                       | ✅ Required | -       | Standard   | Get specific project     |
+|                     | `PUT /projects/[id]`                       | ✅ Required | -       | Moderate   | Update project           |
+|                     | `DELETE /projects/[id]`                    | ✅ Required | -       | Moderate   | Delete project           |
+|                     | `GET /projects/[id]/blueprints`            | ✅ Required | -       | Standard   | Get project blueprints   |
 | **Validation**      | `POST /validate`                           | ❌ Optional | -       | Standard   | Validate blueprint data  |
 | **Webhook Monitor** | `GET /webhooks/monitor`                    | ❌ Optional | -       | Standard   | Queue monitoring         |
 |                     | `POST /webhooks/monitor`                   | ✅ Required | -       | Moderate   | Retry dead letter queue  |
@@ -852,6 +857,247 @@ Content-Type: application/json
     "estimatedCompletion": "2025-12-24T10:05:00Z"
   },
   "message": "Blueprint refinement started"
+}
+```
+
+---
+
+## 📁 Project Management
+
+### GET /projects
+
+List all projects for the authenticated user.
+
+**Request:**
+
+```http
+GET /api/projects
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "projects": [
+      {
+        "id": "uuid",
+        "name": "E-commerce Platform",
+        "description": "AI-generated e-commerce platform",
+        "status": "draft",
+        "repoUrl": null,
+        "createdAt": "2025-12-24T10:00:00Z"
+      }
+    ],
+    "message": "Projects retrieved successfully"
+  }
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid authentication
+- `500 Internal Server Error` - Database error
+
+---
+
+### POST /projects
+
+Create a new project.
+
+**Request:**
+
+```http
+POST /api/projects
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "My E-commerce Project",
+  "description": "Building a marketplace for rare sneakers"
+}
+```
+
+**Parameters:**
+
+- `name` (string, required) - 3-100 characters, project name
+- `description` (string, optional) - Project description
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "project": {
+      "id": "uuid",
+      "name": "My E-commerce Project",
+      "description": "Building a marketplace for rare sneakers",
+      "status": "draft",
+      "createdAt": "2025-12-24T10:00:00Z"
+    },
+    "message": "Project created successfully"
+  }
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request` - Validation error (name length, etc.)
+- `401 Unauthorized` - Invalid authentication
+- `500 Internal Server Error` - Database error
+
+---
+
+### GET /projects/[id]
+
+Get details of a specific project with blueprint count.
+
+**Request:**
+
+```http
+GET /api/projects/uuid
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "project": {
+      "id": "uuid",
+      "name": "E-commerce Platform",
+      "description": "AI-generated e-commerce platform",
+      "status": "completed",
+      "repoUrl": "https://github.com/myorg/ecommerce-platform",
+      "blueprintCount": 3,
+      "createdAt": "2025-12-24T10:00:00Z"
+    },
+    "message": "Project retrieved successfully"
+  }
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid authentication
+- `404 Not Found` - Project not found or access denied
+- `500 Internal Server Error` - Database error
+
+---
+
+### PUT /projects/[id]
+
+Update an existing project.
+
+**Request:**
+
+```http
+PUT /api/projects/uuid
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "Updated Project Name",
+  "description": "Updated description"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "project": {
+      "id": "uuid",
+      "name": "Updated Project Name",
+      "description": "Updated description",
+      "status": "draft",
+      "createdAt": "2025-12-24T10:00:00Z"
+    },
+    "message": "Project updated successfully"
+  }
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid authentication
+- `404 Not Found` - Project not found or access denied
+- `500 Internal Server Error` - Database error
+
+---
+
+### DELETE /projects/[id]
+
+Delete a project and all associated blueprints.
+
+**Request:**
+
+```http
+DELETE /api/projects/uuid
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "project": {
+      "id": "uuid",
+      "name": "E-commerce Platform",
+      "status": "draft",
+      "createdAt": "2025-12-24T10:00:00Z"
+    },
+    "message": "Project deleted successfully"
+  }
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid authentication
+- `404 Not Found` - Project not found or access denied
+- `500 Internal Server Error` - Database error
+
+---
+
+### GET /projects/[id]/blueprints
+
+Get all blueprints for a specific project.
+
+**Request:**
+
+```http
+GET /api/projects/uuid/blueprints
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "blueprints": [
+      {
+        "id": "uuid",
+        "projectId": "project_uuid",
+        "name": "Initial Blueprint",
+        "version": 1,
+        "status": "completed",
+        "createdAt": "2025-12-24T10:00:00Z"
+      }
+    ],
+    "total": 1
+  }
 }
 ```
 

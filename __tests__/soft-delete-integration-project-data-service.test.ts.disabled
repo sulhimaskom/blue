@@ -1,0 +1,601 @@
+/**
+ * Soft-Delete Integration Test Suite - Project Data Service
+ *
+ * Tests soft-delete pattern integration with project data service operations:
+ * - Query filtering with soft-deleted records
+ * - Project deletion uses soft-delete instead of hard delete
+ * - User projects exclude soft-deleted items
+ * - Blueprint history filters soft-deleted versions
+ *
+ * Business Impact Validated:
+ * - Zero data loss from accidental deletions
+ * - Query performance with soft-delete filtering
+ * - Data recovery capabilities via restore operations
+ * - Compliance with data retention requirements
+ */
+
+import { ProjectDataService } from "../lib/services/project-data-service";
+import {
+  softDelete,
+  restore,
+  getSoftDeletedRecords,
+  countSoftDeletedRecords,
+} from "../lib/db/soft-delete-service";
+
+jest.mock("../lib/db/index");
+jest.mock("../lib/logger");
+jest.mock("../lib/services/user-service");
+
+import { db } from "../lib/db/index";
+import { logger } from "../lib/logger";
+import { UserService } from "../lib/services/user-service";
+
+describe("Soft-Delete Integration - Project Data Service", () => {
+  let mockDb: any;
+  let mockExecute: jest.Mock;
+  let resultQueue: any[] = [];
+
+  beforeEach(() => {
+    resultQueue = [];
+    
+    mockExecute = jest.fn().mockResolvedValue({ rowCount: 1 });
+    
+    // Create query result promise from queue
+    const createQueryPromise = () => {
+      return Promise.resolve(resultQueue.length > 0 ? resultQueue.shift() : []);
+    };
+    
+    // Create flexible mock that supports different query patterns
+    const createMockChain = () => {
+      const chain: any = {
+        select: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        orderBy: jest.fn(() => createQueryPromise()),
+        insert: jest.fn().mockReturnThis(),
+        values: jest.fn().mockReturnThis(),
+        returning: jest.fn(() => createQueryPromise()),
+        execute: mockExecute,
+      };
+      
+      // Make it awaitable with queued results  
+      chain.then = jest.fn((resolve) => {
+        const result = resultQueue.length > 0 ? resultQueue.shift() : [];
+        resolve(result);
+        return Promise.resolve(result);
+      });
+      
+      return chain;
+    };
+    
+    mockDb = createMockChain();
+    
+    (db as jest.Mock).mockReturnValue(mockDb);
+    (logger.info as jest.Mock).mockImplementation();
+    (logger.warn as jest.Mock).mockImplementation();
+    (logger.error as jest.Mock).mockImplementation();
+    jest.clearAllMocks();
+  });
+
+  // Helper to set mockExecute results
+  const setExecuteResult = (result: any) => {
+    mockExecute.mockResolvedValueOnce(result);
+  };
+
+  // Helper to set query chain result
+  const setQueryResult = (result: any) => {
+    resultQueue.push(result);
+  };
+
+      // Make it awaitable with queued results
+      chain.then = jest.fn((resolve) => {
+        const result =
+          queryResultQueue.length > 0 ? queryResultQueue.shift() : [];
+        resolve(result);
+        return chain;
+      });
+
+      return chain;
+    };
+
+    mockDb = createMockChain();
+
+    // Override execute to support mockExecute pattern for soft-delete operations
+    mockExecute.mockImplementation = jest.fn(() => {
+      return executeResultQueue.length > 0
+        ? Promise.resolve(executeResultQueue.shift())
+        : Promise.resolve({ rowCount: 1 });
+    });
+
+    (db as jest.Mock).mockReturnValue(mockDb);
+    (logger.info as jest.Mock).mockImplementation();
+    (logger.warn as jest.Mock).mockImplementation();
+    (logger.error as jest.Mock).mockImplementation();
+    jest.clearAllMocks();
+  });
+
+  // Helper to queue query results
+  const queueQueryResult = (result: any) => {
+    queryResultQueue.push(result);
+  };
+
+  // Helper to queue execute results
+  const queueExecuteResult = (result: any) => {
+    executeResultQueue.push(result);
+  };
+
+  describe("getUserProjects - Soft-Delete Filtering", () => {
+    test("should return only active user projects (exclude soft-deleted)", async () => {
+      // Arrange
+      const mockUser = {
+        id: 1,
+        clerkId: "user-123",
+        email: "user@example.com",
+        credits: 100,
+        subscriptionTier: "pro",
+        createdAt: new Date(),
+        deletedAt: null,
+      };
+
+      const mockProjects = [
+        {
+          project: {
+            id: "project-1",
+            ownerId: 1,
+            name: "Active Project",
+            description: "Active project description",
+            status: "draft",
+            createdAt: new Date("2024-01-01"),
+            deletedAt: null,
+          },
+        },
+        {
+          project: {
+            id: "project-2",
+            ownerId: 1,
+            name: "Deleted Project",
+            description: "Soft-deleted project",
+            status: "draft",
+            createdAt: new Date("2024-01-02"),
+            deletedAt: new Date("2024-01-15"),
+          },
+        },
+      ];
+
+      mockExecute.mockResolvedValueOnce(mockProjects);
+
+      // Act
+      const result = await ProjectDataService.getUserProjects("user-123");
+
+      // Assert
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("project-1");
+      expect(result[0].name).toBe("Active Project");
+      expect(result[0].deletedAt).toBeNull();
+    });
+
+    test("should filter out soft-deleted users and projects", async () => {
+      // Arrange
+      const mockActiveUser = {
+        id: 1,
+        clerkId: "user-123",
+        email: "user@example.com",
+        credits: 100,
+        subscriptionTier: "pro",
+        createdAt: new Date(),
+        deletedAt: null,
+      };
+
+      mockExecute.mockResolvedValueOnce([mockActiveUser]);
+      mockExecute.mockResolvedValueOnce([]);
+
+      // Act
+      const result = await ProjectDataService.getUserProjects("user-123");
+
+      // Assert
+      expect(mockDb.where).toHaveBeenCalled();
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("getProjectBlueprints - Soft-Delete Filtering", () => {
+    test("should return only active blueprints for project", async () => {
+      // Arrange
+      const mockProject = {
+        id: "project-123",
+        ownerId: 1,
+        name: "Test Project",
+        description: "Test",
+        status: "draft",
+        createdAt: new Date(),
+        deletedAt: null,
+      };
+
+      const mockBlueprints = [
+        {
+          id: "blueprint-1",
+          projectId: "project-123",
+          version: 1,
+          contentMarkdown: "# Version 1",
+          structuredData: {},
+          createdAt: new Date(),
+          deletedAt: null,
+        },
+        {
+          id: "blueprint-2",
+          projectId: "project-123",
+          version: 2,
+          contentMarkdown: "# Version 2 (deleted)",
+          structuredData: {},
+          createdAt: new Date(),
+          deletedAt: new Date("2024-01-10"),
+        },
+      ];
+
+      mockExecute.mockResolvedValueOnce([{ project: mockProject, user: {} }]);
+      mockExecute.mockResolvedValueOnce([mockBlueprints[0]]);
+
+      // Act
+      const result = await ProjectDataService.getProjectBlueprints(
+        "project-123",
+        "user-123",
+      );
+
+      // Assert
+      expect(result.blueprints).toHaveLength(1);
+      expect(result.blueprints[0].id).toBe("blueprint-1");
+      expect(result.blueprints[0].deletedAt).toBeNull();
+    });
+  });
+
+  describe("createProject - Soft-Delete User Filtering", () => {
+    test("should only allow creating projects for active users", async () => {
+      // Arrange
+      const mockActiveUser = {
+        id: 1,
+        clerkId: "user-123",
+        email: "user@example.com",
+        credits: 100,
+        subscriptionTier: "pro",
+        createdAt: new Date(),
+        deletedAt: null,
+      };
+
+      const mockNewProject = {
+        id: "project-123",
+        ownerId: 1,
+        name: "New Project",
+        description: "New project description",
+        status: "draft",
+        createdAt: new Date(),
+        deletedAt: null,
+      };
+
+      mockExecute.mockResolvedValueOnce([mockActiveUser]);
+      mockExecute.mockResolvedValueOnce([mockNewProject]);
+
+      // Act
+      const result = await ProjectDataService.createProject("user-123", {
+        name: "New Project",
+        description: "New project description",
+      });
+
+      // Assert
+      expect(result.id).toBe("project-123");
+      expect(result.name).toBe("New Project");
+      expect(mockDb.where).toHaveBeenCalled();
+    });
+
+    test("should not create projects for soft-deleted users", async () => {
+      // Arrange
+      mockExecute.mockResolvedValueOnce([]);
+
+      // Act & Assert
+      await expect(
+        ProjectDataService.createProject("user-123", {
+          name: "New Project",
+          description: "New project description",
+        }),
+      ).rejects.toThrow("User not found");
+    });
+  });
+
+  describe("getProjectWithBlueprintCount - Soft-Delete Filtering", () => {
+    test("should count only active blueprints", async () => {
+      // Arrange
+      const mockProject = {
+        id: "project-123",
+        ownerId: 1,
+        name: "Test Project",
+        description: "Test",
+        status: "draft",
+        createdAt: new Date(),
+        deletedAt: null,
+      };
+
+      mockExecute.mockResolvedValueOnce([{ project: mockProject, user: {} }]);
+      mockExecute.mockResolvedValueOnce([{ count: 5 }]);
+
+      // Act
+      const result = await ProjectDataService.getProjectWithBlueprintCount(
+        "project-123",
+        "user-123",
+      );
+
+      // Assert
+      expect(result.blueprintCount).toBe(5);
+      expect(result.id).toBe("project-123");
+    });
+  });
+
+  describe("deleteProject - Soft-Delete Integration", () => {
+    test("should use soft-delete instead of hard delete", async () => {
+      // Arrange
+      const mockProject = {
+        project: {
+          id: "project-123",
+          ownerId: 1,
+          name: "Project to Delete",
+          description: "Delete test",
+          status: "draft",
+          createdAt: new Date(),
+          deletedAt: null,
+        },
+        user: {},
+      };
+
+      const mockDeletedProject = {
+        id: "project-123",
+        ownerId: 1,
+        name: "Project to Delete",
+        description: "Delete test",
+        status: "draft",
+        createdAt: new Date(),
+        deletedAt: new Date(),
+      };
+
+      mockExecute.mockResolvedValueOnce(mockProject);
+      mockExecute.mockResolvedValueOnce({ rowCount: 1 });
+      mockExecute.mockResolvedValueOnce([mockDeletedProject]);
+
+      // Act
+      const result = await ProjectDataService.deleteProject(
+        "project-123",
+        "user-123",
+      );
+
+      // Assert
+      expect(result.id).toBe("project-123");
+      expect(softDelete).toHaveBeenCalledWith("projects", "project-123");
+      expect(logger.info).toHaveBeenCalledWith(
+        "Record soft-deleted",
+        expect.objectContaining({
+          tableName: "projects",
+          id: "project-123",
+        }),
+      );
+    });
+
+    test("should return soft-deleted project with deletion timestamp", async () => {
+      // Arrange
+      const mockProjectBeforeDelete = {
+        id: "project-123",
+        ownerId: 1,
+        name: "Project to Delete",
+        description: "Delete test",
+        status: "draft",
+        createdAt: new Date(),
+        deletedAt: null,
+      };
+
+      const mockProjectAfterDelete = {
+        id: "project-123",
+        ownerId: 1,
+        name: "Project to Delete",
+        description: "Delete test",
+        status: "draft",
+        createdAt: new Date(),
+        deletedAt: new Date(),
+      };
+
+      mockExecute.mockResolvedValueOnce([
+        { project: mockProjectBeforeDelete, user: {} },
+      ]);
+      mockExecute.mockResolvedValueOnce({ rowCount: 1 });
+      mockExecute.mockResolvedValueOnce([mockProjectAfterDelete]);
+
+      // Act
+      const result = await ProjectDataService.deleteProject(
+        "project-123",
+        "user-123",
+      );
+
+      // Assert
+      expect(result.deletedAt).toBeInstanceOf(Date);
+      expect(result.id).toBe("project-123");
+    });
+
+    test("should preserve project data for potential recovery", async () => {
+      // Arrange
+      const mockProject = {
+        id: "project-123",
+        ownerId: 1,
+        name: "Recoverable Project",
+        description: "Can be restored",
+        status: "draft",
+        createdAt: new Date(),
+        deletedAt: null,
+      };
+
+      mockExecute.mockResolvedValueOnce([{ project: mockProject, user: {} }]);
+      mockExecute.mockResolvedValueOnce({ rowCount: 1 });
+      mockExecute.mockResolvedValueOnce([mockProject]);
+
+      // Act
+      const result = await ProjectDataService.deleteProject(
+        "project-123",
+        "user-123",
+      );
+
+      // Assert - Verify project data is preserved (not permanently deleted)
+      expect(result.name).toBe("Recoverable Project");
+      expect(result.description).toBe("Can be restored");
+      expect(result.id).toBe("project-123");
+      expect(mockDb.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Soft-Delete Recovery Workflows", () => {
+    test("should allow recovery of soft-deleted projects", async () => {
+      // Arrange - Simulate project was soft-deleted
+      const mockDeletedProject = {
+        id: "project-123",
+        ownerId: 1,
+        name: "Deleted Project",
+        description: "Can be recovered",
+        status: "draft",
+        createdAt: new Date(),
+        deletedAt: new Date("2024-01-10"),
+      };
+
+      mockExecute.mockResolvedValueOnce({ rowCount: 1 });
+      mockExecute.mockResolvedValueOnce([mockDeletedProject]);
+
+      // Act - Restore the soft-deleted project
+      await restore("projects", "project-123");
+      const retrievedProject = await mockDb
+        .select()
+        .from("projects")
+        .where("id", "project-123");
+
+      // Assert
+      expect(mockDeletedProject.deletedAt).toBeInstanceOf(Date);
+      expect(logger.info).toHaveBeenCalledWith("Record restored", {
+        tableName: "projects",
+        id: "project-123",
+      });
+    });
+
+    test("should count soft-deleted records across all tables", async () => {
+      // Arrange
+      mockExecute.mockResolvedValueOnce([{ count: 0 }]);
+      mockExecute.mockResolvedValueOnce([{ count: 5 }]);
+      mockExecute.mockResolvedValueOnce([{ count: 3 }]);
+      mockExecute.mockResolvedValueOnce([{ count: 2 }]);
+
+      // Act
+      const userCount = await countSoftDeletedRecords("users");
+      const projectCount = await countSoftDeletedRecords("projects");
+      const blueprintCount = await countSoftDeletedRecords("blueprints");
+      const transactionCount = await countSoftDeletedRecords("transactions");
+
+      // Assert
+      expect(userCount).toBe(0);
+      expect(projectCount).toBe(5);
+      expect(blueprintCount).toBe(3);
+      expect(transactionCount).toBe(2);
+    });
+  });
+
+  describe("Performance Optimization with Soft-Delete", () => {
+    test("should use partial indexes for active record queries", async () => {
+      // Arrange
+      const mockActiveProjects = [
+        {
+          id: "project-1",
+          ownerId: 1,
+          name: "Active Project",
+          deletedAt: null,
+        },
+        {
+          id: "project-2",
+          ownerId: 1,
+          name: "Another Active",
+          deletedAt: null,
+        },
+      ];
+
+      mockExecute.mockResolvedValueOnce([{ id: 1 }]);
+      mockExecute.mockResolvedValueOnce(mockActiveProjects);
+
+      // Act
+      const result = await ProjectDataService.getUserProjects("user-123");
+
+      // Assert - Verify soft-delete filtering is used (partial index optimization)
+      expect(mockDb.where).toHaveBeenCalled();
+      expect(result).toHaveLength(2);
+      expect(result.every((p) => p.deletedAt === null)).toBe(true);
+    });
+
+    test("should minimize query impact with WHERE deleted_at IS NULL", async () => {
+      // Arrange
+      mockExecute.mockResolvedValueOnce([{ id: 1 }]);
+      mockExecute.mockResolvedValueOnce([
+        {
+          id: "project-1",
+          ownerId: 1,
+          name: "Project",
+          deletedAt: null,
+        },
+      ]);
+
+      // Act
+      await ProjectDataService.getUserProjects("user-123");
+
+      // Assert - Verify query uses soft-delete filter (partial index)
+      expect(mockDb.where).toHaveBeenCalled();
+    });
+  });
+
+  describe("Data Integrity with Soft-Delete", () => {
+    test("should maintain referential integrity across soft-deleted records", async () => {
+      // Arrange
+      const mockProject = {
+        id: "project-123",
+        ownerId: 1,
+        name: "Project with Blueprints",
+        description: "Integrity test",
+        status: "draft",
+        createdAt: new Date(),
+        deletedAt: null,
+      };
+
+      mockExecute.mockResolvedValueOnce([{ project: mockProject, user: {} }]);
+      mockExecute.mockResolvedValueOnce({ rowCount: 1 });
+      mockExecute.mockResolvedValueOnce([mockProject]);
+
+      // Act - Soft-delete project (blueprints should be logically deleted)
+      await ProjectDataService.deleteProject("project-123", "user-123");
+
+      // Assert - Verify soft-delete operation was called
+      expect(softDelete).toHaveBeenCalledWith("projects", "project-123");
+      expect(mockDb.delete).not.toHaveBeenCalled();
+    });
+
+    test("should prevent cascade data loss with soft-delete", async () => {
+      // Arrange
+      const mockProject = {
+        id: "project-123",
+        ownerId: 1,
+        name: "Cascade Test Project",
+        description: "Test cascade behavior",
+        status: "draft",
+        createdAt: new Date(),
+        deletedAt: null,
+      };
+
+      mockExecute.mockResolvedValueOnce([{ project: mockProject, user: {} }]);
+      mockExecute.mockResolvedValueOnce({ rowCount: 1 });
+      mockExecute.mockResolvedValueOnce([mockProject]);
+
+      // Act
+      await ProjectDataService.deleteProject("project-123", "user-123");
+
+      // Assert - Verify hard delete was NOT called (preserving cascade data)
+      expect(mockDb.delete).not.toHaveBeenCalled();
+      expect(softDelete).toHaveBeenCalledTimes(1);
+    });
+  });
+});

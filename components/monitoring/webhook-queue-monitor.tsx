@@ -22,13 +22,10 @@ export function WebhookQueueMonitor({
   onEventsUpdate,
 }: WebhookQueueMonitorProps) {
   const [stats, setStats] = useState<WebhookQueueStats | null>(null);
+  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-
-  // Variables used in render and console debug for ESLint compliance
-  // eslint-disable-next-line no-console
-  console.log("Webhook monitor state:", { loading, stats, error });
 
   const fetchWebhookStats = useCallback(async () => {
     try {

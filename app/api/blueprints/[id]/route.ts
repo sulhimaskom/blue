@@ -23,7 +23,7 @@ interface RouteParams {
 export async function PUT(req: NextRequest, { params }: RouteParams) {
   const { id } = await params;
 
-  return APIRouteHandler.createPOSTHandler({
+  return APIRouteHandler.createPUTHandler({
     schema: refineBlueprintSchema,
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
@@ -51,7 +51,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         requestId: context.requestId,
         blueprintId: refinedBlueprint.id,
         version: refinedBlueprint.version,
-        updateType: updateType,
+        updateType,
       });
 
       return {
