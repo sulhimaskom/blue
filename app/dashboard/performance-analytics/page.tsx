@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { AdvancedPerformanceDashboard } from "@/components/monitoring/advanced-performance-dashboard";
+import { useNotification } from "@/lib/hooks/use-notification";
 
 /**
  * Advanced Performance Monitoring Dashboard page.
@@ -19,20 +20,7 @@ import { AdvancedPerformanceDashboard } from "@/components/monitoring/advanced-p
  * - Atomic component following blueprint.md principles
  */
 export default function AdvancedPerformanceDashboardPage() {
-  const [notification, setNotification] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
-
-  const handleError = (error: string) => {
-    setNotification({ message: error, type: "error" });
-    setTimeout(() => setNotification(null), 5000);
-  };
-
-  const handleSuccess = (message: string) => {
-    setNotification({ message: message, type: "success" });
-    setTimeout(() => setNotification(null), 5000);
-  };
+  const { notification, showError, showSuccess } = useNotification();
 
   return (
     <DashboardLayout>
@@ -67,8 +55,8 @@ export default function AdvancedPerformanceDashboardPage() {
         )}
 
         <AdvancedPerformanceDashboard
-          onError={handleError}
-          onSuccess={handleSuccess}
+          onError={showError}
+          onSuccess={showSuccess}
         />
 
         {/* Additional Performance Information */}
