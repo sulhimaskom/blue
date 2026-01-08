@@ -16,12 +16,16 @@ const nextConfig = {
       "lodash",
       "stripe",
       "@neondatabase/serverless",
+      "zod",
+      "drizzle-orm",
+      "redis",
+      "@sentry/nextjs",
     ],
     // Enable incremental caching improvements
     optimizeCss: true,
   },
 
-  // Advanced bundle analysis optimization with OpenTelemetry fix
+  // Advanced webpack optimization for maximum performance
   webpack: (config, { dev, isServer }) => {
     // Fix OpenTelemetry dynamic import issue by ignoring dynamic requires
     config.module = {
@@ -49,8 +53,8 @@ const nextConfig = {
         // Improve chunk splitting for better caching
         splitChunks: {
           chunks: "all",
-          maxSize: 180000, // Optimized for better caching (180kB chunks)
-          minSize: 20000, // Minimum 20 kB to avoid too many tiny chunks
+          maxSize: 160000, // Optimized for better CDN caching (160kB chunks)
+          minSize: 25000, // Minimum 25 kB to avoid too many tiny chunks
           cacheGroups: {
             default: {
               minChunks: 2,
@@ -79,6 +83,12 @@ const nextConfig = {
               test: /[\\/]node_modules[\\/](stripe|@types\/stripe)[\\/]/,
               name: "stripe",
               priority: 25,
+              reuseExistingChunk: true,
+            },
+            database: {
+              test: /[\\/]node_modules[\\/](@neondatabase|drizzle-orm)[\\/]/,
+              name: "database",
+              priority: 35,
               reuseExistingChunk: true,
             },
             react: {
