@@ -901,7 +901,7 @@ describe("EnhancedCircuitBreaker", () => {
       expect(metrics.state).toBe("OPEN");
 
       // OPEN → CLOSED after timeout and success
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1100));
       await circuitBreaker.execute(successRequest);
 
       metrics = circuitBreaker.getMetrics();
