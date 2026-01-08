@@ -99,82 +99,37 @@ const nextConfig = {
     if (!dev) {
       config.parallelism = 4; // Use 4 threads for optimal performance with available memory
 
-      // Enhanced filesystem-based caching for faster builds
-      config.cache = {
-        type: "filesystem",
-        buildDependencies: {
-          config: [__filename],
-        },
-        maxAge: 2592000000, // 30 days
-        compression: false, // Disable compression for speed
-        cacheDirectory: path.resolve(__dirname, ".next/cache"),
-        name: "production-build",
-      };
+      // Disable caching for speed in production builds
+      config.cache = false;
 
+      // Streamlined optimization for speed
       config.optimization = {
         ...config.optimization,
         usedExports: true,
         sideEffects: false,
         moduleIds: "deterministic",
+        // Simplified chunk splitting for faster builds
         splitChunks: {
           chunks: "all",
-          maxSize: 300000, // Optimize for build speed (300kB)
-          minSize: 100000, // Larger minimum to reduce fragmentation
-          minChunks: 1,
-          maxInitialRequests: 2, // Reduce requests for faster builds
+          maxSize: 500000, // Increased to reduce fragmentation
+          minSize: 200000, // Increased for faster processing
+          maxInitialRequests: 3, // Slightly increased for balance
           cacheGroups: {
             default: {
               minChunks: 2,
               priority: -20,
               reuseExistingChunk: true,
             },
-            services: {
-              test: /[\\/]lib[\\/]services[\\/]/,
-              name: "services",
-              priority: 50,
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: "vendors",
+              priority: 10,
               reuseExistingChunk: true,
             },
-            clerk: {
-              test: /[\\/]node_modules[\\/]@clerk[\\/]/,
-              name: "clerk",
-              priority: 30,
-              reuseExistingChunk: true,
-            },
-            sentry: {
-              test: /[\\/]node_modules[\\/]@sentry[\\/]/,
-              name: "sentry",
-              priority: 25,
-              reuseExistingChunk: true,
-            },
-            stripe: {
-              test: /[\\/]node_modules[\\/](stripe|@types\/stripe)[\\/]/,
-              name: "stripe",
-              priority: 25,
-              reuseExistingChunk: true,
-            },
-            database: {
-              test: /[\\/]node_modules[\\/](@neondatabase|drizzle-orm)[\\/]/,
-              name: "database",
-              priority: 35,
-              reuseExistingChunk: true,
-            },
-            react: {
-              test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
-              name: "react",
-              priority: 40,
-              reuseExistingChunk: true,
-            },
-            ui: {
-              test: /[\\/]components[\\/]ui[\\/]/,
-              name: "ui",
-              priority: 45,
-              reuseExistingChunk: true,
-            },
-            common: {
-              name: "common",
-              minChunks: 2,
-              chunks: "all",
-              priority: 5,
+            framework: {
+              test: /[\\/](react|react-dom|scheduler)[\\/]/,
+              name: "framework",
+              priority: 20,
               reuseExistingChunk: true,
             },
           },

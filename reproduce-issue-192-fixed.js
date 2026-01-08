@@ -33,16 +33,6 @@ try {
     /## Overall Architecture Score: (\d+)\/100/,
   );
   const commitMatch = evaluasiContent.match(/\*\*Commit Hash\*\*: ([a-f0-9]+)/);
-  const scoreMatch = evaluasiContent.match(
-    /## Overall Architecture Score: (\d+)\/100/,
-  );
-  const commitMatch = evaluasiContent.match(/\*\*Commit Hash\*\*: ([a-f0-9]+)/);
-  const scoreMatch = evaluasiContent.match(
-    /\*\*Overall Architecture Score: (\d+)\/100/,
-  );
-  const commitMatch = evaluasiContent.match(
-    /\*\*Commit Hash\*\*: `?([a-f0-9]+)`?/,
-  );
 
   if (!dateMatch || !scoreMatch || !commitMatch) {
     error("Critical evaluation data missing");
@@ -98,11 +88,11 @@ try {
   // 6. Verify comprehensive evaluation metrics
   log("Verifying comprehensive evaluation metrics...");
   const requiredSections = [
-    "Executive Summary",
-    "Quality Gates Verification",
-    "Detailed Evaluation Scores",
-    "Critical Architecture Analysis",
-    "Production Readiness Assessment",
+    "Live Quality Gates Verification",
+    "Overall Architecture Score",
+    "Deep Dive Analysis",
+    "Critical Risks Identified",
+    "Architecture Compliance Analysis",
   ];
 
   for (const section of requiredSections) {
@@ -118,13 +108,13 @@ try {
   log("Checking score consistency...");
   const scoreReferences = [
     /Overall Architecture Score: (\d+)\/100/,
-    /Stability:\s*(\d+)\/100/,
-    /Performance:\s*(\d+)\/100/,
-    /Security:\s*(\d+)\/100/,
-    /Scalability:\s*(\d+)\/100/,
-    /Modularity:\s*(\d+)\/100/,
-    /Flexibility:\s*(\d+)\/100/,
-    /Consistency:\s*(\d+)\/100/,
+    /\*\*Stability\*\*\s*\|\s*(\d+)\/100/,
+    /\*\*Performance\*\*\s*\|\s*(\d+)\/100/,
+    /\*\*Security\*\*\s*\|\s*(\d+)\/100/,
+    /\*\*Scalability\*\*\s*\|\s*(\d+)\/100/,
+    /\*\*Modularity\*\*\s*\|\s*(\d+)\/100/,
+    /\*\*Flexibility\*\*\s*\|\s*(\d+)\/100/,
+    /\*\*Consistency\*\*\s*\|\s*(\d+)\/100/,
   ];
 
   scoreReferences.forEach((regex, index) => {

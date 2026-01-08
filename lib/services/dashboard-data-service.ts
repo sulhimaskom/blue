@@ -265,4 +265,55 @@ export class DashboardDataService {
       );
     }
   }
+
+  /**
+   * Fetch circuit breaker metrics for monitoring
+   * Consolidates fetchMetrics logic from circuit-breaker-status-panel.tsx (lines 62-86)
+   */
+  static async getCircuitBreakerMetrics<T = any>(): Promise<{
+    success: boolean;
+    data: T;
+    error?: string;
+  }> {
+    try {
+      const data = await this.apiCall<{
+        success: boolean;
+        data: T;
+        error?: string;
+      }>("/circuit-breakers/metrics");
+      return data;
+    } catch (error) {
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : "Failed to load circuit breaker metrics",
+      );
+    }
+  }
+
+  /**
+   * Reset circuit breaker state
+   * Consolidates circuit breaker reset logic for monitoring components
+   */
+  static async resetCircuitBreaker(circuitName?: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      const data = await this.apiCall<{
+        success: boolean;
+        message: string;
+      }>("/circuit-breakers/reset", {
+        method: "POST",
+        body: JSON.stringify({ circuit: circuitName }),
+      });
+      return data;
+    } catch (error) {
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : "Failed to reset circuit breaker",
+      );
+    }
+  }
 }
