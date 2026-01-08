@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "@/lib/constants/ui-themes";
+import { cn, getStatusTheme, getTextColor } from "@/lib/constants/ui-themes";
 import {
   AlertCircleIcon,
   CheckCircleIcon,
@@ -35,7 +35,12 @@ export function ValidationFeedback({
   // Show loading state
   if (isValidating) {
     return (
-      <div className="flex items-center space-x-2 text-gray-500 text-sm mt-1">
+      <div
+        className={cn(
+          "flex items-center space-x-2 text-sm mt-1",
+          getTextColor("muted"),
+        )}
+      >
         <Loader2Icon className="w-4 h-4" />
         <span>Validating...</span>
       </div>
@@ -51,7 +56,12 @@ export function ValidationFeedback({
     <div className="mt-2 space-y-2">
       {/* Error state */}
       {error && (
-        <div className="flex items-start space-x-2 text-red-600 text-sm">
+        <div
+          className={cn(
+            "flex items-start space-x-2 text-sm",
+            getStatusTheme("unhealthy").split(" ")[0],
+          )}
+        >
           <AlertCircleIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>{error}</span>
         </div>
