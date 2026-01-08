@@ -4,12 +4,27 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ["@neondatabase/serverless"],
+  transpilePackages: ["@neondatabase/serverless"],
 
   // Performance optimization configurations
   experimental: {
     // Optimize bundle splitting for better caching
-    optimizePackageImports: ["@clerk/nextjs", "lucide-react", "@/lib/services"],
+    optimizePackageImports: [
+      "@clerk/nextjs",
+      "lucide-react",
+      "@/lib/services",
+      "lodash",
+      "stripe",
+      "@neondatabase/serverless",
+    ],
+    // Enable incremental caching improvements
+    optimizeCss: true,
+    // Enable parallel builds and optimize memory usage
+    adjustFontFallbacks: true,
+    // Optimize client-side navigation
+    optimizeCss: true,
+    // Enable webpack 5 caching for faster builds
+    webpack5: true,
   },
 
   // Advanced bundle analysis optimization with OpenTelemetry fix
@@ -26,8 +41,8 @@ const nextConfig = {
       config.watchOptions = {
         ...config.watchOptions,
         ignored: /node_modules/,
-        aggregateTimeout: 300, // Delay rebuild by 300ms
-        poll: 1000, // Check for changes every second
+        aggregateTimeout: 200, // Reduced delay for faster rebuilds
+        poll: 800, // Check for changes more frequently
       };
     }
 
