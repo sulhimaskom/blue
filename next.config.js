@@ -6,9 +6,9 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 const nextConfig = {
   transpilePackages: [],
 
-  // Performance optimization configurations (Next.js 15 compatible)
+  // Enhanced performance optimization configurations (Next.js 15 compatible)
   experimental: {
-    // Optimize package imports for smaller bundles
+    // Optimize package imports for smaller bundles and faster builds
     optimizePackageImports: [
       "@clerk/nextjs",
       "lucide-react",
@@ -25,11 +25,16 @@ const nextConfig = {
     optimizeCss: true,
     // Performance optimizations
     optimizeServerReact: true,
+    // Disable worker threads for compatibility
     workerThreads: false,
   },
 
   // Move server external packages to proper location
-  serverExternalPackages: ["@clerk/backend"],
+  serverExternalPackages: [
+    "@clerk/backend",
+    "@sentry/node",
+    "@sentry/profiling-node",
+  ],
 
   // Advanced webpack optimization for maximum performance
   webpack: (config, { dev, isServer }) => {
@@ -89,13 +94,18 @@ const nextConfig = {
       };
     }
 
-    // Enable single-thread processing for faster builds
+    // Optimize for fastest builds
     if (!dev) {
-      config.parallelism = 1; // Single thread for maximum speed
+      config.parallelism = 2; // Use 2 threads for optimal performance
 
-      // Memory-based caching for fastest builds
+      // Enhanced filesystem-based caching for faster builds
       config.cache = {
-        type: "memory",
+        type: "filesystem",
+        buildDependencies: {
+          config: [__filename],
+        },
+        maxAge: 2592000000, // 30 days
+        compression: false, // Disable compression for speed
       };
 
       config.optimization = {
@@ -105,10 +115,10 @@ const nextConfig = {
         moduleIds: "deterministic",
         splitChunks: {
           chunks: "all",
-          maxSize: 200000, // Larger chunks for faster builds (200kB)
-          minSize: 50000, // Larger minimum to reduce fragmentation
+          maxSize: 300000, // Optimize for build speed (300kB)
+          minSize: 100000, // Larger minimum to reduce fragmentation
           minChunks: 1,
-          maxInitialRequests: 3, // Limit requests for speed
+          maxInitialRequests: 2, // Reduce requests for faster builds
           cacheGroups: {
             default: {
               minChunks: 2,

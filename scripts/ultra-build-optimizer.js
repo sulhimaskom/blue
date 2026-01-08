@@ -13,26 +13,25 @@ const fs = require("fs");
 
 console.log("🚀 Ultra-Fast Build Optimizer v3.0\n");
 
-// Extreme performance environment variables
-process.env.NODE_OPTIONS =
-  "--max-old-space-size=8192 --expose-gc --no-concurrent-sweeping";
+// Optimized performance environment variables
+process.env.NODE_OPTIONS = "--max-old-space-size=6144 --expose-gc"; // Reduced memory for less GC overhead
 process.env.NODE_ENV = "production";
 process.env.NEXT_TELEMETRY_DISABLED = "1";
 process.env.FORCE_COLOR = "1";
-process.env.NEXT_BUILD_WORKERS = "1"; // Single worker for fastest builds
+process.env.NEXT_BUILD_WORKERS = "2"; // Optimal 2 workers for this codebase size
 
-// Ultra-aggressive build configuration
+// Optimized build configuration
 const config = {
-  // Single worker for maximum speed
-  workers: 1,
-  memory: "8192MB",
-  strategy: "ultra-fast",
+  // Optimal workers for this codebase size
+  workers: 2,
+  memory: "6144MB", // Reduced from 8GB to minimize GC pauses
+  strategy: "balanced-optimization",
   optimizations: [
-    "single-thread",
+    "dual-worker",
     "memory-caching",
-    "minimal-output",
-    "aggressive-gc",
-    "webpack-turbo",
+    "minimal-gc",
+    "webpack-optimization",
+    "chunk-balancing",
   ],
 };
 
@@ -58,8 +57,8 @@ const startTime = Date.now();
 try {
   console.log("🏗️  Starting ultra-fast build...\n");
 
-  // Execute ultra-optimized build
-  const buildCommand = `npx next build --no-lint --experimental-build-mode`;
+  // Execute optimized build
+  const buildCommand = `npx next build --no-lint`;
 
   execSync(buildCommand, {
     stdio: "inherit",
@@ -67,8 +66,8 @@ try {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      NEXT_BUILD_WORKERS: "1",
-      NODE_OPTIONS: "--max-old-space-size=8192 --expose-gc",
+      NEXT_BUILD_WORKERS: "2",
+      NODE_OPTIONS: "--max-old-space-size=6144 --expose-gc",
     },
   });
 
