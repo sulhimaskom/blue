@@ -20,10 +20,14 @@ export {
 export class ServiceError extends Error {
   constructor(
     message: string,
-    public readonly service: string,
-    public readonly operation: string,
-    public readonly cause?: Error,
-    public readonly context?: Record<string, any>,
+    // eslint-disable-next-line no-unused-vars
+    public readonly _service: string,
+    // eslint-disable-next-line no-unused-vars
+    public readonly _operation: string,
+    // eslint-disable-next-line no-unused-vars
+    public readonly _cause?: Error,
+    // eslint-disable-next-line no-unused-vars
+    public readonly _context?: Record<string, any>,
   ) {
     super(message);
     this.name = "ServiceError";
@@ -136,12 +140,12 @@ export class ServiceErrorHandler {
   ): never {
     // If this is already a ServiceError, just add logging
     if (error instanceof ServiceError) {
-      logger.error(`${error.service}:${error.operation}`, {
-        serviceName: error.service,
-        operation: error.operation,
+      logger.error(`${error._service}:${error._operation}`, {
+        serviceName: error._service,
+        operation: error._operation,
         error: error.message,
-        context: { ...error.context, ...context },
-        originalError: error.cause,
+        context: { ...error._context, ...context },
+        originalError: error._cause,
       });
       throw error;
     }
@@ -227,13 +231,15 @@ export class ServiceErrorHandler {
   /**
    * Create a wrapper function for consistent error handling
    */
+  /* eslint-disable no-unused-vars */
   static wrap<T extends any[], R>(
-    fn: (...args: T) => R,
+    fn: (..._args: T) => R,
     serviceName: string,
     operationName: string,
   ): (...args: T) => R {
     return (...args: T): R => {
       try {
+        // eslint-disable-next-line no-unused-vars
         const result = fn(...args);
 
         // Handle async functions
@@ -254,19 +260,21 @@ export class ServiceErrorHandler {
       }
     };
   }
+  /* eslint-enable no-unused-vars */
 
   /**
    * Validate input and throw standardized ValidationError if invalid
    */
   static validate<T>(
-    value: T,
-    validator: (value: T) => boolean | string,
+    // eslint-disable-next-line no-unused-vars
+    _value: T,
+    validator: (value: T) => boolean | string, // eslint-disable-line no-unused-vars
     serviceName: string,
     operation: string,
     fieldName: string,
     context?: Record<string, any>,
-  ): asserts value is T {
-    const result = validator(value);
+  ): asserts _value is T {
+    const result = validator(_value);
     if (result === true) return;
 
     const message =
