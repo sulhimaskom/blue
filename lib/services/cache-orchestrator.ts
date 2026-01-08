@@ -365,7 +365,7 @@ export class UnifiedCacheManager {
   }
 
   static async getCacheStats() {
-    return CacheStatisticsService.getCacheStats();
+    return CacheStatisticsService.getRichCacheStats();
   }
 
   static async performIntelligentWarming() {
