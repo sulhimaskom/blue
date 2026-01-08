@@ -9,7 +9,7 @@
     "build": "next build",
     "build:clean": "rm -rf .next && next build",
     "build:analyze": "ANALYZE=true next build",
-    "dev:perf": "next dev --turbo",
+    "dev:perf": "NODE_OPTIONS='--max-old-space-size=4096' next dev --turbo",
     "dev:optimize": "node scripts/optimize-dev-performance.js",
     "start": "next start",
     "lint": "next lint",

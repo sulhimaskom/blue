@@ -6,9 +6,9 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 const nextConfig = {
   transpilePackages: ["@neondatabase/serverless"],
 
-  // Performance optimization configurations
+  // Performance optimization configurations (Next.js 15 compatible)
   experimental: {
-    // Optimize bundle splitting for better caching
+    // Optimize package imports for smaller bundles
     optimizePackageImports: [
       "@clerk/nextjs",
       "lucide-react",
@@ -19,12 +19,6 @@ const nextConfig = {
     ],
     // Enable incremental caching improvements
     optimizeCss: true,
-    // Enable parallel builds and optimize memory usage
-    adjustFontFallbacks: true,
-    // Optimize client-side navigation
-    optimizeCss: true,
-    // Enable webpack 5 caching for faster builds
-    webpack5: true,
   },
 
   // Advanced bundle analysis optimization with OpenTelemetry fix
@@ -55,8 +49,8 @@ const nextConfig = {
         // Improve chunk splitting for better caching
         splitChunks: {
           chunks: "all",
-          maxSize: 50000, // Reduced from 200000 to 50 kB for better granularity
-          minSize: 10000, // Minimum 10 kB to avoid too many tiny chunks
+          maxSize: 180000, // Optimized for better caching (180kB chunks)
+          minSize: 20000, // Minimum 20 kB to avoid too many tiny chunks
           cacheGroups: {
             default: {
               minChunks: 2,
@@ -126,9 +120,6 @@ const nextConfig = {
 
   // Output optimization
   output: "standalone",
-
-  // Disable source maps in production for faster builds
-  productionBrowserSourceMaps: false,
 
   // Cache management for better performance
   generateBuildId: async () => {
