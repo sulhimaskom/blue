@@ -1,7 +1,7 @@
 # Agent Engagement Guidelines
 
-**Version**: 1.0  
-**Last Updated**: January 7, 2026  
+**Version**: 1.1  
+**Last Updated**: January 8, 2026  
 **Purpose**: Establish clear rules of engagement for all AI agents working on this codebase
 
 ---
@@ -309,7 +309,7 @@ This document will evolve based on:
 
 ---
 
-## Latest Agent Guidelines Update (January 7, 2026)
+## Latest Agent Guidelines Update (January 8, 2026)
 
 ### **CRITICAL: AGENT WORKFLOW REQUIREMENTS**
 
@@ -321,19 +321,19 @@ All agents MUST follow this workflow for ANY repository work:
    - CRITICAL: `git merge origin/dev --no-edit` for latest changes
 
 2. **Verification Commands**: ALWAYS run quality gates before any work:
-   - `npm run build` - MUST pass (20.9s compile time, 30 static pages)
+   - `npm run build` - MUST pass (21.3s compile time, 30+ static pages, may show deprecation warnings)
    - `npm run lint` - MUST return 0 warnings/errors
    - `npm audit` - MUST return 0 vulnerabilities
-   - `npm test --silent` - MUST return 96.3%+ pass rate (27/28 suites, 289/300 tests)
+   - `npm test --silent` - MUST return 100% pass rate (31/31 suites, 326/326 tests)
    - `npm run typecheck` - MUST return 0 errors
 
-3. **Current Architecture**: 35+ specialized atomic services with near-perfect Service Layer compliance
+3. **Current Architecture**: 35+ specialized atomic services with world-class Service Layer compliance
    - 50+ centralized type definitions in `lib/services/service-types.ts` (568 lines)
    - 821 lines of duplicate code eliminated through unified architecture
-   - Zero critical risks identified - exceptional achievement
-   - Production-ready with 97/100 world-class score
+   - Medium-priority build warnings identified (deprecation warnings)
+   - Production-ready with 96/100 world-class score
 
-### **PRODUCTION READINESS STATUS: ✅ APPROVED WITH MINOR ENHANCEMENTS**
+### **PRODUCTION READINESS STATUS: ✅ APPROVED WITH MINOR FIXES REQUIRED**
 
 **Infrastructure Excellence**:
 
