@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ClockIcon } from "@/components/ui/icons";
 import { ANIMATION_STATES, getTextColor, cn } from "@/lib/constants/ui-themes";
+import { formatClientTime } from "@/lib/utils/time-formatting";
 
 /**
  * Props interface for DashboardFooter component.
@@ -74,11 +75,7 @@ export function DashboardFooter({
 
   // Fix hydration issue by formatting time client-side only
   useEffect(() => {
-    if (lastRefresh) {
-      setFormattedTime(lastRefresh.toLocaleTimeString());
-    } else {
-      setFormattedTime("Never");
-    }
+    setFormattedTime(formatClientTime(lastRefresh));
   }, [lastRefresh]);
 
   return (

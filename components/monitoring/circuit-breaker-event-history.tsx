@@ -7,6 +7,10 @@ import {
   type StatusType,
 } from "@/components/ui/status-indicator";
 import { cn } from "@/lib/constants/ui-themes";
+import {
+  formatRelativeTime,
+  generateEventId,
+} from "@/lib/utils/time-formatting";
 
 // Event types for circuit breaker changes
 interface CircuitBreakerEvent {
@@ -51,11 +55,6 @@ export function CircuitBreakerEventHistory({
 }: CircuitBreakerEventHistoryProps) {
   const [events, setEvents] = useState<CircuitBreakerEvent[]>([]);
   const previousMetricsRef = useRef<CircuitBreakerMetrics | null>(null);
-
-  // Generate unique ID for events
-  const generateEventId = () => {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  };
 
   // Get status type for event
   const getEventStatusType = (eventType: string): StatusType => {
@@ -182,15 +181,9 @@ export function CircuitBreakerEventHistory({
     return "State change detected";
   };
 
-  // Format timestamp for display
+  // Format timestamp using centralized service
   const formatTimestamp = (timestamp: Date): string => {
-    const now = new Date();
-    const diff = now.getTime() - timestamp.getTime();
-
-    if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return timestamp.toLocaleDateString();
+    return formatRelativeTime(timestamp);
   };
 
   const hasEvents = events.length > 0;

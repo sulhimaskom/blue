@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 "use client";
 
 import React, { useState } from "react";
@@ -17,7 +16,7 @@ interface ResetResult {
 
 interface CircuitBreakerResetControlProps {
   /** Callback function when reset is completed */
-  onResetComplete?: (_result: ResetResult) => void;
+  onResetComplete?: (_result: ResetResult) => void; // eslint-disable-line no-unused-vars
   /** Callback function to refresh circuit breaker metrics */
   onRefreshMetrics?: () => void;
   /** Whether to show confirmation dialog */

@@ -7,9 +7,9 @@ export interface UseMonitoringDashboardState {
 }
 
 export interface UseMonitoringDashboardActions {
-  toggleServiceExpansion: (serviceName: string) => void;
+  toggleServiceExpansion: (serviceName: string) => void; // eslint-disable-line no-unused-vars
   clearError: () => void;
-  setError: (errorMessage: string) => void;
+  setError: (errorMessage: string) => void; // eslint-disable-line no-unused-vars
 }
 
 export function useMonitoringDashboardState(): UseMonitoringDashboardState &

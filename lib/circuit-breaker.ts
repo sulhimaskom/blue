@@ -1,11 +1,10 @@
 import { logger } from "./logger";
 
-/* eslint-disable no-unused-vars */
-
+// eslint-disable-next-line no-unused-vars
 export enum CircuitState {
-  CLOSED = "CLOSED", // Normal operation
-  OPEN = "OPEN", // Circuit is open, calls fail fast
-  HALF_OPEN = "HALF_OPEN", // Testing if service has recovered
+  CLOSED = "CLOSED", // eslint-disable-line no-unused-vars
+  OPEN = "OPEN", // eslint-disable-line no-unused-vars
+  HALF_OPEN = "HALF_OPEN", // eslint-disable-line no-unused-vars
 }
 
 export interface CircuitBreakerConfig {
@@ -39,8 +38,8 @@ export class CircuitBreaker {
   private nextAttempt: number = 0;
 
   constructor(
-    private readonly circuitBreakerName: string,
-    private readonly circuitBreakerConfig: CircuitBreakerConfig,
+    private readonly circuitBreakerName: string, // eslint-disable-line no-unused-vars
+    private readonly circuitBreakerConfig: CircuitBreakerConfig, // eslint-disable-line no-unused-vars
   ) {}
 
   /**
@@ -323,7 +322,8 @@ export class CircuitBreakerRegistry {
    * Reset all circuit breakers
    */
   resetAll(): void {
-    for (const [name, circuitBreaker] of this.circuitBreakers) {
+    // eslint-disable-next-line no-unused-vars
+    for (const [_name, circuitBreaker] of this.circuitBreakers) {
       circuitBreaker.reset();
     }
     logger.info("All circuit breakers reset");

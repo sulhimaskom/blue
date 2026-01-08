@@ -1,5 +1,6 @@
 import React, { SelectHTMLAttributes } from "react";
 import { cn, getTextColor } from "@/lib/constants/ui-themes";
+import { generateFormId } from "@/lib/services/form-service";
 
 export interface SelectOption {
   value: string;
@@ -35,8 +36,7 @@ export function FormSelect({
   ...props
 }: FormSelectProps) {
   const hasError = !!error;
-  const selectId =
-    id || `select-${Math.random().toString(36).substring(2, 11)}`;
+  const selectId = id || generateFormId("select");
 
   return (
     <div className="space-y-2">

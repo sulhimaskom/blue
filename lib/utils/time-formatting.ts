@@ -72,6 +72,52 @@ export function formatMetricDisplayName(name: string): string {
 export const MONITORING_REFRESH_INTERVAL = DB_TIMEOUTS.LONG; // 30 seconds
 
 /**
+ * Formats relative time for display (e.g., "2s ago", "5m ago", "1h ago")
+ * @param timestamp - Date to format relative to now
+ * @returns Relative time string
+ */
+export function formatRelativeTime(timestamp: Date): string {
+  const now = new Date();
+  const diff = now.getTime() - timestamp.getTime();
+
+  if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return timestamp.toLocaleDateString();
+}
+
+/**
+ * Calculate time difference between two dates
+ * @param from - Start date
+ * @param to - End date (defaults to now)
+ * @returns Time difference in milliseconds
+ */
+export function calculateTimeDifference(
+  from: Date,
+  to: Date = new Date(),
+): number {
+  return to.getTime() - from.getTime();
+}
+
+/**
+ * Generate unique event ID for logging and tracking
+ * @returns Unique event identifier string
+ */
+export function generateEventId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
+/**
+ * Format timestamp for client-side display (hydration-safe)
+ * @param timestamp - Date to format
+ * @returns Formatted time string or "Never" if null
+ */
+export function formatClientTime(timestamp: Date | null): string {
+  if (!timestamp) return "Never";
+  return timestamp.toLocaleTimeString();
+}
+
+/**
  * Time-based thresholds for monitoring
  */
 export const MONITORING_THRESHOLDS = {

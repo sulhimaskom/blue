@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { NextResponse } from "next/server";
 import {
   ValidationError,
@@ -50,50 +49,52 @@ export interface APISuccessResponse<T = any> {
 /**
  * Error classifications for standardized client handling
  */
+// eslint-disable-next-line no-unused-vars
 export enum ErrorType {
-  VALIDATION = "VALIDATION",
-  AUTHENTICATION = "AUTHENTICATION",
-  AUTHORIZATION = "AUTHORIZATION",
-  DATABASE = "DATABASE",
-  EXTERNAL_SERVICE = "EXTERNAL_SERVICE",
-  INTERNAL_SERVER = "INTERNAL_SERVER",
+  VALIDATION = "VALIDATION", // eslint-disable-line no-unused-vars
+  AUTHENTICATION = "AUTHENTICATION", // eslint-disable-line no-unused-vars
+  AUTHORIZATION = "AUTHORIZATION", // eslint-disable-line no-unused-vars
+  DATABASE = "DATABASE", // eslint-disable-line no-unused-vars
+  EXTERNAL_SERVICE = "EXTERNAL_SERVICE", // eslint-disable-line no-unused-vars
+  INTERNAL_SERVER = "INTERNAL_SERVER", // eslint-disable-line no-unused-vars
 }
 
 /**
  * Error codes for precise client-side handling
  */
+// eslint-disable-next-line no-unused-vars
 export enum ErrorCode {
   // Validation errors (4xx)
-  INVALID_INPUT = "INVALID_INPUT",
-  MISSING_FIELD = "MISSING_FIELD",
-  INVALID_FORMAT = "INVALID_FORMAT",
-  CONSTRAINT_VIOLATION = "CONSTRAINT_VIOLATION",
+  INVALID_INPUT = "INVALID_INPUT", // eslint-disable-line no-unused-vars
+  MISSING_FIELD = "MISSING_FIELD", // eslint-disable-line no-unused-vars
+  INVALID_FORMAT = "INVALID_FORMAT", // eslint-disable-line no-unused-vars
+  CONSTRAINT_VIOLATION = "CONSTRAINT_VIOLATION", // eslint-disable-line no-unused-vars
 
   // Authentication errors (401)
-  UNAUTHORIZED = "UNAUTHORIZED",
-  INVALID_TOKEN = "INVALID_TOKEN",
-  TOKEN_EXPIRED = "TOKEN_EXPIRED",
+  UNAUTHORIZED = "UNAUTHORIZED", // eslint-disable-line no-unused-vars
+  INVALID_TOKEN = "INVALID_TOKEN", // eslint-disable-line no-unused-vars
+  TOKEN_EXPIRED = "TOKEN_EXPIRED", // eslint-disable-line no-unused-vars
 
   // Authorization errors (403)
-  FORBIDDEN = "FORBIDDEN",
-  INSUFFICIENT_PERMISSIONS = "INSUFFICIENT_PERMISSIONS",
+  FORBIDDEN = "FORBIDDEN", // eslint-disable-line no-unused-vars
+  INSUFFICIENT_PERMISSIONS = "INSUFFICIENT_PERMISSIONS", // eslint-disable-line no-unused-vars
 
   // Database errors (500)
-  DATABASE_CONNECTION = "DATABASE_CONNECTION",
-  DATABASE_TIMEOUT = "DATABASE_TIMEOUT",
-  DATABASE_CONSTRAINT = "DATABASE_CONSTRAINT",
-  RECORD_NOT_FOUND = "RECORD_NOT_FOUND",
+  DATABASE_CONNECTION = "DATABASE_CONNECTION", // eslint-disable-line no-unused-vars
+  DATABASE_TIMEOUT = "DATABASE_TIMEOUT", // eslint-disable-line no-unused-vars
+  DATABASE_CONSTRAINT = "DATABASE_CONSTRAINT", // eslint-disable-line no-unused-vars
+  RECORD_NOT_FOUND = "RECORD_NOT_FOUND", // eslint-disable-line no-unused-vars
 
   // External service errors
-  GITHUB_API_ERROR = "GITHUB_API_ERROR",
-  STRIPE_ERROR = "STRIPE_ERROR",
-  CLERK_ERROR = "CLERK_ERROR",
-  AI_SERVICE_ERROR = "AI_SERVICE_ERROR",
+  GITHUB_API_ERROR = "GITHUB_API_ERROR", // eslint-disable-line no-unused-vars
+  STRIPE_ERROR = "STRIPE_ERROR", // eslint-disable-line no-unused-vars
+  CLERK_ERROR = "CLERK_ERROR", // eslint-disable-line no-unused-vars
+  AI_SERVICE_ERROR = "AI_SERVICE_ERROR", // eslint-disable-line no-unused-vars
 
   // Internal server errors
-  INTERNAL_ERROR = "INTERNAL_ERROR",
-  SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE",
-  EXTERNAL_SERVICE_ERROR = "EXTERNAL_SERVICE_ERROR",
+  INTERNAL_ERROR = "INTERNAL_ERROR", // eslint-disable-line no-unused-vars
+  SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE", // eslint-disable-line no-unused-vars
+  EXTERNAL_SERVICE_ERROR = "EXTERNAL_SERVICE_ERROR", // eslint-disable-line no-unused-vars
 }
 
 /**
@@ -457,9 +458,12 @@ export class APIResponseFormatter {
   /**
    * Helper method to validate and handle input
    */
-  static validateInput<T>(input: unknown, validator: (input: unknown) => T): T {
+  static validateInput<T>(
+    _input: unknown,
+    validator: (_input: unknown) => T, // eslint-disable-line no-unused-vars
+  ): T {
     try {
-      return validator(input);
+      return validator(_input);
     } catch (error) {
       throw new ValidationError(`Invalid input: ${(error as Error).message}`);
     }
