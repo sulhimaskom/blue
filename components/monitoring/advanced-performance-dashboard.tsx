@@ -14,6 +14,8 @@ import {
   BarChart3Icon,
   ZapIcon,
 } from "@/components/ui/icons";
+import { UnifiedMetricsCalculator } from "@/lib/services/unified-metrics-calculator";
+import { usePerformanceStatus } from "@/lib/hooks/use-performance-status";
 
 // Types for advanced performance metrics
 interface AdvancedPerformanceMetrics {
@@ -372,8 +374,18 @@ interface PerformanceOverviewTabProps {
 const PerformanceOverviewTab: React.FC<PerformanceOverviewTabProps> = ({
   metrics,
 }) => {
-  const themeUtils = { getTextColor } as any;
-  const { getTextColor: getThemeText } = themeUtils; // eslint-disable-line no-unused-vars
+  // Use our new performance status hook for unified status calculation
+  const performanceMetrics = {
+    responseTime: metrics.application.averageResponseTime,
+    throughput: metrics.application.requestsPerSecond,
+    errorRate: metrics.application.errorRate,
+    cpuUsage: metrics.system.cpuUsage,
+    memoryUsage: metrics.system.memoryUsage,
+    cacheHitRate: metrics.database.cacheHitRate,
+  };
+
+  const { overallStatus, overallScore } =
+    usePerformanceStatus(performanceMetrics);
 
   return (
     <div className="space-y-6">
@@ -385,16 +397,30 @@ const PerformanceOverviewTab: React.FC<PerformanceOverviewTabProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <div className={cn("text-2xl font-bold", "text-gray-900")}>
-              {metrics.system.cpuUsage.toFixed(1)}%
+              {UnifiedMetricsCalculator.formatResponseTime(
+                metrics.application.averageResponseTime,
+              )}
             </div>
-            <div className={cn("text-sm", "text-gray-600")}>CPU Usage</div>
+            <div className={cn("text-sm", "text-gray-600")}>Response Time</div>
+            <StatusIndicator
+              status={overallStatus}
+              size="sm"
+              className="mt-1"
+            />
           </div>
 
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <div className={cn("text-2xl font-bold", "text-gray-900")}>
-              {metrics.system.memoryUsage.toFixed(1)}%
+              {overallScore}
             </div>
-            <div className={cn("text-sm", "text-gray-600")}>Memory Usage</div>
+            <div className={cn("text-sm", "text-gray-600")}>
+              Performance Score
+            </div>
+            <StatusIndicator
+              status={overallStatus}
+              size="sm"
+              className="mt-1"
+            />
           </div>
 
           <div className="text-center p-4 bg-gray-50 rounded-lg">
@@ -503,9 +529,6 @@ const AIOptimizationTab: React.FC<AIOptimizationTabProps> = ({
   metrics,
   onApplyOptimization,
 }) => {
-  const aiThemeUtils = { getTextColor } as any;
-  const { getTextColor: getAIThemeText } = aiThemeUtils; // eslint-disable-line no-unused-vars
-
   return (
     <div className="space-y-6">
       {/* AI Optimization Summary */}
@@ -514,7 +537,7 @@ const AIOptimizationTab: React.FC<AIOptimizationTabProps> = ({
           <div className={cn("text-2xl font-bold text-green-600")}>
             ${metrics.summary.totalSavings.toFixed(2)}
           </div>
-          <div className={cn("text-sm", getAIThemeText("muted"))}>
+          <div className={cn("text-sm", getTextColor("muted"))}>
             Est. Monthly Savings
           </div>
         </div>
@@ -523,7 +546,7 @@ const AIOptimizationTab: React.FC<AIOptimizationTabProps> = ({
           <div className="text-2xl font-bold text-blue-600">
             {metrics.summary.appliedOptimizations}
           </div>
-          <div className={cn("text-sm", getAIThemeText("muted"))}>
+          <div className={cn("text-sm", getTextColor("muted"))}>
             Applied Optimizations
           </div>
         </div>
@@ -532,7 +555,7 @@ const AIOptimizationTab: React.FC<AIOptimizationTabProps> = ({
           <div className="text-2xl font-bold text-yellow-600">
             {metrics.summary.hitRateImprovement.toFixed(1)}%
           </div>
-          <div className={cn("text-sm", getAIThemeText("muted"))}>
+          <div className={cn("text-sm", getTextColor("muted"))}>
             Hit Rate Improvement
           </div>
         </div>
@@ -540,9 +563,7 @@ const AIOptimizationTab: React.FC<AIOptimizationTabProps> = ({
 
       {/* Optimization List */}
       <div>
-        <h3
-          className={cn("text-lg font-medium mb-4", getAIThemeText("heading"))}
-        >
+        <h3 className={cn("text-lg font-medium mb-4", getTextColor("heading"))}>
           Available Optimizations
         </h3>
         <div className="space-y-4">
@@ -554,9 +575,7 @@ const AIOptimizationTab: React.FC<AIOptimizationTabProps> = ({
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h4
-                      className={cn("font-medium", getAIThemeText("heading"))}
-                    >
+                    <h4 className={cn("font-medium", getTextColor("heading"))}>
                       {optimization.type}
                     </h4>
                     <span
@@ -576,14 +595,12 @@ const AIOptimizationTab: React.FC<AIOptimizationTabProps> = ({
                     </span>
                   </div>
 
-                  <p className={cn("text-sm mb-2", getAIThemeText("body"))}>
+                  <p className={cn("text-sm mb-2", getTextColor("body"))}>
                     {optimization.description}
                   </p>
 
                   <div className="flex items-center gap-4 text-sm">
-                    <span
-                      className={cn("font-medium", getAIThemeText("muted"))}
-                    >
+                    <span className={cn("font-medium", getTextColor("muted"))}>
                       Est. Savings:
                     </span>
                     <span className={cn("text-green-600 font-medium")}>
@@ -624,9 +641,6 @@ interface PredictiveAnalyticsTabProps {
 const PredictiveAnalyticsTab: React.FC<PredictiveAnalyticsTabProps> = ({
   metrics,
 }) => {
-  const predictiveThemeUtils = { getTextColor } as any;
-  const { getTextColor: getPredictiveThemeText } = predictiveThemeUtils; // eslint-disable-line no-unused-vars
-
   const getSeverityColor = (severity: string): string => {
     switch (severity) {
       case "low":

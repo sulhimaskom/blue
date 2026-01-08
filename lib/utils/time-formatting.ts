@@ -17,6 +17,31 @@ export function formatDuration(ms: number): string {
 }
 
 /**
+ * Formats response time with appropriate units and precision.
+ * @param responseTimeMs - Response time in milliseconds
+ * @returns Formatted response time string (e.g., "150.5ms", "2.34s")
+ */
+export function formatResponseTime(responseTimeMs: number): string {
+  if (responseTimeMs < 1000) {
+    return `${responseTimeMs.toFixed(1)}ms`;
+  }
+  return `${(responseTimeMs / 1000).toFixed(2)}s`;
+}
+
+/**
+ * Calculate performance duration between two timestamps.
+ * @param startTime - Start timestamp in milliseconds
+ * @param endTime - End timestamp in milliseconds
+ * @returns Duration in milliseconds
+ */
+export function calculatePerformanceDuration(
+  startTime: number,
+  endTime: number,
+): number {
+  return Math.max(0, endTime - startTime);
+}
+
+/**
  * Formats seconds into human readable uptime string
  * @param seconds - Duration in seconds
  * @returns Formatted uptime string (e.g., "2d 5h 30m", "5h 30m", "30m")
