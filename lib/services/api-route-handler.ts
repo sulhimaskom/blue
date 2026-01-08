@@ -12,7 +12,7 @@ import {
 import { logger, createRequestContext } from "@/lib/logger";
 import { UserService } from "@/lib/services/user-service";
 import { monitoringService } from "@/lib/monitoring";
-import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
+import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 import { RuntimeServiceInitializer } from "@/lib/services/runtime-service-initializer";
 import { IntelligentPrefetchService } from "@/lib/services/intelligent-prefetch-service";
 import { RealTimePerformanceMonitor } from "@/lib/services/real-time-performance-monitor";
