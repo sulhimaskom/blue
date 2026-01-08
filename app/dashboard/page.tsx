@@ -1,8 +1,47 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { DashboardCard } from "@/components/ui/dashboard-card";
 import { StatsCard } from "@/components/ui/stats-card";
 
+interface UserCredits {
+  credits: number;
+  subscriptionTier: string;
+}
+
 export default function DashboardPage() {
+  const { isSignedIn } = useUser();
+  const [userCredits, setUserCredits] = useState<UserCredits>({
+    credits: 0,
+    subscriptionTier: "free",
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isSignedIn) {
+      fetchUserCredits();
+    }
+  }, [isSignedIn]);
+
+  const fetchUserCredits = async () => {
+    try {
+      const response = await fetch("/api/credits");
+      if (response.ok) {
+        const data = await response.json();
+        setUserCredits({
+          credits: data.credits,
+          subscriptionTier: data.subscriptionTier,
+        });
+      }
+    } catch (error) {
+      // Silently handle fetch errors in dashboard
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto">
@@ -12,12 +51,37 @@ export default function DashboardPage() {
             Welcome to your dashboard. Navigate to different sections using the
             sidebar.
           </p>
+          {!loading && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-blue-800">
+                You have{" "}
+                <span className="font-bold">{userCredits.credits}</span> credits
+                available
+                {userCredits.subscriptionTier !== "free" && (
+                  <span className="ml-2 text-sm">
+                    ({userCredits.subscriptionTier} tier)
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
         </header>
 
         <section
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           aria-label="Dashboard features"
         >
+          <DashboardCard
+            title="Credits Management"
+            description="View your credit balance, purchase credits, and manage your subscription tier."
+            buttonText="Manage Credits"
+            href="/dashboard/credits"
+            badge={{
+              text: `${userCredits.credits} Credits`,
+              variant: "neutral",
+            }}
+          />
+
           <DashboardCard
             title="Blueprint Management"
             description="Create, view, and manage AI-generated blueprints for your projects."
