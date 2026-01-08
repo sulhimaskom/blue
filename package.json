@@ -6,7 +6,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_OPTIONS='--max-old-space-size=4096' NEXT_BUILD_WORKERS=4 next build",
+    "build": "NEXT_BUILD_WORKERS=4 NODE_OPTIONS='--max-old-space-size=4096' npx next build",
     "build:clean": "rm -rf .next && NODE_OPTIONS='--max-old-space-size=4096' NEXT_BUILD_WORKERS=4 next build",
     "build:analyze": "ANALYZE=true NODE_OPTIONS='--max-old-space-size=4096' next build",
     "dev:perf": "NODE_OPTIONS='--max-old-space-size=4096' next dev --turbo",
@@ -17,6 +17,8 @@
     "build:advanced": "node scripts/advanced-build-optimizer.js",
     "build:fast": "NODE_OPTIONS='--max-old-space-size=6144' NEXT_BUILD_WORKERS=4 NODE_ENV=production next build",
     "build:next-optimized": "node scripts/next-build-optimizer.js",
+    "build:v2": "node scripts/build-optimizer-v2.js",
+    "build:ultra": "node scripts/ultra-fast-build.js",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
