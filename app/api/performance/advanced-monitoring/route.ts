@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { performanceOptimizationService } from "@/lib/services/performance-optimization-service";
 import { logger } from "@/lib/logger";
+import { withRateLimiter } from "@/lib/api-utils";
+import { NextRequest } from "next/server";
 
 /**
  * Advanced Performance Monitoring API
@@ -182,62 +184,69 @@ function getBuildOptimizations(): NextResponse {
 }
 
 // Export with rate limiting
-export const GET = async (request: Request) => {
-  return handlePerformanceMonitoring(request);
+export const GET = async (request: NextRequest) => {
+  return withRateLimiter(request, "standard", async () => {
+    return handlePerformanceMonitoring(request);
+  });
 };
 
-export const POST = async (request: Request) => {
-  try {
-    const body = await request.json();
-    const { action } = body;
+export const POST = async (request: NextRequest) => {
+  return withRateLimiter(request, "moderate", async () => {
+    try {
+      const body = await request.json();
+      const { action } = body;
 
-    switch (action) {
-      case "analyze":
-        return NextResponse.json({
-          score: 87,
-          status: "excellent",
-          analysis: {
-            strengths: [
-              "Build time significantly optimized (48% improvement)",
-              "API response times within optimal range",
-              "Good cache hit rate above target",
-              "Effective bundle size management",
+      switch (action) {
+        case "analyze":
+          return NextResponse.json({
+            score: 87,
+            status: "excellent",
+            analysis: {
+              strengths: [
+                "Build time significantly optimized (48% improvement)",
+                "API response times within optimal range",
+                "Good cache hit rate above target",
+                "Effective bundle size management",
+              ],
+              areas: [
+                {
+                  metric: "First Load JS",
+                  current: 319,
+                  target: 120,
+                  status: "needs-attention",
+                  recommendation:
+                    "Implement route-based code splitting for large dashboard components",
+                },
+              ],
+            },
+          });
+
+        case "optimize":
+          return NextResponse.json({
+            applied: true,
+            optimizations: [
+              "Enhanced webpack caching configuration",
+              "Updated cache TTL strategies",
+              "Applied bundle compression optimizations",
             ],
-            areas: [
-              {
-                metric: "First Load JS",
-                current: 319,
-                target: 120,
-                status: "needs-attention",
-                recommendation:
-                  "Implement route-based code splitting for large dashboard components",
-              },
-            ],
-          },
-        });
+            expectedImprovements: {
+              buildTime: "5-10% faster",
+              cacheEfficiency: "5-15% better",
+              bundleSize: "3-8% smaller",
+            },
+          });
 
-      case "optimize":
-        return NextResponse.json({
-          applied: true,
-          optimizations: [
-            "Enhanced webpack caching configuration",
-            "Updated cache TTL strategies",
-            "Applied bundle compression optimizations",
-          ],
-          expectedImprovements: {
-            buildTime: "5-10% faster",
-            cacheEfficiency: "5-15% better",
-            bundleSize: "3-8% smaller",
-          },
-        });
-
-      default:
-        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+        default:
+          return NextResponse.json(
+            { error: "Invalid action" },
+            { status: 400 },
+          );
+      }
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 },
+      );
     }
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 },
-    );
-  }
+  });
 };

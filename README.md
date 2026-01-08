@@ -345,6 +345,7 @@ Visit `/dashboard/monitoring` for real-time:
 | `docs/architecture/blueprint.md` | **Complete technical specification** |
 | `docs/architecture/roadmap.md`   | Development progress and timeline    |
 | `docs/deployment/SETUP.md`       | Detailed deployment instructions     |
+| `docs/USER_GUIDE.md`             | **Common use cases and workflows**   |
 | `AGENTS.md`                      | AI agent development rules           |
 | `docs/task.md`                   | Task tracking and completion status  |
 | `docs/evaluasi.md`               | Comprehensive code evaluation report |

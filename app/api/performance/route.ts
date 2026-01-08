@@ -10,7 +10,11 @@ import {
   type QueryMetrics,
 } from "@/lib/db/performance-monitor";
 import { logger } from "@/lib/logger";
-import { formatSuccessResponse, formatErrorResponse } from "@/lib/api-utils";
+import {
+  formatSuccessResponse,
+  formatErrorResponse,
+  withRateLimiter,
+} from "@/lib/api-utils";
 
 // Define proper types for performance metrics
 interface CacheMetrics {
@@ -98,68 +102,71 @@ function generateOverallRecommendations(
 }
 
 export async function GET(req: NextRequest) {
-  return UnifiedCacheManager.withCache(
-    req,
-    async () => {
-      try {
-        const searchParams = req.nextUrl.searchParams;
-        const includeCache = searchParams.get("includeCache") === "true";
-        const includeDb = searchParams.get("includeDb") === "true";
-        const detailed = searchParams.get("detailed") === "true";
+  return withRateLimiter(req, "standard", async () => {
+    return UnifiedCacheManager.withCache(
+      req,
+      async () => {
+        try {
+          const searchParams = req.nextUrl.searchParams;
+          const includeCache = searchParams.get("includeCache") === "true";
+          const includeDb = searchParams.get("includeDb") === "true";
+          const detailed = searchParams.get("detailed") === "true";
 
-        let cacheMetrics: CacheMetrics | null = null;
-        if (includeCache) {
-          cacheMetrics = await UnifiedCacheManager.getPerformanceMetrics();
-          cacheMetrics.databaseCacheStats = DatabaseQueryCache.getCacheStats();
-        }
-
-        let dbMetrics: DatabasePerformanceMetrics | null = null;
-        if (includeDb) {
-          dbMetrics = DatabasePerformanceMonitor.getPerformanceMetrics();
-
-          if (detailed) {
-            dbMetrics.performanceReport =
-              await DatabasePerformanceOptimizer.getPerformanceReport();
+          let cacheMetrics: CacheMetrics | null = null;
+          if (includeCache) {
+            cacheMetrics = await UnifiedCacheManager.getPerformanceMetrics();
+            cacheMetrics.databaseCacheStats =
+              DatabaseQueryCache.getCacheStats();
           }
-        }
 
-        const performanceScore = calculatePerformanceScore(
-          cacheMetrics,
-          dbMetrics,
-        );
+          let dbMetrics: DatabasePerformanceMetrics | null = null;
+          if (includeDb) {
+            dbMetrics = DatabasePerformanceMonitor.getPerformanceMetrics();
 
-        logger.info("Performance report generated", {
-          includeCache,
-          includeDb,
-          detailed,
-          performanceScore,
-        });
+            if (detailed) {
+              dbMetrics.performanceReport =
+                await DatabasePerformanceOptimizer.getPerformanceReport();
+            }
+          }
 
-        return formatSuccessResponse({
-          timestamp: new Date().toISOString(),
-          performanceScore,
-          metrics: {
-            cache: cacheMetrics,
-            database: dbMetrics,
-          },
-          recommendations: generateOverallRecommendations(
+          const performanceScore = calculatePerformanceScore(
             cacheMetrics,
             dbMetrics,
-          ),
-        });
-      } catch (error) {
-        logger.error("Performance report generation failed", {
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-        return formatErrorResponse(
-          error instanceof Error ? error : new Error(String(error)),
-        );
-      }
-    },
-    {
-      ttl: 60,
-      tags: ["performance", "monitoring", "dashboard"],
-      varyBy: [],
-    },
-  );
+          );
+
+          logger.info("Performance report generated", {
+            includeCache,
+            includeDb,
+            detailed,
+            performanceScore,
+          });
+
+          return formatSuccessResponse({
+            timestamp: new Date().toISOString(),
+            performanceScore,
+            metrics: {
+              cache: cacheMetrics,
+              database: dbMetrics,
+            },
+            recommendations: generateOverallRecommendations(
+              cacheMetrics,
+              dbMetrics,
+            ),
+          });
+        } catch (error) {
+          logger.error("Performance report generation failed", {
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+          return formatErrorResponse(
+            error instanceof Error ? error : new Error(String(error)),
+          );
+        }
+      },
+      {
+        ttl: 60,
+        tags: ["performance", "monitoring", "dashboard"],
+        varyBy: [],
+      },
+    );
+  });
 }

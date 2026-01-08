@@ -9,6 +9,7 @@
 - **[API.md](./API.md)** - Complete RESTful API reference
 - **[TECHNICAL_IMPLEMENTATION_PLAYBOOK.md](./TECHNICAL_IMPLEMENTATION_PLAYBOOK.md)** - Step-by-step implementation
 - **[architecture/blueprint.md](./architecture/blueprint.md)** - Technical specification & architecture
+- **[USER_GUIDE.md](./USER_GUIDE.md)** - **NEW** Common use cases and practical guides
 
 ### 👔 For Enterprise Customers & Executives
 
