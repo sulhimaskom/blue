@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, isNull, and } from "drizzle-orm";
 import { DatabaseError, formatErrorResponse } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { WebhookService } from "@/lib/services/webhook-service";
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         const [existingUser] = await database
           .select()
           .from(users)
-          .where(eq(users.clerkId, id))
+          .where(and(eq(users.clerkId, id), isNull(users.deletedAt)))
           .limit(1);
 
         if (!existingUser) {

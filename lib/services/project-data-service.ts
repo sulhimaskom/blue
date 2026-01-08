@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { blueprints, projects, users, transactions } from "@/lib/db/schema";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc, count, isNull } from "drizzle-orm";
 import { ValidationError } from "@/lib/api-utils";
 import { UserService } from "@/lib/services/user-service";
 import { RequestContext } from "@/lib/services/user-service";
@@ -25,7 +25,14 @@ export class ProjectDataService {
       })
       .from(projects)
       .innerJoin(users, eq(projects.ownerId, users.id))
-      .where(and(eq(projects.id, projectId), eq(users.clerkId, clerkId)))
+      .where(
+        and(
+          eq(projects.id, projectId),
+          eq(users.clerkId, clerkId),
+          isNull(projects.deletedAt),
+          isNull(users.deletedAt),
+        ),
+      )
       .limit(1);
 
     if (!projectDetails.length) {
@@ -81,7 +88,15 @@ export class ProjectDataService {
       .from(blueprints)
       .innerJoin(projects, eq(blueprints.projectId, projects.id))
       .innerJoin(users, eq(projects.ownerId, users.id))
-      .where(and(eq(blueprints.id, blueprintId), eq(users.clerkId, clerkId)))
+      .where(
+        and(
+          eq(blueprints.id, blueprintId),
+          eq(users.clerkId, clerkId),
+          isNull(blueprints.deletedAt),
+          isNull(projects.deletedAt),
+          isNull(users.deletedAt),
+        ),
+      )
       .limit(1);
 
     if (!blueprintDetails.length) {
@@ -92,7 +107,12 @@ export class ProjectDataService {
     const allVersions = await database
       .select()
       .from(blueprints)
-      .where(eq(blueprints.projectId, blueprintDetails[0].project.id))
+      .where(
+        and(
+          eq(blueprints.projectId, blueprintDetails[0].project.id),
+          isNull(blueprints.deletedAt),
+        ),
+      )
       .orderBy(blueprints.version);
 
     return {
@@ -111,7 +131,9 @@ export class ProjectDataService {
     const [latestBlueprint] = await database
       .select()
       .from(blueprints)
-      .where(eq(blueprints.projectId, projectId))
+      .where(
+        and(eq(blueprints.projectId, projectId), isNull(blueprints.deletedAt)),
+      )
       .orderBy(desc(blueprints.version))
       .limit(1);
 
@@ -132,7 +154,9 @@ export class ProjectDataService {
     return await database
       .select()
       .from(blueprints)
-      .where(eq(blueprints.projectId, projectId))
+      .where(
+        and(eq(blueprints.projectId, projectId), isNull(blueprints.deletedAt)),
+      )
       .orderBy(blueprints.version);
   }
 
@@ -146,7 +170,9 @@ export class ProjectDataService {
     return await database
       .select()
       .from(transactions)
-      .where(eq(transactions.userId, userId))
+      .where(
+        and(eq(transactions.userId, userId), isNull(transactions.deletedAt)),
+      )
       .orderBy(desc(transactions.createdAt));
   }
 
@@ -160,7 +186,7 @@ export class ProjectDataService {
     const [updatedProject] = await database
       .update(projects)
       .set({ status })
-      .where(eq(projects.id, projectId))
+      .where(and(eq(projects.id, projectId), isNull(projects.deletedAt)))
       .returning();
 
     return updatedProject;
@@ -179,7 +205,7 @@ export class ProjectDataService {
         status: "deployed",
         repoUrl,
       })
-      .where(eq(projects.id, projectId))
+      .where(and(eq(projects.id, projectId), isNull(projects.deletedAt)))
       .returning();
 
     return updatedProject;
@@ -195,7 +221,7 @@ export class ProjectDataService {
     const [blueprint] = await database
       .select()
       .from(blueprints)
-      .where(eq(blueprints.id, blueprintId))
+      .where(and(eq(blueprints.id, blueprintId), isNull(blueprints.deletedAt)))
       .orderBy(desc(blueprints.version))
       .limit(1);
 
