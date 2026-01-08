@@ -5,6 +5,7 @@ import { ValidationError } from "@/lib/api-utils";
 import { UserService } from "@/lib/services/user-service";
 import { RequestContext } from "@/lib/services/user-service";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
+import { softDelete } from "@/lib/db/soft-delete-service";
 
 /**
  * Service for common project and blueprint database operations
@@ -245,7 +246,9 @@ export class ProjectDataService {
     const projectBlueprints = await database
       .select()
       .from(blueprints)
-      .where(eq(blueprints.projectId, projectId))
+      .where(
+        and(eq(blueprints.projectId, projectId), isNull(blueprints.deletedAt)),
+      )
       .orderBy(desc(blueprints.createdAt));
 
     return {
@@ -292,7 +295,13 @@ export class ProjectDataService {
       })
       .from(projects)
       .innerJoin(users, eq(projects.ownerId, users.id))
-      .where(eq(users.clerkId, clerkId))
+      .where(
+        and(
+          eq(users.clerkId, clerkId),
+          isNull(projects.deletedAt),
+          isNull(users.deletedAt),
+        ),
+      )
       .orderBy(desc(projects.createdAt));
 
     return userProjects.map((row) => ({
@@ -318,7 +327,7 @@ export class ProjectDataService {
     const [user] = await database
       .select()
       .from(users)
-      .where(eq(users.clerkId, clerkId))
+      .where(and(eq(users.clerkId, clerkId), isNull(users.deletedAt)))
       .limit(1);
 
     if (!user) {
@@ -348,11 +357,15 @@ export class ProjectDataService {
     // Verify project ownership first
     await this.verifyProjectOwnership(projectId, clerkId);
 
-    // Delete project (cascade will delete associated blueprints)
+    // Soft-delete project (non-destructive, reversible)
+    await softDelete("projects", projectId);
+
+    // Return soft-deleted project for UI feedback
     const [deletedProject] = await database
-      .delete(projects)
+      .select()
+      .from(projects)
       .where(eq(projects.id, projectId))
-      .returning();
+      .limit(1);
 
     return deletedProject;
   }
@@ -377,7 +390,9 @@ export class ProjectDataService {
     const [blueprintCount] = await database
       .select({ count: count() })
       .from(blueprints)
-      .where(eq(blueprints.projectId, projectId));
+      .where(
+        and(eq(blueprints.projectId, projectId), isNull(blueprints.deletedAt)),
+      );
 
     return {
       ...projectDetails.project,
