@@ -15,6 +15,7 @@ export const users = pgTable("users", {
   credits: integer("credits").default(0).notNull(),
   subscriptionTier: text("subscription_tier").default("free").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const projects = pgTable("projects", {
@@ -27,6 +28,7 @@ export const projects = pgTable("projects", {
   status: text("status").default("draft").notNull(),
   repoUrl: text("repo_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const blueprints = pgTable("blueprints", {
@@ -39,6 +41,7 @@ export const blueprints = pgTable("blueprints", {
   structuredData: jsonb("structured_data").notNull(),
   marketResearch: jsonb("market_research"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const transactions = pgTable("transactions", {
@@ -50,6 +53,7 @@ export const transactions = pgTable("transactions", {
   creditsAdded: integer("credits_added"),
   stripePaymentId: text("stripe_payment_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export type User = typeof users.$inferSelect;
