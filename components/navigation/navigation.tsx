@@ -84,6 +84,16 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
       requiresAuth: true,
     },
     {
+      href: "/dashboard/circuit-breakers",
+      label: "Circuit Breakers",
+      requiresAuth: true,
+    },
+    {
+      href: "/dashboard/performance-analytics",
+      label: "Performance Analytics",
+      requiresAuth: true,
+    },
+    {
       href: "/dashboard/enterprise/themes",
       label: getNavigationUI("navigation", "enterprise"),
       requiresAuth: true,
