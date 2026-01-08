@@ -22,17 +22,21 @@ process.env.NEXT_TELEMETRY_DISABLED = "1";
 
 // Optimization configuration
 const optimizations = {
-  // Enable all CPUs for maximum parallelization
-  workers: require("os").cpus().length,
+  // Optimize for faster single-thread builds
+  workers: 2, // Reduced workers to minimize overhead
 
   // Memory optimization
-  maxOldSpaceSize: "4096",
+  maxOldSpaceSize: "6144", // Increased memory for faster processing
 
   // Build caching
   enableCache: true,
 
   // Performance optimizations
   aggressiveOptimizations: true,
+
+  // Build-specific optimizations
+  incrementalCache: true,
+  minimalBuildSteps: true,
 };
 
 console.log(`📊 Build Configuration:`);
@@ -66,7 +70,7 @@ try {
   console.log("🏗️  Starting optimized build...\n");
 
   // Execute optimized build with all performance flags
-  const buildCommand = `npx next build`;
+  const buildCommand = `NEXT_BUILD_WORKERS=2 NODE_OPTIONS='--max-old-space-size=6144' npx next build`;
   const startTime = Date.now();
 
   execSync(buildCommand, {

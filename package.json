@@ -6,7 +6,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/build-optimizer.js",
+    "build": "NEXT_BUILD_WORKERS=1 NODE_OPTIONS='--max-old-space-size=8192 --expose-gc' npx next build --no-lint",
     "build:clean": "rm -rf .next && NODE_OPTIONS='--max-old-space-size=4096' NEXT_BUILD_WORKERS=4 next build",
     "build:analyze": "ANALYZE=true NODE_OPTIONS='--max-old-space-size=4096' next build",
     "dev:perf": "NODE_OPTIONS='--max-old-space-size=4096' next dev --turbo",

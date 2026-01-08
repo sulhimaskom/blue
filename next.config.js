@@ -4,7 +4,7 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@neondatabase/serverless"],
+  transpilePackages: [],
 
   // Performance optimization configurations (Next.js 15 compatible)
   experimental: {
@@ -23,7 +23,13 @@ const nextConfig = {
     ],
     // Enable incremental caching improvements
     optimizeCss: true,
+    // Performance optimizations
+    optimizeServerReact: true,
+    workerThreads: false,
   },
+
+  // Move server external packages to proper location
+  serverExternalPackages: ["@clerk/backend"],
 
   // Advanced webpack optimization for maximum performance
   webpack: (config, { dev, isServer }) => {
@@ -83,16 +89,13 @@ const nextConfig = {
       };
     }
 
-    // Enable parallel processing and optimize for production
+    // Enable single-thread processing for faster builds
     if (!dev) {
-      config.parallelism = 4; // Use 4 parallel workers for production builds
+      config.parallelism = 1; // Single thread for maximum speed
 
-      // Aggressive production optimizations
+      // Memory-based caching for fastest builds
       config.cache = {
-        type: "filesystem",
-        buildDependencies: {
-          config: [__filename],
-        },
+        type: "memory",
       };
 
       config.optimization = {
@@ -102,9 +105,10 @@ const nextConfig = {
         moduleIds: "deterministic",
         splitChunks: {
           chunks: "all",
-          maxSize: 140000, // Further optimized for better CDN caching (140kB chunks)
-          minSize: 20000, // Minimum 20 kB to avoid too many tiny chunks
+          maxSize: 200000, // Larger chunks for faster builds (200kB)
+          minSize: 50000, // Larger minimum to reduce fragmentation
           minChunks: 1,
+          maxInitialRequests: 3, // Limit requests for speed
           cacheGroups: {
             default: {
               minChunks: 2,
