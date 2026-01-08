@@ -99,6 +99,8 @@ export function CircuitBreakerStatusPanel({
       return;
     }
 
+    // Note: Interval management could be enhanced with useInterval hook
+    // This approach maintains backward compatibility with existing API
     const interval = setInterval(fetchMetrics, refreshInterval);
     return () => clearInterval(interval);
   }, [_externalMetrics, fetchMetrics, refreshInterval, autoRefresh]);

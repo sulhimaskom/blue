@@ -15,6 +15,7 @@ import {
   createEnterpriseTheme,
   ENTERPRISE_THEME_TEMPLATES,
 } from "@/lib/constants/enterprise-themes";
+import { STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
 import {
   cn,
   getTextColor,
@@ -97,10 +98,10 @@ export function EnterpriseThemeCustomizer({
 
       onThemeChange?.();
 
-      // Show success feedback
+      // Show success feedback using standardized timeout
       setTimeout(() => {
         setIsSaving(false);
-      }, 1000);
+      }, STANDARD_INTERVALS.REAL_TIME);
     } catch {
       setIsSaving(false);
     }
