@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -32,13 +31,13 @@ interface CircuitBreakerMetrics {
 
 interface CircuitBreakerStatusPanelProps {
   /** Optional custom metrics data - if not provided, component will fetch from API */
-  metrics?: CircuitBreakerMetrics;
+  metrics?: CircuitBreakerMetrics; // eslint-disable-line no-unused-vars
   /** Whether to show detailed circuit breakdowns */
   showDetails?: boolean;
   /** Auto-refresh interval in milliseconds */
   refreshInterval?: number;
   /** Callback function for when metrics are updated */
-  onMetricsUpdate?: (metrics: CircuitBreakerMetrics) => void;
+  onMetricsUpdate?: (metrics: CircuitBreakerMetrics) => void; // eslint-disable-line no-unused-vars
 }
 
 /**

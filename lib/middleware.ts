@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import { ZodSchema } from "zod";
 import {
@@ -15,9 +14,9 @@ export function createAPIRoute<T>(options: {
   rateLimit?: { requests: number; windowMs: number };
   validate?: { schema: ZodSchema<T>; source: "body" | "query" };
   handler: (
-    _req: NextRequest,
-    _data: T,
-    _context: { userId?: string },
+    _req: NextRequest, // eslint-disable-line no-unused-vars
+    _data: T, // eslint-disable-line no-unused-vars
+    _context: { userId?: string }, // eslint-disable-line no-unused-vars
   ) => Promise<NextResponse>;
 }) {
   return async (req: NextRequest): Promise<NextResponse> => {
@@ -135,9 +134,9 @@ export function secureAPIRoute<T>(options: {
   rateLimit?: { requests: number; windowMs: number };
   validate?: { schema: ZodSchema<T>; source: "body" | "query" };
   handler: (
-    _req: NextRequest,
-    _data: T,
-    _context: { userId?: string },
+    _req: NextRequest, // eslint-disable-line no-unused-vars
+    _data: T, // eslint-disable-line no-unused-vars
+    _context: { userId?: string }, // eslint-disable-line no-unused-vars
   ) => Promise<NextResponse>;
 }) {
   return createAPIRoute({

@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { logger } from "@/lib/logger";
 import {
   ValidationError,
@@ -233,10 +232,15 @@ export class ServiceErrorHandler {
    * Create a wrapper function for consistent error handling
    */
   static wrap<T extends any[], R>(
-    fn: (...args: T) => R,
-    serviceName: string,
-    operationName: string,
-  ): (...args: T) => R {
+    fn: (...args: T) => R, // eslint-disable-line no-unused-vars
+    serviceName: string, // eslint-disable-line no-unused-vars
+    operationName: string, // eslint-disable-line no-unused-vars
+  ): // eslint-disable-next-line no-unused-vars
+  (..._unusedArgs: T) => R {
+    // eslint-disable-line no-unused-vars
+    // eslint-disable-line no-unused-vars
+    // eslint-disable-line no-unused-vars
+    // eslint-disable-line no-unused-vars
     // eslint-disable-next-line no-unused-vars
     return (...args: T): R => {
       try {
@@ -266,8 +270,8 @@ export class ServiceErrorHandler {
    */
   static validate<T>(
     // eslint-disable-next-line no-unused-vars
-    value: T,
-    validator: (value: T) => boolean | string,
+    value: T, // eslint-disable-line no-unused-vars
+    validator: (value: T) => boolean | string, // eslint-disable-line no-unused-vars
     serviceName: string,
     operation: string,
     fieldName: string,
