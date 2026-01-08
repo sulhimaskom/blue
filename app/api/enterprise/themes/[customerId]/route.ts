@@ -63,7 +63,7 @@ export const GET = APIRouteHandler.createGETHandler({
 });
 
 // PUT /api/enterprise/themes/[customerId] - Update theme
-export const PUT = APIRouteHandler.createPOSTHandler({
+export const PUT = APIRouteHandler.createPUTHandler({
   schema: UpdateThemeSchema,
   requireAuth: false,
   handler: async ({ context, data, req }) => {

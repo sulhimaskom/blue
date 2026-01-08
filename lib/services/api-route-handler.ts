@@ -203,6 +203,126 @@ class APIRouteHandler {
   }
 
   /**
+   * Create a standardized PUT handler with authentication, validation, and rate limiting
+   */
+  static createPUTHandler<TInput = any>(config: APIHandlerConfig<TInput>) {
+    return async (req: NextRequest) => {
+      const startTime = Timing.now();
+      const context = createRequestContext();
+      let authenticatedUser:
+        | import("@/lib/services/user-service").AuthenticatedUser
+        | null = null;
+      let validationData: TInput | undefined;
+      const url = new URL(req.url);
+
+      try {
+        // Authentication if required
+        if (config.requireAuth !== false) {
+          authenticatedUser = await UserService.getAuthenticatedUser(context);
+        }
+
+        // Rate limiting if configured
+        if (config.rateLimiter) {
+          const _clientIp =
+            req.headers.get("x-forwarded-for") ||
+            req.headers.get("x-real-ip") ||
+            "unknown";
+          const identifier = authenticatedUser
+            ? `user:${authenticatedUser.clerkId}:${_clientIp}`
+            : `ip:${_clientIp}`;
+
+          const rateLimitCheck = await config.rateLimiter(identifier);
+          if (!rateLimitCheck.allowed) {
+            logger.security("API rate limit exceeded", {
+              requestId: context.requestId,
+              userId: authenticatedUser?.clerkId,
+              clientIp: _clientIp,
+              resetTime: rateLimitCheck.resetTime,
+            });
+            throw new RateLimitError(
+              `Rate limit exceeded. Try again in ${Math.ceil((rateLimitCheck.resetTime! - Timing.now()) / 1000)} seconds.`,
+              rateLimitCheck.resetTime,
+            );
+          }
+        }
+
+        // Input validation if schema provided
+        if (config.schema) {
+          const validation = await validateRequest(config.schema, "body")(req);
+          if (!validation.success) {
+            throw new ValidationError(validation.error);
+          }
+          validationData = validation.data;
+        }
+
+        // Execute the main handler
+        const result = await config.handler({
+          req,
+          context,
+          user: authenticatedUser || undefined,
+          data: validationData,
+        });
+
+        const duration = Timing.perf(startTime);
+
+        // Log successful request
+        logger.apiRequest(
+          "PUT",
+          req.url,
+          context.requestId,
+          authenticatedUser?.clerkId,
+        );
+
+        // Track performance metrics
+        monitoringService.trackApiRequest(
+          "PUT",
+          url.pathname,
+          200,
+          duration,
+          authenticatedUser?.clerkId,
+        );
+
+        return formatSuccessResponse(result);
+      } catch (error) {
+        const duration = Timing.perf(startTime);
+        const statusCode =
+          error instanceof ValidationError ? error.statusCode : 500;
+
+        // Log error
+        logger.apiError(
+          "API PUT request failed",
+          context.requestId,
+          error as Error,
+          {
+            userId: authenticatedUser?.clerkId,
+            endpoint: req.url,
+            hasValidationData: !!validationData,
+          },
+        );
+
+        // Track error metrics
+        monitoringService.trackApiRequest(
+          "PUT",
+          url.pathname,
+          statusCode,
+          duration,
+          authenticatedUser?.clerkId,
+        );
+
+        if (
+          error instanceof ValidationError ||
+          error instanceof DatabaseError ||
+          error instanceof RateLimitError
+        ) {
+          return formatErrorResponse(error);
+        }
+
+        return formatErrorResponse(new DatabaseError("API request failed"));
+      }
+    };
+  }
+
+  /**
    * Create a standardized GET handler with authentication
    */
   static createGETHandler<TInput = any>(
