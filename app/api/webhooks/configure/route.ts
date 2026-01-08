@@ -1,91 +1,94 @@
 import { z } from "zod";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { WebhookConfigurationService } from "@/lib/services/webhook-configuration-service";
-import { logger } from "@/lib/logger";
+import { webhookConfigurationSchema } from "@/lib/schemas/webhook-schema";
 import { RateLimiters } from "@/lib/rate-limit-config";
-import { ValidationError, NotFoundError } from "@/lib/api-utils";
-import type { NextRequest } from "next/server";
-import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { webhookConfigurations } from "@/lib/db/schema";
+import { logger } from "@/lib/logger";
 
-const createWebhookConfigSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Name is required")
-    .max(100, "Name must be 100 characters or less"),
-  url: z.string().url("Invalid URL format"),
-  events: z.array(z.string()).min(1, "At least one event is required"),
-  description: z.string().optional(),
-});
-
-const updateWebhookConfigSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Name is required")
-    .max(100, "Name must be 100 characters or less")
-    .optional(),
-  url: z.string().url("Invalid URL format").optional(),
-  events: z
-    .array(z.string())
-    .min(1, "At least one event is required")
-    .optional(),
-  description: z.string().optional(),
-  active: z.boolean().optional(),
-});
-
-// GET /api/webhooks/configure - List webhook configurations
-export const GET = APIRouteHandler.createGETHandler({
-  requireAuth: true,
-  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-  handler: async ({ context, user }) => {
-    if (!user) {
-      throw new ValidationError("Authentication required");
-    }
-
-    const configs = await WebhookConfigurationService.getConfigurations(
-      user.id,
-    );
-
-    logger.userAction("webhook_configurations_listed", user.id.toString(), {
-      count: configs.length,
-    });
-
-    return { data: configs };
-  },
-});
-
-// POST /api/webhooks/configure - Create webhook configuration
 export const POST = APIRouteHandler.createPOSTHandler({
   requireAuth: true,
-  schema: createWebhookConfigSchema,
+  requireCredits: 10,
   rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
-  handler: async ({ context, user, data }) => {
+  schema: webhookConfigurationSchema,
+  handler: async ({ data: validatedData, user }) => {
     if (!user) {
-      throw new ValidationError("Authentication required");
+      throw new Error("Authentication required");
     }
 
-    if (!data) {
-      throw new ValidationError("Request data is required");
-    }
+    const userId = user.id;
+    const {
+      name,
+      url,
+      secret,
+      eventTypes,
+      isActive,
+      retryCount,
+      timeoutSeconds,
+    } = validatedData as z.infer<typeof webhookConfigurationSchema>;
 
-    const config = await WebhookConfigurationService.createConfiguration(
-      user.id,
-      data,
-    );
-
-    logger.userAction(
-      "webhook_configuration_created_via_api",
-      user.id.toString(),
+    const configuration = await WebhookConfigurationService.createConfiguration(
+      userId,
       {
-        configId: config.id,
-        configName: config.name,
+        name,
+        url,
+        secret,
+        eventTypes,
+        isActive,
+        retryCount,
+        timeoutSeconds,
       },
     );
 
+    logger.userAction("created_webhook_configuration", userId.toString(), {
+      webhookId: configuration.id,
+      name: configuration.name,
+    });
+
     return {
-      data: config,
+      success: true,
+      data: {
+        id: configuration.id,
+        name: configuration.name,
+        url: configuration.url,
+        eventTypes: configuration.eventTypes,
+        isActive: configuration.isActive,
+        retryCount: configuration.retryCount,
+        timeoutSeconds: configuration.timeoutSeconds,
+        createdAt: configuration.createdAt,
+      },
       message: "Webhook configuration created successfully",
+    };
+  },
+});
+
+export const GET = APIRouteHandler.createGETHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+  handler: async ({ user }) => {
+    if (!user) {
+      throw new Error("Authentication required");
+    }
+
+    const configurations = await WebhookConfigurationService.getConfigurations(
+      user.id,
+    );
+
+    const safeConfigurations = configurations.map((config) => ({
+      id: config.id,
+      name: config.name,
+      url: config.url,
+      eventTypes: config.eventTypes,
+      isActive: config.isActive,
+      retryCount: config.retryCount,
+      timeoutSeconds: config.timeoutSeconds,
+      createdAt: config.createdAt,
+      updatedAt: config.updatedAt,
+    }));
+
+    return {
+      success: true,
+      data: safeConfigurations,
+      message: "Webhook configurations retrieved successfully",
     };
   },
 });

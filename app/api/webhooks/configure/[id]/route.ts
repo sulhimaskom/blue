@@ -1,44 +1,31 @@
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { WebhookConfigurationService } from "@/lib/services/webhook-configuration-service";
+import { webhookConfigurationUpdateSchema } from "@/lib/schemas/webhook-schema";
 import { logger } from "@/lib/logger";
 import { RateLimiters } from "@/lib/rate-limit-config";
-import { ValidationError, NotFoundError } from "@/lib/api-utils";
-import type { NextRequest } from "next/server";
+import { NotFoundError } from "@/lib/api-utils";
 
-const updateWebhookConfigSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Name is required")
-    .max(100, "Name must be 100 characters or less")
-    .optional(),
-  url: z.string().url("Invalid URL format").optional(),
-  events: z
-    .array(z.string())
-    .min(1, "At least one event is required")
-    .optional(),
-  description: z.string().optional(),
-  active: z.boolean().optional(),
-});
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
 
 // GET /api/webhooks/configure/[id] - Get specific webhook configuration
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(req: NextRequest, { params }: RouteParams) {
+  const { id } = await params;
+
   return APIRouteHandler.createGETHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-    handler: async ({ context, user }) => {
+    handler: async ({ user }) => {
       if (!user) {
-        throw new ValidationError("Authentication required");
+        throw new NotFoundError("Authentication required");
       }
 
-      const { id } = await params;
-
       const config = await WebhookConfigurationService.getConfigurationById(
-        id,
         user.id,
+        id,
       );
 
       if (!config) {
@@ -51,49 +38,51 @@ export async function GET(
 }
 
 // PUT /api/webhooks/configure/[id] - Update webhook configuration
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  return APIRouteHandler.createPOSTHandler({
+export async function PUT(req: NextRequest, { params }: RouteParams) {
+  const { id } = await params;
+
+  return APIRouteHandler.createPUTHandler({
     requireAuth: true,
-    schema: updateWebhookConfigSchema,
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
-    handler: async ({ context, user, data }) => {
+    schema: webhookConfigurationUpdateSchema,
+    handler: async ({ data: validatedData, user }) => {
       if (!user) {
-        throw new ValidationError("Authentication required");
+        throw new NotFoundError("Authentication required");
       }
 
-      const { id } = await params;
+      const userId = user.id;
+      const updateData = validatedData as z.infer<
+        typeof webhookConfigurationUpdateSchema
+      >;
 
-      if (!data) {
-        throw new ValidationError("Request data is required");
-      }
-
-      // Verify ownership before update
-      const existingConfig =
-        await WebhookConfigurationService.getConfigurationById(id, user.id);
-      if (!existingConfig) {
-        throw new NotFoundError("Webhook configuration not found");
-      }
-
-      const config = await WebhookConfigurationService.updateConfiguration(
-        id,
-        user.id,
-        data,
-      );
+      const configuration =
+        await WebhookConfigurationService.updateConfiguration(
+          userId,
+          id,
+          updateData,
+        );
 
       logger.userAction(
         "webhook_configuration_updated_via_api",
-        user.id.toString(),
+        userId.toString(),
         {
           configId: id,
-          changedFields: Object.keys(data),
+          changedFields: Object.keys(updateData),
         },
       );
 
       return {
-        data: config,
+        success: true,
+        data: {
+          id: configuration.id,
+          name: configuration.name,
+          url: configuration.url,
+          eventTypes: configuration.eventTypes,
+          isActive: configuration.isActive,
+          retryCount: configuration.retryCount,
+          timeoutSeconds: configuration.timeoutSeconds,
+          updatedAt: configuration.updatedAt,
+        },
         message: "Webhook configuration updated successfully",
       };
     },
@@ -101,28 +90,25 @@ export async function PUT(
 }
 
 // DELETE /api/webhooks/configure/[id] - Delete webhook configuration
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(req: NextRequest, { params }: RouteParams) {
+  const { id } = await params;
+
   return APIRouteHandler.createGETHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
-    handler: async ({ context, user }) => {
+    handler: async ({ user }) => {
       if (!user) {
-        throw new ValidationError("Authentication required");
+        throw new NotFoundError("Authentication required");
       }
-
-      const { id } = await params;
 
       // Verify ownership before deletion
       const existingConfig =
-        await WebhookConfigurationService.getConfigurationById(id, user.id);
+        await WebhookConfigurationService.getConfigurationById(user.id, id);
       if (!existingConfig) {
         throw new NotFoundError("Webhook configuration not found");
       }
 
-      await WebhookConfigurationService.deleteConfiguration(id, user.id);
+      await WebhookConfigurationService.deleteConfiguration(user.id, id);
 
       logger.userAction(
         "webhook_configuration_deleted_via_api",
@@ -134,6 +120,8 @@ export async function DELETE(
       );
 
       return {
+        success: true,
+        data: { id },
         message: "Webhook configuration deleted successfully",
       };
     },

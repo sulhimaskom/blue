@@ -1,130 +1,121 @@
-/**
- * Webhook Configuration Service
- *
- * Manages webhook endpoint configurations for enterprise customers.
- * Follows Service Layer architecture principles.
- */
-
-import { eq, and, desc, isNull } from "drizzle-orm";
+import { randomBytes, createHmac } from "crypto";
 import { db } from "@/lib/db";
-import {
-  webhookConfigurations,
-  webhookEvents,
-  type WebhookConfiguration,
-  type NewWebhookConfiguration,
-  type WebhookEvent,
-} from "@/lib/db/schema";
-import { ValidationError, DatabaseError } from "@/lib/api-utils";
+import { webhookConfigurations, webhookEvents } from "@/lib/db/schema";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { logger } from "@/lib/logger";
-import { IdGenerators } from "@/lib/utils/id-generator";
-import crypto from "crypto";
+import type {
+  WebhookConfiguration,
+  WebhookEvent,
+  NewWebhookConfiguration,
+  NewWebhookEvent,
+} from "@/lib/db/schema";
+import type {
+  WebhookConfigurationInput,
+  WebhookTestInput,
+  WebhookConfigurationUpdateInput,
+  WebhookEventType,
+  WebhookStatus,
+} from "@/lib/schemas/webhook-schema";
 
-export interface CreateWebhookConfigRequest {
-  name: string;
-  url: string;
-  events: string[];
-  description?: string;
-}
-
-export interface UpdateWebhookConfigRequest {
-  name?: string;
-  url?: string;
-  events?: string[];
-  description?: string;
-  active?: boolean;
+export interface WebhookConfigurationWithEvents extends WebhookConfiguration {
+  events: WebhookEvent[];
 }
 
 export interface WebhookTestResult {
   success: boolean;
-  responseStatus?: number;
-  responseBody?: string;
+  status: number;
+  responseTime: number;
   error?: string;
-  latency: number;
 }
 
-export interface WebhookEventWithConfig extends WebhookEvent {
-  config: {
-    name: string;
-    url: string;
-    serviceName: string;
-  };
+export interface WebhookEventHistoryOptions {
+  limit?: number;
+  offset?: number;
+  status?: WebhookStatus;
+  eventType?: WebhookEventType;
+  startDate?: Date;
+  endDate?: Date;
 }
 
-/**
- * Centralized webhook configuration management
- */
+class ServiceError extends Error {
+  constructor(
+    message: string,
+    public _code: string,
+  ) {
+    super(message);
+    this.name = "ServiceError";
+  }
+
+  static databaseError(message: string) {
+    return new ServiceError(message, "DATABASE_ERROR");
+  }
+
+  static notFound(message: string) {
+    return new ServiceError(message, "NOT_FOUND");
+  }
+
+  static badRequest(message: string) {
+    return new ServiceError(message, "BAD_REQUEST");
+  }
+}
+
 export class WebhookConfigurationService {
-  /**
-   * Create a new webhook configuration
-   */
+  private static readonly DEFAULT_RETRY_COUNT = 3;
+  private static readonly DEFAULT_TIMEOUT_SECONDS = 30;
+
   static async createConfiguration(
     userId: number,
-    data: CreateWebhookConfigRequest,
+    input: WebhookConfigurationInput,
   ): Promise<WebhookConfiguration> {
     try {
-      // Validate URL format
-      const urlValidation = this.validateWebhookUrl(data.url);
-      if (!urlValidation.isValid) {
-        throw new ValidationError(urlValidation.error || "Invalid URL");
-      }
-
-      // Validate events
-      const validEvents = this.getValidEventTypes();
-      const invalidEvents = data.events.filter(
-        (event) => !validEvents.includes(event),
-      );
-      if (invalidEvents.length > 0) {
-        throw new ValidationError(
-          `Invalid event types: ${invalidEvents.join(", ")}`,
-        );
-      }
-
-      // Generate secure secret
-      const secret = crypto.randomBytes(32).toString("hex");
-
-      const configData: NewWebhookConfiguration = {
+      logger.info("Creating webhook configuration", {
         userId,
-        name: data.name,
-        url: data.url,
-        secret,
-        events: data.events,
-        description: data.description || null,
-        active: true,
-      };
-
-      const database = db();
-      const [config] = await database
-        .insert(webhookConfigurations)
-        .values(configData)
-        .returning();
-
-      logger.userAction("webhook_configuration_created", userId.toString(), {
-        configId: config.id,
-        eventName: config.name,
-        eventCount: data.events.length,
+        name: input.name,
       });
 
-      return config;
+      const secret = this.generateSecureSecret();
+      const database = db();
+
+      const newConfiguration: NewWebhookConfiguration = {
+        userId,
+        name: input.name,
+        url: input.url,
+        secret,
+        eventTypes: input.eventTypes,
+        isActive: input.isActive,
+        retryCount: input.retryCount,
+        timeoutSeconds: input.timeoutSeconds,
+      };
+
+      const [created] = await database
+        .insert(webhookConfigurations)
+        .values(newConfiguration)
+        .returning();
+
+      logger.info("Webhook configuration created", {
+        webhookId: created.id,
+        userId,
+        name: created.name,
+      });
+
+      return created;
     } catch (error) {
-      logger.apiError(
-        "createConfiguration failed",
-        IdGenerators.REQUEST(),
-        error as Error,
-        { userId, configName: data.name },
+      logger.error("Failed to create webhook configuration", {
+        userId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw ServiceError.databaseError(
+        "Failed to create webhook configuration",
       );
-      throw error;
     }
   }
 
-  /**
-   * Get all webhook configurations for a user
-   */
   static async getConfigurations(
     userId: number,
   ): Promise<WebhookConfiguration[]> {
     try {
       const database = db();
-      return await database
+      const configurations = await database
         .select()
         .from(webhookConfigurations)
         .where(
@@ -134,354 +125,254 @@ export class WebhookConfigurationService {
           ),
         )
         .orderBy(desc(webhookConfigurations.createdAt));
+
+      return configurations;
     } catch (error) {
-      logger.apiError(
-        "getConfigurations failed",
-        IdGenerators.REQUEST(),
-        error as Error,
-        { userId },
-      );
-      throw new DatabaseError("Failed to retrieve webhook configurations");
+      logger.error("Failed to get webhook configurations", {
+        userId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw ServiceError.databaseError("Failed to get webhook configurations");
     }
   }
 
-  /**
-   * Get a specific webhook configuration
-   */
   static async getConfigurationById(
-    id: string,
     userId: number,
+    webhookId: string,
   ): Promise<WebhookConfiguration | null> {
     try {
       const database = db();
-      const [config] = await database
+      const [configuration] = await database
         .select()
         .from(webhookConfigurations)
         .where(
           and(
-            eq(webhookConfigurations.id, id),
+            eq(webhookConfigurations.id, webhookId),
             eq(webhookConfigurations.userId, userId),
             isNull(webhookConfigurations.deletedAt),
           ),
         );
 
-      return config || null;
+      return configuration || null;
     } catch (error) {
-      logger.apiError(
-        "getConfigurationById failed",
-        IdGenerators.REQUEST(),
-        error as Error,
-        { id, userId },
-      );
-      throw new DatabaseError("Failed to retrieve webhook configuration");
+      logger.error("Failed to get webhook configuration", {
+        userId,
+        webhookId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw ServiceError.databaseError("Failed to get webhook configuration");
     }
   }
 
-  /**
-   * Update webhook configuration
-   */
   static async updateConfiguration(
-    id: string,
     userId: number,
-    data: UpdateWebhookConfigRequest,
+    webhookId: string,
+    input: WebhookConfigurationUpdateInput,
   ): Promise<WebhookConfiguration> {
     try {
-      // Validate configuration exists and belongs to user
-      const existingConfig = await this.getConfigurationById(id, userId);
-      if (!existingConfig) {
-        throw new ValidationError("Webhook configuration not found");
+      const existing = await this.getConfigurationById(userId, webhookId);
+      if (!existing) {
+        throw ServiceError.notFound("Webhook configuration not found");
       }
 
-      // Validate URL if provided
-      if (data.url) {
-        const urlValidation = this.validateWebhookUrl(data.url);
-        if (!urlValidation.isValid) {
-          throw new ValidationError(urlValidation.error || "Invalid URL");
-        }
-      }
-
-      // Validate events if provided
-      if (data.events) {
-        const validEvents = this.getValidEventTypes();
-        const invalidEvents = data.events.filter(
-          (event) => !validEvents.includes(event),
-        );
-        if (invalidEvents.length > 0) {
-          throw new ValidationError(
-            `Invalid event types: ${invalidEvents.join(", ")}`,
-          );
-        }
-      }
+      const updateData = {
+        ...input,
+        updatedAt: new Date(),
+      };
 
       const database = db();
-      const [updatedConfig] = await database
+      const [updated] = await database
         .update(webhookConfigurations)
-        .set({
-          ...data,
-          updatedAt: new Date(),
-        })
-        .where(eq(webhookConfigurations.id, id))
+        .set(updateData)
+        .where(eq(webhookConfigurations.id, webhookId))
         .returning();
 
-      logger.userAction("webhook_configuration_updated", userId.toString(), {
-        configId: id,
-        changedFields: Object.keys(data),
+      logger.info("Webhook configuration updated", {
+        webhookId,
+        userId,
+        name: updated.name,
       });
 
-      return updatedConfig;
+      return updated;
     } catch (error) {
-      logger.apiError(
-        "updateConfiguration failed",
-        IdGenerators.REQUEST(),
-        error as Error,
-        { id, userId },
+      if (error instanceof ServiceError) throw error;
+
+      logger.error("Failed to update webhook configuration", {
+        userId,
+        webhookId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw ServiceError.databaseError(
+        "Failed to update webhook configuration",
       );
-      throw error;
     }
   }
 
-  /**
-   * Delete webhook configuration (soft delete)
-   */
-  static async deleteConfiguration(id: string, userId: number): Promise<void> {
+  static async deleteConfiguration(
+    userId: number,
+    webhookId: string,
+  ): Promise<boolean> {
     try {
-      // Validate configuration exists and belongs to user
-      const existingConfig = await this.getConfigurationById(id, userId);
-      if (!existingConfig) {
-        throw new ValidationError("Webhook configuration not found");
+      const existing = await this.getConfigurationById(userId, webhookId);
+      if (!existing) {
+        throw ServiceError.notFound("Webhook configuration not found");
       }
 
       const database = db();
       await database
         .update(webhookConfigurations)
         .set({ deletedAt: new Date() })
-        .where(eq(webhookConfigurations.id, id));
+        .where(eq(webhookConfigurations.id, webhookId));
 
-      logger.userAction("webhook_configuration_deleted", userId.toString(), {
-        configId: id,
-        configName: existingConfig.name,
+      logger.info("Webhook configuration deleted", {
+        webhookId,
+        userId,
+        name: existing.name,
       });
+
+      return true;
     } catch (error) {
-      logger.apiError(
-        "deleteConfiguration failed",
-        IdGenerators.REQUEST(),
-        error as Error,
-        { id, userId },
+      if (error instanceof ServiceError) throw error;
+
+      logger.error("Failed to delete webhook configuration", {
+        userId,
+        webhookId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw ServiceError.databaseError(
+        "Failed to delete webhook configuration",
       );
-      throw error;
     }
   }
 
-  /**
-   * Test webhook delivery
-   */
   static async testWebhook(
-    id: string,
     userId: number,
-    eventType?: string,
+    webhookId: string,
+    input: WebhookTestInput,
   ): Promise<WebhookTestResult> {
     try {
-      const config = await this.getConfigurationById(id, userId);
-      if (!config) {
-        throw new ValidationError("Webhook configuration not found");
+      const configuration = await this.getConfigurationById(userId, webhookId);
+      if (!configuration) {
+        throw ServiceError.notFound("Webhook configuration not found");
       }
-
-      const testEventType = eventType || config.events[0] || "test.event";
-      const testPayload = this.generateTestPayload(testEventType);
 
       const startTime = Date.now();
+      const testPayload = input.payload || {
+        test: true,
+        eventType: input.eventType,
+      };
 
-      try {
-        const response = await fetch(config.url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "User-Agent": "Architect-Platform-Webhook/1.0",
-            "X-Webhook-Event": testEventType,
-            "X-Webhook-Signature": this.generateSignature(
-              JSON.stringify(testPayload),
-              config.secret,
-            ),
-          },
-          body: JSON.stringify(testPayload),
-          signal: AbortSignal.timeout(10000), // 10 second timeout
-        });
-
-        const latency = Date.now() - startTime;
-        const responseBody = await response.text();
-
-        // Log test event
-        await this.logWebhookEvent(config.id, testEventType, testPayload, {
-          status: response.ok ? "success" : "failed",
-          responseStatus: response.status,
-          responseBody,
-          attemptCount: 1,
-          deliveredAt: response.ok ? new Date() : null,
-          failedAt: response.ok ? null : new Date(),
-        });
-
-        return {
-          success: response.ok,
-          responseStatus: response.status,
-          responseBody: responseBody.slice(0, 500), // Limit response size
-          latency,
-        };
-      } catch (fetchError) {
-        const latency = Date.now() - startTime;
-
-        // Log failed test
-        await this.logWebhookEvent(config.id, testEventType, testPayload, {
-          status: "failed",
-          attemptCount: 1,
-          failedAt: new Date(),
-        });
-
-        return {
-          success: false,
-          error:
-            fetchError instanceof Error ? fetchError.message : "Unknown error",
-          latency,
-        };
-      }
-    } catch (error) {
-      logger.apiError(
-        "testWebhook failed",
-        IdGenerators.REQUEST(),
-        error as Error,
-        { id, userId },
+      const response = await this.sendWebhookRequest(
+        configuration.url,
+        configuration.secret,
+        input.eventType,
+        testPayload,
+        configuration.timeoutSeconds * 1000,
       );
-      throw error;
-    }
-  }
 
-  /**
-   * Get webhook event history
-   */
-  static async getEventHistory(
-    userId: number,
-    configId?: string,
-    limit: number = 50,
-    offset: number = 0,
-  ): Promise<WebhookEventWithConfig[]> {
-    try {
-      const database = db();
-      const whereConditions = [
-        eq(webhookConfigurations.userId, userId),
-        isNull(webhookConfigurations.deletedAt),
-      ];
+      const responseTime = Date.now() - startTime;
 
-      if (configId) {
-        whereConditions.push(eq(webhookEvents.configId, configId));
-      }
-
-      const results = await database
-        .select({
-          id: webhookEvents.id,
-          configId: webhookEvents.configId,
-          eventType: webhookEvents.eventType,
-          payload: webhookEvents.payload,
-          responseStatus: webhookEvents.responseStatus,
-          responseBody: webhookEvents.responseBody,
-          attemptCount: webhookEvents.attemptCount,
-          status: webhookEvents.status,
-          deliveredAt: webhookEvents.deliveredAt,
-          failedAt: webhookEvents.failedAt,
-          lastRetryAt: webhookEvents.lastRetryAt,
-          createdAt: webhookEvents.createdAt,
-          config: {
-            name: webhookConfigurations.name,
-            url: webhookConfigurations.url,
-          },
-        })
-        .from(webhookEvents)
-        .innerJoin(
-          webhookConfigurations,
-          eq(webhookEvents.configId, webhookConfigurations.id),
-        )
-        .where(and(...whereConditions))
-        .orderBy(desc(webhookEvents.createdAt))
-        .limit(limit)
-        .offset(offset);
-
-      return results.map((result: any) => ({
-        ...result,
-        config: {
-          ...result.config,
-          serviceName: "Custom", // All webhook configs are custom for now
-        },
-      }));
-    } catch (error) {
-      logger.apiError(
-        "getEventHistory failed",
-        IdGenerators.REQUEST(),
-        error as Error,
-        { userId, configId },
-      );
-      throw new DatabaseError("Failed to retrieve event history");
-    }
-  }
-
-  /**
-   * Rotate webhook secret
-   */
-  static async rotateSecret(
-    id: string,
-    userId: number,
-  ): Promise<{ secret: string }> {
-    try {
-      const config = await this.getConfigurationById(id, userId);
-      if (!config) {
-        throw new ValidationError("Webhook configuration not found");
-      }
-
-      const newSecret = crypto.randomBytes(32).toString("hex");
+      const testEvent: NewWebhookEvent = {
+        webhookConfigurationId: webhookId,
+        eventType: input.eventType,
+        payload: testPayload,
+        status: response.ok ? "success" : "failed",
+        responseStatus: response.status,
+        responseBody: await response.text(),
+        attemptCount: 1,
+        deliveredAt: response.ok ? new Date() : undefined,
+      };
 
       const database = db();
-      await database
-        .update(webhookConfigurations)
-        .set({
-          secret: newSecret,
-          updatedAt: new Date(),
-        })
-        .where(eq(webhookConfigurations.id, id));
+      await database.insert(webhookEvents).values(testEvent);
 
-      logger.security("webhook_secret_rotated", {
-        configId: id,
+      const result: WebhookTestResult = {
+        success: response.ok,
+        status: response.status,
+        responseTime,
+        error: response.ok ? undefined : `HTTP ${response.status}`,
+      };
+
+      logger.info("Webhook test completed", {
+        webhookId,
         userId,
-        timestamp: new Date().toISOString(),
+        success: result.success,
+        status: result.status,
+        responseTime,
       });
 
-      return { secret: newSecret };
+      return result;
     } catch (error) {
-      logger.apiError(
-        "rotateSecret failed",
-        IdGenerators.REQUEST(),
-        error as Error,
-        { id, userId },
-      );
-      throw error;
+      if (error instanceof ServiceError) throw error;
+
+      logger.error("Failed to test webhook", {
+        userId,
+        webhookId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw ServiceError.databaseError("Failed to test webhook");
     }
   }
 
-  /**
-   * Retry failed webhook event
-   */
-  static async retryWebhook(
-    eventId: string,
+  static async getEventHistory(
     userId: number,
-  ): Promise<WebhookTestResult> {
+    webhookId: string,
+    options: WebhookEventHistoryOptions = {},
+  ): Promise<WebhookEvent[]> {
     try {
-      // Get the event with configuration
+      const configuration = await this.getConfigurationById(userId, webhookId);
+      if (!configuration) {
+        throw ServiceError.notFound("Webhook configuration not found");
+      }
+
       const database = db();
-      const [eventResult] = await database
+
+      // Build the where conditions
+      const whereConditions = [
+        eq(webhookEvents.webhookConfigurationId, webhookId),
+      ];
+
+      if (options.status) {
+        whereConditions.push(eq(webhookEvents.status, options.status));
+      }
+
+      if (options.eventType) {
+        whereConditions.push(eq(webhookEvents.eventType, options.eventType));
+      }
+
+      const events = await database
+        .select()
+        .from(webhookEvents)
+        .where(and(...whereConditions))
+        .orderBy(desc(webhookEvents.createdAt))
+        .limit(options.limit || 50)
+        .offset(options.offset || 0);
+
+      return events;
+    } catch (error) {
+      if (error instanceof ServiceError) throw error;
+
+      logger.error("Failed to get webhook event history", {
+        userId,
+        webhookId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw ServiceError.databaseError("Failed to get webhook event history");
+    }
+  }
+
+  static async retryWebhook(userId: number, eventId: string): Promise<boolean> {
+    try {
+      const database = db();
+      const [event] = await database
         .select({
           event: webhookEvents,
-          config: webhookConfigurations,
+          configuration: webhookConfigurations,
         })
         .from(webhookEvents)
         .innerJoin(
           webhookConfigurations,
-          eq(webhookEvents.configId, webhookConfigurations.id),
+          eq(webhookEvents.webhookConfigurationId, webhookConfigurations.id),
         )
         .where(
           and(
@@ -491,189 +382,182 @@ export class WebhookConfigurationService {
           ),
         );
 
-      if (!eventResult) {
-        throw new ValidationError("Failed webhook event not found");
+      if (!event) {
+        throw ServiceError.notFound("Failed webhook event not found");
       }
 
-      const { event, config } = eventResult;
+      const { event: webhookEvent, configuration } = event;
 
-      // Update event to retrying
+      if (webhookEvent.attemptCount >= configuration.retryCount) {
+        throw ServiceError.badRequest("Maximum retry attempts exceeded");
+      }
+
+      const response = await this.sendWebhookRequest(
+        configuration.url,
+        configuration.secret,
+        webhookEvent.eventType,
+        webhookEvent.payload,
+        configuration.timeoutSeconds * 1000,
+      );
+
       await database
         .update(webhookEvents)
         .set({
-          status: "retrying",
-          attemptCount: event.attemptCount + 1,
-          lastRetryAt: new Date(),
+          status: response.ok ? "success" : "retrying",
+          responseStatus: response.status,
+          responseBody: await response.text(),
+          attemptCount: webhookEvent.attemptCount + 1,
+          nextRetryAt: response.ok
+            ? undefined
+            : this.calculateNextRetryAt(webhookEvent.attemptCount + 1),
+          deliveredAt: response.ok ? new Date() : undefined,
         })
         .where(eq(webhookEvents.id, eventId));
 
-      const startTime = Date.now();
+      logger.info("Webhook retry completed", {
+        eventId,
+        webhookId: configuration.id,
+        userId,
+        success: response.ok,
+        attempt: webhookEvent.attemptCount + 1,
+      });
 
-      try {
-        const response = await fetch(config.url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "User-Agent": "Architect-Platform-Webhook/1.0",
-            "X-Webhook-Event": event.eventType,
-            "X-Webhook-Retry": event.attemptCount.toString(),
-            "X-Webhook-Signature": this.generateSignature(
-              JSON.stringify(event.payload),
-              config.secret,
-            ),
-          },
-          body: JSON.stringify(event.payload),
-          signal: AbortSignal.timeout(10000),
-        });
-
-        const latency = Date.now() - startTime;
-        const responseBody = await response.text();
-
-        // Update event with result
-        await database
-          .update(webhookEvents)
-          .set({
-            status: response.ok ? "success" : "failed",
-            responseStatus: response.status,
-            responseBody: responseBody.slice(0, 500),
-            deliveredAt: response.ok ? new Date() : null,
-            failedAt: response.ok ? null : new Date(),
-          })
-          .where(eq(webhookEvents.id, eventId));
-
-        return {
-          success: response.ok,
-          responseStatus: response.status,
-          responseBody: responseBody.slice(0, 500),
-          latency,
-        };
-      } catch (fetchError) {
-        const latency = Date.now() - startTime;
-
-        await database
-          .update(webhookEvents)
-          .set({
-            status: "failed",
-            failedAt: new Date(),
-          })
-          .where(eq(webhookEvents.id, eventId));
-
-        return {
-          success: false,
-          error:
-            fetchError instanceof Error ? fetchError.message : "Unknown error",
-          latency,
-        };
-      }
+      return response.ok;
     } catch (error) {
-      logger.apiError(
-        "retryWebhook failed",
-        IdGenerators.REQUEST(),
-        error as Error,
-        { eventId, userId },
+      if (error instanceof ServiceError) throw error;
+
+      logger.error("Failed to retry webhook", {
+        userId,
+        eventId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw ServiceError.databaseError("Failed to retry webhook");
+    }
+  }
+
+  static async rotateSecret(
+    userId: number,
+    webhookId: string,
+  ): Promise<string> {
+    try {
+      const configuration = await this.getConfigurationById(userId, webhookId);
+      if (!configuration) {
+        throw ServiceError.notFound("Webhook configuration not found");
+      }
+
+      const newSecret = this.generateSecureSecret();
+
+      const database = db();
+      await database
+        .update(webhookConfigurations)
+        .set({
+          secret: newSecret,
+          updatedAt: new Date(),
+        })
+        .where(eq(webhookConfigurations.id, webhookId));
+
+      logger.info("Webhook secret rotated", {
+        webhookId,
+        userId,
+        name: configuration.name,
+      });
+
+      return newSecret;
+    } catch (error) {
+      if (error instanceof ServiceError) throw error;
+
+      logger.error("Failed to rotate webhook secret", {
+        userId,
+        webhookId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw ServiceError.databaseError("Failed to rotate webhook secret");
+    }
+  }
+
+  static verifySignature(
+    payload: string,
+    signature: string,
+    secret: string,
+  ): boolean {
+    try {
+      const [hashAlgorithm, signatureValue] = signature.split("=");
+      if (hashAlgorithm !== "sha256") {
+        return false;
+      }
+
+      const expectedSignature = createHmac("sha256", secret)
+        .update(payload)
+        .digest("hex");
+
+      return timingSafeEqual(
+        Buffer.from(signatureValue, "hex"),
+        Buffer.from(expectedSignature, "hex"),
       );
+    } catch (error) {
+      logger.error("Failed to verify webhook signature", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return false;
+    }
+  }
+
+  private static generateSecureSecret(): string {
+    return randomBytes(32).toString("hex");
+  }
+
+  private static async sendWebhookRequest(
+    url: string,
+    secret: string,
+    eventType: string,
+    payload: any,
+    timeout: number,
+  ): Promise<Response> {
+    const payloadString = JSON.stringify(payload);
+    const signature = `sha256=${createHmac("sha256", secret).update(payloadString).digest("hex")}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "Webhooks-Platform/1.0",
+          "X-Webhook-Event": eventType,
+          "X-Webhook-Signature": signature,
+        },
+        body: payloadString,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
       throw error;
     }
   }
 
-  /**
-   * Helper methods
-   */
-  private static validateWebhookUrl(url: string): {
-    isValid: boolean;
-    error?: string;
-  } {
-    try {
-      const urlObj = new URL(url);
-      if (!["http:", "https:"].includes(urlObj.protocol)) {
-        return { isValid: false, error: "URL must use HTTP or HTTPS protocol" };
-      }
-      return { isValid: true };
-    } catch {
-      return { isValid: false, error: "Invalid URL format" };
-    }
+  private static calculateNextRetryAt(attemptCount: number): Date {
+    const exponentialBackoff = Math.pow(2, attemptCount) * 1000;
+    const jitter = Math.random() * 1000;
+    const nextRetryIn = exponentialBackoff + jitter;
+
+    return new Date(Date.now() + nextRetryIn);
+  }
+}
+
+function timingSafeEqual(a: Buffer, b: Buffer): boolean {
+  if (a.length !== b.length) {
+    return false;
   }
 
-  private static getValidEventTypes(): string[] {
-    return [
-      // Stripe events
-      "payment_intent.succeeded",
-      "payment_intent.failed",
-      "invoice.payment_succeeded",
-      "invoice.payment_failed",
-      "customer.subscription.created",
-      "customer.subscription.updated",
-      "customer.subscription.deleted",
-      "checkout.session.completed",
-      // Clerk events
-      "user.created",
-      "user.updated",
-      "user.deleted",
-      "email.created",
-      "email.updated",
-      "email.deleted",
-      // Custom events
-      "test.event",
-      "blueprint.generated",
-      "project.created",
-      "payment.processed",
-    ];
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a[i] ^ b[i];
   }
 
-  private static generateTestPayload(
-    eventType: string,
-  ): Record<string, unknown> {
-    return {
-      id: IdGenerators.REQUEST(),
-      type: eventType,
-      created: Math.floor(Date.now() / 1000),
-      data: {
-        object: { test: true, message: "Test webhook payload" },
-      },
-      test: true,
-    };
-  }
-
-  private static generateSignature(payload: string, secret: string): string {
-    return `sha256=${crypto
-      .createHmac("sha256", secret)
-      .update(payload)
-      .digest("hex")}`;
-  }
-
-  private static async logWebhookEvent(
-    configId: string,
-    eventType: string,
-    payload: Record<string, unknown>,
-    status: {
-      status: string;
-      responseStatus?: number;
-      responseBody?: string;
-      attemptCount: number;
-      deliveredAt?: Date | null;
-      failedAt?: Date | null;
-    },
-  ): Promise<void> {
-    try {
-      const database = db();
-      await database.insert(webhookEvents).values({
-        configId,
-        eventType,
-        payload: payload as any,
-        responseStatus: status.responseStatus || null,
-        responseBody: status.responseBody || null,
-        attemptCount: status.attemptCount,
-        status: status.status,
-        deliveredAt: status.deliveredAt || null,
-        failedAt: status.failedAt || null,
-      });
-    } catch (error) {
-      logger.apiError(
-        "Failed to log webhook event",
-        IdGenerators.REQUEST(),
-        error as Error,
-        { configId, eventType },
-      );
-    }
-  }
+  return result === 0;
 }

@@ -66,9 +66,10 @@ export const webhookConfigurations = pgTable("webhook_configurations", {
   name: text("name").notNull(),
   url: text("url").notNull(),
   secret: text("secret").notNull(),
-  events: text("events").array().notNull(), // Array of event types
-  active: boolean("active").default(true).notNull(),
-  description: text("description"),
+  eventTypes: jsonb("event_types").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  retryCount: integer("retry_count").default(3).notNull(),
+  timeoutSeconds: integer("timeout_seconds").default(30).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
@@ -77,18 +78,18 @@ export const webhookConfigurations = pgTable("webhook_configurations", {
 // Webhook event history table
 export const webhookEvents = pgTable("webhook_events", {
   id: uuid("id").primaryKey().defaultRandom(),
-  configId: uuid("config_id")
+  webhookConfigurationId: uuid("webhook_configuration_id")
     .references(() => webhookConfigurations.id, { onDelete: "cascade" })
     .notNull(),
   eventType: text("event_type").notNull(),
   payload: jsonb("payload").notNull(),
+  status: text("status").notNull(), // pending, success, failed, retrying
   responseStatus: integer("response_status"),
   responseBody: text("response_body"),
-  attemptCount: integer("attempt_count").default(1).notNull(),
-  status: text("status").notNull(), // "pending", "success", "failed", "retrying"
+  errorMessage: text("error_message"),
+  attemptCount: integer("attempt_count").default(0).notNull(),
+  nextRetryAt: timestamp("next_retry_at"),
   deliveredAt: timestamp("delivered_at"),
-  failedAt: timestamp("failed_at"),
-  lastRetryAt: timestamp("last_retry_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
