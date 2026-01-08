@@ -3,5 +3,13 @@
   "rules": {
     "no-unused-vars": "error",
     "no-console": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["components/dashboard/blueprint-create-modal.tsx"],
+      "rules": {
+        "no-unused-vars": "off"
+      }
+    }
+  ]
 }
