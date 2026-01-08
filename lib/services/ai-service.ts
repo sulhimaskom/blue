@@ -229,8 +229,7 @@ export class AIService {
         );
 
         // Cache with request deduplication to prevent redundant cache operations
-        await UnifiedCacheManager.setData("iflow-completion", completion, {
-          key: optimizedCacheKey,
+        await UnifiedCacheManager.setData(optimizedCacheKey, completion, {
           ttl: intelligentTTL,
           tags: detectedPattern.pattern
             ? ["ai-completion", model.id, detectedPattern.pattern]
@@ -462,8 +461,8 @@ export class AIService {
    */
   private trackCacheOptimizationMetrics(
     pattern: AIPattern["type"] | null | undefined,
-    request: any,
-    completion: any,
+    request: AICompletionRequest,
+    completion: AICompletionResponse,
     optimizedTTL: number,
   ): void {
     const baseTTL = pattern ? this.getPatternTypicalTTL(pattern) : 1800;
@@ -518,8 +517,8 @@ export class AIService {
    */
   private calculateCostAwareTTL(
     pattern: AIPattern["type"] | null | undefined,
-    request: any,
-    completion: any,
+    request: AICompletionRequest,
+    completion: AICompletionResponse,
   ): number {
     const baseTTL = pattern ? this.getPatternTypicalTTL(pattern) : 1800;
 
@@ -556,8 +555,8 @@ export class AIService {
    * Calculate cost optimization factors based on request characteristics
    */
   private calculateCostOptimizationFactors(
-    request: any,
-    completion: any,
+    request: AICompletionRequest,
+    completion: AICompletionResponse,
   ): number {
     let multiplier = 1.0;
 
