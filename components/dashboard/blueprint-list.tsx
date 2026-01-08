@@ -29,25 +29,30 @@ export const BlueprintList = React.memo(
     <div className="lg:col-span-2">
       {selectedProject ? (
         <div className="bg-white rounded-lg border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">
                 {selectedProject.name} - Blueprints
               </h2>
-              <Button onClick={onCreateBlueprint} variant="outline">
+              <Button
+                onClick={onCreateBlueprint}
+                variant="outline"
+                className="w-full sm:w-auto"
+              >
                 Create New Blueprint
               </Button>
             </div>
           </div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {blueprints.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-8 sm:py-12">
                 <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                   <svg
                     className="w-6 h-6 text-gray-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    aria-hidden="true"
                   >
                     <path
                       strokeLinecap="round"
@@ -60,20 +65,25 @@ export const BlueprintList = React.memo(
                 <h3 className="text-sm font-medium text-gray-900 mb-2">
                   No blueprints yet
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-gray-500 mb-4 px-4 sm:px-0">
                   Get started by creating your first AI-generated blueprint for
                   this project.
                 </p>
-                <Button onClick={onCreateBlueprint}>Create Blueprint</Button>
+                <Button
+                  onClick={onCreateBlueprint}
+                  className="w-full sm:w-auto"
+                >
+                  Create Blueprint
+                </Button>
               </div>
             ) : (
               <div className="space-y-4">
                 {blueprints.map((blueprint) => (
                   <div
                     key={blueprint.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900">
                           {blueprint.title}
@@ -81,7 +91,7 @@ export const BlueprintList = React.memo(
                         <p className="text-sm text-gray-600 mt-1">
                           {blueprint.description}
                         </p>
-                        <div className="flex items-center mt-2 space-x-4">
+                        <div className="flex items-center mt-2 flex-wrap gap-3">
                           <span className="text-sm text-gray-500">
                             Version {blueprint.version}
                           </span>
@@ -97,17 +107,25 @@ export const BlueprintList = React.memo(
                           </span>
                         </div>
                       </div>
-                      <div className="flex space-x-2 ml-4">
-                        <Button variant="outline" size="sm">
+                      <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:ml-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 sm:flex-none"
+                        >
                           View
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 sm:flex-none"
+                        >
                           Edit
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                          className="bg-green-600 hover:bg-green-700 text-white border-green-600 flex-1 sm:flex-none"
                           onClick={() => {
                             window.location.href = `/dashboard/projects?blueprint=${blueprint.id}`;
                           }}
@@ -124,13 +142,14 @@ export const BlueprintList = React.memo(
         </div>
       ) : (
         <div className="bg-white rounded-lg border border-gray-200">
-          <div className="p-12 text-center">
+          <div className="p-8 sm:p-12 text-center">
             <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
               <svg
                 className="w-6 h-6 text-gray-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -140,10 +159,10 @@ export const BlueprintList = React.memo(
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
               Select a project
             </h3>
-            <p className="text-gray-500">
+            <p className="text-sm sm:text-base text-gray-500 px-4 sm:px-0">
               Choose a project from the list to view and manage its blueprints.
             </p>
           </div>
