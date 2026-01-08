@@ -466,6 +466,64 @@ export class UnifiedCacheManager {
   private static extractPrefix(): string {
     return "ai-platform";
   }
+
+  /**
+   * HTTP response caching wrapper - cache miss → execute handler → cache result
+   */
+  static async withCache(
+    request: NextRequest,
+    handler: () => Promise<NextResponse>,
+    options: UnifiedCacheOptions = {},
+  ): Promise<NextResponse> {
+    const cachedResponse = await this.getCachedResponse(request, options);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
+    const freshResponse = await handler();
+    await this.setCachedResponse(request, freshResponse, options);
+    freshResponse.headers.set("x-cache-status", "MISS");
+
+    return freshResponse;
+  }
+
+  /**
+   * Invalidate blueprint cache by project ID and type
+   */
+  static async invalidateBlueprintCache(
+    projectId: string,
+    blueprintType?: string,
+  ): Promise<void> {
+    try {
+      const tags = [
+        `project-${projectId}`,
+        "blueprint-complete",
+        "blueprint-skeleton",
+      ];
+
+      if (blueprintType) {
+        tags.push(`blueprint-${blueprintType}`);
+      }
+
+      await this.invalidateByTag(tags[0]);
+
+      for (const tag of tags.slice(1)) {
+        await this.invalidateByTag(tag);
+      }
+
+      logger.info("Blueprint cache invalidated", {
+        projectId,
+        blueprintType,
+        tags,
+      });
+    } catch (error) {
+      logger.error("Failed to invalidate blueprint cache", {
+        projectId,
+        blueprintType,
+        error: error instanceof Error ? error.message : error,
+      });
+    }
+  }
 }
 
 /**

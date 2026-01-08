@@ -83,14 +83,23 @@ const nextConfig = {
       };
     }
 
-    // Optimize for production
-    if (!dev && !isServer) {
+    // Enable parallel processing and optimize for production
+    if (!dev) {
+      config.parallelism = 4; // Use 4 parallel workers for production builds
+
+      // Aggressive production optimizations
+      config.cache = {
+        type: "filesystem",
+        buildDependencies: {
+          config: [__filename],
+        },
+      };
+
       config.optimization = {
         ...config.optimization,
         usedExports: true,
         sideEffects: false,
         moduleIds: "deterministic",
-        // Improve chunk splitting for better caching
         splitChunks: {
           chunks: "all",
           maxSize: 140000, // Further optimized for better CDN caching (140kB chunks)
