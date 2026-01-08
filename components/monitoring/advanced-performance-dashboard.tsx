@@ -17,81 +17,227 @@ import {
 import { UnifiedMetricsCalculator } from "@/lib/services/unified-metrics-calculator";
 import { usePerformanceStatus } from "@/lib/hooks/use-performance-status";
 
-// Types for advanced performance metrics
+/**
+ * Comprehensive advanced performance metrics data structure containing system,
+ * application, and database performance indicators with timestamp tracking.
+ *
+ * System Metrics:
+ * - cpuUsage: Current CPU utilization percentage (0-100)
+ * - memoryUsage: Memory utilization percentage (0-100)
+ * - diskIOPS: Disk input/output operations per second
+ * - networkLatency: Network response time in milliseconds
+ *
+ * Application Metrics:
+ * - averageResponseTime: Mean API response time in milliseconds
+ * - requestsPerSecond: Current request throughput
+ * - errorRate: Error percentage of total requests (0-100)
+ * - throughput: Data throughput in megabytes per second
+ *
+ * Database Metrics:
+ * - connectionPool: Active database connections
+ * - queryTime: Average query execution time in milliseconds
+ * - slowQueries: Count of queries exceeding performance threshold
+ * - cacheHitRate: Cache success percentage (0-100)
+ */
 interface AdvancedPerformanceMetrics {
+  /** ISO timestamp when metrics were collected */
   timestamp: string;
+  /** System-level performance indicators */
   system: {
+    /** CPU utilization percentage (0-100) */
     cpuUsage: number;
+    /** Memory utilization percentage (0-100) */
     memoryUsage: number;
+    /** Disk input/output operations per second */
     diskIOPS: number;
+    /** Network latency in milliseconds */
     networkLatency: number;
   };
+  /** Application-level performance indicators */
   application: {
+    /** Average API response time in milliseconds */
     averageResponseTime: number;
+    /** Requests processed per second */
     requestsPerSecond: number;
+    /** Error rate as percentage of total requests (0-100) */
     errorRate: number;
+    /** Data throughput in megabytes per second */
     throughput: number;
   };
+  /** Database performance indicators */
   database: {
+    /** Number of active database connections */
     connectionPool: number;
+    /** Average query execution time in milliseconds */
     queryTime: number;
+    /** Count of slow performing queries */
     slowQueries: number;
+    /** Cache hit success rate percentage (0-100) */
     cacheHitRate: number;
   };
 }
 
+/**
+ * AI-powered cache optimization metrics containing optimization recommendations
+ * with estimated cost savings and confidence scoring.
+ *
+ * Optimization Structure:
+ * - type: Optimization category (e.g., 'cache-ttl', 'prefetch-strategy')
+ * - description: Human-readable explanation of the optimization
+ * - estimatedSavings: Predicted monthly cost reduction in USD
+ * - confidence: AI confidence percentage in prediction accuracy (0-100)
+ * - applied: Boolean indicating if optimization has been implemented
+ *
+ * Summary Metrics:
+ * - totalSavings: Combined monthly savings from all optimizations
+ * - appliedOptimizations: Count of successfully applied optimizations
+ * - pendingOptimizations: Count of available but unapplied optimizations
+ * - hitRateImprovement: Expected cache hit rate percentage improvement
+ */
 interface AICacheOptimizationMetrics {
+  /** ISO timestamp when AI analysis was performed */
   timestamp: string;
+  /** Array of optimization recommendations */
   optimizations: Array<{
+    /** Optimization category identifier */
     type: string;
+    /** Human-readable optimization description */
     description: string;
+    /** Estimated monthly cost savings in USD */
     estimatedSavings: number;
+    /** AI confidence percentage (0-100) */
     confidence: number;
+    /** Whether optimization has been applied */
     applied: boolean;
   }>;
+  /** Aggregated optimization summary statistics */
   summary: {
+    /** Total estimated monthly savings across all optimizations */
     totalSavings: number;
+    /** Count of optimizations that have been applied */
     appliedOptimizations: number;
+    /** Count of optimizations available for application */
     pendingOptimizations: number;
+    /** Expected cache hit rate improvement percentage */
     hitRateImprovement: number;
   };
 }
 
+/**
+ * Predictive performance analytics data containing future performance predictions
+ * with confidence scoring and actionable recommendations.
+ *
+ * Prediction Structure:
+ * - metric: Performance metric being predicted (e.g., 'cpu', 'memory')
+ * - currentValue: Current measured value
+ * - predictedValue: AI-predicted future value
+ * - confidence: Prediction confidence percentage (0-100)
+ * - timeframe: Prediction time horizon (e.g., '1h', '24h', '7d')
+ * - severity: Impact severity level for proactive planning
+ * - recommendations: Actionable steps to prevent issues
+ *
+ * Severity Classification:
+ * - low: Normal variations, monitoring recommended
+ * - medium: Attention required, preventive action advised
+ * - high: Immediate action needed to prevent performance degradation
+ */
 interface PredictivePerformanceData {
+  /** ISO timestamp when predictive analysis was performed */
   timestamp: string;
+  /** Array of performance predictions with recommendations */
   predictions: Array<{
+    /** Performance metric name being predicted */
     metric: string;
+    /** Current measured value */
     currentValue: number;
+    /** AI-predicted future value */
     predictedValue: number;
+    /** Prediction confidence percentage (0-100) */
     confidence: number;
+    /** Prediction time horizon (e.g., '1h', '24h', '7d') */
     timeframe: string;
+    /** Impact severity level: 'low' | 'medium' | 'high' */
     severity: "low" | "medium" | "high";
+    /** Actionable recommendations to prevent issues */
     recommendations: string[];
   }>;
+  /** Prediction summary statistics by severity level */
   summary: {
+    /** Total number of predictions generated */
     totalPredictions: number;
+    /** Count of high-severity predictions */
     highSeverity: number;
+    /** Count of medium-severity predictions */
     mediumSeverity: number;
+    /** Count of low-severity predictions */
     lowSeverity: number;
   };
 }
 
-// Props for Advanced Performance Dashboard
+/**
+ * Props for the AdvancedPerformanceDashboard component.
+ * @interface AdvancedPerformanceDashboardProps
+ */
 interface AdvancedPerformanceDashboardProps {
+  /** Optional error callback function for handling operation failures */
   // eslint-disable-next-line no-unused-vars
   onError?: (error: string) => void;
+  /** Optional success callback function for handling successful operations */
   // eslint-disable-next-line no-unused-vars
   onSuccess?: (message: string) => void;
 }
 
 /**
- * AdvancedPerformanceDashboard displays comprehensive system performance metrics
- * with AI optimization insights and predictive analytics.
+ * AdvancedPerformanceDashboard component that displays comprehensive system performance metrics
+ * with AI optimization insights and predictive analytics in a tabbed interface.
  *
- * Architecture: Service layer compliant with zero business logic in UI
- * - Uses performance service for all data operations and calculations
+ * Architectural Pattern:
+ * - Service Layer compliance: zero business logic in UI components
+ * - Uses UnifiedMetricsCalculator and performance status hooks for data processing
  * - Atomic component with clear separation of concerns
- * - Real-time updates with configurable refresh intervals
+ * - Real-time updates with configurable auto-refresh functionality
+ * - Tab-based navigation for organizing complex performance data
+ *
+ * Features:
+ * - Three-tab interface: Overview, AI Optimization, Predictive Analytics
+ * - Real-time performance metrics with auto-refresh (30-second intervals)
+ * - Manual refresh capabilities with loading states
+ * - AI-powered optimization recommendations with one-click application
+ * - Predictive analytics with confidence scoring and severity classification
+ * - Comprehensive error handling and fallback UI states
+ * - Responsive design with mobile-friendly layout
+ *
+ * Data Flow:
+ * 1. Component mounts and triggers initial data fetch from three API endpoints
+ * 2. Data is processed and displayed in organized tabs with proper formatting
+ * 3. User interactions trigger optimization applications and data refreshes
+ * 4. Auto-refresh mechanism maintains data freshness without user intervention
+ *
+ * Performance Optimizations:
+ * - useCallback hooks for stable function references
+ * - State management optimized for minimal re-renders
+ * - Efficient data fetching with Promise.all for parallel requests
+ * - Proper cleanup in useEffect for interval management
+ *
+ * API Integration:
+ * - `/api/performance/advanced-monitoring` - System and application metrics
+ * - `/api/performance/ai-cache-optimization` - AI optimization recommendations
+ * - `/api/performance/predictive` - Predictive analytics data
+ * - `/api/performance/predictive-optimization` - Apply optimization recommendations
+ *
+ * Error Handling:
+ * - Comprehensive error boundaries with fallback UI states
+ * - User-friendly error messages with retry functionality
+ * - Graceful degradation when API endpoints are unavailable
+ * - Proper error logging through callback functions
+ *
+ * @example
+ * ```tsx
+ * <AdvancedPerformanceDashboard
+ *   onError={(error) => console.error('Performance error:', error)}
+ *   onSuccess={(message) => console.log('Success:', message)}
+ * />
+ * ```
  */
 export const AdvancedPerformanceDashboard: React.FC<
   AdvancedPerformanceDashboardProps
@@ -366,11 +512,36 @@ export const AdvancedPerformanceDashboard: React.FC<
   );
 };
 
-// Performance Overview Tab Component
+/**
+ * Props for the PerformanceOverviewTab component.
+ * @interface PerformanceOverviewTabProps
+ */
 interface PerformanceOverviewTabProps {
+  /** Advanced performance metrics containing system, application, and database data */
   metrics: AdvancedPerformanceMetrics;
 }
 
+/**
+ * PerformanceOverviewTab component that displays comprehensive performance metrics
+ * across system, application, and database layers in organized card grids.
+ *
+ * Features:
+ * - Three metric categories: System Performance, Application Performance, Database Performance
+ * - Real-time status indicators using usePerformanceStatus hook
+ * - Color-coded metric cards for visual distinction
+ * - Responsive grid layout adapting to screen sizes
+ * - UnifiedMetricsCalculator integration for consistent formatting
+ *
+ * Architectural Compliance:
+ * - Zero business logic in UI component
+ * - Performance calculations delegated to Service Layer
+ * - Atomic design with focused responsibility
+ *
+ * @example
+ * ```tsx
+ * <PerformanceOverviewTab metrics={advancedMetrics} />
+ * ```
+ */
 const PerformanceOverviewTab: React.FC<PerformanceOverviewTabProps> = ({
   metrics,
 }) => {
@@ -518,13 +689,51 @@ const PerformanceOverviewTab: React.FC<PerformanceOverviewTabProps> = ({
   );
 };
 
-// AI Optimization Tab Component
+/**
+ * Props for the AIOptimizationTab component.
+ * @interface AIOptimizationTabProps
+ */
 interface AIOptimizationTabProps {
+  /** AI cache optimization metrics containing recommendations and savings data */
   metrics: AICacheOptimizationMetrics;
+  /** Callback function to apply a specific optimization by index */
   // eslint-disable-next-line no-unused-vars
   onApplyOptimization: (optimizationIndex: number) => void;
 }
 
+/**
+ * AIOptimizationTab component that displays AI-powered optimization recommendations
+ * with interactive controls for applying optimizations and viewing cost savings.
+ *
+ * Business Logic:
+ * - Displays available cache optimizations with confidence scores
+ * - Shows applied optimizations with visual distinction
+ * - Calculates and displays estimated monthly savings
+ * - Provides one-click optimization application functionality
+ * - Tracks optimization impact through hit rate improvements
+ *
+ * Features:
+ * - Summary cards showing total savings, applied optimizations, and improvements
+ * - Detailed optimization list with descriptions and confidence ratings
+ * - Interactive apply buttons with state management
+ * - Color-coded status indicators (Applied/Available)
+ * - Cost savings calculations with currency formatting
+ *
+ * User Experience:
+ * - Clear visual distinction between applied and available optimizations
+ * - Disabled state for already applied optimizations
+ * - Loading states during optimization application
+ * - Informative tooltips and confidence indicators
+ * - Responsive layout for mobile and desktop viewing
+ *
+ * @example
+ * ```tsx
+ * <AIOptimizationTab
+ *   metrics={aiMetrics}
+ *   onApplyOptimization={(index) => applyOptimization(index)}
+ * />
+ * ```
+ */
 const AIOptimizationTab: React.FC<AIOptimizationTabProps> = ({
   metrics,
   onApplyOptimization,
@@ -633,14 +842,74 @@ const AIOptimizationTab: React.FC<AIOptimizationTabProps> = ({
   );
 };
 
-// Predictive Analytics Tab Component
+/**
+ * Props for the PredictiveAnalyticsTab component.
+ * @interface PredictiveAnalyticsTabProps
+ */
 interface PredictiveAnalyticsTabProps {
+  /** Predictive performance data containing predictions with confidence scores */
   metrics: PredictivePerformanceData;
 }
 
+/**
+ * PredictiveAnalyticsTab component that displays AI-powered performance predictions
+ * with severity classification, confidence scoring, and actionable recommendations.
+ *
+ * Business Intelligence Features:
+ * - Performance predictions with confidence percentages
+ * - Severity classification (Low/Medium/High) for proactive monitoring
+ * - Current vs predicted value comparisons with trend indicators
+ * - Actionable recommendations for each prediction
+ * - Time-frame based predictions for planning purposes
+ *
+ * Data Visualization:
+ * - Summary cards showing prediction count by severity level
+ * - Detailed prediction cards with comprehensive information
+ * - Color-coded severity indicators for quick scanning
+ * - Confidence scoring badges for reliability assessment
+ * - Structured recommendation lists with bullet points
+ *
+ * User Interaction:
+ * - No interactive controls to maintain prediction integrity
+ * - Informative presentation of AI-generated insights
+ * - Clear visual hierarchy for information prioritization
+ * - Consistent formatting with other dashboard tabs
+ *
+ * Color Strategy:
+ * - Blue: Low severity (informational)
+ * - Yellow: Medium severity (cautionary)
+ * - Red: High severity (urgent attention)
+ * - Indigo: Confidence indicators
+ *
+ * @example
+ * ```tsx
+ * <PredictiveAnalyticsTab metrics={predictiveData} />
+ * ```
+ */
 const PredictiveAnalyticsTab: React.FC<PredictiveAnalyticsTabProps> = ({
   metrics,
 }) => {
+  /**
+   * Maps severity levels to corresponding Tailwind CSS color classes for consistent UI styling.
+   *
+   * This function provides a centralized color mapping for severity indicators,
+   * ensuring consistent visual representation across the predictive analytics interface.
+   * The color choices follow standard UI/UX conventions for severity levels:
+   * - Blue (low): Informational, no immediate action required
+   * - Yellow (medium): Cautionary, monitoring recommended
+   * - Red (high): Urgent attention required
+   * - Gray (default): Unknown or unclassified severity
+   *
+   * @param severity - The severity level string ('low', 'medium', 'high', or other)
+   * @returns Tailwind CSS class string for styling severity badges and indicators
+   *
+   * @example
+   * ```typescript
+   * const colorClasses = getSeverityColor('high');
+   * // Returns: "bg-red-100 text-red-800"
+   * // Used as: <span className={colorClasses}>HIGH</span>
+   * ```
+   */
   const getSeverityColor = (severity: string): string => {
     switch (severity) {
       case "low":

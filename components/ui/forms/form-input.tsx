@@ -1,5 +1,6 @@
 import React, { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { cn, getTextColor } from "@/lib/constants/ui-themes";
+import { generateFormId } from "@/lib/services/form-service";
 
 export interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -29,7 +30,7 @@ export function FormInput({
   ...props
 }: FormInputProps) {
   const hasError = !!error;
-  const inputId = id || `input-${Math.random().toString(36).substring(2, 11)}`;
+  const inputId = id || generateFormId("input");
 
   return (
     <div className="space-y-2">
@@ -98,8 +99,7 @@ export function FormTextarea({
   ...props
 }: FormTextareaProps) {
   const hasError = !!error;
-  const inputId =
-    id || `textarea-${Math.random().toString(36).substring(2, 11)}`;
+  const inputId = id || generateFormId("textarea");
 
   return (
     <div className="space-y-2">
