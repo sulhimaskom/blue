@@ -102,21 +102,6 @@ const nextConfig = {
       // Disable caching for speed in production builds
       config.cache = false;
 
-      // Minimal optimization for maximum speed
-      config.optimization = {
-        ...config.optimization,
-        usedExports: true,
-        sideEffects: false,
-        moduleIds: "deterministic",
-        // Most basic chunk splitting for speed
-        splitChunks: {
-          chunks: "all",
-          maxSize: 1000000, // 1MB chunks to reduce processing
-          minSize: 500000, // 500KB minimum
-          maxInitialRequests: 5, // Allow more requests for faster builds
-        },
-      };
-
       // Streamlined optimization for speed
       config.optimization = {
         ...config.optimization,
