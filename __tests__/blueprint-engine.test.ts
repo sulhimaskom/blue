@@ -57,7 +57,11 @@ jest.mock("../lib/services/ai-service", () => ({
     })),
   },
 }));
-jest.mock("../lib/db");
+jest.mock("../lib/db", () => ({
+  db: jest.fn(),
+  getDb: jest.fn(),
+}));
+
 jest.mock("../lib/services/cache-orchestrator");
 jest.mock("../lib/services/ai-pattern-detector");
 jest.mock("../lib/services/database-cache-service");
@@ -76,6 +80,9 @@ describe("BlueprintEngine - Critical Business Logic", () => {
   let mockSelect: jest.Mock;
   let mockUpdate: jest.Mock;
   let mockDelete: jest.Mock;
+  let mockReturning: jest.Mock;
+  let mockValues: jest.Mock;
+  let mockWhere: jest.Mock;
 
   const mockResearchResult = {
     answer: "Market analysis completed successfully",
@@ -114,30 +121,36 @@ describe("BlueprintEngine - Critical Business Logic", () => {
   };
 
   beforeEach(() => {
+    mockReturning = jest
+      .fn()
+      .mockResolvedValue([
+        { id: "proj-1", projectId: "proj-1", blueprintId: "bp-1" },
+      ]);
+
+    mockWhere = jest.fn().mockResolvedValue([]);
+
     mockInsert = jest.fn().mockImplementation(() => ({
       values: jest.fn().mockReturnValue({
-        returning: jest
-          .fn()
-          .mockResolvedValue([
-            { id: 1, projectId: "proj-1", blueprintId: "bp-1" },
-          ]),
+        returning: mockReturning,
       }),
     }));
 
-    mockSelect = jest.fn().mockReturnValue({
+    mockSelect = jest.fn().mockImplementation(() => ({
       from: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue([]),
+        where: mockWhere,
       }),
+    }));
+
+    const mockUpdateSet = jest.fn().mockReturnValue({
+      where: mockWhere,
     });
 
-    mockUpdate = jest.fn().mockReturnValue({
-      set: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue([]),
-      }),
-    });
+    mockUpdate = jest.fn().mockImplementation(() => ({
+      set: mockUpdateSet,
+    }));
 
     mockDelete = jest.fn().mockReturnValue({
-      where: jest.fn().mockResolvedValue([]),
+      where: mockWhere,
     });
 
     mockDb = {
