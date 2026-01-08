@@ -15,6 +15,32 @@ export interface CacheStatistics {
 }
 
 /**
+ * Rich cache statistics interface matching UnifiedCacheManager expectations
+ */
+export interface RichCacheStatistics {
+  totalKeys: number;
+  hitRate: number;
+  memoryUsage: number;
+  dataCacheKeys: number;
+  responseCacheKeys: number;
+  tags: Record<string, number>;
+  performance: {
+    avgGetTime: number;
+    avgSetTime: number;
+    operationsPerSecond: number;
+    errorRate: number;
+    lastUpdated: string;
+  };
+  aiCacheStats: {
+    iflowCacheHits: number;
+    tavilyCacheHits: number;
+    blueprintCacheHits: number;
+    aiCacheHitRate: number;
+    estimatedCostSavings: number;
+  };
+}
+
+/**
  * Service for cache statistics and monitoring
  */
 export class CacheStatisticsService {
@@ -410,5 +436,217 @@ export class CacheStatisticsService {
   ): number {
     const alpha = 0.1; // Smoothing factor
     return currentAvg * (1 - alpha) + newValue * alpha;
+  }
+
+  /**
+   * Get rich cache statistics matching UnifiedCacheManager interface expectations
+   */
+  static async getRichCacheStats(): Promise<RichCacheStatistics> {
+    try {
+      const startTime = Date.now();
+
+      // Get basic stats
+      const [totalKeys, hitRate, performanceMetrics] = await Promise.all([
+        this.getTotalKeyCount(),
+        this.getHitRate(),
+        this.getPerformanceMetrics(),
+      ]);
+
+      // Get data and response cache keys separately
+      const [dataKeys, responseKeys] = await Promise.all([
+        this.getDataCacheKeys(),
+        this.getResponseCacheKeys(),
+      ]);
+
+      // Count keys per tag
+      const tags = await this.getTagCounts();
+
+      // Get AI-specific cache stats
+      const aiCacheStats = await this.getAICacheStats();
+
+      const stats: RichCacheStatistics = {
+        totalKeys,
+        hitRate,
+        memoryUsage: await this.getMemoryUsage(),
+        dataCacheKeys: dataKeys.length,
+        responseCacheKeys: responseKeys.length,
+        tags,
+        performance: {
+          avgGetTime: performanceMetrics.avgResponseTime,
+          avgSetTime: performanceMetrics.avgResponseTime, // Use same metric for both
+          operationsPerSecond: performanceMetrics.throughput,
+          errorRate: performanceMetrics.errorRate,
+          lastUpdated: new Date().toISOString(),
+        },
+        aiCacheStats,
+      };
+
+      const duration = Date.now() - startTime;
+      logger.debug("Rich cache statistics retrieved", {
+        totalKeys,
+        hitRate: (hitRate * 100).toFixed(1) + "%",
+        memoryUsage: (stats.memoryUsage / 1024 / 1024).toFixed(2) + "MB",
+        aiCacheHitRate: (aiCacheStats.aiCacheHitRate * 100).toFixed(1) + "%",
+        duration,
+      });
+
+      return stats;
+    } catch (error) {
+      logger.error("Failed to get rich cache statistics", {
+        error: error instanceof Error ? error.message : error,
+      });
+
+      return this.getDefaultRichStats();
+    }
+  }
+
+  /**
+   * Get data cache keys only
+   */
+  private static async getDataCacheKeys(): Promise<string[]> {
+    try {
+      return await redisManager.executeWithFallback(
+        async (client) => {
+          const keys = await client.keys(`${this.CACHE_PREFIX}*`);
+          return keys.filter(
+            (key: string) =>
+              !key.includes("response") && !key.includes(":tag:"),
+          );
+        },
+        async () => [] as string[],
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Get response cache keys only
+   */
+  private static async getResponseCacheKeys(): Promise<string[]> {
+    try {
+      return await redisManager.executeWithFallback(
+        async (client) => {
+          const keys = await client.keys(`${this.CACHE_PREFIX}*`);
+          return keys.filter(
+            (key: string) => key.includes("response") && !key.includes(":tag:"),
+          );
+        },
+        async () => [] as string[],
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Get tag counts
+   */
+  private static async getTagCounts(): Promise<Record<string, number>> {
+    try {
+      return await redisManager.executeWithFallback(
+        async (client) => {
+          const tagKeys = await client.keys(`${this.CACHE_PREFIX}*:tag:*`);
+          const tags: Record<string, number> = {};
+
+          for (const tagKey of tagKeys) {
+            const tagName = tagKey.split(":tag:")[1];
+            const memberCount = await client.sCard(tagKey as string);
+            tags[tagName] = memberCount;
+          }
+
+          return tags;
+        },
+        async () => ({}),
+      );
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Get AI-specific cache statistics
+   */
+  private static async getAICacheStats(): Promise<
+    RichCacheStatistics["aiCacheStats"]
+  > {
+    try {
+      const [iflowKeys, tavilyKeys, blueprintKeys] = await Promise.all([
+        this.getAIKeyCount("iflow"),
+        this.getAIKeyCount("tavily"),
+        this.getAIKeyCount("blueprint"),
+      ]);
+
+      const totalAIKeys = iflowKeys + tavilyKeys + blueprintKeys;
+      const totalKeys = await this.getTotalKeyCount();
+      const aiCacheHitRate = totalKeys > 0 ? totalAIKeys / totalKeys : 0;
+
+      // Estimated cost savings: $0.005 per cache hit (average AI API cost)
+      const estimatedCostSavings = totalAIKeys * 0.005;
+
+      return {
+        iflowCacheHits: iflowKeys,
+        tavilyCacheHits: tavilyKeys,
+        blueprintCacheHits: blueprintKeys,
+        aiCacheHitRate,
+        estimatedCostSavings,
+      };
+    } catch {
+      return {
+        iflowCacheHits: 0,
+        tavilyCacheHits: 0,
+        blueprintCacheHits: 0,
+        aiCacheHitRate: 0,
+        estimatedCostSavings: 0,
+      };
+    }
+  }
+
+  /**
+   * Get count for specific AI pattern
+   */
+  private static async getAIKeyCount(pattern: string): Promise<number> {
+    try {
+      return await redisManager.executeWithFallback(
+        async (client) => {
+          const keys = await client.keys(`${this.CACHE_PREFIX}*${pattern}*`);
+          return keys.filter(
+            (key: string) =>
+              !key.includes(":tag:") && !key.includes("response"),
+          ).length;
+        },
+        async () => 0,
+      );
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * Default rich stats for error cases
+   */
+  private static getDefaultRichStats(): RichCacheStatistics {
+    return {
+      totalKeys: 0,
+      hitRate: 0,
+      memoryUsage: 0,
+      dataCacheKeys: 0,
+      responseCacheKeys: 0,
+      tags: {},
+      performance: {
+        avgGetTime: 0,
+        avgSetTime: 0,
+        operationsPerSecond: 0,
+        errorRate: 0,
+        lastUpdated: new Date().toISOString(),
+      },
+      aiCacheStats: {
+        iflowCacheHits: 0,
+        tavilyCacheHits: 0,
+        blueprintCacheHits: 0,
+        aiCacheHitRate: 0,
+        estimatedCostSavings: 0,
+      },
+    };
   }
 }

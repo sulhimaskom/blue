@@ -1,5 +1,5 @@
 import { logger } from "../logger";
-import { UnifiedCacheManager } from "./unified-cache-manager";
+import { UnifiedCacheManager } from "./cache-orchestrator";
 import crypto from "crypto";
 
 /**
@@ -1024,16 +1024,10 @@ class AIPatternDetector {
         rule.pattern.includes("-") ? rule.pattern.split("-")[0] : undefined, // Extract industry context
       );
 
-      await UnifiedCacheManager.cacheData(
-        "blueprint-skeleton",
-        { pattern: rule.pattern },
-        rule.prewarmedData,
-        {
-          ttl: rule.ttl,
-          key: cacheKey,
-          tags: ["ai-warmed", rule.pattern, "blueprint-skeleton"],
-        },
-      );
+      await UnifiedCacheManager.setData(cacheKey, rule.prewarmedData, {
+        ttl: rule.ttl,
+        tags: ["ai-warmed", rule.pattern, "blueprint-skeleton"],
+      });
 
       logger.debug("AI cache rule warmed", {
         pattern: rule.pattern,
