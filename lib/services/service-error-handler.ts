@@ -20,13 +20,9 @@ export {
 export class ServiceError extends Error {
   constructor(
     message: string,
-    // eslint-disable-next-line no-unused-vars
     public readonly service: string,
-    // eslint-disable-next-line no-unused-vars
     public readonly operation: string,
-    // eslint-disable-next-line no-unused-vars
     public readonly cause?: Error,
-    // eslint-disable-next-line no-unused-vars
     public readonly context?: Record<string, any>,
   ) {
     super(message);
@@ -232,16 +228,10 @@ export class ServiceErrorHandler {
    * Create a wrapper function for consistent error handling
    */
   static wrap<T extends any[], R>(
-    fn: (...args: T) => R, // eslint-disable-line no-unused-vars
-    serviceName: string, // eslint-disable-line no-unused-vars
-    operationName: string, // eslint-disable-line no-unused-vars
-  ): // eslint-disable-next-line no-unused-vars
-  (..._unusedArgs: T) => R {
-    // eslint-disable-line no-unused-vars
-    // eslint-disable-line no-unused-vars
-    // eslint-disable-line no-unused-vars
-    // eslint-disable-line no-unused-vars
-    // eslint-disable-next-line no-unused-vars
+    fn: (...args: T) => R,
+    serviceName: string,
+    operationName: string,
+  ): (...args: T) => R {
     return (...args: T): R => {
       try {
         const result = fn(...args);
@@ -269,13 +259,11 @@ export class ServiceErrorHandler {
    * Validate input and throw standardized ValidationError if invalid
    */
   static validate<T>(
-    // eslint-disable-next-line no-unused-vars
-    value: T, // eslint-disable-line no-unused-vars
-    validator: (value: T) => boolean | string, // eslint-disable-line no-unused-vars
+    value: T,
+    validator: (value: T) => boolean | string,
     serviceName: string,
     operation: string,
     fieldName: string,
-    // eslint-disable-next-line no-unused-vars
     context?: Record<string, any>,
   ): asserts value is T {
     const result = validator(value);
