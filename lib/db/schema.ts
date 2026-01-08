@@ -6,6 +6,7 @@ import {
   timestamp,
   jsonb,
   serial,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -56,6 +57,41 @@ export const transactions = pgTable("transactions", {
   deletedAt: timestamp("deleted_at"),
 });
 
+// Webhook configurations table
+export const webhookConfigurations = pgTable("webhook_configurations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  name: text("name").notNull(),
+  url: text("url").notNull(),
+  secret: text("secret").notNull(),
+  events: text("events").array().notNull(), // Array of event types
+  active: boolean("active").default(true).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
+});
+
+// Webhook event history table
+export const webhookEvents = pgTable("webhook_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  configId: uuid("config_id")
+    .references(() => webhookConfigurations.id, { onDelete: "cascade" })
+    .notNull(),
+  eventType: text("event_type").notNull(),
+  payload: jsonb("payload").notNull(),
+  responseStatus: integer("response_status"),
+  responseBody: text("response_body"),
+  attemptCount: integer("attempt_count").default(1).notNull(),
+  status: text("status").notNull(), // "pending", "success", "failed", "retrying"
+  deliveredAt: timestamp("delivered_at"),
+  failedAt: timestamp("failed_at"),
+  lastRetryAt: timestamp("last_retry_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Project = typeof projects.$inferSelect;
@@ -64,3 +100,7 @@ export type Blueprint = typeof blueprints.$inferSelect;
 export type NewBlueprint = typeof blueprints.$inferInsert;
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
+export type WebhookConfiguration = typeof webhookConfigurations.$inferSelect;
+export type NewWebhookConfiguration = typeof webhookConfigurations.$inferInsert;
+export type WebhookEvent = typeof webhookEvents.$inferSelect;
+export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
