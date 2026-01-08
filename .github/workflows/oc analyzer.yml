@@ -70,6 +70,7 @@ jobs:
 
       - name: Execute
         run: |
+          export GITHUB_RUN_ID=${{ github.run_id }}
           opencode run "$(cat .github/prompts/analyzer-system.md)" \
             --model iflowcn/glm-4.6 \
             --share false \
