@@ -81,6 +81,8 @@ When rate limits are enforced, responses include:
 |                     | `DELETE /enterprise/themes/[id]`           | ❌ Optional | -       | Moderate   | Delete theme             |
 |                     | `POST /enterprise/themes/[id]/activate`    | ❌ Optional | -       | Moderate   | Activate theme           |
 | **Performance**     | `GET /performance`                         | ❌ Optional | -       | Standard   | Performance report       |
+|                     | `GET /performance/advanced-monitoring`     | ❌ Optional | -       | Standard   | Advanced monitoring      |
+|                     | `POST /performance/advanced-monitoring`    | ❌ Optional | -       | Moderate   | Trigger optimization     |
 |                     | `GET /performance/ai-cache-optimization`   | ❌ Optional | -       | Standard   | AI cache metrics         |
 |                     | `GET /performance/optimization`            | ❌ Optional | -       | Standard   | Optimization data        |
 |                     | `GET /performance/predictive-optimization` | ❌ Optional | -       | Standard   | Predictive optimization  |
