@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { cn, CARD_VARIANTS } from "@/lib/constants/ui-themes";
 
 export interface BaseTableProps {
   children: ReactNode;
@@ -23,9 +23,9 @@ export const BaseTable: React.FC<BaseTableProps> = ({
   };
 
   const containerClasses = {
-    default: "border border-gray-200",
-    bordered: "border border-gray-200 rounded-xl overflow-hidden",
-    striped: "border border-gray-200 rounded-xl overflow-hidden",
+    default: CARD_VARIANTS.default,
+    bordered: `${CARD_VARIANTS.default} rounded-xl overflow-hidden`,
+    striped: `${CARD_VARIANTS.default} rounded-xl overflow-hidden`,
   };
 
   return (

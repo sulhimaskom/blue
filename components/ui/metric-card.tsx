@@ -60,7 +60,7 @@ export function MetricCard({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-lg border bg-white p-6 shadow-sm transition-shadow hover:shadow-md",
+        `relative overflow-hidden rounded-lg border ${getBackgroundColor("card")} p-6 shadow-sm transition-shadow hover:shadow-md`,
         className,
       )}
     >
