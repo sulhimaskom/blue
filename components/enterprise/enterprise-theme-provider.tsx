@@ -14,8 +14,7 @@ import {
   type EnterpriseThemeConfig,
   useEnterpriseTheme,
 } from "@/lib/constants/enterprise-themes";
-import { getUIText } from "@/lib/constants/ui-text";
-import { ClientStorageService } from "@/lib/services/client-storage-service";
+import { enterpriseThemeService } from "@/lib/services/enterprise-theme-service";
 
 interface EnterpriseThemeContextType {
   activeTheme: EnterpriseThemeConfig | null;
@@ -50,36 +49,9 @@ export function EnterpriseThemeProvider({
   useEffect(() => {
     if (!mounted || !autoDetectTheme) return;
 
-    const detectAndApplyEnterpriseTheme = () => {
-      if (typeof window === "undefined") return;
-
-      // Priority 1: URL parameter
-      const urlParams = new URLSearchParams(window.location.search);
-      const themeParam = urlParams.get("theme") || urlParams.get("customer");
-      if (themeParam) {
-        setTheme(themeParam);
-        return;
-      }
-
-      // Priority 2: Subdomain detection
-      const hostname = window.location.hostname;
-      const subdomain = hostname.split(".")[0];
-      if (
-        subdomain &&
-        subdomain !== "www" &&
-        subdomain !== "localhost" &&
-        subdomain !== "app"
-      ) {
-        setTheme(subdomain);
-        return;
-      }
-
-      // Priority 3: Client storage (via service layer)
-      const storedTheme = ClientStorageService.getTheme();
-      if (storedTheme) {
-        setTheme(storedTheme);
-        return;
-      }
+    const detectAndApplyEnterpriseTheme = async () => {
+      // Delegate all theme detection logic to service layer
+      await enterpriseThemeService.detectAndApplyTheme();
     };
 
     detectAndApplyEnterpriseTheme();
@@ -91,32 +63,8 @@ export function EnterpriseThemeProvider({
   useEffect(() => {
     if (!mounted || !activeTheme) return;
 
-    // Update page title
-    if (activeTheme.brandName && document.title) {
-      const platformName = getUIText("homepage", "hero.title");
-      document.title = `${activeTheme.brandName} - ${platformName}`;
-    }
-
-    // Update favicon if provided
-    if (activeTheme.faviconUrl) {
-      const favicon = document.querySelector(
-        'link[rel="icon"]',
-      ) as HTMLLinkElement;
-      if (favicon) {
-        favicon.href = activeTheme.faviconUrl;
-      }
-    }
-
-    // Store theme preference (via service layer)
-    ClientStorageService.setTheme(activeTheme.customerId);
-
-    // Update meta description for enterprise branding
-    const metaDescription = document.querySelector(
-      'meta[name="description"]',
-    ) as HTMLMetaElement;
-    if (metaDescription && activeTheme.brandName) {
-      metaDescription.content = `${activeTheme.brandName} - AI-powered platform for generating software blueprints`;
-    }
+    // Delegate all DOM manipulation to service layer
+    enterpriseThemeService.updateDocumentMetadata(activeTheme);
   }, [mounted, activeTheme]);
 
   const contextValue: EnterpriseThemeContextType = {

@@ -5,11 +5,16 @@
  * Path: /api/enterprise/themes/[customerId]/activate
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { logger, createRequestContext } from "@/lib/logger";
 import { enterpriseThemeManager } from "@/lib/constants/enterprise-themes";
-import { ValidationError, NotFoundError } from "@/lib/api-utils";
+import {
+  ValidationError,
+  NotFoundError,
+  formatErrorResponse,
+  formatSuccessResponse,
+} from "@/lib/api-utils";
 
 // Validation schema
 const ActivateThemeSchema = z.object({
@@ -49,7 +54,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     let message = "";
 
     if (activate) {
-      // Activate the theme
       success = enterpriseThemeManager.setActiveTheme(customerId);
       message = success
         ? "Theme activated successfully"
@@ -63,7 +67,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         });
       }
     } else {
-      // Deactivate - check if this is the active theme
       const activeTheme = enterpriseThemeManager.getActiveTheme();
       if (activeTheme?.customerId === customerId) {
         enterpriseThemeManager.resetTheme();
@@ -82,26 +85,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     if (!success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: message,
-        },
-        { status: 400 },
-      );
+      throw new ValidationError(message);
     }
 
-    // Get current active theme for response
     const currentActiveTheme = enterpriseThemeManager.getActiveTheme();
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        message,
-        theme,
-        isActive: currentActiveTheme?.customerId === customerId,
-        activeTheme: currentActiveTheme,
-      },
+    return formatSuccessResponse({
+      message,
+      theme,
+      isActive: currentActiveTheme?.customerId === customerId,
+      activeTheme: currentActiveTheme,
     });
   } catch (error) {
     if (error instanceof NotFoundError) {
@@ -111,13 +104,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         activate: activate,
       });
 
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
-        { status: 404 },
-      );
+      return formatErrorResponse(error);
     }
 
     if (error instanceof ValidationError) {
@@ -127,13 +114,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         error: error.message,
       });
 
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
-        { status: 400 },
-      );
+      return formatErrorResponse(error);
     }
 
     logger.error("Failed to activate enterprise theme", {
@@ -143,12 +124,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to process theme activation",
-      },
-      { status: 500 },
+    return formatErrorResponse(
+      error instanceof Error ? error : new Error(String(error)),
     );
   }
 }

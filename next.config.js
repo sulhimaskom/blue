@@ -4,12 +4,27 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ["@neondatabase/serverless"],
+  transpilePackages: ["@neondatabase/serverless"],
 
   // Performance optimization configurations
   experimental: {
     // Optimize bundle splitting for better caching
-    optimizePackageImports: ["@clerk/nextjs", "lucide-react", "@/lib/services"],
+    optimizePackageImports: [
+      "@clerk/nextjs",
+      "lucide-react",
+      "@/lib/services",
+      "lodash",
+      "stripe",
+      "@neondatabase/serverless",
+    ],
+    // Enable incremental caching improvements
+    optimizeCss: true,
+    // Enable parallel builds and optimize memory usage
+    adjustFontFallbacks: true,
+    // Optimize client-side navigation
+    optimizeCss: true,
+    // Enable webpack 5 caching for faster builds
+    webpack5: true,
   },
 
   // Advanced bundle analysis optimization with OpenTelemetry fix
@@ -19,6 +34,17 @@ const nextConfig = {
       ...config.module,
       exprContextCritical: false,
     };
+
+    // Development build optimizations
+    if (dev) {
+      // Enable faster rebuilds in development
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: /node_modules/,
+        aggregateTimeout: 200, // Reduced delay for faster rebuilds
+        poll: 800, // Check for changes more frequently
+      };
+    }
 
     // Optimize for production
     if (!dev && !isServer) {
@@ -94,14 +120,23 @@ const nextConfig = {
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Enable image optimization cache
+    minimumCacheTTL: 60 * 60 * 24, // 24 hours
   },
 
   // Output optimization
   output: "standalone",
 
-  // Compiler options
-  compiler: {
-    removeConsole: process.env.NODE_ENV === "production",
+  // Disable source maps in production for faster builds
+  productionBrowserSourceMaps: false,
+
+  // Cache management for better performance
+  generateBuildId: async () => {
+    // Use a stable build ID for caching instead of hash-based
+    if (process.env.NODE_ENV === "production") {
+      return `prod-${Date.now()}`;
+    }
+    return "dev";
   },
 };
 

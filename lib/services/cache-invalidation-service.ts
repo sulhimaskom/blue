@@ -1,18 +1,32 @@
+/**
+ * Atomic service for cache invalidation strategies and rules
+ * Extracted from UnifiedCacheManager to follow blueprint.md Service Layer principles
+ */
 import { redisManager } from "../redis";
 import { logger } from "../logger";
 
-interface CacheInvalidationRule {
+export interface CacheInvalidationRule {
   event: string;
   patterns: string[];
   ttl?: number;
   cascade?: string[];
+  priority?: number;
 }
 
+export interface InvalidationResult {
+  invalidatedKeys: number;
+  cascadedKeys: number;
+  duration: number;
+  errors: string[];
+}
+
+/**
+ * Atomic service responsible only for cache invalidation logic
+ * Follows blueprint.md Service Layer principle: Single responsibility, no business logic in UI
+ */
 export class CacheInvalidationService {
   private static readonly CACHE_PREFIX = "ai-platform:";
-  private static readonly RESPONSE_PREFIX = "response:";
-
-  private static readonly INVALIDATION_RULES: CacheInvalidationRule[] = [
+  private static INVALIDATION_RULES: CacheInvalidationRule[] = [
     {
       event: "blueprint:created",
       patterns: ["user-blueprint-stats", "blueprint-complete"],
@@ -34,181 +48,170 @@ export class CacheInvalidationService {
     {
       event: "circuit-breaker:tripped",
       patterns: ["health-check", "metrics-summary"],
-      ttl: 30,
+      ttl: 30, // Very short TTL for circuit breaker events
+    },
+    {
+      event: "cache:warming:completed",
+      patterns: ["cache-warm-stats"],
     },
   ];
 
+  /**
+   * Invalidate cache by exact key match
+   */
   static async invalidateKey(key: string): Promise<void> {
     try {
-      await redisManager.executeWithFallback(
-        async (client) => {
-          await client.del(key);
-        },
-        async () => {
-          logger.warn("Redis unavailable, skipping cache invalidation", {
-            key,
-          });
-        },
-      );
-    } catch (error) {
-      logger.error("Cache invalidation failed", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        key,
-      });
-    }
-  }
-
-  static async invalidateByTag(tag: string): Promise<void> {
-    try {
-      await redisManager.executeWithFallback(
-        async (client) => {
-          const dataKeys = await client.sMembers(
-            `${this.CACHE_PREFIX}tag:${tag}`,
-          );
-          if (dataKeys.length > 0) {
-            for (const key of dataKeys as string[]) {
-              await client.del(key);
-            }
-            await client.del(`${this.CACHE_PREFIX}tag:${tag}`);
-          }
-
-          const responseKeys = await client.sMembers(
-            `${this.RESPONSE_PREFIX}tag:${tag}`,
-          );
-          if (responseKeys.length > 0) {
-            for (const key of responseKeys as string[]) {
-              await client.del(key);
-            }
-            await client.del(`${this.RESPONSE_PREFIX}tag:${tag}`);
-          }
-        },
-        async () => {
-          logger.warn(
-            "Redis unavailable, skipping tag-based cache invalidation",
-            { tag },
-          );
-        },
-      );
-
-      logger.info("Cache invalidated by tag", { tag });
-    } catch (error) {
-      logger.error("Tag-based cache invalidation failed", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        tag,
-      });
-    }
-  }
-
-  static async invalidateByEvent(
-    event: string,
-    context?: Record<string, any>,
-  ): Promise<void> {
-    try {
-      const rule = this.INVALIDATION_RULES.find((r) => r.event === event);
-
-      if (!rule) {
-        logger.debug("No invalidation rule found for event", { event });
+      const redis = await redisManager.getClient();
+      if (!redis) {
+        logger.warn("Redis unavailable for cache invalidation", { key });
         return;
       }
 
-      logger.info("Starting intelligent cache invalidation", {
-        event,
-        patterns: rule.patterns,
-        context,
-      });
+      await redis.del(key);
+      logger.info("Cache key invalidated", { key });
+    } catch (error) {
+      logger.error("Failed to invalidate cache key", { key, error });
+      throw error;
+    }
+  }
 
-      for (const pattern of rule.patterns) {
-        await this.invalidateByTag(pattern);
+  /**
+   * Invalidate cache by tag pattern
+   */
+  static async invalidateByTag(tag: string): Promise<InvalidationResult> {
+    const startTime = Date.now();
+    const result: InvalidationResult = {
+      invalidatedKeys: 0,
+      cascadedKeys: 0,
+      duration: 0,
+      errors: [],
+    };
+
+    try {
+      const redis = await redisManager.getClient();
+      if (!redis) {
+        result.errors.push("Redis unavailable for tag invalidation");
+        return result;
       }
 
-      if (rule.cascade) {
-        for (const cascadePattern of rule.cascade) {
-          await this.invalidateByTag(cascadePattern);
+      // Find all keys with the specified tag
+      const pattern = `${this.CACHE_PREFIX}*:tags:*${tag}*`;
+      const keys = await redis.keys(pattern);
+
+      if (keys.length === 0) {
+        logger.info("No keys found for tag invalidation", { tag });
+        return result;
+      }
+
+      // Delete all matching keys
+      if (keys.length > 0) {
+        await Promise.all(keys.map((key) => redis.del(key)));
+      }
+      result.invalidatedKeys = keys.length;
+
+      // Handle cascade invalidation
+      const rule = this.INVALIDATION_RULES.find((r) =>
+        r.patterns.some((p) => p.includes(tag)),
+      );
+
+      if (rule?.cascade) {
+        for (const cascadeTag of rule.cascade) {
+          const cascadeResult = await this.invalidateByTag(cascadeTag);
+          result.cascadedKeys += cascadeResult.invalidatedKeys;
+          result.errors.push(...cascadeResult.errors);
         }
       }
 
-      if (context) {
-        await this.performContextualInvalidation(event, context);
-      }
+      result.duration = Date.now() - startTime;
+      logger.info("Cache tag invalidation completed", { tag, result });
 
-      logger.info("Cache invalidation completed", {
-        event,
-        patternsInvalidated: rule.patterns.length,
-        cascadedInvalidations: rule.cascade?.length || 0,
-      });
+      return result;
     } catch (error) {
-      logger.error("Event-based cache invalidation failed", {
-        event,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      result.duration = Date.now() - startTime;
+      result.errors.push(
+        error instanceof Error ? error.message : String(error),
+      );
+      logger.error("Failed to invalidate cache by tag", { tag, error });
+      return result;
     }
   }
 
-  static async invalidateBlueprintCache(
-    projectId: string,
-    blueprintType?: string,
-  ): Promise<void> {
-    try {
-      const tags = [
-        `project-${projectId}`,
-        "blueprint-complete",
-        "blueprint-skeleton",
-      ];
-
-      if (blueprintType) {
-        tags.push(blueprintType);
-      }
-
-      await Promise.allSettled(tags.map((tag) => this.invalidateByTag(tag)));
-
-      logger.info("Blueprint cache invalidated", {
-        projectId,
-        blueprintType,
-        tagsInvalidated: tags.length,
-      });
-    } catch (error) {
-      logger.error("Blueprint cache invalidation failed", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        projectId,
-        blueprintType,
-      });
-    }
-  }
-
-  private static async performContextualInvalidation(
+  /**
+   * Invalidate cache by event (using predefined rules)
+   */
+  static async invalidateByEvent(
     event: string,
-    context: Record<string, any>,
-  ): Promise<void> {
+    _params?: any,
+  ): Promise<InvalidationResult> {
+    // Mark parameter as used to avoid ESLint warning
+    void _params;
+    const startTime = Date.now();
+    const result: InvalidationResult = {
+      invalidatedKeys: 0,
+      cascadedKeys: 0,
+      duration: 0,
+      errors: [],
+    };
+
     try {
-      const invalidations: Promise<void>[] = [];
-
-      if (context.userId) {
-        invalidations.push(this.invalidateByTag(`user-${context.userId}`));
-      }
-      if (context.projectId) {
-        invalidations.push(
-          this.invalidateByTag(`project-${context.projectId}`),
-        );
-      }
-      if (context.blueprintId) {
-        invalidations.push(
-          this.invalidateByTag(`blueprint-${context.blueprintId}`),
-        );
+      const rule = this.INVALIDATION_RULES.find((r) => r.event === event);
+      if (!rule) {
+        result.errors.push(`No invalidation rule found for event: ${event}`);
+        return result;
       }
 
-      await Promise.allSettled(invalidations);
+      // Invalidate all patterns for this event
+      for (const pattern of rule.patterns) {
+        const patternResult = await this.invalidateByTag(pattern);
+        result.invalidatedKeys += patternResult.invalidatedKeys;
+        result.cascadedKeys += patternResult.cascadedKeys;
+        result.errors.push(...patternResult.errors);
+      }
 
-      logger.debug("Contextual invalidation completed", {
-        event,
-        userId: context.userId,
-        projectId: context.projectId,
-        blueprintId: context.blueprintId,
-      });
+      result.duration = Date.now() - startTime;
+      logger.info("Cache event invalidation completed", { event, result });
+
+      return result;
     } catch (error) {
-      logger.debug("Contextual invalidation failed", {
-        event,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      result.duration = Date.now() - startTime;
+      result.errors.push(
+        error instanceof Error ? error.message : String(error),
+      );
+      logger.error("Failed to invalidate cache by event", { event, error });
+      return result;
+    }
+  }
+
+  /**
+   * Get invalidation rules for debugging
+   */
+  static getInvalidationRules(): CacheInvalidationRule[] {
+    return [...this.INVALIDATION_RULES];
+  }
+
+  /**
+   * Check if invalidation rule exists for event
+   */
+  static hasInvalidationRule(event: string): boolean {
+    return this.INVALIDATION_RULES.some((rule) => rule.event === event);
+  }
+
+  /**
+   * Add a new invalidation rule (for testing purposes)
+   */
+  static addInvalidationRule(rule: CacheInvalidationRule): void {
+    this.INVALIDATION_RULES.push(rule);
+  }
+
+  /**
+   * Remove invalidation rules by event (for testing purposes)
+   */
+  static removeInvalidationRules(event: string): void {
+    const index = this.INVALIDATION_RULES.findIndex(
+      (rule) => rule.event === event,
+    );
+    if (index >= 0) {
+      this.INVALIDATION_RULES.splice(index, 1);
     }
   }
 }

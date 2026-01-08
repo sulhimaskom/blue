@@ -5,11 +5,11 @@
  * Path: /api/enterprise/themes/[customerId]
  */
 
-import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { logger, createRequestContext } from "@/lib/logger";
+import { logger } from "@/lib/logger";
 import { enterpriseThemeManager } from "@/lib/constants/enterprise-themes";
-import { ValidationError, NotFoundError } from "@/lib/api-utils";
+import { NotFoundError } from "@/lib/api-utils";
+import { APIRouteHandler } from "@/lib/services/api-route-handler";
 
 // Validation schemas
 const UpdateThemeSchema = z.object({
@@ -32,19 +32,14 @@ const UpdateThemeSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-interface RouteParams {
-  params: Promise<{
-    customerId: string;
-  }>;
-}
-
 // GET /api/enterprise/themes/[customerId] - Get specific theme
-export async function GET(request: NextRequest, { params }: RouteParams) {
-  const context = createRequestContext();
-  const { customerId } = await params;
+export const GET = APIRouteHandler.createGETHandler({
+  requireAuth: false,
+  handler: async ({ context, req }) => {
+    const urlParts = req.url.split("/");
+    const customerId = urlParts[urlParts.length - 1];
 
-  try {
-    const theme = enterpriseThemeManager.getTheme(customerId);
+    const theme = enterpriseThemeManager.getTheme(customerId!);
 
     if (!theme) {
       throw new NotFoundError(`Theme not found for customer: ${customerId}`);
@@ -60,81 +55,35 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       isActive,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        theme,
-        isActive,
-      },
-    });
-  } catch (error) {
-    if (error instanceof NotFoundError) {
-      logger.warn("Theme not found", {
-        requestId: context.requestId,
-        customerId,
-      });
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
-        { status: 404 },
-      );
-    }
-
-    logger.error("Failed to retrieve enterprise theme", {
-      requestId: context.requestId,
-      customerId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to retrieve theme",
-      },
-      { status: 500 },
-    );
-  }
-}
+    return {
+      theme,
+      isActive,
+    };
+  },
+});
 
 // PUT /api/enterprise/themes/[customerId] - Update theme
-export async function PUT(request: NextRequest, { params }: RouteParams) {
-  const context = createRequestContext();
-  const { customerId } = await params;
+export const PUT = APIRouteHandler.createPOSTHandler({
+  schema: UpdateThemeSchema,
+  requireAuth: false,
+  handler: async ({ context, data, req }) => {
+    const urlParts = req.url.split("/");
+    const customerId = urlParts[urlParts.length - 1];
 
-  try {
-    const body = await request.json();
-    const validationResult = UpdateThemeSchema.safeParse(body);
-
-    if (!validationResult.success) {
-      throw new ValidationError(
-        `Validation failed: ${validationResult.error.message}`,
-      );
-    }
-
-    const existingTheme = enterpriseThemeManager.getTheme(customerId);
+    const existingTheme = enterpriseThemeManager.getTheme(customerId!);
 
     if (!existingTheme) {
       throw new NotFoundError(`Theme not found for customer: ${customerId}`);
     }
 
-    // Merge existing theme with updates
     const updatedTheme = {
       ...existingTheme,
-      ...validationResult.data,
+      ...data,
     };
 
-    // If brand name changed, update customer ID
-    if (
-      validationResult.data.brandName &&
-      validationResult.data.brandName !== existingTheme.brandName
-    ) {
-      const newCustomerId = validationResult.data.brandName
-        .toLowerCase()
-        .replace(/\s+/g, "-");
-      updatedTheme.customerId = newCustomerId;
+    if (data?.brandName && data.brandName !== existingTheme.brandName) {
+      const newCustomerId = data.brandName.toLowerCase().replace(/\s+/g, "-");
+      (updatedTheme as any).customerId = newCustomerId;
     }
 
     enterpriseThemeManager.registerTheme(updatedTheme);
@@ -142,88 +91,37 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     logger.info("Enterprise theme updated", {
       requestId: context.requestId,
       customerId,
-      newCustomerId: updatedTheme.customerId,
+      newCustomerId: (updatedTheme as any).customerId,
       brandName: updatedTheme.brandName,
-      updatedFields: Object.keys(validationResult.data),
+      updatedFields: Object.keys(data || {}),
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        theme: updatedTheme,
-        message: "Theme updated successfully",
-      },
-    });
-  } catch (error) {
-    if (error instanceof NotFoundError) {
-      logger.warn("Theme update failed - not found", {
-        requestId: context.requestId,
-        customerId,
-      });
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
-        { status: 404 },
-      );
-    }
-
-    if (error instanceof ValidationError) {
-      logger.warn("Theme update validation failed", {
-        requestId: context.requestId,
-        customerId,
-        error: error.message,
-      });
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
-        { status: 400 },
-      );
-    }
-
-    logger.error("Failed to update enterprise theme", {
-      requestId: context.requestId,
-      customerId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to update theme",
-      },
-      { status: 500 },
-    );
-  }
-}
+    return {
+      theme: updatedTheme,
+      message: "Theme updated successfully",
+    };
+  },
+});
 
 // DELETE /api/enterprise/themes/[customerId] - Delete theme
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const context = createRequestContext();
-  const { customerId } = await params;
+export const DELETE = APIRouteHandler.createPOSTHandler({
+  requireAuth: false,
+  handler: async ({ context, req }) => {
+    const urlParts = req.url.split("/");
+    const customerId = urlParts[urlParts.length - 1];
 
-  try {
-    const existingTheme = enterpriseThemeManager.getTheme(customerId);
+    const existingTheme = enterpriseThemeManager.getTheme(customerId!);
 
     if (!existingTheme) {
       throw new NotFoundError(`Theme not found for customer: ${customerId}`);
     }
 
-    // Check if theme is currently active
     const isActive =
       enterpriseThemeManager.getActiveTheme()?.customerId === customerId;
     if (isActive) {
-      // Deactivate before deleting
       enterpriseThemeManager.resetTheme();
     }
 
-    // Note: In a real implementation, we'd need a delete method in EnterpriseThemeManager
-    // For now, we'll simulate the deletion by returning success
     logger.warn("Theme deletion requested", {
       requestId: context.requestId,
       customerId,
@@ -231,42 +129,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       wasActive: isActive,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        message: "Theme deleted successfully",
-        warning:
-          "Theme deletion requires implementation in EnterpriseThemeManager",
-      },
-    });
-  } catch (error) {
-    if (error instanceof NotFoundError) {
-      logger.warn("Theme deletion failed - not found", {
-        requestId: context.requestId,
-        customerId,
-      });
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
-        { status: 404 },
-      );
-    }
-
-    logger.error("Failed to delete enterprise theme", {
-      requestId: context.requestId,
-      customerId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to delete theme",
-      },
-      { status: 500 },
-    );
-  }
-}
+    return {
+      message: "Theme deleted successfully",
+      warning:
+        "Theme deletion requires implementation in EnterpriseThemeManager",
+    };
+  },
+});
