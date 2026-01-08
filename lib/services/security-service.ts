@@ -148,9 +148,7 @@ export class SecurityService {
       for (const webhookSecret of webhookSecrets) {
         try {
           // Initialize Stripe with the secret key (not webhook secret)
-          const stripe = new Stripe(stripeSecretKey, {
-            apiVersion: "2025-02-24.acacia",
-          });
+          const stripe = new Stripe(stripeSecretKey);
 
           // Use Stripe's webhook signature verification
           event = stripe.webhooks.constructEvent(

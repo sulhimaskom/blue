@@ -21,6 +21,10 @@ const clerkOptions = {
   signUpUrl: "/sign-up",
   afterSignInUrl: "/dashboard/monitoring",
   afterSignUpUrl: "/dashboard/monitoring",
+  // Allow build to proceed without valid keys for development
+  ...(process.env.NODE_ENV === "development" && {
+    telemetry: { disabled: true },
+  }),
 };
 
 const inter = Inter({ subsets: ["latin"] });

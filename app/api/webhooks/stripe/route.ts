@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { users, transactions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, isNull, and } from "drizzle-orm";
 
 import { logger } from "@/lib/logger";
 import { WebhookService } from "@/lib/services/webhook-service";
@@ -48,22 +48,24 @@ export async function POST(req: NextRequest) {
           const [userRecord] = await database
             .select()
             .from(users)
-            .where(eq(users.clerkId, metadata.userId))
+            .where(
+              and(eq(users.clerkId, metadata.userId), isNull(users.deletedAt)),
+            )
             .limit(1);
 
           if (userRecord) {
             // Add credits to user account
             const creditsToAdd = parseInt(metadata.creditsAdded);
-            await database
-              .update(users)
-              .set({
-                credits: userRecord.credits + creditsToAdd,
-                subscriptionTier:
-                  creditsToAdd >= CREDIT_RULES.PRO_THRESHOLD
-                    ? "pro"
-                    : userRecord.subscriptionTier,
-              })
-              .where(eq(users.clerkId, metadata.userId));
+              await database
+               .update(users)
+               .set({
+                 credits: userRecord.credits + creditsToAdd,
+                 subscriptionTier:
+                   creditsToAdd >= CREDIT_RULES.PRO_THRESHOLD
+                     ? "pro"
+                     : userRecord.subscriptionTier,
+               })
+               .where(and(eq(users.id, userRecord.id), isNull(users.deletedAt)));
 
             // Create transaction record
             await database.insert(transactions).values({

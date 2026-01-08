@@ -87,10 +87,15 @@ export function CircuitBreakerResetControl({
         </div>
 
         {/* Warning Message */}
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div
+          className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg"
+          role="alert"
+        >
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <span className="text-yellow-600 text-lg">⚠️</span>
+              <span className="text-yellow-600 text-lg" aria-hidden="true">
+                ⚠️
+              </span>
             </div>
             <div>
               <h4 className="text-sm font-medium text-yellow-800">
@@ -99,7 +104,7 @@ export function CircuitBreakerResetControl({
               <p className="text-sm text-yellow-700 mt-1">
                 Resetting circuit breakers will immediately restore all services
                 to operational state, bypassing failure protection. Use only
-                when you have verified the underlying issues are resolved.
+                when you have verified that underlying issues are resolved.
               </p>
             </div>
           </div>
@@ -107,17 +112,30 @@ export function CircuitBreakerResetControl({
 
         {/* Confirmation Dialog */}
         {showConfirm && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div
+            className="p-4 bg-red-50 border border-red-200 rounded-lg"
+            role="alertdialog"
+            aria-labelledby="confirm-dialog-title"
+            aria-describedby="confirm-dialog-desc"
+          >
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
-                <span className="text-red-600 text-lg">🛑</span>
+                <span className="text-red-600 text-lg" aria-hidden="true">
+                  🛑
+                </span>
               </div>
               <div className="flex-1">
-                <h4 className="text-sm font-medium text-red-800">
+                <h4
+                  id="confirm-dialog-title"
+                  className="text-sm font-medium text-red-800"
+                >
                   Confirm Circuit Breaker Reset
                 </h4>
-                <p className="text-sm text-red-700 mt-1">
-                  This action will immediately reset all circuit breakers to the
+                <p
+                  id="confirm-dialog-desc"
+                  className="text-sm text-red-700 mt-1"
+                >
+                  This action will immediately reset all circuit breakers to be
                   CLOSED state, allowing requests to flow through all services
                   again.
                 </p>
@@ -126,6 +144,7 @@ export function CircuitBreakerResetControl({
                     onClick={handleReset}
                     disabled={loading}
                     className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Confirm circuit breaker reset"
                   >
                     {loading ? "Resetting..." : "Yes, Reset All"}
                   </button>
@@ -133,6 +152,7 @@ export function CircuitBreakerResetControl({
                     onClick={handleCancel}
                     disabled={loading}
                     className="px-3 py-1 bg-gray-200 text-gray-800 text-sm rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Cancel circuit breaker reset"
                   >
                     Cancel
                   </button>
@@ -165,7 +185,7 @@ export function CircuitBreakerResetControl({
                 </span>
               ) : (
                 <span className="flex items-center space-x-2">
-                  <span>🔄</span>
+                  <span aria-hidden="true">🔄</span>
                   <span>{buttonText}</span>
                 </span>
               )}

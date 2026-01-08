@@ -144,10 +144,11 @@ describe("StripePaymentService - Critical Business Logic", () => {
         payment_method: "pm_test_123",
         confirmation_method: "manual",
         confirm: true,
-        metadata: {
+        metadata: expect.objectContaining({
           userId: "123",
           plan: "pro",
-        },
+          idempotencyKey: expect.stringMatching(/^payment_123_\d+$/),
+        }),
         automatic_payment_methods: {
           enabled: true,
         },
