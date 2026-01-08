@@ -141,14 +141,46 @@ export function RateLimiter(maxRequests: number, windowMs: number) {
   };
 }
 
-// CORS middleware helper
+// Environment-aware CORS origin validation
+export function getAllowedOrigin(requestedOrigin?: string): string {
+  // In production, restrict CORS to approved domains only
+  if (process.env.NODE_ENV === "production") {
+    const allowedOrigins = process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+      : [];
+
+    // If no allowed origins configured, default to same-origin for security
+    if (allowedOrigins.length === 0) {
+      return process.env.NEXT_PUBLIC_APP_URL || "same-origin";
+    }
+
+    // If specific origin requested and it's in allowed list, use it
+    if (requestedOrigin && allowedOrigins.includes(requestedOrigin)) {
+      return requestedOrigin;
+    }
+
+    // Otherwise, use the first allowed origin or same-origin
+    return (
+      allowedOrigins[0] || process.env.NEXT_PUBLIC_APP_URL || "same-origin"
+    );
+  }
+
+  // In development, allow all origins for convenience
+  return "*";
+}
+
+// CORS middleware helper with production security restrictions
 export function createCorsResponse(
   data: any,
   status: number = 200,
-  origin: string = "*",
+  origin?: string,
 ): NextResponse {
   const response = NextResponse.json(data, { status });
-  response.headers.set("Access-Control-Allow-Origin", origin);
+
+  // Determine allowed origin based on environment and configuration
+  const allowedOrigin = getAllowedOrigin(origin);
+
+  response.headers.set("Access-Control-Allow-Origin", allowedOrigin);
   response.headers.set(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS",
