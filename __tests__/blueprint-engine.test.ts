@@ -62,8 +62,20 @@ jest.mock("../lib/db", () => ({
   getDb: jest.fn(),
 }));
 
-jest.mock("../lib/services/cache-orchestrator");
-jest.mock("../lib/services/ai-pattern-detector");
+jest.mock("../lib/services/cache-orchestrator", () => ({
+  UnifiedCacheManager: {
+    getData: jest.fn(),
+    setData: jest.fn(),
+    invalidateByTag: jest.fn(),
+    warmupPatternCache: jest.fn(),
+    invalidateBlueprintCache: jest.fn(),
+  },
+}));
+jest.mock("../lib/services/ai-pattern-detector", () => ({
+  AIPatternDetector: {
+    detectPattern: jest.fn(),
+  },
+}));
 jest.mock("../lib/services/database-cache-service");
 jest.mock("../lib/logger");
 
@@ -133,23 +145,25 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
       returning: mockReturning,
     });
 
-    mockInsert = jest.fn().mockImplementation(() => ({
+    mockInsert = jest.fn().mockReturnValue({
       values: mockValues,
-    }));
+    });
 
-    mockSelect = jest.fn().mockImplementation(() => ({
-      from: jest.fn().mockReturnValue({
-        where: mockWhere,
-      }),
-    }));
+    const mockFrom = jest.fn().mockReturnValue({
+      where: mockWhere,
+    });
+
+    mockSelect = jest.fn().mockReturnValue({
+      from: mockFrom,
+    });
 
     const mockUpdateSet = jest.fn().mockReturnValue({
       where: mockWhere,
     });
 
-    mockUpdate = jest.fn().mockImplementation(() => ({
+    mockUpdate = jest.fn().mockReturnValue({
       set: mockUpdateSet,
-    }));
+    });
 
     mockDelete = jest.fn().mockReturnValue({
       where: mockWhere,
@@ -169,6 +183,21 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
     (logger.error as jest.Mock).mockImplementation();
     (logger.debug as jest.Mock).mockImplementation();
     (logger.security as jest.Mock).mockImplementation();
+
+    // Reset service mocks
+    (UnifiedCacheManager.getData as jest.Mock).mockResolvedValue(null);
+    (UnifiedCacheManager.setData as jest.Mock).mockResolvedValue(true);
+    (UnifiedCacheManager.invalidateByTag as jest.Mock).mockResolvedValue(true);
+    (UnifiedCacheManager.warmupPatternCache as jest.Mock).mockResolvedValue(
+      true,
+    );
+    (
+      UnifiedCacheManager.invalidateBlueprintCache as jest.Mock
+    ).mockResolvedValue(true);
+    (AIPatternDetector.detectPattern as jest.Mock).mockResolvedValue({
+      pattern: "startup",
+      confidence: 0.9,
+    });
   });
 
   afterEach(() => {
