@@ -11,6 +11,27 @@ export interface CacheKeyOptions {
 }
 
 /**
+ * Type guard to check if object has headers property with get method
+ */
+interface HeadersLike {
+  get: (_name: string) => string | null;
+}
+
+interface RequestLike {
+  url: string;
+  headers?: HeadersLike;
+}
+
+function isRequestLike(obj: unknown): obj is RequestLike {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "url" in obj &&
+    typeof (obj as Record<string, unknown>).url === "string"
+  );
+}
+
+/**
  * Atomic service responsible only for cache key generation and optimization
  * Follows blueprint.md Service Layer principle: Single responsibility, no business logic in UI
  */
@@ -23,7 +44,7 @@ export class CacheKeyService {
    */
   static generateKey(
     prefix: string,
-    data: any,
+    data: unknown,
     options: CacheKeyOptions = {},
   ): string {
     const {
@@ -53,18 +74,19 @@ export class CacheKeyService {
    * Enhanced with AI-specific patterns and intelligent normalization
    */
   static normalizeCacheData(
-    data: any,
+    data: unknown,
     options: { normalizeTime?: boolean } = {},
-  ): any {
+  ): unknown {
     if (typeof data !== "object" || data === null) {
       return data;
     }
 
-    const normalized: any = {};
-    const sortedKeys = Object.keys(data).sort();
+    const normalized: Record<string, unknown> = {};
+    const dataRecord = data as Record<string, unknown>;
+    const sortedKeys = Object.keys(dataRecord).sort();
 
     for (const key of sortedKeys) {
-      const value = data[key];
+      const value = dataRecord[key];
 
       // Skip undefined values
       if (value === undefined) {
@@ -92,7 +114,7 @@ export class CacheKeyService {
         // Normalize pagination limits
         if (lowerKey.includes("limit") || lowerKey.includes("count")) {
           const normalizedLimit = Math.min(
-            Math.max(parseInt(value) || 10, 1),
+            Math.max(parseInt(String(value)) || 10, 1),
             100, // Cap at reasonable maximum
           );
           normalized[key] = normalizedLimit;
@@ -100,7 +122,7 @@ export class CacheKeyService {
         }
       }
 
-      // AI model normalization for better caching
+      // AI model normalization
       if (lowerKey.includes("model") || lowerKey.includes("ai")) {
         normalized[key] = this.normalizeAIModelName(value);
         continue;
@@ -131,9 +153,9 @@ export class CacheKeyService {
   /**
    * Normalizes AI model names for better cache hits
    */
-  static normalizeAIModelName(model: any): string {
+  static normalizeAIModelName(model: unknown): string {
     if (!model || typeof model !== "string") {
-      return model;
+      return String(model ?? "");
     }
 
     // Handle common model pattern variations
@@ -149,9 +171,9 @@ export class CacheKeyService {
   /**
    * Normalizes long text for better cache efficiency
    */
-  static normalizeTextForCache(text: any): string {
+  static normalizeTextForCache(text: unknown): string {
     if (!text || typeof text !== "string") {
-      return text;
+      return String(text ?? "");
     }
 
     // Remove excessive whitespace and normalize line endings
@@ -161,9 +183,9 @@ export class CacheKeyService {
   /**
    * Normalizes URLs for consistent caching
    */
-  static normalizeUrlForCache(url: any): string {
+  static normalizeUrlForCache(url: unknown): string {
     if (!url || typeof url !== "string") {
-      return url;
+      return String(url ?? "");
     }
 
     try {
@@ -176,7 +198,7 @@ export class CacheKeyService {
       return parsed.toString();
     } catch {
       // Not a valid URL, return as-is
-      return url;
+      return String(url);
     }
   }
 
@@ -201,10 +223,10 @@ export class CacheKeyService {
    * Generate optimized response key for HTTP caching
    */
   static generateResponseKey(
-    request: Request | any,
+    request: Request | Record<string, unknown>,
     varyBy: string[] = [],
   ): string {
-    const url = new URL(request.url);
+    const url = new URL(String(request.url));
     const baseKey = `${url.pathname}${url.search}`;
 
     if (varyBy.length === 0) {
@@ -212,9 +234,15 @@ export class CacheKeyService {
     }
 
     // Include vary-by headers in key
-    const varyData: any = { url: baseKey };
+    const varyData: Record<string, unknown> = { url: baseKey };
     for (const header of varyBy) {
-      const value = request.headers?.get?.(header);
+      let value: string | null | undefined = undefined;
+      if (isRequestLike(request)) {
+        const headers = (request as RequestLike).headers;
+        if (headers && typeof headers.get === "function") {
+          value = headers.get(header);
+        }
+      }
       if (value) {
         varyData[header] = value;
       }
@@ -226,7 +254,7 @@ export class CacheKeyService {
   /**
    * Generate ETag for cache validation
    */
-  static generateETag(data: any): string {
+  static generateETag(data: unknown): string {
     const fingerprint = this.calculateContentFingerprint(data);
     return `"${fingerprint}"`;
   }
@@ -234,7 +262,7 @@ export class CacheKeyService {
   /**
    * Calculate content fingerprint for ETag generation
    */
-  static calculateContentFingerprint(data: any): string {
+  static calculateContentFingerprint(data: unknown): string {
     const serialized = JSON.stringify(data);
     return crypto
       .createHash("sha256")
