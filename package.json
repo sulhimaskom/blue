@@ -6,7 +6,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "next dev",
-    "build": "NEXT_BUILD_WORKERS=0 NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' npx next build --no-lint",
+    "build": "NEXT_BUILD_WORKERS=0 NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' npx next build",
     "build:clean": "rm -rf .next && NODE_OPTIONS='--max-old-space-size=4096' NEXT_BUILD_WORKERS=4 next build",
     "build:analyze": "ANALYZE=true NODE_OPTIONS='--max-old-space-size=4096' next build",
     "dev:perf": "NODE_OPTIONS='--max-old-space-size=4096' next dev --turbo",
