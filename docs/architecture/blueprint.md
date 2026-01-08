@@ -465,13 +465,39 @@ import { ServiceTypes } from './service-types.ts';
 - UserService
 - BlueprintEngine
 - EnterpriseThemeService
-- UnifiedCacheManager
+- UnifiedCacheManager (1,879 lines)
+- CacheOrchestrator (540 lines, 70% reduction - decomposing in progress)
 - MetricsCalculatorService
 - ErrorMonitoringService
 - PredictivePerformanceAnalyzer
 - RealTimePerformanceMonitor
 - And 20+ specialized atomic services
 ```
+
+**Ongoing Service Layer Refinement - Cache Decomposition (IN PROGRESS)**:
+
+As of January 2026, UnifiedCacheManager partial decomposition is underway:
+
+- **Completed**: 6 atomic services extracted to `lib/services/cache/`:
+  - CacheKeyGeneratorService: Key generation and ETag creation
+  - CacheCompressionService: Data compression/decompression
+  - CacheTTLService: TTL calculation and dynamic optimization
+  - CacheInvalidationService: Tag and event-based invalidation
+  - CacheWarmingService: Proactive cache warming strategies
+  - CacheStatisticsService: Performance metrics and monitoring
+
+- **Completed**: CacheOrchestrator facade created (540 lines, 70% reduction)
+  - Delegates to 6 specialized atomic services
+  - Added `withCache()` HTTP response wrapper
+  - Added `invalidateBlueprintCache()` blueprint-specific invalidation
+  - Ready for full migration with interface alignment
+
+- **Remaining**: Interface alignment for complete migration
+  - Original contract: Rich getCacheStats() object (aiCacheStats, dataCacheKeys, etc.)
+  - New contract: Simplified CacheStatistics interface
+  - Effort: Medium - compatibility layer or interface enhancement needed
+
+- **Impact**: 70% code reduction, enhanced testability, improved maintainability
 
 ### 10.3 Performance Optimization Achievements ✅
 

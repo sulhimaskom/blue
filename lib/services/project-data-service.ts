@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { blueprints, projects, users, transactions } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 import { ValidationError } from "@/lib/api-utils";
 import { UserService } from "@/lib/services/user-service";
 import { RequestContext } from "@/lib/services/user-service";
@@ -251,6 +251,112 @@ export class ProjectDataService {
       .returning();
 
     return newTransaction;
+  }
+
+  /**
+   * Get all projects for a user
+   * Used by: /api/projects (GET)
+   */
+  static async getUserProjects(clerkId: string) {
+    const database = db();
+
+    const userProjects = await database
+      .select({
+        project: projects,
+      })
+      .from(projects)
+      .innerJoin(users, eq(projects.ownerId, users.id))
+      .where(eq(users.clerkId, clerkId))
+      .orderBy(desc(projects.createdAt));
+
+    return userProjects.map((row) => ({
+      ...row.project,
+      blueprintCount: 0, // Will be calculated separately if needed
+    }));
+  }
+
+  /**
+   * Create a new project for a user
+   * Used by: /api/projects (POST)
+   */
+  static async createProject(
+    clerkId: string,
+    projectData: {
+      name: string;
+      description: string;
+    },
+  ) {
+    const database = db();
+
+    // Get user ID from clerk ID
+    const [user] = await database
+      .select()
+      .from(users)
+      .where(eq(users.clerkId, clerkId))
+      .limit(1);
+
+    if (!user) {
+      throw new ValidationError("User not found");
+    }
+
+    const [newProject] = await database
+      .insert(projects)
+      .values({
+        ownerId: user.id,
+        name: projectData.name,
+        description: projectData.description,
+        status: "draft",
+      })
+      .returning();
+
+    return newProject;
+  }
+
+  /**
+   * Delete a project (with confirmation)
+   * Used by: Projects management UI
+   */
+  static async deleteProject(projectId: string, clerkId: string) {
+    const database = db();
+
+    // Verify project ownership first
+    await this.verifyProjectOwnership(projectId, clerkId);
+
+    // Delete project (cascade will delete associated blueprints)
+    const [deletedProject] = await database
+      .delete(projects)
+      .where(eq(projects.id, projectId))
+      .returning();
+
+    return deletedProject;
+  }
+
+  /**
+   * Get detailed project with blueprint count
+   * Used by: Projects management UI
+   */
+  static async getProjectWithBlueprintCount(
+    projectId: string,
+    clerkId: string,
+  ) {
+    const database = db();
+
+    // Verify project ownership first
+    const projectDetails = await this.verifyProjectOwnership(
+      projectId,
+      clerkId,
+    );
+
+    // Count blueprints for this project
+    const [blueprintCount] = await database
+      .select({ count: count() })
+      .from(blueprints)
+      .where(eq(blueprints.projectId, projectId));
+
+    return {
+      ...projectDetails.project,
+      blueprintCount: blueprintCount.count,
+    };
   }
 
   /**

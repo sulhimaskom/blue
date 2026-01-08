@@ -1,5 +1,5 @@
 import React from "react";
-import { cn, getTextColor } from "@/lib/constants/ui-themes";
+import { cn, getTextColor, getTrendColor } from "@/lib/constants/ui-themes";
 
 export interface StatsCardProps {
   label: string;
@@ -37,9 +37,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
           <span
             className={cn(
               "text-sm font-medium",
-              trend.direction === "up" && "text-green-600",
-              trend.direction === "down" && "text-red-600",
-              trend.direction === "neutral" && "text-gray-500",
+              getTrendColor(trend.direction),
             )}
           >
             {trend.value}

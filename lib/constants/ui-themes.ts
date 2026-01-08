@@ -163,11 +163,44 @@ export const SIZE_VARIANTS = {
  * Layout Patterns - Standardized grid and flexbox layouts
  */
 export const LAYOUT_PATTERNS = {
+  // Existing patterns
   metricCards: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
   healthCards: "grid-cols-1 md:grid-cols-3",
   fullWidth: "grid-cols-1",
   twoColumn: "grid-cols-1 md:grid-cols-2",
   threeColumn: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
+
+  // Enhanced dashboard patterns based on usage analysis
+  dashboardGrid: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
+  dashboardCompact: "grid-cols-1 md:grid-cols-3 lg:grid-cols-4",
+  monitoringMetrics: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+  serviceStatusGrid: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3",
+  formFields: "space-y-4",
+  compactFormFields: "space-y-3",
+  spacedSections: "space-y-6",
+
+  // Flexbox patterns for component layouts
+  flexBetween: "flex items-center justify-between",
+  flexCenter: "flex items-center justify-center",
+  flexStart: "flex items-center justify-start",
+  flexEnd: "flex items-center justify-end",
+
+  // Container patterns
+  standardCard: "bg-white p-6 rounded-lg border border-gray-200",
+  hoverCard:
+    "bg-white p-6 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors",
+  compactCard: "bg-white p-4 rounded-lg border border-gray-200",
+  elevatedCard:
+    "bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow",
+
+  // List patterns
+  standardList: "divide-y divide-gray-200",
+  compactList: "space-y-2",
+  spacedList: "space-y-4",
+
+  // Text patterns
+  headingSection: "space-y-1",
+  descriptionSection: "space-y-2",
 } as const;
 
 /**
@@ -300,4 +333,36 @@ export function getAccentColor(
  */
 export function getButtonTheme(theme: ButtonThemeType): string {
   return BUTTON_THEMES[theme];
+}
+
+/**
+ * Get layout pattern classes by name
+ *
+ * @param pattern - The layout pattern name
+ * @returns Layout className string
+ */
+export function getLayoutPattern(
+  pattern: keyof typeof LAYOUT_PATTERNS,
+): string {
+  return LAYOUT_PATTERNS[pattern];
+}
+
+/**
+ * Get container classes for common card patterns
+ *
+ * @param variant - The card variant
+ * @returns Card container className string
+ */
+export function getCardContainer(
+  variant: "standard" | "hover" | "compact" | "elevated" = "standard",
+): string {
+  const patterns = {
+    standard: "bg-white p-6 rounded-lg border border-gray-200",
+    hover:
+      "bg-white p-6 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors",
+    compact: "bg-white p-4 rounded-lg border border-gray-200",
+    elevated:
+      "bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow",
+  };
+  return patterns[variant];
 }
