@@ -8,14 +8,66 @@ import {
 import { AlertTriangleIcon } from "@/components/ui/icons";
 import { PerformanceAlert } from "@/lib/types/webhook-types";
 
+/**
+ * Props interface for AlertsPanel component.
+ * @interface AlertsPanelProps
+ */
 interface AlertsPanelProps {
+  /** Array of performance alerts requiring attention */
   alerts: PerformanceAlert[];
+  /** Array of quick optimization recommendations */
   quickWins: string[];
 }
 
 /**
- * Alerts and quick wins panel for performance dashboard
- * Displays critical performance alerts and optimization recommendations
+ * AlertsPanel component that displays critical performance alerts and optimization recommendations.
+ *
+ * Architectural Pattern:
+ * - Service Layer compliance: Zero business logic in UI component
+ * - Memoized component to prevent unnecessary re-renders
+ * - Theme-aware UI with consistent design system integration
+ * - Accessible presentation with proper ARIA labels
+ *
+ * Features:
+ * - Critical performance alerts with metric name and threshold violations
+ * - Percentage calculation for over-threshold alerts
+ * - Quick performance wins grid layout
+ * - Color-coded alert severity (unhealthy theme)
+ * - Responsive grid for quick wins (1 column mobile, 2 desktop)
+ * - Conditional rendering (only shows if alerts/quickWins exist)
+ * - Formatted threshold violations with percentage calculations
+ *
+ * Data Presentation:
+ * - Alerts: Metric name, percentage over threshold, recommendation
+ * - Quick Wins: Optimization suggestions in grid format
+ * - Threshold calculations: ((value - threshold) / threshold) * 100
+ *
+ * Conditional Rendering:
+ * - Alerts section: Only renders if alerts.length > 0
+ * - Quick Wins section: Only renders if quickWins.length > 0
+ *
+ * Performance Optimizations:
+ * - React.memo for component memoization
+ * - Efficient array mapping without unnecessary re-renders
+ * - Conditional rendering prevents DOM bloat
+ *
+ * @example
+ * ```tsx
+ * <AlertsPanel
+ *   alerts={[
+ *     {
+ *       metric: "Response Time",
+ *       value: 500,
+ *       threshold: 200,
+ *       recommendation: "Enable caching"
+ *     }
+ *   ]}
+ *   quickWins={[
+ *     "Enable gzip compression",
+ *     "Optimize images"
+ *   ]}
+ * />
+ * ```
  */
 export const AlertsPanel = memo(function AlertsPanelComponent({
   alerts,
