@@ -1,10 +1,10 @@
 /**
- * Regression test for BUG-010: Stripe webhook signature validation missing - FIXED
+ * Regression test for BUG-010: Stripe webhook signature validation missing - FIXED AND REFACTORED
  *
- * This test verifies that the bug has been properly fixed:
- * - SecurityService.verifyStripeWebhook() is now used in the webhook endpoint
- * - SecurityService.logSecurityEvent() provides centralized logging
- * - The webhook endpoint follows our centralized security architecture
+ * This test verifies that bug has been properly fixed and improved:
+ * - SecurityService.verifyStripeWebhook() is now used in webhook endpoint
+ * - WebhookService.processWebhookWithReliability() provides centralized error handling and logging
+ * - The webhook endpoint follows our centralized security architecture with queue-based processing
  */
 
 describe("BUG-010: Stripe webhook signature validation missing - REGRESSION TEST", () => {
@@ -40,60 +40,35 @@ describe("BUG-010: Stripe webhook signature validation missing - REGRESSION TEST
     expect(usesSecurityService).toBe(true);
   });
 
-  it("should verify centralized security architecture is properly implemented", () => {
-    // Current implementation should now use centralized security
-    // while still working with stripeService.processWebhookEvent
+  it("should verify proper security logging is implemented", () => {
+    // Security events should be properly logged using centralized WebhookService
 
     const fs = require("fs");
     const webhookPath =
       "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
-    // Should call stripeService.processWebhookEvent WITH SecurityService verification
-    const callsProcessWebhookEvent = webhookContent.includes(
-      "stripeService.processWebhookEvent",
+    // Check for proper security logging patterns via WebhookService
+    const hasWebhookServiceImport = webhookContent.includes(
+      "import { WebhookService }",
     );
-    const callsSecurityService = webhookContent.includes(
+    const hasSecurityVerification = webhookContent.includes(
       "SecurityService.verifyStripeWebhook",
     );
-    const usesCentralizedLogging = webhookContent.includes(
-      "SecurityService.logSecurityEvent",
+    const hasWebhookProcessing = webhookContent.includes(
+      "WebhookService.processWebhookWithReliability",
     );
+    const hasSystemLogging = webhookContent.includes("logger.systemEvent");
 
-    // Both should be true now
-    expect(callsProcessWebhookEvent).toBe(true);
-    expect(callsSecurityService).toBe(true);
-    expect(usesCentralizedLogging).toBe(true);
-  });
-
-  it("shouldverify all centralized security features are in use", () => {
-    // The security features provided by SecurityService should now be fully utilized
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
-    const webhookContent = fs.readFileSync(webhookPath, "utf8");
-
-    // Verify all security components are used
-    const hasImport = webhookContent.includes(
-      'import { SecurityService } from "@/lib/services/security-service"',
-    );
-    const hasFailedVerificationLogging = webhookContent.includes(
-      "Webhook signature verification failed",
-    );
-    const hasSuccessfulVerificationLogging = webhookContent.includes(
-      "Webhook signature verified",
-    );
-    const hasErrorLogging = webhookContent.includes("Webhook processing error");
-
-    expect(hasImport).toBe(true);
-    expect(hasFailedVerificationLogging).toBe(true);
-    expect(hasSuccessfulVerificationLogging).toBe(true);
-    expect(hasErrorLogging).toBe(true);
+    expect(hasWebhookServiceImport).toBe(true);
+    expect(hasSecurityVerification).toBe(true);
+    expect(hasWebhookProcessing).toBe(true);
+    expect(hasSystemLogging).toBe(true);
   });
 
   it("should confirm the original bug is fixed", () => {
     // The original issue was that the webhook endpoint bypassed centralized security
-    // This test confirms the fix is properly implemented
+    // This test confirms that fix is properly implemented
 
     const fs = require("fs");
     const webhookPath =
@@ -107,17 +82,69 @@ describe("BUG-010: Stripe webhook signature validation missing - REGRESSION TEST
     const hasSecurityVerification = webhookContent.includes(
       "SecurityService.verifyStripeWebhook",
     );
-    const hasSecurityLogging = webhookContent.includes(
-      "SecurityService.logSecurityEvent",
+    const hasWebhookService = webhookContent.includes(
+      "WebhookService.processWebhookWithReliability",
     );
     const maintainsStripeProcessing = webhookContent.includes(
       "stripeService.processWebhookEvent",
     );
+    const hasQueueEnabled = webhookContent.includes("useQueue: true");
 
     // All conditions should be true for a complete fix
     expect(hasSecurityImport).toBe(true);
     expect(hasSecurityVerification).toBe(true);
-    expect(hasSecurityLogging).toBe(true);
+    expect(hasWebhookService).toBe(true);
     expect(maintainsStripeProcessing).toBe(true);
+    expect(hasQueueEnabled).toBe(true);
+  });
+
+  it("should verify stripe service processing is maintained", () => {
+    // The webhook should still process events through StripePaymentService
+
+    const fs = require("fs");
+    const webhookPath =
+      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
+    const webhookContent = fs.readFileSync(webhookPath, "utf8");
+
+    // Verify that StripePaymentService is still used for event processing
+    const callsProcessWebhookEvent = webhookContent.includes(
+      "stripeService.processWebhookEvent",
+    );
+    const callsSecurityService = webhookContent.includes(
+      "SecurityService.verifyStripeWebhook",
+    );
+    const usesCentralizedService = webhookContent.includes(
+      "WebhookService.processWebhookWithReliability",
+    );
+
+    // All should be true now
+    expect(callsProcessWebhookEvent).toBe(true);
+    expect(callsSecurityService).toBe(true);
+    expect(usesCentralizedService).toBe(true);
+  });
+
+  it("should verify all centralized security features are in use", () => {
+    // The security features provided by SecurityService and WebhookService should now be fully utilized
+    const fs = require("fs");
+    const webhookPath =
+      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
+    const webhookContent = fs.readFileSync(webhookPath, "utf8");
+
+    // Verify all security components are used
+    const hasImport = webhookContent.includes(
+      'import { SecurityService } from "@/lib/services/security-service"',
+    );
+    const hasWebhookServiceImport = webhookContent.includes(
+      'import { WebhookService } from "@/lib/services/webhook-service"',
+    );
+    const hasSecurityVerification = webhookContent.includes(
+      "SecurityService.verifyStripeWebhook",
+    );
+    const hasSystemLogging = webhookContent.includes("logger.systemEvent");
+
+    expect(hasImport).toBe(true);
+    expect(hasWebhookServiceImport).toBe(true);
+    expect(hasSecurityVerification).toBe(true);
+    expect(hasSystemLogging).toBe(true);
   });
 });

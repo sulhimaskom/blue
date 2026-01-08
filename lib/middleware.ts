@@ -26,7 +26,7 @@ export function createAPIRoute<T>(options: {
       let userId: string | undefined;
       if (options.requireAuth !== false) {
         const { auth } = await import("@clerk/nextjs/server");
-        const authResult = auth();
+        const authResult = await auth();
         userId = authResult.userId || undefined;
 
         if (!userId) {
