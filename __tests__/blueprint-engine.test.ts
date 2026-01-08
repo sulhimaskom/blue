@@ -175,6 +175,37 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
     jest.clearAllMocks();
   });
 
+  function createMockSelectChain(
+    options: {
+      whereFn?: jest.Mock;
+      whereResult?: any;
+    } = {},
+  ) {
+    const whereFn = options.whereFn || mockWhere;
+    const whereResult =
+      options.whereResult !== undefined ? options.whereResult : whereFn;
+
+    return jest.fn().mockReturnValue({
+      from: jest.fn().mockReturnValue({
+        where: whereResult,
+      }),
+    });
+  }
+
+  function createMockUpdateChain(
+    options: {
+      whereFn?: jest.Mock;
+    } = {},
+  ) {
+    const whereFn = options.whereFn || mockWhere;
+
+    return jest.fn().mockImplementation(() => ({
+      set: jest.fn().mockReturnValue({
+        where: whereFn,
+      }),
+    }));
+  }
+
   describe("generateBlueprint - Main Pipeline", () => {
     const mockRequest: BlueprintGenerationRequest = {
       userId: 1,
@@ -288,9 +319,9 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
 
     test("should handle blueprint generation failure", async () => {
       // Arrange
-      (aiService.generateCompletion as jest.Mock).mockRejectedValue(
-        new Error("AI generation failed"),
-      );
+      (aiService.generateCompletion as jest.Mock)
+        .mockClear()
+        .mockRejectedValue(new Error("AI generation failed"));
 
       // Act & Assert
       await expect(
@@ -308,6 +339,7 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
     test("should handle validation failure", async () => {
       // Arrange
       (aiService.generateCompletion as jest.Mock)
+        .mockClear()
         .mockResolvedValueOnce({
           content: JSON.stringify(mockBlueprintData),
         })
@@ -427,7 +459,7 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
     test("should update project status to completed on success", async () => {
       // Arrange
       const mockWhere = jest.fn().mockResolvedValue([]);
-      mockUpdate.mockReturnValue({ where: mockWhere });
+      mockUpdate = createMockUpdateChain();
 
       mockSelect.mockReturnValue({
         where: jest.fn().mockResolvedValue([]),
@@ -555,7 +587,7 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
     test("should successfully refine blueprint with new version", async () => {
       // Arrange
       const mockWhere = jest.fn().mockResolvedValue([mockCurrentBlueprint]);
-      mockSelect.mockReturnValue({ where: mockWhere });
+      mockSelect = createMockSelectChain();
 
       const localMockReturning = jest
         .fn()
@@ -592,7 +624,7 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
     test("should throw error when blueprint not found", async () => {
       // Arrange
       const mockWhere = jest.fn().mockResolvedValue([]);
-      mockSelect.mockReturnValue({ where: mockWhere });
+      mockSelect = createMockSelectChain();
 
       // Act & Assert
       await expect(
@@ -610,7 +642,7 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
     test("should handle tech stack refinement", async () => {
       // Arrange
       const mockWhere = jest.fn().mockResolvedValue([mockCurrentBlueprint]);
-      mockSelect.mockReturnValue({ where: mockWhere });
+      mockSelect = createMockSelectChain();
 
       const techMockReturning = jest.fn().mockResolvedValue([{ id: "bp-124" }]);
 
@@ -650,7 +682,7 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
     test("should handle architecture refinement", async () => {
       // Arrange
       const mockWhere = jest.fn().mockResolvedValue([mockCurrentBlueprint]);
-      mockSelect.mockReturnValue({ where: mockWhere });
+      mockSelect = createMockSelectChain();
 
       const archMockReturning = jest.fn().mockResolvedValue([{ id: "bp-124" }]);
 
@@ -684,7 +716,7 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
     test("should handle monetization refinement", async () => {
       // Arrange
       const mockWhere = jest.fn().mockResolvedValue([mockCurrentBlueprint]);
-      mockSelect.mockReturnValue({ where: mockWhere });
+      mockSelect = createMockSelectChain();
 
       const monetMockReturning = jest
         .fn()
@@ -719,7 +751,7 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
     test("should invalidate blueprint cache after refinement", async () => {
       // Arrange
       const mockWhere = jest.fn().mockResolvedValue([mockCurrentBlueprint]);
-      mockSelect.mockReturnValue({ where: mockWhere });
+      mockSelect = createMockSelectChain();
 
       const invalidateMockReturning = jest
         .fn()
@@ -750,7 +782,7 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
     test("should handle AI generation failure during refinement", async () => {
       // Arrange
       const mockWhere = jest.fn().mockResolvedValue([mockCurrentBlueprint]);
-      mockSelect.mockReturnValue({ where: mockWhere });
+      mockSelect = createMockSelectChain();
 
       (aiService.generateCompletion as jest.Mock).mockRejectedValue(
         new Error("AI service unavailable"),
@@ -772,7 +804,7 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
     test("should handle validation failure during refinement", async () => {
       // Arrange
       const mockWhere = jest.fn().mockResolvedValue([mockCurrentBlueprint]);
-      mockSelect.mockReturnValue({ where: mockWhere });
+      mockSelect = createMockSelectChain();
 
       (aiService.generateCompletion as jest.Mock)
         .mockResolvedValueOnce({
@@ -847,8 +879,8 @@ describe.skip("BlueprintEngine - Critical Business Logic", () => {
       // Arrange
       (UnifiedCacheManager.getData as jest.Mock).mockResolvedValue(null);
 
-      mockSelect.mockReturnValue({
-        where: jest
+      mockSelect = createMockSelectChain({
+        whereResult: jest
           .fn()
           .mockRejectedValue(new Error("Database connection failed")),
       });

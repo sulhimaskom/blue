@@ -5,18 +5,14 @@ import { BaseCard } from "@/components/ui/base-card";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { cn } from "@/lib/constants/ui-themes";
 import { useNotification } from "@/lib/hooks/use-notification";
-
-interface ResetResult {
-  timestamp: string;
-  action: string;
-  message: string;
-  affectedServices: string[];
-  nextHealthCheck: string;
-}
+import { monitoringAPI } from "@/lib/services/monitoring-api";
 
 interface CircuitBreakerResetControlProps {
   /** Callback function when reset is completed */
-  onResetComplete?: (_result: ResetResult) => void; // eslint-disable-line no-unused-vars
+  onResetComplete?: (
+    // eslint-disable-next-line no-unused-vars
+    result: import("@/lib/services/monitoring-api").CircuitBreakerResetResult,
+  ) => void;
   /** Callback function to refresh circuit breaker metrics */
   onRefreshMetrics?: () => void;
   /** Whether to show confirmation dialog */
@@ -41,7 +37,6 @@ export function CircuitBreakerResetControl({
   const { notification, showError, showSuccess, hideNotification } =
     useNotification();
 
-  // Handle circuit breaker reset
   const handleReset = async () => {
     if (requireConfirmation && !showConfirm) {
       setShowConfirm(true);
@@ -52,29 +47,13 @@ export function CircuitBreakerResetControl({
       setLoading(true);
       hideNotification();
 
-      const response = await fetch("/api/circuit-breakers/reset", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const result = await monitoringAPI.resetCircuitBreakers();
+      showSuccess(result.message || "Circuit breakers reset successfully");
+      onResetComplete?.(result);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        showSuccess(data.message || "Circuit breakers reset successfully");
-        onResetComplete?.(data.data);
-
-        // Auto-refresh metrics after successful reset
-        setTimeout(() => {
-          onRefreshMetrics?.();
-        }, 1000);
-      } else {
-        throw new Error(data.error || "Failed to reset circuit breakers");
-      }
+      setTimeout(() => {
+        onRefreshMetrics?.();
+      }, 1000);
     } catch (err) {
       showError(err instanceof Error ? err.message : "Unknown error");
     } finally {
