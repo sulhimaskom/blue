@@ -1,3 +1,4 @@
+const path = require("path");
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
@@ -21,8 +22,8 @@ const nextConfig = {
       "redis",
       "@sentry/nextjs",
     ],
-    // Enable incremental caching improvements
-    optimizeCss: true,
+    // Enable incremental caching improvements (disabled for speed)
+    optimizeCss: false,
     // Performance optimizations
     optimizeServerReact: true,
     // Disable worker threads for compatibility
@@ -96,7 +97,7 @@ const nextConfig = {
 
     // Optimize for fastest builds
     if (!dev) {
-      config.parallelism = 2; // Use 2 threads for optimal performance
+      config.parallelism = 4; // Use 4 threads for optimal performance with available memory
 
       // Enhanced filesystem-based caching for faster builds
       config.cache = {
@@ -106,6 +107,8 @@ const nextConfig = {
         },
         maxAge: 2592000000, // 30 days
         compression: false, // Disable compression for speed
+        cacheDirectory: path.resolve(__dirname, ".next/cache"),
+        name: "production-build",
       };
 
       config.optimization = {
