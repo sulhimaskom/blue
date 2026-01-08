@@ -3534,6 +3534,68 @@ All documentation is now world-class and ready to support immediate customer acq
   - **Effort**: Medium (requires middleware pattern)
   - **Impact**: Consistent context across all routes, reduced boilerplate, better traceability
 
+- [ ] **[REFACTOR]** Replace Console Statements with Logger System
+  - **Location**: 35 console.log/console.error/console.warn statements across lib, components, and app directories
+  - **Issue**: Direct console usage bypasses centralized logging system, violates production logging standards, loses request context
+  - **Specific Files Affected**:
+    - `lib/services/enterprise-theme-service.ts` - 5 console statements in JSDoc examples
+    - `lib/services/monitoring-service.ts` - 1 console.error in validation
+    - `lib/utils/performance-monitor.ts` - 13 console statements for build reporting
+    - `lib/monitoring.ts` - 2 console.error for critical errors
+  - **Suggestion**:
+    - Replace all `console.log()` with `logger.info()`
+    - Replace all `console.error()` with `logger.error()`
+    - Replace all `console.warn()` with `logger.warn()`
+    - Ensure all logger calls include proper context objects
+    - For JSDoc examples, keep console statements but add warning comment "JSDoc example only"
+  - **Priority**: High (production readiness & observability)
+  - **Effort**: Small (mechanical replacement, ~2 hours)
+  - **Impact**: Centralized logging, production monitoring, request context, better error tracking
+
+- [ ] **[REFACTOR]** Eliminate Any Types in CacheKeyService
+  - **Location**: `lib/services/cache-key-service.ts` - 10 instances of `any` type usage
+  - **Issue**: Type safety violations reduce code quality, TypeScript strict mode compliance at risk
+  - **Specific Any Types**:
+    - Line 26: `data: any` - generateKey() parameter
+    - Line 56, 58: `data: any`, returns `any` - normalizeCacheData() parameters
+    - Line 63: `const normalized: any = {}` - local variable
+    - Lines 134, 152, 164: `model: any`, `text: any`, `url: any` - normalization functions
+    - Line 215: `const varyData: any` - local variable
+    - Lines 229, 237: `data: any` - ETag generation functions
+  - **Suggestion**:
+    - Create proper TypeScript interfaces for all data structures
+    - Use generic types where appropriate: `<T = unknown>`, `<T extends object>`
+    - Replace `any` with `unknown` for unknown data and add runtime validation
+    - Use `Record<string, unknown>` for object-like data
+    - Add Zod validation for complex data structures
+  - **Priority**: Medium (type safety & code quality)
+  - **Effort**: Medium (requires interface design and testing)
+  - **Impact**: Improved type safety, better IDE support, catch bugs at compile time
+
+- [ ] **[REFACTOR]** Extract Sub-Components from AdvancedPerformanceDashboard
+  - **Location**: `components/monitoring/advanced-performance-dashboard.tsx` - 1021 lines, complex React component
+  - **Issue**: Large component violates single responsibility, difficult to test, poor maintainability
+  - **Component Structure Issues**:
+    - Multiple tabs (PerformanceOverview, AIOptimization, PredictiveAnalytics) in one file
+    - Complex state management with multiple hooks
+    - 15+ helper functions mixed with component logic
+    - 500+ lines of tab-specific logic
+  - **Suggestion**:
+    - Extract tab components:
+      - `PerformanceOverviewTab.tsx` - System/application/database metrics
+      - `AIOptimizationTab.tsx` - AI optimization recommendations
+      - `PredictiveAnalyticsTab.tsx` - Predictive analytics display
+    - Extract utility components:
+      - `MetricCard.tsx` - Reusable metric display
+      - `OptimizationCard.tsx` - AI optimization recommendation
+      - `SeverityBadge.tsx` - Color-coded severity indicator
+    - Extract business logic to services:
+      - Move metric calculations to `UnifiedMetricsCalculator` (already exists)
+      - Move severity determination to `usePerformanceStatus` hook (already exists)
+  - **Priority**: Medium (maintainability & testability)
+  - **Effort**: Large (requires careful decomposition, component testing)
+  - **Impact**: Improved maintainability, better testability, reusable components, easier onboarding
+
 - [x] ✅ **COMPLETED** (2026-01-08): STANDARDIZE WEBHOOK ROUTE PATTERN - Unified webhook handling across both Stripe webhook routes
   - **Implementation**: Refactored `/app/api/stripe/webhook/route.ts` to use standardized `WebhookService.processWebhookWithReliability()` pattern matching `/app/api/webhooks/stripe/route.ts`
   - **Files Enhanced**:
