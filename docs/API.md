@@ -1,6 +1,15 @@
 # API Documentation
 
-> **The Architect Platform RESTful API** - Complete reference for all endpoints, authentication, and integration patterns.
+> **The Architect Platform RESTful API** - Complete reference for all endpoints, authentication, and integration patterns with enterprise-grade SDKs and deployment guides.
+
+## 📚 Documentation Navigation
+
+| Document                                                            | Purpose                                          | Audience                    |
+| ------------------------------------------------------------------- | ------------------------------------------------ | --------------------------- |
+| **[SDK Reference - TypeScript/JavaScript](./SDK_REFERENCE.md)**     | Complete TypeScript/JavaScript SDK documentation | Frontend/Node.js Developers |
+| **[SDK Reference - Python](./SDK_REFERENCE_PYTHON.md)**             | Complete Python SDK documentation                | Backend/Python Developers   |
+| **[Enterprise Deployment Guide](./ENTERPRISE_DEPLOYMENT_GUIDE.md)** | Production deployment and integration patterns   | DevOps/Platform Engineers   |
+| **[API Reference](./API.md)**                                       | RESTful API endpoints and patterns               | All Developers              |
 
 ---
 
@@ -1751,49 +1760,144 @@ All API operations are logged with:
 
 ## 🏢 Enterprise Integration
 
-### SDK & Libraries
+### Official SDKs
 
-**Official SDKs (Recommended):**
+We provide production-ready SDKs for TypeScript/JavaScript and Python with comprehensive type safety, error handling, and enterprise features.
+
+#### TypeScript/JavaScript SDK
+
+```bash
+# Install the official SDK
+npm install @architect-platform/sdk
+# or
+yarn add @architect-platform/sdk
+# or
+pnpm add @architect-platform/sdk
+```
 
 ```typescript
-// npm install @architect-platform/sdk
 import { ArchitectPlatform } from "@architect-platform/sdk";
 
+// Initialize with enterprise configuration
 const client = new ArchitectPlatform({
   apiKey: process.env.ARCHITECT_API_KEY,
   baseUrl: "https://api.architect-platform.com",
+  timeout: 120000, // 2 minutes
+  retryAttempts: 3, // Automatic retry
+  enableLogging: true, // Development logging
+  webhookSecret: process.env.WEBHOOK_SECRET, // Webhook validation
 });
 
-// Generate blueprint with automatic retry and error handling
+// Generate blueprint with enterprise features
 const blueprint = await client.blueprints.generate({
   input: "AI-powered SaaS platform for project management",
   projectName: "ProjectAI",
   options: {
-    timeout: 120000, // 2 minutes
-    retryAttempts: 3,
-    enableCache: true,
+    timeout: 180000, // Extended timeout
+    retryAttempts: 5, // More retries for enterprises
+    enableCache: true, // Intelligent caching
+    priority: "high", // Enterprise priority queue
+    metadata: {
+      industry: "fintech",
+      enterpriseId: "acme-corp",
+    },
+  },
+});
+
+// Monitor with webhook notifications
+await client.blueprints.generate({
+  input: "Enterprise AI platform",
+  projectName: "EnterpriseAI",
+  webhooks: {
+    onCompleted: "https://your-app.com/webhooks/blueprint-completed",
+    onFailed: "https://your-app.com/webhooks/blueprint-failed",
   },
 });
 ```
 
-**Python SDK:**
+**📖 Complete TypeScript SDK Reference:** [See detailed documentation](./SDK_REFERENCE.md)
+
+#### Python SDK
+
+```bash
+# Install the official Python SDK
+pip install architect-platform-sdk
+# or with poetry
+poetry add architect-platform-sdk
+# or with conda
+conda install -c conda-forge architect-platform-sdk
+```
 
 ```python
-# pip install architect-platform-sdk
-from architect_platform import ArchitectClient
+import asyncio
+from architect_platform import ArchitectPlatform, ArchitectConfig
 
-client = ArchitectClient(
-    api_key=os.getenv('ARCHITECT_API_KEY'),
-    base_url='https://api.architect-platform.com'
+# Enterprise configuration
+config = ArchitectConfig(
+    api_key=os.getenv("ARCHITECT_API_KEY"),
+    base_url="https://api.architect-platform.com",
+    timeout=180.0,          # 3 minutes for enterprise workloads
+    retry_attempts=5,       # Enterprise-grade retry
+    enable_logging=True,    # Comprehensive logging
+    webhook_secret=os.getenv("WEBHOOK_SECRET"),
+    custom_headers={
+        "X-Enterprise-ID": "acme-corp",
+        "X-Client-Version": "1.0.0",
+    },
 )
 
-blueprint = client.blueprints.generate(
-    input="Machine learning platform for predictive analytics",
-    project_name="PredictML",
-    timeout=120,
-    retry_attempts=3
-)
+async def enterprise_workflow():
+    client = ArchitectPlatform(config)
+
+    # Generate with enterprise features
+    blueprint = await client.blueprints.generate(
+        input="Machine learning platform for predictive analytics",
+        project_name="PredictML",
+        options=GenerationOptions(
+            timeout=300.0,      # 5 minutes for complex projects
+            retry_attempts=8,
+            priority="high",
+            metadata={
+                "industry": "healthcare",
+                "compliance": ["HIPAA", "SOC2"],
+                "target_users": "10000-50000",
+            },
+        )
+    )
+
+    # Deploy with enterprise GitHub configuration
+    deployment = await client.deployments.to_github(
+        blueprint_id=blueprint.id,
+        options=GitHubDeploymentOptions(
+            github_org="acme-corp",
+            repo_name="predictml-platform",
+            is_private=True,
+            collaborators=["ml-engineer", "devops-lead"],
+            topics=["ml-platform", "enterprise", "ai"],
+        )
+    )
+
+    return deployment
+
+# Run enterprise workflow
+result = asyncio.run(enterprise_workflow())
 ```
+
+**📖 Complete Python SDK Reference:** [See detailed documentation](./SDK_REFERENCE_PYTHON.md)
+
+### SDK Features Comparison
+
+| Feature                    | TypeScript SDK       | Python SDK             | Description                       |
+| -------------------------- | -------------------- | ---------------------- | --------------------------------- |
+| **Type Safety**            | ✅ Native TypeScript | ✅ Full Type Hints     | Compile-time error prevention     |
+| **Async Support**          | ✅ Promises/Await    | ✅ Async/Await         | Non-blocking operations           |
+| **Retry Logic**            | ✅ Configurable      | ✅ Exponential Backoff | Automatic failure recovery        |
+| **Circuit Breaker**        | ✅ Built-in          | ✅ Built-in            | Service degradation protection    |
+| **Webhook Validation**     | ✅ HMAC-SHA256       | ✅ HMAC-SHA256         | Secure webhook processing         |
+| **Performance Monitoring** | ✅ Detailed Metrics  | ✅ Detailed Metrics    | Real-time performance data        |
+| **Batch Operations**       | ✅ Optimized         | ✅ Concurrent          | Bulk processing efficiency        |
+| **Enterprise Features**    | ✅ Complete          | ✅ Complete            | Priority queues, custom headers   |
+| **Development Tools**      | ✅ Mocking/Testing   | ✅ Mocking/Testing     | Comprehensive development support |
 
 ### Enterprise Features
 
