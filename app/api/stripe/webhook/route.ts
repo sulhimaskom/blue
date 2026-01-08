@@ -4,6 +4,7 @@ import { WebhookService } from "@/lib/services/webhook-service";
 import { SecurityService } from "@/lib/services/security-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { StripePaymentService } from "@/lib/services/stripe-payment-service";
+import { formatSuccessResponse, formatErrorResponse } from "@/lib/api-utils";
 
 const stripeService = StripePaymentService.getInstance();
 
@@ -15,21 +16,16 @@ export async function POST(request: NextRequest): Promise<Response> {
   const rateLimitCheck = await RateLimiters.webhook()(identifier);
 
   if (!rateLimitCheck.allowed) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: "Rate limit exceeded. Try again in 60 seconds.",
-      }),
-      {
-        status: 429,
-        headers: {
-          "Content-Type": "application/json",
-          "X-RateLimit-Limit": "100",
-          "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
-        },
-      },
+    const response = formatErrorResponse(
+      new Error("Rate limit exceeded. Try again in 60 seconds."),
     );
+    response.headers.set("X-RateLimit-Limit", "100");
+    response.headers.set("X-RateLimit-Remaining", "0");
+    response.headers.set(
+      "X-RateLimit-Reset",
+      Math.ceil(Date.now() / 1000 + 60).toString(),
+    );
+    return response;
   }
 
   return WebhookService.processWebhookWithReliability(request, {
@@ -71,19 +67,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         identifier,
       });
 
-      return NextResponse.json(
-        {
-          error: "Rate limit exceeded. Please try again later.",
-        },
-        {
-          status: 429,
-          headers: {
-            "X-RateLimit-Limit": "60",
-            "X-RateLimit-Remaining": "0",
-            "X-RateLimit-Reset": Math.ceil(Date.now() / 1000 + 60).toString(),
-          },
-        },
+      const response = formatErrorResponse(
+        new Error("Rate limit exceeded. Please try again later."),
       );
+      response.headers.set("X-RateLimit-Limit", "60");
+      response.headers.set("X-RateLimit-Remaining", "0");
+      response.headers.set(
+        "X-RateLimit-Reset",
+        Math.ceil(Date.now() / 1000 + 60).toString(),
+      );
+      return response;
     }
 
     const isConfigured = stripeService.isConfigured();
@@ -96,7 +89,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       configured: isConfigured,
     });
 
-    return NextResponse.json({
+    return formatSuccessResponse({
       status: "ok",
       configured: isConfigured,
       hasPublishableKey: !!publishableKey,
@@ -108,9 +101,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       error: error instanceof Error ? error.message : "Unknown error",
     });
 
-    return NextResponse.json(
-      { status: "error", message: "Health check failed" },
-      { status: 500 },
+    return formatErrorResponse(
+      error instanceof Error ? error : new Error("Health check failed"),
     );
   }
 }
