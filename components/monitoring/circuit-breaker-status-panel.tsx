@@ -1,414 +1,294 @@
+/* eslint-disable no-unused-vars */
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { BaseCard } from "@/components/ui/base-card";
 import {
   StatusIndicator,
   type StatusType,
 } from "@/components/ui/status-indicator";
-import { Button } from "@/components/ui/button";
-import { cn, getTextColor, getIconColor } from "@/lib/constants/ui-themes";
-import {
-  ShieldIcon,
-  RefreshCwIcon,
-  AlertTriangleIcon,
-} from "@/components/ui/icons";
+import { cn } from "@/lib/constants/ui-themes";
 
-// Types for circuit breaker data
+// Circuit breaker data types
+interface CircuitBreakerData {
+  state: "CLOSED" | "OPEN" | "HALF_OPEN";
+  totalCalls: number;
+  totalSuccesses: number;
+  totalFailures: number;
+  lastFailureTime?: number;
+  successRate: string;
+  availability: boolean;
+}
+
 interface CircuitBreakerMetrics {
   timestamp: string;
-  circuitBreakers: Array<{
-    name: string;
-    state: "CLOSED" | "OPEN" | "HALF_OPEN";
-    failureRate: number;
-    successCount: number;
-    failureCount: number;
-    lastFailureTime?: string;
-    lastSuccessTime?: string;
-    timeout: number;
-    resetTimeout: number;
-  }>;
-  summary: {
-    total: number;
-    closed: number;
-    open: number;
-    halfOpen: number;
-    healthyPercentage: number;
-  };
+  healthScore: number;
+  totalCircuits: number;
+  openCircuits: string[];
+  healthyCircuits: number;
+  circuitBreakers: Record<string, CircuitBreakerData>;
+  status: string;
 }
 
 interface CircuitBreakerStatusPanelProps {
-  // eslint-disable-next-line no-unused-vars
-  onError?: (error: string) => void;
-  // eslint-disable-next-line no-unused-vars
-  onSuccess?: (message: string) => void;
+  /** Optional custom metrics data - if not provided, component will fetch from API */
+  metrics?: CircuitBreakerMetrics;
+  /** Whether to show detailed circuit breakdowns */
+  showDetails?: boolean;
+  /** Auto-refresh interval in milliseconds */
+  refreshInterval?: number;
+  /** Callback function for when metrics are updated */
+  onMetricsUpdate?: (metrics: CircuitBreakerMetrics) => void;
 }
 
 /**
- * CircuitBreakerStatusPanel displays real-time circuit breaker status
- * with manual reset capabilities and detailed metrics.
- *
- * Architecture: Service layer compliant with zero business logic in UI
- * - Uses circuitBreakerService for all data operations
- * - Atomic component with clear separation of concerns
- * - Real-time updates with configurable refresh intervals
+ * Component for displaying real-time circuit breaker status
+ * Compliant with blueprint.md atomic component principles - no business logic
  */
-export const CircuitBreakerStatusPanel: React.FC<
-  CircuitBreakerStatusPanelProps
-> = ({
-  onError = (_error: string) => {}, // eslint-disable-line no-unused-vars
-  onSuccess = (_message: string) => {}, // eslint-disable-line no-unused-vars
-}) => {
-  const [metrics, setMetrics] = useState<CircuitBreakerMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+export function CircuitBreakerStatusPanel({
+  metrics: _externalMetrics,
+  showDetails = true,
+  refreshInterval = 15000,
+  onMetricsUpdate,
+}: CircuitBreakerStatusPanelProps) {
+  // eslint-disable-next-line no-unused-vars
+  const [metrics, setMetrics] = useState<CircuitBreakerMetrics | null>(
+    _externalMetrics || null,
+  );
+  const [loading, setLoading] = useState(!_externalMetrics);
+  const [error, setError] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(!!refreshInterval);
 
-  const fetchCircuitBreakerMetrics = useCallback(async () => {
+  // Fetch circuit breaker metrics from API
+  const fetchMetrics = React.useCallback(async () => {
     try {
+      setLoading(true);
+      setError(null);
+
       const response = await fetch("/api/circuit-breakers/metrics");
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
       const data = await response.json();
-      setMetrics(data);
-      setLastRefresh(new Date());
-      onSuccess?.("Circuit breaker metrics updated successfully");
+      if (data.success) {
+        setMetrics(data.data);
+        onMetricsUpdate?.(data.data);
+      } else {
+        throw new Error(
+          data.error || "Failed to fetch circuit breaker metrics",
+        );
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      onError?.(`Failed to fetch circuit breaker metrics: ${errorMessage}`);
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  }, [onError, onSuccess]);
+  }, [onMetricsUpdate]);
 
-  const resetCircuitBreaker = async (circuitName: string) => {
-    try {
-      const response = await fetch("/api/circuit-breakers/reset", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ circuitName }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      onSuccess?.(`Circuit breaker "${circuitName}" reset successfully`);
-      fetchCircuitBreakerMetrics(); // Refresh after reset
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      onError?.(`Failed to reset circuit breaker: ${errorMessage}`);
-    }
-  };
-
-  const resetAllCircuitBreakers = async () => {
-    try {
-      const response = await fetch("/api/circuit-breakers/reset", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      onSuccess?.("All circuit breakers reset successfully");
-      fetchCircuitBreakerMetrics(); // Refresh after reset
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      onError?.(`Failed to reset all circuit breakers: ${errorMessage}`);
-    }
-  };
-
-  const handleManualRefresh = () => {
-    setRefreshing(true);
-    fetchCircuitBreakerMetrics();
-  };
-
-  // Auto-refresh functionality
+  // Initial fetch and auto-refresh setup
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (_externalMetrics) {
+      setMetrics(_externalMetrics);
+      setLoading(false);
+      return;
+    }
 
-    const interval = setInterval(() => {
-      fetchCircuitBreakerMetrics();
-    }, 30000); // Refresh every 30 seconds
+    fetchMetrics();
 
+    if (!refreshInterval || !autoRefresh) {
+      return;
+    }
+
+    const interval = setInterval(fetchMetrics, refreshInterval);
     return () => clearInterval(interval);
-  }, [autoRefresh, fetchCircuitBreakerMetrics]);
+  }, [_externalMetrics, fetchMetrics, refreshInterval, autoRefresh]);
 
-  // Initial data fetch
-  useEffect(() => {
-    fetchCircuitBreakerMetrics();
-  }, [fetchCircuitBreakerMetrics]);
-
-  if (loading && !metrics) {
-    return (
-      <BaseCard className="p-6">
-        <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="space-y-3">
-            <div className="h-3 bg-gray-200 rounded"></div>
-            <div className="h-3 bg-gray-200 rounded"></div>
-            <div className="h-3 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      </BaseCard>
-    );
-  }
-
-  if (!metrics) {
-    return (
-      <BaseCard className="p-6">
-        <div className="text-center">
-          <AlertTriangleIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3
-            className={cn("text-lg font-medium mb-2", getTextColor("heading"))}
-          >
-            Unable to Load Circuit Breaker Metrics
-          </h3>
-          <Button onClick={handleManualRefresh} disabled={refreshing}>
-            {refreshing ? (
-              <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin" />
-            ) : null}
-            Retry
-          </Button>
-        </div>
-      </BaseCard>
-    );
-  }
-
-  const getStateStatusType = (state: string): StatusType => {
+  // Get status type based on circuit breaker state
+  const getStatusType = (state: string): StatusType => {
     switch (state) {
       case "CLOSED":
-        return "success";
+        return "healthy";
       case "OPEN":
-        return "error";
+        return "unhealthy";
       case "HALF_OPEN":
-        return "warning";
+        return "degraded";
       default:
         return "unknown";
     }
   };
 
+  // Get overall system status based on metrics
+  const getOverallStatus = (): StatusType => {
+    if (!metrics) return "unknown";
+
+    if (metrics.openCircuits.length === 0) return "healthy";
+    if (metrics.openCircuits.length >= metrics.totalCircuits / 2)
+      return "unhealthy";
+    return "degraded";
+  };
+
+  if (!metrics && loading) {
+    return (
+      <BaseCard className="p-6">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-full"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          </div>
+        </div>
+      </BaseCard>
+    );
+  }
+
+  if (error && !metrics) {
+    return (
+      <BaseCard className="p-6 border-red-200 bg-red-50">
+        <div className="flex items-center space-x-2">
+          <StatusIndicator status="unhealthy" size="sm" />
+          <span className="text-red-800 font-medium">
+            Circuit Breaker Monitoring Error
+          </span>
+        </div>
+        <p className="text-red-600 text-sm mt-2">{error}</p>
+      </BaseCard>
+    );
+  }
+
+  const overallStatus = getOverallStatus();
+
   return (
-    <BaseCard className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <ShieldIcon />
-          <h2 className={cn("text-xl font-semibold", getTextColor("heading"))}>
-            Circuit Breaker Monitoring
-          </h2>
-          <StatusIndicator status="success" size="sm" />
-        </div>
+    <div className="space-y-6">
+      {/* Overview Card */}
+      <BaseCard className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <StatusIndicator status={overallStatus} size="lg" />
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Circuit Breaker Status
+              </h3>
+              <p className="text-sm text-gray-600">
+                Real-time monitoring of service circuit breakers
+              </p>
+            </div>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            className={cn(autoRefresh ? "bg-green-50 border-green-300" : "")}
-          >
-            <RefreshCwIcon
+          {refreshInterval && (
+            <button
+              onClick={() => setAutoRefresh(!autoRefresh)}
               className={cn(
-                "w-4 h-4 mr-2",
-                autoRefresh || refreshing ? "animate-spin" : "",
+                "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+                autoRefresh
+                  ? "bg-green-100 text-green-800 hover:bg-green-200"
+                  : "bg-gray-100 text-gray-800 hover:bg-gray-200",
               )}
-            />
-            {autoRefresh ? "Auto-refresh ON" : "Auto-refresh OFF"}
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleManualRefresh}
-            disabled={refreshing}
-          >
-            <RefreshCwIcon
-              className={cn("w-4 h-4 mr-2", refreshing ? "animate-spin" : "")}
-            />
-            Refresh Now
-          </Button>
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="text-center p-4 bg-gray-50 rounded-lg">
-          <div className={cn("text-2xl font-bold", getTextColor("heading"))}>
-            {metrics.summary.total}
-          </div>
-          <div className={cn("text-sm", getTextColor("muted"))}>
-            Total Circuit Breakers
-          </div>
-        </div>
-
-        <div className="text-center p-4 bg-green-50 rounded-lg">
-          <div className={cn("text-2xl font-bold text-green-600")}>
-            {metrics.summary.closed}
-          </div>
-          <div className={cn("text-sm", getTextColor("muted"))}>
-            Closed (Healthy)
-          </div>
-        </div>
-
-        <div className="text-center p-4 bg-red-50 rounded-lg">
-          <div className={cn("text-2xl font-bold text-red-600")}>
-            {metrics.summary.open}
-          </div>
-          <div className={cn("text-sm", getTextColor("muted"))}>
-            Open (Tripped)
-          </div>
-        </div>
-
-        <div className="text-center p-4 bg-yellow-50 rounded-lg">
-          <div className={cn("text-2xl font-bold text-yellow-600")}>
-            {metrics.summary.halfOpen}
-          </div>
-          <div className={cn("text-sm", getTextColor("muted"))}>
-            Half-Open (Testing)
-          </div>
-        </div>
-      </div>
-
-      {/* Circuit Breaker List */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className={cn("text-lg font-medium", getTextColor("heading"))}>
-            Circuit Breaker Status
-          </h3>
-
-          {metrics.summary.open > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={resetAllCircuitBreakers}
             >
-              Reset All Open
-            </Button>
+              {autoRefresh ? "Auto-refresh ON" : "Auto-refresh OFF"}
+            </button>
           )}
         </div>
 
-        {metrics.circuitBreakers.map((circuit) => (
-          <div
-            key={circuit.name}
-            className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center justify-between items-start">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  <h4 className={cn("font-medium", getTextColor("heading"))}>
-                    {circuit.name}
-                  </h4>
-                  <StatusIndicator
-                    status={getStateStatusType(circuit.state)}
-                    size="sm"
-                  />
-                  <span
-                    className={cn("text-sm px-2 py-1 rounded", {
-                      "bg-green-100 text-green-800": circuit.state === "CLOSED",
-                      "bg-red-100 text-red-800": circuit.state === "OPEN",
-                      "bg-yellow-100 text-yellow-800":
-                        circuit.state === "HALF_OPEN",
-                    })}
-                  >
-                    {circuit.state}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className={cn("font-medium", getTextColor("muted"))}>
-                      Success Rate:
-                    </span>
-                    <span className={cn("ml-2", getTextColor("body"))}>
-                      {(
-                        (circuit.successCount /
-                          (circuit.successCount + circuit.failureCount)) *
-                        100
-                      ).toFixed(1)}
-                      %
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className={cn("font-medium", getTextColor("muted"))}>
-                      Successes:
-                    </span>
-                    <span className={cn("ml-2", getIconColor("success"))}>
-                      {circuit.successCount}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className={cn("font-medium", getTextColor("muted"))}>
-                      Failures:
-                    </span>
-                    <span className={cn("ml-2", getIconColor("error"))}>
-                      {circuit.failureCount}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className={cn("font-medium", getTextColor("muted"))}>
-                      Failure Rate:
-                    </span>
-                    <span className={cn("ml-2", getTextColor("body"))}>
-                      {circuit.failureRate.toFixed(2)}%
-                    </span>
-                  </div>
-                </div>
-
-                {(circuit.lastFailureTime || circuit.lastSuccessTime) && (
-                  <div className="mt-3 text-xs text-gray-500">
-                    {circuit.lastFailureTime && (
-                      <span className="mr-4">
-                        Last Failure:{" "}
-                        {new Date(circuit.lastFailureTime).toLocaleString()}
-                      </span>
-                    )}
-                    {circuit.lastSuccessTime && (
-                      <span>
-                        Last Success:{" "}
-                        {new Date(circuit.lastSuccessTime).toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                )}
+        {/* Summary Metrics */}
+        {metrics && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <div className="text-2xl font-bold text-gray-900">
+                {metrics.totalCircuits}
               </div>
+              <div className="text-xs text-gray-600">Total Circuits</div>
+            </div>
 
-              <div className="ml-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => resetCircuitBreaker(circuit.name)}
-                  disabled={circuit.state === "CLOSED"}
-                  className="min-w-[80px]"
-                >
-                  Reset
-                </Button>
+            <div className="text-center p-3 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">
+                {metrics.healthyCircuits}
               </div>
+              <div className="text-xs text-green-600">Healthy</div>
+            </div>
+
+            <div className="text-center p-3 bg-red-50 rounded-lg">
+              <div className="text-2xl font-bold text-red-600">
+                {metrics.openCircuits.length}
+              </div>
+              <div className="text-xs text-red-600">Open</div>
+            </div>
+
+            <div className="text-center p-3 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">
+                {Math.round(metrics.healthScore)}%
+              </div>
+              <div className="text-xs text-blue-600">Health Score</div>
             </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      {/* Footer */}
-      {lastRefresh && (
-        <div
-          className={cn("mt-6 pt-4 border-t text-xs", getTextColor("muted"))}
-        >
-          Last updated: {lastRefresh.toLocaleString()}
-          {autoRefresh && " • Auto-refresh enabled (30s)"}
+        {/* Status Message */}
+        {metrics && (
+          <div
+            className={cn(
+              "p-3 rounded-lg text-sm",
+              overallStatus === "healthy" && "bg-green-50 text-green-800",
+              overallStatus === "degraded" && "bg-yellow-50 text-yellow-800",
+              overallStatus === "unhealthy" && "bg-red-50 text-red-800",
+            )}
+          >
+            {metrics.openCircuits.length === 0
+              ? "✅ All circuit breakers are operating normally"
+              : metrics.openCircuits.length === 1
+                ? `⚠️ 1 circuit breaker is currently open: ${metrics.openCircuits[0]}`
+                : `⚠️ ${metrics.openCircuits.length} circuit breakers are currently open: ${metrics.openCircuits.join(", ")}`}
+          </div>
+        )}
+      </BaseCard>
+
+      {/* Detailed Circuit Breakers */}
+      {showDetails && metrics && (
+        <BaseCard className="p-6">
+          <h4 className="text-md font-semibold text-gray-900 mb-4">
+            Individual Circuit Breakers
+          </h4>
+
+          <div className="space-y-3">
+            {Object.entries(metrics.circuitBreakers).map(([name, data]) => (
+              <div
+                key={name}
+                className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <StatusIndicator
+                    status={getStatusType(data.state)}
+                    size="sm"
+                  />
+                  <div>
+                    <div className="font-medium text-gray-900">{name}</div>
+                    <div className="text-xs text-gray-600">
+                      State: {data.state} • Success Rate: {data.successRate}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">
+                    {data.totalCalls.toLocaleString()} calls
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    {data.totalSuccesses} success, {data.totalFailures} failures
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </BaseCard>
+      )}
+
+      {/* Last Updated */}
+      {metrics && (
+        <div className="text-center text-xs text-gray-500">
+          Last updated: {new Date(metrics.timestamp).toLocaleString()}
+          {loading && " • Updating..."}
         </div>
       )}
-    </BaseCard>
+    </div>
   );
-};
+}
