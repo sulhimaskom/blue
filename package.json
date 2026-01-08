@@ -24,6 +24,7 @@
     "test:api": "jest --config=jest.api-integration.config.js",
     "test:api:coverage": "jest --config=jest.api-integration.config.js --coverage",
     "test:all": "npm run test && npm run test:api",
+    "test:performance": "node scripts/test-performance-monitor.js",
     "optimize-db": "node scripts/optimize-database.js",
     "infrastructure:check": "node scripts/infrastructure-health-check.js",
     "infrastructure:recover": "node scripts/infrastructure-recovery.js",
