@@ -6,6 +6,7 @@ import {
   timestamp,
   jsonb,
   serial,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -56,6 +57,40 @@ export const transactions = pgTable("transactions", {
   deletedAt: timestamp("deleted_at"),
 });
 
+export const webhookConfigurations = pgTable("webhook_configurations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  name: text("name").notNull(),
+  url: text("url").notNull(),
+  secret: text("secret").notNull(),
+  eventTypes: jsonb("event_types").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  retryCount: integer("retry_count").default(3).notNull(),
+  timeoutSeconds: integer("timeout_seconds").default(30).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
+});
+
+export const webhookEvents = pgTable("webhook_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  webhookConfigurationId: uuid("webhook_configuration_id")
+    .references(() => webhookConfigurations.id, { onDelete: "cascade" })
+    .notNull(),
+  eventType: text("event_type").notNull(),
+  payload: jsonb("payload").notNull(),
+  status: text("status").notNull(), // pending, success, failed, retrying
+  responseStatus: integer("response_status"),
+  responseBody: text("response_body"),
+  errorMessage: text("error_message"),
+  attemptCount: integer("attempt_count").default(0).notNull(),
+  nextRetryAt: timestamp("next_retry_at"),
+  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Project = typeof projects.$inferSelect;
@@ -64,3 +99,7 @@ export type Blueprint = typeof blueprints.$inferSelect;
 export type NewBlueprint = typeof blueprints.$inferInsert;
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
+export type WebhookConfiguration = typeof webhookConfigurations.$inferSelect;
+export type NewWebhookConfiguration = typeof webhookConfigurations.$inferInsert;
+export type WebhookEvent = typeof webhookEvents.$inferSelect;
+export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
