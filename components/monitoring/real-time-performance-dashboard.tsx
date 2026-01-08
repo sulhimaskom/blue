@@ -4,10 +4,123 @@ import { AdvancedCacheStrategiesService } from "@/lib/services/performance/advan
 import { DatabaseQueryOptimizationService } from "@/lib/services/performance/database-query-optimization-service";
 
 /**
- * Performance monitoring dashboard component
+ * Interface for comprehensive performance metrics data structure
+ * Contains all performance indicators across memory, cache, and database systems
+ */
+interface PerformanceMetrics {
+  /** Memory performance indicators with usage, pressure, and health status */
+  memory: {
+    /** Current memory usage percentage (0-100) */
+    usage: number;
+    /** Memory pressure indicator (0-1, higher indicates more pressure) */
+    pressure: number;
+    /** Overall memory health status classification */
+    status: "healthy" | "warning" | "critical";
+  };
+  /** Cache performance metrics with hit rates and efficiency scores */
+  cache: {
+    /** Cache hit success rate percentage (0-100) */
+    hitRate: number;
+    /** Cache efficiency score (0-100, higher is better) */
+    efficiency: number;
+    /** Overall cache performance score (0-100) */
+    performanceScore: number;
+  };
+  /** Database performance indicators for connection and query metrics */
+  database: {
+    /** Average query execution time in milliseconds */
+    queryTime: number;
+    /** Connection pool utilization percentage (0-100) */
+    connectionUtilization: number;
+    /** Count of slow performing queries */
+    slowQueries: number;
+  };
+  /** Array of performance optimization recommendations from all services */
+  recommendations: string[];
+}
+
+/**
+ * Interface for comprehensive performance metrics data structure
+ * Contains all performance indicators across memory, cache, and database systems
+ */
+interface PerformanceMetrics {
+  /** Memory performance indicators with usage, pressure, and health status */
+  memory: {
+    /** Current memory usage percentage (0-100) */
+    usage: number;
+    /** Memory pressure indicator (0-1, higher indicates more pressure) */
+    pressure: number;
+    /** Overall memory health status classification */
+    status: "healthy" | "warning" | "critical";
+  };
+  /** Cache performance metrics with hit rates and efficiency scores */
+  cache: {
+    /** Cache hit success rate percentage (0-100) */
+    hitRate: number;
+    /** Cache efficiency score (0-100, higher is better) */
+    efficiency: number;
+    /** Overall cache performance score (0-100) */
+    performanceScore: number;
+  };
+  /** Database performance indicators for connection and query metrics */
+  database: {
+    /** Average query execution time in milliseconds */
+    queryTime: number;
+    /** Connection pool utilization percentage (0-100) */
+    connectionUtilization: number;
+    /** Count of slow performing queries */
+    slowQueries: number;
+  };
+  /** Array of performance optimization recommendations from all services */
+  recommendations: string[];
+}
+
+/**
+ * RealTimePerformanceDashboard Component
+ *
+ * Advanced real-time performance monitoring dashboard that provides comprehensive
+ * system health visualization with AI-powered optimization capabilities.
+ *
+ * Features:
+ * - Real-time metrics collection from multiple service endpoints
+ * - Interactive optimization controls for memory, cache, and database systems
+ * - Visual performance indicators with color-coded status alerts
+ * - Automated recommendations based on AI analysis
+ * - Overall performance score calculation with weighted metrics
+ *
+ * Architecture:
+ * - Service Layer Integration: Consumes performance data from 3 specialized services
+ * - State Management: Local React state with auto-refresh capabilities
+ * - Error Resilience: Graceful fallback handling for service failures
+ * - Performance Optimization: 30-second refresh intervals with manual controls
+ *
+ * Service Integrations:
+ * - AIMemoryOptimizationService: Memory health analysis and optimization
+ * - AdvancedCacheStrategiesService: Cache performance analytics
+ * - DatabaseQueryOptimizationService: Database metrics and connection optimization
+ *
+ * Performance Characteristics:
+ * - Auto-refresh interval: 30 seconds (configurable via state)
+ * - Real-time updates with visual loading states
+ * - Optimistic optimization with page refresh on completion
+ * - Composite scoring algorithm with weighted metric calculations
+ *
+ * @example
+ * ```typescript
+ * import { RealTimePerformanceDashboard } from '@/components/monitoring/real-time-performance-dashboard';
+ *
+ * // In your component
+ * function PerformanceMonitoring() {
+ *   return <RealTimePerformanceDashboard />;
+ * }
+ * ```
+ *
+ * @since 1.0.0
+ * @version 1.1.0
+ * @author Worldclass Software Architect
  */
 export function RealTimePerformanceDashboard() {
-  const [metrics, setMetrics] = useState({
+  const [metrics, setMetrics] = useState<PerformanceMetrics>({
     memory: {
       usage: 0,
       pressure: 0,
@@ -15,14 +128,33 @@ export function RealTimePerformanceDashboard() {
     },
     cache: { hitRate: 0, efficiency: 0, performanceScore: 0 },
     database: { queryTime: 0, connectionUtilization: 0, slowQueries: 0 },
-    recommendations: [] as string[],
+    recommendations: [],
   });
 
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
+  /**
+   * Effect hook for managing real-time metrics fetching and auto-refresh behavior
+   *
+   * This effect handles:
+   * - Initial metrics loading on component mount
+   * - Parallel fetching from all performance services
+   * - Automatic refresh at 30-second intervals when enabled
+   * - Graceful error handling and loading state management
+   * - Data aggregation and normalization from multiple sources
+   */
   useEffect(() => {
+    /**
+     * Fetches performance metrics from all service endpoints in parallel
+     * Aggregates and normalizes data into a unified metrics structure
+     *
+     * Service Endpoints:
+     * - AIMemoryOptimizationService: Memory health and pressure metrics
+     * - AdvancedCacheStrategiesService: Cache hit rates and efficiency scores
+     * - DatabaseQueryOptimizationService: Query times and connection utilization
+     */
     const fetchMetrics = async () => {
       try {
         setLoading(true);
@@ -107,6 +239,18 @@ export function RealTimePerformanceDashboard() {
     }
   }, [autoRefresh]);
 
+  /**
+   * Handles optimization requests for different performance services
+   * Calls the appropriate optimization service and refreshes the page
+   *
+   * @param service - The service to optimize ("memory", "cache", or "database")
+   *
+   * @example
+   * ```typescript
+   * // Optimize memory performance
+   * await handleOptimize("memory");
+   * ```
+   */
   const handleOptimize = async (service: "memory" | "cache" | "database") => {
     try {
       switch (service) {
@@ -127,6 +271,32 @@ export function RealTimePerformanceDashboard() {
     }
   };
 
+  /**
+   * Determines the appropriate color class for progress bars based on value thresholds
+   *
+   * @param value - Current metric value (percentage or similar)
+   * @param thresholds - Warning and critical threshold values
+   * @returns Tailwind CSS color class for the progress bar
+   *
+   * @example
+   * ```typescript
+   * const color = getProgressBarColor(75, { warning: 60, critical: 80 });
+   * // Returns "bg-yellow-500" for warning state
+   * ```
+   */
+  /**
+   * Determines the appropriate color class for progress bars based on value thresholds
+   *
+   * @param value - Current metric value (percentage or similar)
+   * @param thresholds - Warning and critical threshold values
+   * @returns Tailwind CSS color class for the progress bar
+   *
+   * @example
+   * ```typescript
+   * const color = getProgressBarColor(75, { warning: 60, critical: 80 });
+   * // Returns "bg-yellow-500" for warning state
+   * ```
+   */
   const getProgressBarColor = (
     value: number,
     thresholds: { warning: number; critical: number },
@@ -136,6 +306,18 @@ export function RealTimePerformanceDashboard() {
     return "bg-green-500";
   };
 
+  /**
+   * Maps system status to appropriate text color classes
+   *
+   * @param status - Current system health status
+   * @returns Tailwind CSS text color class for the status
+   *
+   * @example
+   * ```typescript
+   * const color = getStatusColor("warning");
+   * // Returns "text-yellow-600"
+   * ```
+   */
   const getStatusColor = (status: string) => {
     switch (status) {
       case "healthy":
@@ -356,6 +538,25 @@ export function RealTimePerformanceDashboard() {
       )}
 
       {/* Performance Score Summary */}
+      {/**
+       * Overall Performance Score Calculation
+       *
+       * Weighted scoring algorithm combining all performance metrics:
+       *
+       * Memory Efficiency (30% weight):
+       * - Formula: 100 - (pressure * 50) for pressure <= 0.5, otherwise 50
+       * - Higher pressure reduces score proportionally
+       *
+       * Cache Performance (40% weight):
+       * - Direct use of performanceScore from cache service
+       * - Higher scores indicate better cache efficiency
+       *
+       * Database Efficiency (30% weight):
+       * - Formula: 100 - (queryTime / 10) for queryTime <= 200ms, otherwise 80
+       * - Faster query times result in higher scores
+       *
+       * Scoring Range: 0-100, with higher values indicating better overall performance
+       */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Overall Performance Score
