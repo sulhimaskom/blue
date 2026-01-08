@@ -74,10 +74,11 @@ Agents are **Information Architects & Solutions Engineers** focused on building 
 
 When agents complete analysis:
 
-1. **Run Quality Gates**: Execute `npm run build`, `npm run lint`, `npm audit`
-2. **Document Findings**: Create/update `docs/evaluasi.md` with evidence
-3. **Update Roadmap**: Add specific tasks to `docs/architecture/roadmap.md`
-4. **Track Progress**: Update task statuses in `docs/task.md`
+1. **Run Quality Gates**: Execute `npm audit && npm run build && npm run lint && npm run typecheck && npm test --silent`
+2. **Performance Validation**: Run `npm run test:performance` to verify CI/CD efficiency
+3. **Document Findings**: Create/update `docs/evaluasi.md` with evidence
+4. **Update Roadmap**: Add specific tasks to `docs/architecture/roadmap.md`
+5. **Track Progress**: Update task statuses in `docs/task.md`
 
 ### 🔄 **Collaboration Guidelines**
 
