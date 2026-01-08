@@ -1,6 +1,6 @@
+/* eslint-disable no-unused-vars */
 import { useState, useCallback } from "react";
 
-/* eslint-disable no-unused-vars */
 export interface UseMonitoringDashboardState {
   expandedService: string | null;
   error: string | null;
@@ -11,7 +11,6 @@ export interface UseMonitoringDashboardActions {
   clearError: () => void;
   setError: (errorMessage: string) => void;
 }
-/* eslint-enable no-unused-vars */
 
 export function useMonitoringDashboardState(): UseMonitoringDashboardState &
   UseMonitoringDashboardActions {

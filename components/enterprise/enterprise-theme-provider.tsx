@@ -1,12 +1,13 @@
 /**
  * Enterprise Theme Provider Component
  *
- * Provides enterprise white-label theming support for the entire application
+ * Provides enterprise white-label theming support for entire application
  * Handles theme initialization, customer-specific theming, and CSS variable injection
  *
  * @component EnterpriseThemeProvider
  */
 
+/* eslint-disable no-unused-vars */
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
@@ -18,7 +19,7 @@ import { enterpriseThemeService } from "@/lib/services/enterprise-theme-service"
 
 interface EnterpriseThemeContextType {
   activeTheme: EnterpriseThemeConfig | null;
-  setTheme: (customerId: string) => boolean; // eslint-disable-line no-unused-vars
+  setTheme: (customerId: string) => boolean;
   resetTheme: () => void;
   isEnterpriseMode: boolean;
 }

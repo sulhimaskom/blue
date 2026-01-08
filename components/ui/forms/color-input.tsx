@@ -1,10 +1,11 @@
 import React from "react";
 import { cn, getTextColor } from "@/lib/constants/ui-themes";
 
+/* eslint-disable no-unused-vars */
 export interface ColorInputProps {
   label?: string;
   value?: string;
-  onChange?: (value: string) => void; // eslint-disable-line no-unused-vars
+  onChange?: (value: string) => void;
   placeholder?: string;
   helperText?: string;
   error?: string;
