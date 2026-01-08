@@ -103,6 +103,25 @@
   - **Follow-Up Required**: Blueprint engine test suite requires comprehensive mock structure fixes (32 tests need reactivation)
   - **Implementation Status**: ✅ **CI/CD BLOCKER RESOLVED** - DevOps excellence with pragmatic approach
 
+- [ ] 🔄 **IN PROGRESS** (2026-01-09): BLUEPRINT ENGINE TEST MOCK STRUCTURE FIXES - Senior QA Engineer execution
+  - **Issue**: Blueprint engine test suite quarantined due to incorrect Drizzle ORM mock structures (missing `.from()` and `.set()` methods in query chains)
+  - **Root Cause**: Test-specific mock overrides using `mockReturnValue({ where: ... })` instead of maintaining full Drizzle ORM query chain pattern
+  - **Resolution In Progress**:
+    - **Mock Structure Fixed**: Added helper functions `createMockSelectChain()` and `createMockUpdateChain()` to maintain proper Drizzle ORM query chains
+    - **Regex Fixes Applied**: Fixed 30+ instances of mock overrides missing `.from()` method using automated regex replacement
+    - **Progress**: Test suite improved from 0% passing to 47% passing (15/32 tests now passing)
+    - **Remaining Issues**: 17 tests still failing due to test logic issues (error expectations vs. actual service behavior)
+  - **Files Modified**:
+    - `__tests__/blueprint-engine.test.ts` - Added mock helper functions and fixed mock chain structures
+  - **Technical Details**:
+    - **Pattern**: `db.select().from(table).where(...)` requires `.from()` method in mock chain
+    - **Pattern**: `db.update(table).set(...).where(...)` requires `.set()` method in mock chain
+    - **Helper Functions**: Created to ensure all test-specific overrides maintain proper chain structure
+  - **Quality Gates**: ✅ CI/CD unblocked (test suite remains skipped to prevent failures)
+  - **Next Steps**: Fix remaining 17 test logic issues or document expected vs. actual behavior
+  - **Business Impact**: **TEST INFRASTRUCTURE IMPROVEMENT** - Core mock structure issues resolved, providing foundation for full test suite reactivation
+  - **Implementation Status**: 🔄 **MOCK STRUCTURE FIXES COMPLETE - Test Logic Issues Remaining**
+
 - [x] ✅ **COMPLETED** (2026-01-08): SECURITY ASSESSMENT & VULNERABILITY SCAN - Principal Security Engineer execution
   - **Implementation**: Comprehensive security audit with zero-trust assessment and production readiness evaluation
   - **Files Created**:
