@@ -29,6 +29,7 @@ interface WebhookQueueMonitorProps {
   enableAutoRefresh?: boolean;
   refreshInterval?: number;
   className?: string;
+  // eslint-disable-next-line no-unused-vars
   onEventsUpdate?: (stats: WebhookQueueStats) => void;
 }
 
