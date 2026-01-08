@@ -1,4 +1,4 @@
-import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
+import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 import { AIPatternDetector } from "@/lib/services/ai-pattern-detector";
 import { automatedCacheWarmingService } from "@/lib/services/automated-cache-warming";
 import { RuntimeServiceInitializer } from "@/lib/services/runtime-service-initializer";

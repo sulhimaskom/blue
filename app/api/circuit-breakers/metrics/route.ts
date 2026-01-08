@@ -7,7 +7,7 @@ import {
   withRateLimiter,
 } from "@/lib/api-utils";
 import { metricsCalculator } from "@/lib/services/metrics-calculator-service";
-import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
+import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 
 /**
  * GET /api/circuit-breakers/metrics

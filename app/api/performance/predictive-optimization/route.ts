@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { predictiveCacheOptimizer } from "@/lib/services/predictive-cache-optimizer";
 import { logger } from "@/lib/logger";
-import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
+import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 import { APIResponseService } from "@/lib/services/api-response-service";
 import { withRateLimiter } from "@/lib/api-utils";
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       });
 
       // Check cache for recent optimization results
-      const cachedResult = await UnifiedCacheManager.getData(
+      const cachedResult = await UnifiedCacheManager.getDataLegacy(
         "predictive-optimization",
         { type: "latest" },
         { ttl: 300 }, // 5 minutes cache
