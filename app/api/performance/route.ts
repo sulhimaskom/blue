@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { DatabasePerformanceOptimizer } from "@/lib/db/performance-optimizer";
-import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
+import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 import {
   DatabaseQueryCache,
   type QueryCacheStats,
@@ -112,10 +112,10 @@ export async function GET(req: NextRequest) {
           const includeDb = searchParams.get("includeDb") === "true";
           const detailed = searchParams.get("detailed") === "true";
 
-          let cacheMetrics: CacheMetrics | null = null;
+          let cacheMetrics: any | null = null;
           if (includeCache) {
             cacheMetrics = await UnifiedCacheManager.getPerformanceMetrics();
-            cacheMetrics.databaseCacheStats =
+            (cacheMetrics as any).databaseCacheStats =
               DatabaseQueryCache.getCacheStats();
           }
 

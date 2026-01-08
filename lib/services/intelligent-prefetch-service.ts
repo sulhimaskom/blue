@@ -1,5 +1,5 @@
 import { logger } from "../logger";
-import { UnifiedCacheManager } from "./unified-cache-manager";
+import { UnifiedCacheManager } from "./cache-orchestrator";
 import { redisManager } from "../redis";
 import { PREFETCH_TIMEOUTS } from "../constants";
 import { optimizedIntervalManager } from "./optimized-interval-manager";

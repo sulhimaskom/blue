@@ -524,6 +524,51 @@ export class UnifiedCacheManager {
       });
     }
   }
+
+  /**
+   * Backward-compatible cacheData method - delegates to setData
+   * Maintains compatibility with consumers using legacy API
+   */
+  static async cacheData(
+    prefix: string,
+    inputData: any,
+    responseData: any,
+    options: UnifiedCacheOptions = {},
+  ): Promise<void> {
+    const key =
+      options.key || CacheKeyGeneratorService.generateKey(prefix, inputData);
+
+    await this.setData(key, responseData, {
+      ...options,
+      tags: options.tags || [],
+    });
+  }
+
+  /**
+   * Backward-compatible cacheResponse method - delegates to setCachedResponse
+   * Maintains compatibility with consumers using legacy API
+   */
+  static async cacheResponse(
+    request: NextRequest,
+    response: NextResponse,
+    options: UnifiedCacheOptions = {},
+  ): Promise<void> {
+    await this.setCachedResponse(request, response, options);
+  }
+
+  /**
+   * Backward-compatible getDataLegacy method - delegates to modern getData
+   * Maintains compatibility with consumers using legacy 3-argument API
+   */
+  static async getDataLegacy(
+    prefix: string,
+    inputData: any,
+    options: UnifiedCacheOptions = {},
+  ): Promise<any | null> {
+    const key =
+      options.key || CacheKeyGeneratorService.generateKey(prefix, inputData);
+    return this.getData(key, options);
+  }
 }
 
 /**

@@ -1,5 +1,5 @@
 import { logger } from "../logger";
-import { UnifiedCacheManager } from "./unified-cache-manager";
+import { UnifiedCacheManager } from "./cache-orchestrator";
 import { redisManager } from "../redis";
 import crypto from "crypto";
 
@@ -154,7 +154,7 @@ export class DatabaseQueryCache {
 
     try {
       // Try to get from cache first
-      const cached = await UnifiedCacheManager.getData(
+      const cached = await UnifiedCacheManager.getDataLegacy(
         "database-query",
         { queryType, parameters },
         { key: cacheKey, ttl },
@@ -269,7 +269,7 @@ export class DatabaseQueryCache {
     draftBlueprints: number;
     lastActivity: string | null;
   } | null> {
-    return await UnifiedCacheManager.getData("database-query", {
+    return await UnifiedCacheManager.getDataLegacy("database-query", {
       queryType: "user-blueprints",
       userId,
     });
@@ -315,7 +315,7 @@ export class DatabaseQueryCache {
   static async getCachedCompletedBlueprint(
     blueprintId: string,
   ): Promise<any | null> {
-    return await UnifiedCacheManager.getData("database-query", {
+    return await UnifiedCacheManager.getDataLegacy("database-query", {
       queryType: "blueprint-complete",
       blueprintId,
     });
@@ -372,7 +372,7 @@ export class DatabaseQueryCache {
       email: string;
     };
   } | null> {
-    return await UnifiedCacheManager.getData("database-query", {
+    return await UnifiedCacheManager.getDataLegacy("database-query", {
       queryType: "project-stats",
       projectId,
     });

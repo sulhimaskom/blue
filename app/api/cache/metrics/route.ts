@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { UnifiedCacheManager } from "@/lib/services/unified-cache-manager";
+import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 import { redisManager } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { metricsCalculator } from "@/lib/services/metrics-calculator-service";
