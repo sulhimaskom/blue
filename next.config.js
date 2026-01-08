@@ -33,14 +33,53 @@ const nextConfig = {
       exprContextCritical: false,
     };
 
+    // Externalize Node.js built-ins to reduce bundle size and improve build time
+    if (!isServer) {
+      config.externals = {
+        ...config.externals,
+        crypto: "crypto-browserify",
+        stream: "stream-browserify",
+        buffer: "buffer",
+        util: "util",
+        assert: "assert",
+        os: "os-browserify/browser",
+        path: "path-browserify",
+        fs: "empty",
+      };
+
+      // Optimize crypto polyfill for browser
+      config.resolve = {
+        ...config.resolve,
+        fallback: {
+          ...config.resolve.fallback,
+          crypto: "crypto-browserify",
+          stream: "stream-browserify",
+          buffer: "buffer",
+          util: "util",
+          assert: "assert",
+          os: "os-browserify/browser",
+          path: "path-browserify",
+          fs: "empty",
+        },
+      };
+    }
+
     // Development build optimizations
     if (dev) {
-      // Enable faster rebuilds in development
+      // Enable faster rebuilds in development with optimized watch settings
       config.watchOptions = {
         ...config.watchOptions,
         ignored: /node_modules/,
-        aggregateTimeout: 200, // Reduced delay for faster rebuilds
-        poll: 800, // Check for changes more frequently
+        aggregateTimeout: 100, // Further reduced for faster rebuilds
+        poll: 600, // Balanced polling frequency
+      };
+
+      // Optimize development builds
+      config.optimization = {
+        ...config.optimization,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        splitChunks: false, // Disable chunk splitting for faster dev builds
       };
     }
 
@@ -50,11 +89,13 @@ const nextConfig = {
         ...config.optimization,
         usedExports: true,
         sideEffects: false,
+        moduleIds: "deterministic",
         // Improve chunk splitting for better caching
         splitChunks: {
           chunks: "all",
-          maxSize: 160000, // Optimized for better CDN caching (160kB chunks)
-          minSize: 25000, // Minimum 25 kB to avoid too many tiny chunks
+          maxSize: 140000, // Further optimized for better CDN caching (140kB chunks)
+          minSize: 20000, // Minimum 20 kB to avoid too many tiny chunks
+          minChunks: 1,
           cacheGroups: {
             default: {
               minChunks: 2,
@@ -95,6 +136,12 @@ const nextConfig = {
               test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
               name: "react",
               priority: 40,
+              reuseExistingChunk: true,
+            },
+            ui: {
+              test: /[\\/]components[\\/]ui[\\/]/,
+              name: "ui",
+              priority: 45,
               reuseExistingChunk: true,
             },
             common: {
