@@ -4,7 +4,7 @@ import { cn, getTextColor } from "@/lib/constants/ui-themes";
 export interface ColorInputProps {
   label?: string;
   value?: string;
-  onChange?: (value: string) => void;
+  onChange?: (value: string) => void; // eslint-disable-line no-unused-vars
   placeholder?: string;
   helperText?: string;
   error?: string;
@@ -18,7 +18,7 @@ export interface ColorInputProps {
  */
 export function ColorInput({
   label,
-  value = "#000000", // eslint-disable-line no-unused-vars
+  value,
   onChange,
   placeholder = "#000000",
   helperText,
@@ -27,6 +27,7 @@ export function ColorInput({
   className,
   ...props
 }: ColorInputProps) {
+  const colorValue = value || "#000000";
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     // Basic validation for hex colors
@@ -52,13 +53,13 @@ export function ColorInput({
             "w-8 h-8 rounded border-2 border-gray-300 flex-shrink-0",
             disabled && "opacity-50 cursor-not-allowed",
           )}
-          style={{ backgroundColor: value }}
+          style={{ backgroundColor: colorValue }}
         />
 
         {/* Hex input */}
         <input
           type="text"
-          value={value}
+          value={colorValue}
           onChange={handleInputChange}
           placeholder={placeholder}
           disabled={disabled}
@@ -79,7 +80,7 @@ export function ColorInput({
         {/* Native color picker */}
         <input
           type="color"
-          value={value}
+          value={colorValue}
           onChange={(e) => onChange?.(e.target.value)}
           disabled={disabled}
           className={cn(
