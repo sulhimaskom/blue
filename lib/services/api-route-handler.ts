@@ -6,6 +6,8 @@ import {
   formatErrorResponse,
   ValidationError,
   DatabaseError,
+  NotFoundError,
+  RateLimitError,
 } from "@/lib/api-utils";
 import { logger, createRequestContext } from "@/lib/logger";
 import { UserService } from "@/lib/services/user-service";
@@ -97,9 +99,9 @@ class APIRouteHandler {
               clientIp: _clientIp,
               resetTime: rateLimitCheck.resetTime,
             });
-            throw new ValidationError(
+            throw new RateLimitError(
               `Rate limit exceeded. Try again in ${Math.ceil((rateLimitCheck.resetTime! - Timing.now()) / 1000)} seconds.`,
-              429,
+              rateLimitCheck.resetTime,
             );
           }
         }
@@ -189,7 +191,8 @@ class APIRouteHandler {
 
         if (
           error instanceof ValidationError ||
-          error instanceof DatabaseError
+          error instanceof DatabaseError ||
+          error instanceof RateLimitError
         ) {
           return formatErrorResponse(error);
         }
@@ -269,7 +272,7 @@ class APIRouteHandler {
           authenticatedUser?.clerkId,
         );
 
-        if (error instanceof DatabaseError) {
+        if (error instanceof DatabaseError || error instanceof NotFoundError) {
           return formatErrorResponse(error);
         }
 
@@ -377,7 +380,10 @@ class APIRouteHandler {
                 authenticatedUser?.clerkId,
               );
 
-              if (error instanceof DatabaseError) {
+              if (
+                error instanceof DatabaseError ||
+                error instanceof NotFoundError
+              ) {
                 throw error;
               }
 

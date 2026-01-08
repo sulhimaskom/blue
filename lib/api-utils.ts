@@ -213,6 +213,19 @@ export class NotFoundError extends Error {
   constructor(message: string = "Resource not found") {
     super(message);
     this.name = "NotFoundError";
+    Object.setPrototypeOf(this, NotFoundError.prototype);
+  }
+}
+
+export class RateLimitError extends Error {
+  constructor(
+    message: string = "Rate limit exceeded",
+    // eslint-disable-next-line no-unused-vars
+    public resetTime?: number,
+  ) {
+    super(message);
+    this.name = "RateLimitError";
+    Object.setPrototypeOf(this, RateLimitError.prototype);
   }
 }
 
@@ -225,9 +238,13 @@ export function formatErrorResponse(error: Error): NextResponse {
         ? 401
         : error instanceof AuthorizationError
           ? 403
-          : error instanceof DatabaseError
-            ? 500
-            : 500;
+          : error instanceof NotFoundError
+            ? 404
+            : error instanceof RateLimitError
+              ? 429
+              : error instanceof DatabaseError
+                ? 500
+                : 500;
 
   const message =
     process.env.NODE_ENV === "production"
@@ -236,7 +253,7 @@ export function formatErrorResponse(error: Error): NextResponse {
         : error.message
       : error.message;
 
-  return createCorsResponse(
+  const response = createCorsResponse(
     {
       success: false,
       error: message,
@@ -244,6 +261,13 @@ export function formatErrorResponse(error: Error): NextResponse {
     },
     status,
   );
+
+  if (error instanceof RateLimitError && error.resetTime) {
+    const retryAfterSeconds = Math.ceil((error.resetTime - Date.now()) / 1000);
+    response.headers.set("Retry-After", String(retryAfterSeconds));
+  }
+
+  return response;
 }
 
 // Success response formatter

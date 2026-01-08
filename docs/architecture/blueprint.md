@@ -152,6 +152,68 @@ CREATE TABLE transactions (
 
 ---
 
+### 4.4 API Error Handling Pattern (ENHANCED - January 2026)
+
+**Comprehensive Error Handling Architecture**:
+
+- **Standardized Error Classes**: Six dedicated error types with correct HTTP status code mapping
+  - ValidationError (400) - Input validation failures
+  - AuthenticationError (401) - Missing or invalid credentials
+  - AuthorizationError (403) - Insufficient permissions
+  - NotFoundError (404) - Resource not found
+  - RateLimitError (429) - Rate limit exceeded with resetTime property
+  - DatabaseError (500) - Database operation failures
+
+- **Unified Response Format**: Consistent error response structure across all endpoints
+
+  ```json
+  {
+    "success": false,
+    "error": "Human-readable error message"
+  }
+  ```
+
+- **Standard HTTP Headers**: Automatic addition of security and rate limit headers
+  - CORS headers (Access-Control-Allow-Origin, etc.)
+  - Security headers (X-Content-Type-Options, X-Frame-Options, etc.)
+  - Retry-After header for rate limit errors (RFC 6585 compliance)
+
+- **APIRouteHandler Integration**: Centralized error handling with automatic logging and metrics
+  - createPOSTHandler: Validates input, auth, rate limits, handles errors
+  - createGETHandler: Auth, error handling, performance tracking
+  - createCachedGETHandler: Caching, compression, error handling
+  - All methods automatically format errors with proper status codes
+
+**Key Features**:
+
+- Type-safe error handling with TypeScript strict mode
+- Automatic error logging with request context
+- Performance metrics tracking (response time, error rates)
+- Zero breaking changes - backward compatible with existing routes
+- Development mode includes stack traces for debugging
+
+**Usage Example**:
+
+```typescript
+import { APIRouteHandler } from "@/lib/services/api-route-handler";
+import { NotFoundError, ValidationError } from "@/lib/api-utils";
+
+export const GET = APIRouteHandler.createGETHandler({
+  requireAuth: true,
+  handler: async ({ context, user }) => {
+    const data = await SomeService.getData(user.id);
+    if (!data) {
+      throw new NotFoundError("Resource not found");
+    }
+    return data;
+  },
+});
+```
+
+**Documentation**: `docs/api-error-handling-refactor.md` - Complete implementation details
+
+---
+
 ## 5. Security Protocols
 
 1.  **AI Cost Control**:
