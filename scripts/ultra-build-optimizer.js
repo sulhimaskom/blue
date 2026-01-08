@@ -10,6 +10,8 @@
 const { execSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const glob = require("glob");
+const { globSync } = require("glob");
 
 console.log("🚀 Ultra-Fast Build Optimizer v3.0\n");
 
@@ -41,12 +43,26 @@ console.log(`   • Memory Limit: ${config.memory}`);
 console.log(`   • Strategy: ${config.strategy}`);
 console.log(`   • Optimizations: ${config.optimizations.join(", ")}\n`);
 
-// Aggressive cache management
+// Smart cache management - preserve for better performance
 const nextDir = path.join(process.cwd(), ".next");
+const cacheDir = path.join(nextDir, "cache");
+
 if (fs.existsSync(nextDir)) {
   try {
-    console.log("🧹 Complete cache cleanup for maximum performance...");
-    fs.rmSync(nextDir, { recursive: true, force: true });
+    console.log("🧹 Smart cache cleanup - preserving build cache...");
+    // Remove only build artifacts, not cache
+    const traceFiles = glob.sync(".next/**/*.trace");
+    const manifestFiles = glob.sync(".next/**/manifest-*.json");
+
+    [...traceFiles, ...manifestFiles].forEach((file) => {
+      try {
+        if (fs.existsSync(file)) {
+          fs.unlinkSync(file);
+        }
+      } catch (e) {
+        // Ignore file removal errors
+      }
+    });
   } catch (error) {
     // Continue anyway
   }
