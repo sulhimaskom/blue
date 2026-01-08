@@ -1,7 +1,7 @@
 # Agent Engagement Guidelines
 
-**Version**: 1.2  
-**Last Updated**: January 8, 2026  
+**Version**: 1.3  
+**Last Updated**: January 11, 2026  
 **Purpose**: Establish clear rules of engagement for all AI agents working on this codebase
 
 ---
@@ -75,8 +75,8 @@ Agents are **Information Architects & Solutions Engineers** focused on building 
 When agents complete analysis:
 
 1. **Run Quality Gates**: Execute `npm audit && npm run build && npm run lint && npm run typecheck && npm test --silent`
-2. **Performance Validation**: Run `npm run test:performance` to verify CI/CD efficiency
-3. **Document Findings**: Create/update `docs/evaluasi.md` with evidence
+2. **Performance Validation**: Run `npm run test:performance` to verify CI/CD efficiency (target: 3.3s execution time)
+3. **Document Findings**: Create/update `docs/evaluasi.md` with evidence and current commit hash
 4. **Update Roadmap**: Add specific tasks to `docs/architecture/roadmap.md`
 5. **Track Progress**: Update task statuses in `docs/task.md`
 
