@@ -3,7 +3,7 @@ import { logger } from "../logger";
 import { monitoringService } from "../monitoring";
 import { errorMonitoring } from "./error-monitoring-service";
 import { circuitBreakerRegistry, SERVICE_CONFIGS } from "../circuit-breaker";
-import { UnifiedCacheManager } from "./unified-cache-manager";
+import { UnifiedCacheManager } from "./cache-orchestrator";
 import { AIPatternDetector } from "./ai-pattern-detector";
 import { IdGenerators } from "../utils/id-generator";
 import { Timing } from "../utils/time-measurement";
@@ -100,19 +100,9 @@ export class AIService {
       );
 
       // Check unified cache with enhanced hit rates
-      const cacheData = {
-        prompt: request.prompt,
-        model: request.model?.id || this.models.reasoning.id,
-        temperature: request.temperature || 0.7,
-        maxTokens: request.maxTokens || this.models.reasoning.maxTokens,
-        context: request.context,
-      };
-
       const cachedResponse = await UnifiedCacheManager.getData(
-        "iflow-completion",
-        cacheData,
+        optimizedCacheKey,
         {
-          key: optimizedCacheKey,
           tags: detectedPattern.pattern
             ? [detectedPattern.pattern, "ai"]
             : ["ai"],
@@ -239,18 +229,13 @@ export class AIService {
         );
 
         // Cache with request deduplication to prevent redundant cache operations
-        await UnifiedCacheManager.cacheData(
-          "iflow-completion",
-          cacheData,
-          completion,
-          {
-            key: optimizedCacheKey,
-            ttl: intelligentTTL,
-            tags: detectedPattern.pattern
-              ? ["ai-completion", model.id, detectedPattern.pattern]
-              : ["ai-completion", model.id],
-          },
-        );
+        await UnifiedCacheManager.setData("iflow-completion", completion, {
+          key: optimizedCacheKey,
+          ttl: intelligentTTL,
+          tags: detectedPattern.pattern
+            ? ["ai-completion", model.id, detectedPattern.pattern]
+            : ["ai-completion", model.id],
+        });
 
         return completion;
       });
@@ -294,16 +279,14 @@ export class AIService {
 
     try {
       // Check cache first for research queries
-      const researchCacheKey = {
+      const researchCacheKey = `tavily-research:${JSON.stringify({
         query: request.query,
         maxResults: request.maxResults || 10,
         includeImages: request.includeImages || false,
-      };
+      })}`;
 
-      const cachedResearch = await UnifiedCacheManager.getData(
-        "tavily-research",
-        researchCacheKey,
-      );
+      const cachedResearch =
+        await UnifiedCacheManager.getData(researchCacheKey);
       if (cachedResearch) {
         logger.info("Market research served from cache", {
           query: request.query,
@@ -404,15 +387,10 @@ export class AIService {
         });
 
         // Cache the successful research result
-        await UnifiedCacheManager.cacheData(
-          "tavily-research",
-          researchCacheKey,
-          result,
-          {
-            ttl: 7200, // 2 hours for research results
-            tags: ["market-research", "tavily"],
-          },
-        );
+        await UnifiedCacheManager.setData(researchCacheKey, result, {
+          ttl: 7200, // 2 hours for research results
+          tags: ["market-research", "tavily"],
+        });
 
         return result;
       });
