@@ -4,12 +4,67 @@ import { useEffect, useState } from "react";
 import { ClockIcon } from "@/components/ui/icons";
 import { ANIMATION_STATES, getTextColor, cn } from "@/lib/constants/ui-themes";
 
+/**
+ * Props interface for DashboardFooter component.
+ * @interface DashboardFooterProps
+ */
 interface DashboardFooterProps {
+  /** Whether data is currently being loaded/refreshed */
   loading: boolean;
+  /** Whether auto-refresh is currently enabled */
   autoRefresh: boolean;
+  /** Timestamp of last data refresh or null if never refreshed */
   lastRefresh: Date | null;
 }
 
+/**
+ * DashboardFooter component that displays system status and refresh information.
+ *
+ * Architectural Pattern:
+ * - Service Layer compliance: Zero business logic in UI component
+ * - Client-side rendering to fix hydration issues
+ * - Theme-aware UI with consistent design system integration
+ * - Accessible presentation with proper ARIA labels
+ *
+ * Features:
+ * - Live system status indicator with animation
+ * - Last refresh timestamp display
+ * - Auto-refresh status display
+ * - Client-side time formatting to prevent hydration mismatches
+ * - Animated loading indicator during data refresh
+ * - Pulsing live indicator when system is operational
+ * - Conditional auto-refresh display
+ *
+ * Hydration Fix:
+ * - Time formatting happens client-side in useEffect
+ * - Initial state is "Never" before client-side formatting
+ * - Prevents server/client timestamp mismatches
+ *
+ * Visual States:
+ * - Loading: Spinning animation with "Updating..." text
+ * - Live: Pulsing green dot with "System Live" text
+ * - Auto-refresh: Shows clock icon with refresh interval
+ * - Last refresh: Formatted local time string
+ *
+ * Accessibility Features:
+ * - aria-label for auto-refresh status section
+ * - aria-hidden for decorative icons
+ * - Visual status indicators with text alternatives
+ *
+ * Performance Optimizations:
+ * - useEffect dependency array prevents unnecessary re-renders
+ * - Client-side only time formatting
+ * - Efficient conditional rendering
+ *
+ * @example
+ * ```tsx
+ * <DashboardFooter
+ *   loading={false}
+ *   autoRefresh={true}
+ *   lastRefresh={new Date()}
+ * />
+ * ```
+ */
 export function DashboardFooter({
   loading,
   autoRefresh,

@@ -2,19 +2,73 @@ import { memo } from "react";
 import { MetricCard } from "@/components/ui/metric-card";
 import { type StatusType } from "@/components/ui/status-indicator";
 
+/**
+ * Props interface for PerformanceScoreOverview component.
+ * @interface PerformanceScoreOverviewProps
+ */
 interface PerformanceScoreOverviewProps {
+  /** Overall performance score (0-100) based on system metrics */
   performanceScore: number;
+  /** Total bundle size in kilobytes */
   bundleSizeKB: number;
+  /** Gzipped bundle size in kilobytes */
   bundleSizeGzippedKB: number;
+  /** Compression rate percentage (0-100) */
   compressionRate: number;
+  /** Total bandwidth saved in KB from compression */
   bandwidthSavedKB: number;
+  /** Number of active critical alerts */
   alertCount: number;
+  /** Overall performance status for status indicator */
   performanceStatus: StatusType;
 }
 
 /**
- * Performance score overview cards for performance dashboard
- * Displays key performance metrics using atomic MetricCard components
+ * PerformanceScoreOverview component that displays key performance metrics in card grid.
+ *
+ * Architectural Pattern:
+ * - Service Layer compliance: Zero business logic in UI component
+ * - Atomic design with reusable MetricCard components
+ * - Memoized component to prevent unnecessary re-renders
+ * - Theme-aware status calculations with consistent thresholds
+ *
+ * Features:
+ * - Performance score display with status indicator
+ * - Bundle size analysis with gzipped comparison
+ * - Compression metrics with bandwidth savings
+ * - Active alert count with severity status
+ * - Responsive grid layout (1 column mobile, 4 desktop)
+ * - Status-based color coding for visual feedback
+ *
+ * Status Thresholds:
+ * - Performance Score: Status determined by parent component
+ * - Bundle Size: Unhealthy if >1024KB, Healthy otherwise
+ * - Compression: Healthy if >30%, Degraded otherwise
+ * - Alerts: Healthy if 0, Degraded if >0
+ *
+ * Metric Display:
+ * - Performance Score: Percentage with status indicator
+ * - Bundle Size: KB with gzipped subtitle
+ * - Compression: Percentage with KB saved subtitle
+ * - Alerts: Count with "critical warnings" subtitle
+ *
+ * Performance Optimizations:
+ * - React.memo for component memoization
+ * - Stable prop references prevent re-renders
+ * - Efficient rendering with atomic components
+ *
+ * @example
+ * ```tsx
+ * <PerformanceScoreOverview
+ *   performanceScore={85}
+ *   bundleSizeKB={512}
+ *   bundleSizeGzippedKB={128}
+ *   compressionRate={75}
+ *   bandwidthSavedKB={384}
+ *   alertCount={0}
+ *   performanceStatus="healthy"
+ * />
+ * ```
  */
 export const PerformanceScoreOverview = memo(
   function PerformanceScoreOverviewComponent({
