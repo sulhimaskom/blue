@@ -7,6 +7,8 @@ import {
   type StatusType,
 } from "@/components/ui/status-indicator";
 import { cn } from "@/lib/constants/ui-themes";
+import { DashboardDataService } from "@/lib/services/dashboard-data-service";
+import { logger } from "@/lib/logger";
 
 // Circuit breaker data types
 interface CircuitBreakerData {
@@ -58,28 +60,23 @@ export function CircuitBreakerStatusPanel({
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(!!refreshInterval);
 
-  // Fetch circuit breaker metrics from API
+  // Fetch circuit breaker metrics using Service Layer
   const fetchMetrics = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/circuit-breakers/metrics");
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      // Service Layer: Use centralized DashboardDataService instead of direct API calls
+      const data =
+        await DashboardDataService.getCircuitBreakerMetrics<CircuitBreakerMetrics>();
 
-      const data = await response.json();
-      if (data.success) {
-        setMetrics(data.data);
-        onMetricsUpdate?.(data.data);
-      } else {
-        throw new Error(
-          data.error || "Failed to fetch circuit breaker metrics",
-        );
-      }
+      setMetrics(data.data);
+      onMetricsUpdate?.(data.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
+      logger.error("Failed to fetch circuit breaker metrics", {
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
     } finally {
       setLoading(false);
     }

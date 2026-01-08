@@ -9,6 +9,8 @@ import { DashboardHeader } from "@/components/monitoring/dashboard-layout";
 import { DashboardFooter } from "@/components/monitoring/dashboard-footer";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/constants/ui-themes";
+import { DashboardDataService } from "@/lib/services/dashboard-data-service";
+import { logger } from "@/lib/logger";
 
 // Circuit breaker data types
 interface CircuitBreakerMetrics {
@@ -28,24 +30,19 @@ export default function CircuitBreakersPage() {
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [refreshInterval, setRefreshInterval] = useState(15000); // 15 seconds
 
-  // Fetch circuit breaker metrics
+  // Fetch circuit breaker metrics using Service Layer
   const fetchMetrics = async () => {
     try {
-      const response = await fetch("/api/circuit-breakers/metrics");
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      const data = await response.json();
-      if (data.success) {
-        setMetrics(data.data);
-        setLastRefresh(new Date());
-      } else {
-        throw new Error(
-          data.error || "Failed to fetch circuit breaker metrics",
-        );
-      }
+      // Service Layer: Use centralized DashboardDataService instead of direct API calls
+      const data = await DashboardDataService.getCircuitBreakerMetrics<any>();
+
+      setMetrics(data.data);
+      setLastRefresh(new Date());
     } catch (error) {
       // Error handled silently for UI stability
+      logger.error("Failed to fetch circuit breaker metrics in dashboard", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
     } finally {
       setLoading(false);
     }
