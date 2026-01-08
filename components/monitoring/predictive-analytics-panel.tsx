@@ -344,7 +344,7 @@ export const PredictiveAnalyticsPanel = React.memo(
           />
           <MetricCard
             title="System Trend"
-            value={healthScore >= 75 ? "📈 Improving" : "⚠️ Declining"}
+            value={healthScore >= 75 ? "Improving" : "Declining"}
             status={healthStatus}
           />
         </div>

@@ -234,11 +234,23 @@ export function CircuitBreakerStatusPanel({
               overallStatus === "unhealthy" && "bg-red-50 text-red-800",
             )}
           >
-            {metrics.openCircuits.length === 0
-              ? "✅ All circuit breakers are operating normally"
-              : metrics.openCircuits.length === 1
-                ? `⚠️ 1 circuit breaker is currently open: ${metrics.openCircuits[0]}`
-                : `⚠️ ${metrics.openCircuits.length} circuit breakers are currently open: ${metrics.openCircuits.join(", ")}`}
+            {metrics.openCircuits.length === 0 ? (
+              <span>
+                <span aria-hidden="true">✅</span> All circuit breakers are
+                operating normally
+              </span>
+            ) : metrics.openCircuits.length === 1 ? (
+              <span>
+                <span aria-hidden="true">⚠️</span> 1 circuit breaker is
+                currently open: {metrics.openCircuits[0]}
+              </span>
+            ) : (
+              <span>
+                <span aria-hidden="true">⚠️</span> {metrics.openCircuits.length}{" "}
+                circuit breakers are currently open:{" "}
+                {metrics.openCircuits.join(", ")}
+              </span>
+            )}
           </div>
         )}
       </BaseCard>
