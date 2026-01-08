@@ -56,6 +56,30 @@ function validateEnv(): Env {
     } as Env;
   }
 
+  // Skip validation during test environment - Jest mocks handle this
+  if (process.env.NODE_ENV === "test") {
+    return {
+      NODE_ENV: "test",
+      DATABASE_URL:
+        process.env.DATABASE_URL || "postgresql://test:test@localhost/test",
+      IFLOW_API_KEY: process.env.IFLOW_API_KEY || "test-iflow-key",
+      IFLOW_BASE_URL: process.env.IFLOW_BASE_URL || "https://test.api.com",
+      TAVILY_API_KEY: process.env.TAVILY_API_KEY || "test-tavily-key",
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+        "test-clerk-publishable",
+      CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || "test-clerk-secret",
+      STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "test-stripe-secret",
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
+        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
+        "test-stripe-publishable",
+      GITHUB_ACCESS_TOKEN:
+        process.env.GITHUB_ACCESS_TOKEN || "test-github-token",
+      NEXT_PUBLIC_APP_URL:
+        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    } as Env;
+  }
+
   try {
     return envSchema.parse(process.env);
   } catch (error) {

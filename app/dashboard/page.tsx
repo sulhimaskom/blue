@@ -5,6 +5,8 @@ import { useUser } from "@clerk/nextjs";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { DashboardCard } from "@/components/ui/dashboard-card";
 import { StatsCard } from "@/components/ui/stats-card";
+import { DashboardDataService } from "@/lib/services/dashboard-data-service";
+import { logger } from "@/lib/logger";
 
 interface UserCredits {
   credits: number;
@@ -27,16 +29,17 @@ export default function DashboardPage() {
 
   const fetchUserCredits = async () => {
     try {
-      const response = await fetch("/api/credits");
-      if (response.ok) {
-        const data = await response.json();
-        setUserCredits({
-          credits: data.credits,
-          subscriptionTier: data.subscriptionTier,
-        });
-      }
+      // Service Layer: Use centralized DashboardDataService instead of direct API calls
+      const data = await DashboardDataService.getCreditsData();
+      setUserCredits({
+        credits: data.credits,
+        subscriptionTier: data.subscriptionTier,
+      });
     } catch (error) {
-      // Silently handle fetch errors in dashboard
+      // Log errors properly using the centralized logger
+      logger.error("Failed to fetch user credits in dashboard", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
     } finally {
       setLoading(false);
     }
