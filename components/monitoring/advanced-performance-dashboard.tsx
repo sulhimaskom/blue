@@ -379,42 +379,36 @@ const PerformanceOverviewTab: React.FC<PerformanceOverviewTabProps> = ({
     <div className="space-y-6">
       {/* System Metrics */}
       <div>
-        <h3 className={cn("text-lg font-medium mb-4", getThemeText("heading"))}>
+        <h3 className={cn("text-lg font-medium mb-4", "text-gray-900")}>
           System Performance
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className={cn("text-2xl font-bold", getThemeText("heading"))}>
+            <div className={cn("text-2xl font-bold", "text-gray-900")}>
               {metrics.system.cpuUsage.toFixed(1)}%
             </div>
-            <div className={cn("text-sm", getThemeText("muted"))}>
-              CPU Usage
-            </div>
+            <div className={cn("text-sm", "text-gray-600")}>CPU Usage</div>
           </div>
 
           <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className={cn("text-2xl font-bold", getThemeText("heading"))}>
+            <div className={cn("text-2xl font-bold", "text-gray-900")}>
               {metrics.system.memoryUsage.toFixed(1)}%
             </div>
-            <div className={cn("text-sm", getThemeText("muted"))}>
-              Memory Usage
-            </div>
+            <div className={cn("text-sm", "text-gray-600")}>Memory Usage</div>
           </div>
 
           <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className={cn("text-2xl font-bold", getThemeText("heading"))}>
+            <div className={cn("text-2xl font-bold", "text-gray-900")}>
               {metrics.system.diskIOPS}
             </div>
-            <div className={cn("text-sm", getThemeText("muted"))}>
-              Disk IOPS
-            </div>
+            <div className={cn("text-sm", "text-gray-600")}>Disk IOPS</div>
           </div>
 
           <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className={cn("text-2xl font-bold", getThemeText("heading"))}>
+            <div className={cn("text-2xl font-bold", "text-gray-900")}>
               {metrics.system.networkLatency}ms
             </div>
-            <div className={cn("text-sm", getThemeText("muted"))}>
+            <div className={cn("text-sm", "text-gray-600")}>
               Network Latency
             </div>
           </div>
@@ -423,7 +417,7 @@ const PerformanceOverviewTab: React.FC<PerformanceOverviewTabProps> = ({
 
       {/* Application Metrics */}
       <div>
-        <h3 className={cn("text-lg font-medium mb-4", getThemeText("heading"))}>
+        <h3 className={cn("text-lg font-medium mb-4", "text-gray-900")}>
           Application Performance
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -431,7 +425,7 @@ const PerformanceOverviewTab: React.FC<PerformanceOverviewTabProps> = ({
             <div className={cn("text-2xl font-bold text-blue-600")}>
               {metrics.application.averageResponseTime}ms
             </div>
-            <div className={cn("text-sm", getThemeText("muted"))}>
+            <div className={cn("text-sm", "text-gray-600")}>
               Avg Response Time
             </div>
           </div>
@@ -440,34 +434,28 @@ const PerformanceOverviewTab: React.FC<PerformanceOverviewTabProps> = ({
             <div className={cn("text-2xl font-bold text-green-600")}>
               {metrics.application.requestsPerSecond}
             </div>
-            <div className={cn("text-sm", getThemeText("muted"))}>
-              Requests/sec
-            </div>
+            <div className={cn("text-sm", "text-gray-600")}>Requests/sec</div>
           </div>
 
           <div className="text-center p-4 bg-yellow-50 rounded-lg">
             <div className={cn("text-2xl font-bold text-yellow-600")}>
               {metrics.application.errorRate.toFixed(2)}%
             </div>
-            <div className={cn("text-sm", getThemeText("muted"))}>
-              Error Rate
-            </div>
+            <div className={cn("text-sm", "text-gray-600")}>Error Rate</div>
           </div>
 
           <div className="text-center p-4 bg-purple-50 rounded-lg">
             <div className={cn("text-2xl font-bold text-purple-600")}>
               {metrics.application.throughput}MB/s
             </div>
-            <div className={cn("text-sm", getThemeText("muted"))}>
-              Throughput
-            </div>
+            <div className={cn("text-sm", "text-gray-600")}>Throughput</div>
           </div>
         </div>
       </div>
 
       {/* Database Metrics */}
       <div>
-        <h3 className={cn("text-lg font-medium mb-4", getThemeText("heading"))}>
+        <h3 className={cn("text-lg font-medium mb-4", "text-gray-900")}>
           Database Performance
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -475,36 +463,28 @@ const PerformanceOverviewTab: React.FC<PerformanceOverviewTabProps> = ({
             <div className={cn("text-2xl font-bold text-indigo-600")}>
               {metrics.database.connectionPool}
             </div>
-            <div className={cn("text-sm", getThemeText("muted"))}>
-              Connections
-            </div>
+            <div className={cn("text-sm", "text-gray-600")}>Connections</div>
           </div>
 
           <div className="text-center p-4 bg-orange-50 rounded-lg">
             <div className={cn("text-2xl font-bold text-orange-600")}>
               {metrics.database.queryTime}ms
             </div>
-            <div className={cn("text-sm", getThemeText("muted"))}>
-              Query Time
-            </div>
+            <div className={cn("text-sm", "text-gray-600")}>Query Time</div>
           </div>
 
           <div className="text-center p-4 bg-red-50 rounded-lg">
             <div className={cn("text-2xl font-bold text-red-600")}>
               {metrics.database.slowQueries}
             </div>
-            <div className={cn("text-sm", getThemeText("muted"))}>
-              Slow Queries
-            </div>
+            <div className={cn("text-sm", "text-gray-600")}>Slow Queries</div>
           </div>
 
           <div className="text-center p-4 bg-emerald-50 rounded-lg">
             <div className={cn("text-2xl font-bold text-emerald-600")}>
               {metrics.database.cacheHitRate.toFixed(1)}%
             </div>
-            <div className={cn("text-sm", getThemeText("muted"))}>
-              Cache Hit Rate
-            </div>
+            <div className={cn("text-sm", "text-gray-600")}>Cache Hit Rate</div>
           </div>
         </div>
       </div>
@@ -665,10 +645,10 @@ const PredictiveAnalyticsTab: React.FC<PredictiveAnalyticsTabProps> = ({
       {/* Predictions Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="text-center p-4 bg-gray-50 rounded-lg">
-          <div className={cn("text-2xl font-bold", getThemeText("heading"))}>
+          <div className={cn("text-2xl font-bold", "text-gray-900")}>
             {metrics.summary.totalPredictions}
           </div>
-          <div className={cn("text-sm", getThemeText("muted"))}>
+          <div className={cn("text-sm", "text-gray-600")}>
             Total Predictions
           </div>
         </div>
@@ -677,33 +657,27 @@ const PredictiveAnalyticsTab: React.FC<PredictiveAnalyticsTabProps> = ({
           <div className={cn("text-2xl font-bold text-red-600")}>
             {metrics.summary.highSeverity}
           </div>
-          <div className={cn("text-sm", getThemeText("muted"))}>
-            High Severity
-          </div>
+          <div className={cn("text-sm", "text-gray-600")}>High Severity</div>
         </div>
 
         <div className="text-center p-4 bg-yellow-50 rounded-lg">
           <div className={cn("text-2xl font-bold text-yellow-600")}>
             {metrics.summary.mediumSeverity}
           </div>
-          <div className={cn("text-sm", getThemeText("muted"))}>
-            Medium Severity
-          </div>
+          <div className={cn("text-sm", "text-gray-600")}>Medium Severity</div>
         </div>
 
         <div className="text-center p-4 bg-blue-50 rounded-lg">
           <div className={cn("text-2xl font-bold text-blue-600")}>
             {metrics.summary.lowSeverity}
           </div>
-          <div className={cn("text-sm", getThemeText("muted"))}>
-            Low Severity
-          </div>
+          <div className={cn("text-sm", "text-gray-600")}>Low Severity</div>
         </div>
       </div>
 
       {/* Predictions List */}
       <div>
-        <h3 className={cn("text-lg font-medium mb-4", getThemeText("heading"))}>
+        <h3 className={cn("text-lg font-medium mb-4", "text-gray-900")}>
           Performance Predictions
         </h3>
         <div className="space-y-4">
@@ -715,7 +689,7 @@ const PredictiveAnalyticsTab: React.FC<PredictiveAnalyticsTabProps> = ({
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h4 className={cn("font-medium", getThemeText("heading"))}>
+                    <h4 className={cn("font-medium", "text-gray-900")}>
                       {prediction.metric}
                     </h4>
                     <span
@@ -738,32 +712,24 @@ const PredictiveAnalyticsTab: React.FC<PredictiveAnalyticsTabProps> = ({
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <span
-                        className={cn(
-                          "text-sm font-medium",
-                          getThemeText("muted"),
-                        )}
+                        className={cn("text-sm font-medium", "text-gray-600")}
                       >
                         Current:
                       </span>
-                      <span
-                        className={cn("ml-2 text-sm", getThemeText("body"))}
-                      >
+                      <span className={cn("ml-2 text-sm", "text-gray-700")}>
                         {prediction.currentValue}
                       </span>
                     </div>
                     <div>
                       <span
-                        className={cn(
-                          "text-sm font-medium",
-                          getThemeText("muted"),
-                        )}
+                        className={cn("text-sm font-medium", "text-gray-600")}
                       >
                         Predicted ({prediction.timeframe}):
                       </span>
                       <span
                         className={cn(
                           "ml-2 text-sm font-medium",
-                          getThemeText("body"),
+                          "text-gray-700",
                         )}
                       >
                         {prediction.predictedValue}
@@ -774,17 +740,14 @@ const PredictiveAnalyticsTab: React.FC<PredictiveAnalyticsTabProps> = ({
                   {prediction.recommendations.length > 0 && (
                     <div>
                       <span
-                        className={cn(
-                          "text-sm font-medium",
-                          getThemeText("muted"),
-                        )}
+                        className={cn("text-sm font-medium", "text-gray-600")}
                       >
                         Recommendations:
                       </span>
                       <ul
                         className={cn(
                           "mt-1 text-sm space-y-1",
-                          getThemeText("body"),
+                          "text-gray-700",
                         )}
                       >
                         {prediction.recommendations.map((rec, recIndex) => (
