@@ -14,6 +14,8 @@ import {
   BarChart3Icon,
   ZapIcon,
 } from "@/components/ui/icons";
+import { UnifiedMetricsCalculator } from "@/lib/services/unified-metrics-calculator";
+import { usePerformanceStatus } from "@/lib/hooks/use-performance-status";
 
 // Types for advanced performance metrics
 interface AdvancedPerformanceMetrics {
@@ -372,8 +374,18 @@ interface PerformanceOverviewTabProps {
 const PerformanceOverviewTab: React.FC<PerformanceOverviewTabProps> = ({
   metrics,
 }) => {
-  const themeUtils = { getTextColor } as any;
-  const { getTextColor: getThemeText } = themeUtils; // eslint-disable-line no-unused-vars
+  // Use our new performance status hook for unified status calculation
+  const performanceMetrics = {
+    responseTime: metrics.application.averageResponseTime,
+    throughput: metrics.application.requestsPerSecond,
+    errorRate: metrics.application.errorRate,
+    cpuUsage: metrics.system.cpuUsage,
+    memoryUsage: metrics.system.memoryUsage,
+    cacheHitRate: metrics.database.cacheHitRate,
+  };
+
+  const { overallStatus, overallScore } =
+    usePerformanceStatus(performanceMetrics);
 
   return (
     <div className="space-y-6">
@@ -385,16 +397,30 @@ const PerformanceOverviewTab: React.FC<PerformanceOverviewTabProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <div className={cn("text-2xl font-bold", "text-gray-900")}>
-              {metrics.system.cpuUsage.toFixed(1)}%
+              {UnifiedMetricsCalculator.formatResponseTime(
+                metrics.application.averageResponseTime,
+              )}
             </div>
-            <div className={cn("text-sm", "text-gray-600")}>CPU Usage</div>
+            <div className={cn("text-sm", "text-gray-600")}>Response Time</div>
+            <StatusIndicator
+              status={overallStatus}
+              size="sm"
+              className="mt-1"
+            />
           </div>
 
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <div className={cn("text-2xl font-bold", "text-gray-900")}>
-              {metrics.system.memoryUsage.toFixed(1)}%
+              {overallScore}
             </div>
-            <div className={cn("text-sm", "text-gray-600")}>Memory Usage</div>
+            <div className={cn("text-sm", "text-gray-600")}>
+              Performance Score
+            </div>
+            <StatusIndicator
+              status={overallStatus}
+              size="sm"
+              className="mt-1"
+            />
           </div>
 
           <div className="text-center p-4 bg-gray-50 rounded-lg">
