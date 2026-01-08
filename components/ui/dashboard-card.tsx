@@ -1,5 +1,10 @@
 import React, { ReactNode } from "react";
-import { cn, getTextColor } from "@/lib/constants/ui-themes";
+import {
+  cn,
+  getTextColor,
+  getBackgroundColor,
+  CARD_VARIANTS,
+} from "@/lib/constants/ui-themes";
 import { Button } from "@/components/ui/button";
 
 const badgeStyles = {
@@ -51,7 +56,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
   return (
     <article
       className={cn(
-        "bg-white p-6 rounded-lg border border-gray-200",
+        `${getBackgroundColor("card")} p-6 rounded-lg ${CARD_VARIANTS.default}`,
         className,
       )}
     >

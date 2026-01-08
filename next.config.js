@@ -4,11 +4,11 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@neondatabase/serverless"],
+  transpilePackages: [],
 
-  // Performance optimization configurations (Next.js 15 compatible)
+  // Enhanced performance optimization configurations (Next.js 15 compatible)
   experimental: {
-    // Optimize package imports for smaller bundles
+    // Optimize package imports for smaller bundles and faster builds
     optimizePackageImports: [
       "@clerk/nextjs",
       "lucide-react",
@@ -23,7 +23,18 @@ const nextConfig = {
     ],
     // Enable incremental caching improvements
     optimizeCss: true,
+    // Performance optimizations
+    optimizeServerReact: true,
+    // Disable worker threads for compatibility
+    workerThreads: false,
   },
+
+  // Move server external packages to proper location
+  serverExternalPackages: [
+    "@clerk/backend",
+    "@sentry/node",
+    "@sentry/profiling-node",
+  ],
 
   // Advanced webpack optimization for maximum performance
   webpack: (config, { dev, isServer }) => {
@@ -33,28 +44,81 @@ const nextConfig = {
       exprContextCritical: false,
     };
 
-    // Development build optimizations
-    if (dev) {
-      // Enable faster rebuilds in development
-      config.watchOptions = {
-        ...config.watchOptions,
-        ignored: /node_modules/,
-        aggregateTimeout: 200, // Reduced delay for faster rebuilds
-        poll: 800, // Check for changes more frequently
+    // Externalize Node.js built-ins to reduce bundle size and improve build time
+    if (!isServer) {
+      config.externals = {
+        ...config.externals,
+        crypto: "crypto-browserify",
+        stream: "stream-browserify",
+        buffer: "buffer",
+        util: "util",
+        assert: "assert",
+        os: "os-browserify/browser",
+        path: "path-browserify",
+        fs: "empty",
+      };
+
+      // Optimize crypto polyfill for browser
+      config.resolve = {
+        ...config.resolve,
+        fallback: {
+          ...config.resolve.fallback,
+          crypto: "crypto-browserify",
+          stream: "stream-browserify",
+          buffer: "buffer",
+          util: "util",
+          assert: "assert",
+          os: "os-browserify/browser",
+          path: "path-browserify",
+          fs: "empty",
+        },
       };
     }
 
-    // Optimize for production
-    if (!dev && !isServer) {
+    // Development build optimizations
+    if (dev) {
+      // Enable faster rebuilds in development with optimized watch settings
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: /node_modules/,
+        aggregateTimeout: 100, // Further reduced for faster rebuilds
+        poll: 600, // Balanced polling frequency
+      };
+
+      // Optimize development builds
+      config.optimization = {
+        ...config.optimization,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        splitChunks: false, // Disable chunk splitting for faster dev builds
+      };
+    }
+
+    // Optimize for fastest builds
+    if (!dev) {
+      config.parallelism = 2; // Use 2 threads for optimal performance
+
+      // Enhanced filesystem-based caching for faster builds
+      config.cache = {
+        type: "filesystem",
+        buildDependencies: {
+          config: [__filename],
+        },
+        maxAge: 2592000000, // 30 days
+        compression: false, // Disable compression for speed
+      };
+
       config.optimization = {
         ...config.optimization,
         usedExports: true,
         sideEffects: false,
-        // Improve chunk splitting for better caching
+        moduleIds: "deterministic",
         splitChunks: {
           chunks: "all",
-          maxSize: 160000, // Optimized for better CDN caching (160kB chunks)
-          minSize: 25000, // Minimum 25 kB to avoid too many tiny chunks
+          maxSize: 300000, // Optimize for build speed (300kB)
+          minSize: 100000, // Larger minimum to reduce fragmentation
+          minChunks: 1,
+          maxInitialRequests: 2, // Reduce requests for faster builds
           cacheGroups: {
             default: {
               minChunks: 2,
@@ -95,6 +159,12 @@ const nextConfig = {
               test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
               name: "react",
               priority: 40,
+              reuseExistingChunk: true,
+            },
+            ui: {
+              test: /[\\/]components[\\/]ui[\\/]/,
+              name: "ui",
+              priority: 45,
               reuseExistingChunk: true,
             },
             common: {
