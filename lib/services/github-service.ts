@@ -1,6 +1,7 @@
 import { logger, createRequestContext } from "@/lib/logger";
 import { monitoringService } from "@/lib/monitoring";
 import { circuitBreakerRegistry, SERVICE_CONFIGS } from "@/lib/circuit-breaker";
+import { retryService, RETRY_CONFIGS } from "./retry-service";
 import * as crypto from "crypto";
 import type {
   GitHubRepoConfig,
@@ -199,42 +200,92 @@ class GitHubService {
           circuitState: this.circuitBreaker.getMetrics().state,
         });
 
-        // Create repository
-        const createResponse = await fetch(
-          `${this.baseUrl}/orgs/${config.org}/repos`,
+        // Layer 1: Retry (inner) - handles transient network failures
+        const createResponse = await retryService.executeWithRetry(
+          async () => {
+            const fetchResponse = await fetch(
+              `${this.baseUrl}/orgs/${config.org}/repos`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `token ${token}`,
+                  Accept: "application/vnd.github.v3+json",
+                  "Content-Type": "application/json",
+                  "User-Agent": "Architect-Platform/1.0.0",
+                },
+                body: JSON.stringify(repoData),
+              },
+            );
+
+            if (!fetchResponse.ok) {
+              // Idempotency check: 409 Conflict means repo already exists
+              if (fetchResponse.status === 409) {
+                // Don't retry on idempotency conflict
+                const errorText = await fetchResponse.text();
+                const apiErrorResponse: APIErrorResponse = {
+                  message: `Repository already exists: ${config.name}`,
+                  status: fetchResponse.status,
+                  details: { error: errorText },
+                };
+                logger.warn(
+                  "Repository already exists (idempotency - no retry)",
+                  {
+                    requestId: context.requestId,
+                    org: config.org,
+                    name: config.name,
+                    status: fetchResponse.status,
+                  },
+                );
+                throw new GitHubServiceError(
+                  `Repository already exists: ${config.name}`,
+                  fetchResponse.status,
+                  apiErrorResponse,
+                );
+              }
+
+              const errorText = await fetchResponse.text();
+              const apiErrorResponse: APIErrorResponse = {
+                message: `Failed to create repository: ${fetchResponse.statusText}`,
+                status: fetchResponse.status,
+                details: { error: errorText },
+              };
+              logger.error("Failed to create repository (will retry)", {
+                requestId: context.requestId,
+                org: config.org,
+                name: config.name,
+                status: fetchResponse.status,
+                error: errorText,
+              });
+              throw new GitHubServiceError(
+                `Failed to create repository: ${fetchResponse.statusText}`,
+                fetchResponse.status,
+                apiErrorResponse,
+              );
+            }
+
+            return fetchResponse;
+          },
           {
-            method: "POST",
-            headers: {
-              Authorization: `token ${token}`,
-              Accept: "application/vnd.github.v3+json",
-              "Content-Type": "application/json",
-              "User-Agent": "Architect-Platform/1.0.0",
+            ...RETRY_CONFIGS.NETWORK_SENSITIVE,
+            retryableErrors: (error) => {
+              // Don't retry on idempotency conflicts (409)
+              if (
+                error instanceof GitHubServiceError &&
+                error.statusCode === 409
+              ) {
+                return false;
+              }
+              // Use default retryable error detection
+              return retryService.isRetryableError(error);
             },
-            body: JSON.stringify(repoData),
+            context: {
+              service: "github-api",
+              operation: "create-repository",
+              org: config.org,
+              repo: config.name,
+            },
           },
         );
-
-        if (!createResponse.ok) {
-          const errorText = await createResponse.text();
-          const apiErrorResponse: APIErrorResponse = {
-            message: `Failed to create repository: ${createResponse.statusText}`,
-            status: createResponse.status,
-            details: { error: errorText },
-          };
-          logger.error("Failed to create repository", {
-            requestId: context.requestId,
-            org: config.org,
-            name: config.name,
-            status: createResponse.status,
-            error: errorText,
-            circuitState: this.circuitBreaker.getMetrics().state,
-          });
-          throw new GitHubServiceError(
-            `Failed to create repository: ${createResponse.statusText}`,
-            createResponse.status,
-            apiErrorResponse,
-          );
-        }
 
         const repo: GitHubCreateRepoResponse = await createResponse.json();
 
@@ -382,87 +433,130 @@ class GitHubService {
   ): Promise<void> {
     const context = createRequestContext();
 
+    // Layer 1: Retry (inner) - handles transient network failures
     // Create blueprint.md blob
-    const blobResponse = await fetch(
-      `${this.baseUrl}/repos/${repo.full_name}/git/blobs`,
+    const blobResponse = await retryService.executeWithRetry(
+      async () => {
+        const fetchResponse = await fetch(
+          `${this.baseUrl}/repos/${repo.full_name}/git/blobs`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `token ${token}`,
+              Accept: "application/vnd.github.v3+json",
+              "Content-Type": "application/json",
+              "User-Agent": "Architect-Platform/1.0.0",
+            },
+            body: JSON.stringify({
+              content: config.blueprintContent,
+              encoding: "utf-8",
+            }),
+          },
+        );
+
+        if (!fetchResponse.ok) {
+          throw new GitHubServiceError("Failed to create blueprint blob");
+        }
+
+        return fetchResponse;
+      },
       {
-        method: "POST",
-        headers: {
-          Authorization: `token ${token}`,
-          Accept: "application/vnd.github.v3+json",
-          "Content-Type": "application/json",
-          "User-Agent": "Architect-Platform/1.0.0",
+        ...RETRY_CONFIGS.FAST,
+        context: {
+          service: "github-api",
+          operation: "create-blob",
+          repo: repo.full_name,
         },
-        body: JSON.stringify({
-          content: config.blueprintContent,
-          encoding: "utf-8",
-        }),
       },
     );
-
-    if (!blobResponse.ok) {
-      throw new GitHubServiceError("Failed to create blueprint blob");
-    }
 
     const blobData = await blobResponse.json();
 
     // Create tree with blueprint.md
-    const treeResponse = await fetch(
-      `${this.baseUrl}/repos/${repo.full_name}/git/trees`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `token ${token}`,
-          Accept: "application/vnd.github.v3+json",
-          "Content-Type": "application/json",
-          "User-Agent": "Architect-Platform/1.0.0",
-        },
-        body: JSON.stringify({
-          base_tree: baseCommitSha,
-          tree: [
-            {
-              path: "docs/architecture/blueprint.md",
-              mode: "100644",
-              type: "blob",
-              sha: blobData.sha,
+    const treeResponse = await retryService.executeWithRetry(
+      async () => {
+        const fetchResponse = await fetch(
+          `${this.baseUrl}/repos/${repo.full_name}/git/trees`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `token ${token}`,
+              Accept: "application/vnd.github.v3+json",
+              "Content-Type": "application/json",
+              "User-Agent": "Architect-Platform/1.0.0",
             },
-          ],
-        }),
+            body: JSON.stringify({
+              base_tree: baseCommitSha,
+              tree: [
+                {
+                  path: "docs/architecture/blueprint.md",
+                  mode: "100644",
+                  type: "blob",
+                  sha: blobData.sha,
+                },
+              ],
+            }),
+          },
+        );
+
+        if (!fetchResponse.ok) {
+          throw new GitHubServiceError("Failed to create tree");
+        }
+
+        return fetchResponse;
+      },
+      {
+        ...RETRY_CONFIGS.FAST,
+        context: {
+          service: "github-api",
+          operation: "create-tree",
+          repo: repo.full_name,
+        },
       },
     );
-
-    if (!treeResponse.ok) {
-      throw new GitHubServiceError("Failed to create tree");
-    }
 
     const treeData = await treeResponse.json();
 
     // Create commit
-    const commitResponse = await fetch(
-      `${this.baseUrl}/repos/${repo.full_name}/git/commits`,
+    const commitResponse = await retryService.executeWithRetry(
+      async () => {
+        const fetchResponse = await fetch(
+          `${this.baseUrl}/repos/${repo.full_name}/git/commits`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `token ${token}`,
+              Accept: "application/vnd.github.v3+json",
+              "Content-Type": "application/json",
+              "User-Agent": "Architect-Platform/1.0.0",
+            },
+            body: JSON.stringify({
+              message: "Initial commit: Add AI-generated blueprint",
+              tree: treeData.sha,
+              parents: [baseCommitSha],
+            }),
+          },
+        );
+
+        if (!fetchResponse.ok) {
+          throw new GitHubServiceError("Failed to create commit");
+        }
+
+        return fetchResponse;
+      },
       {
-        method: "POST",
-        headers: {
-          Authorization: `token ${token}`,
-          Accept: "application/vnd.github.v3+json",
-          "Content-Type": "application/json",
-          "User-Agent": "Architect-Platform/1.0.0",
+        ...RETRY_CONFIGS.STANDARD,
+        context: {
+          service: "github-api",
+          operation: "create-commit",
+          repo: repo.full_name,
         },
-        body: JSON.stringify({
-          message: "Initial commit: Add AI-generated blueprint",
-          tree: treeData.sha,
-          parents: [baseCommitSha],
-        }),
       },
     );
 
-    if (!commitResponse.ok) {
-      throw new GitHubServiceError("Failed to create commit");
-    }
-
     const commitData = await commitResponse.json();
 
-    // Update branch reference
+    // Update branch reference (no retry - idempotent via sha)
     await fetch(
       `${this.baseUrl}/repos/${repo.full_name}/git/refs/heads/${branch}`,
       {
@@ -501,13 +595,29 @@ class GitHubService {
         return false;
       }
 
-      const response = await fetch(`${this.baseUrl}/repos/${repoFullName}`, {
-        headers: {
-          Authorization: `token ${token}`,
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "Architect-Platform/1.0.0",
+      const response = await retryService.executeWithRetry(
+        async () => {
+          const fetchResponse = await fetch(
+            `${this.baseUrl}/repos/${repoFullName}`,
+            {
+              headers: {
+                Authorization: `token ${token}`,
+                Accept: "application/vnd.github.v3+json",
+                "User-Agent": "Architect-Platform/1.0.0",
+              },
+            },
+          );
+          return fetchResponse;
         },
-      });
+        {
+          ...RETRY_CONFIGS.FAST,
+          context: {
+            service: "github-api",
+            operation: "verify-repository",
+            repo: repoFullName,
+          },
+        },
+      );
 
       const exists = response.ok;
 

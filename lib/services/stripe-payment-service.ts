@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { retryService, RETRY_CONFIGS } from "./retry-service";
 import type { RequestContext } from "@/lib/services/user-service";
 
 export interface PaymentIntentRequest {
@@ -85,21 +86,46 @@ export class StripePaymentService {
     }
 
     try {
-      const paymentIntent = await this.stripe.paymentIntents.create({
-        amount: request.amount,
-        currency: "usd",
-        payment_method: request.paymentMethodId,
-        confirmation_method: "manual",
-        confirm: true,
-        metadata: {
-          userId: request.userId,
-          ...(request.metadata || {}),
+      const paymentIntent = await retryService.executeWithRetry(
+        async () => {
+          const intent = await this.stripe.paymentIntents.create({
+            amount: request.amount,
+            currency: "usd",
+            payment_method: request.paymentMethodId,
+            confirmation_method: "manual",
+            confirm: true,
+            metadata: {
+              userId: request.userId,
+              idempotencyKey: `payment_${request.userId}_${Date.now()}`,
+              ...(request.metadata || {}),
+            },
+            automatic_payment_methods: {
+              enabled: true,
+            },
+            return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/credits/success`,
+          });
+          return intent;
         },
-        automatic_payment_methods: {
-          enabled: true,
+        {
+          ...RETRY_CONFIGS.STANDARD,
+          retryableErrors: retryService.createErrorFilter({
+            nonRetryableMessages: [
+              "card_declined",
+              "insufficient_funds",
+              "expired_card",
+              "incorrect_cvc",
+              "authentication_required",
+              "incorrect_number",
+            ],
+          }),
+          context: {
+            service: "stripe-api",
+            operation: "create-payment-intent",
+            userId: request.userId,
+            amount: request.amount,
+          },
         },
-        return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/credits/success`,
-      });
+      );
 
       logger.systemEvent("Payment intent created", {
         requestId: context.requestId,

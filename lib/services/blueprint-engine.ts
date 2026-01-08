@@ -2,7 +2,7 @@ import { aiService, ResearchResult } from "./ai-service";
 import { logger } from "../logger";
 import { db } from "../db";
 import { blueprints, projects } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, isNull, and } from "drizzle-orm";
 import { UnifiedCacheManager } from "./cache-orchestrator";
 import { AIPatternDetector, type AIPattern } from "./ai-pattern-detector";
 import DatabaseQueryCache from "./database-cache-service";
@@ -811,7 +811,7 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
       const [current] = await database
         .select()
         .from(blueprints)
-        .where(eq(blueprints.id, request.blueprintId));
+        .where(and(eq(blueprints.id, request.blueprintId), isNull(blueprints.deletedAt)));
 
       if (!current) {
         throw new ValidationError("Blueprint not found");

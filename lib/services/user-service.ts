@@ -1,7 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, isNull, and } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 import { AuthenticationError, DatabaseError } from "@/lib/api-utils";
 import { setRLSContext } from "@/lib/db/rls-policies";
@@ -56,7 +56,7 @@ export class UserService {
       const [userRecord] = await database
         .select()
         .from(users)
-        .where(eq(users.clerkId, clerkUser.id))
+        .where(and(eq(users.clerkId, clerkUser.id), isNull(users.deletedAt)))
         .limit(1);
 
       if (!userRecord) {
@@ -116,7 +116,7 @@ export class UserService {
       const [currentUser] = await database
         .select()
         .from(users)
-        .where(eq(users.id, userId))
+        .where(and(eq(users.id, userId), isNull(users.deletedAt)))
         .limit(1);
 
       if (currentUser) {
@@ -126,7 +126,7 @@ export class UserService {
       const [updatedUser] = await database
         .update(users)
         .set({ credits: sql`${users.credits} + ${creditsChange}` })
-        .where(eq(users.id, userId))
+        .where(and(eq(users.id, userId), isNull(users.deletedAt)))
         .returning();
 
       if (!updatedUser) {
@@ -199,7 +199,7 @@ export class UserService {
       const [currentUser] = await database
         .select()
         .from(users)
-        .where(eq(users.id, userId))
+        .where(and(eq(users.id, userId), isNull(users.deletedAt)))
         .limit(1);
 
       if (currentUser) {
@@ -211,7 +211,7 @@ export class UserService {
         await database
           .update(users)
           .set({ subscriptionTier: "pro" })
-          .where(eq(users.id, userId));
+          .where(and(eq(users.id, userId), isNull(users.deletedAt)));
 
         logger.userAction("User upgraded to Pro tier", "system", {
           requestId: context.requestId,

@@ -32,8 +32,8 @@
 ### Step 1: Clone Repository
 
 ```bash
-git clone https://github.com/your-org/architect-platform.git
-cd architect-platform
+git clone https://github.com/sulhimaskom/blue
+cd blue
 ```
 
 ### Step 2: Install Dependencies

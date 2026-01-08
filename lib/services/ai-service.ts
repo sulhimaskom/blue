@@ -7,6 +7,7 @@ import { UnifiedCacheManager } from "./cache-orchestrator";
 import { AIPatternDetector } from "./ai-pattern-detector";
 import { IdGenerators } from "../utils/id-generator";
 import { Timing } from "../utils/time-measurement";
+import { retryService, RETRY_CONFIGS } from "./retry-service";
 import type {
   AIModel,
   AICompletionRequest,
@@ -140,25 +141,51 @@ export class AIService {
           circuitState: this.iflowCircuitBreaker.getMetrics().state,
         });
 
-        const response = await fetch(`${this.baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.apiKey}`,
+        // Layer 1: Retry (inner) - handles transient network failures
+        const response = await retryService.executeWithRetry(
+          async () => {
+            const fetchResponse = await fetch(
+              `${this.baseUrl}/chat/completions`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${this.apiKey}`,
+                },
+                body: JSON.stringify({
+                  model: model.id,
+                  messages: [
+                    ...(request.context || []).map((content) => ({
+                      role: "system" as const,
+                      content,
+                    })),
+                    { role: "user" as const, content: request.prompt },
+                  ],
+                  temperature: request.temperature || 0.7,
+                  max_tokens: maxTokens,
+                }),
+              },
+            );
+
+            if (!fetchResponse.ok) {
+              const errorData = await fetchResponse.json().catch(() => ({}));
+              throw new Error(
+                `IFlow API error: ${fetchResponse.status} ${JSON.stringify(errorData)}`,
+              );
+            }
+
+            return fetchResponse;
           },
-          body: JSON.stringify({
-            model: model.id,
-            messages: [
-              ...(request.context || []).map((content) => ({
-                role: "system" as const,
-                content,
-              })),
-              { role: "user" as const, content: request.prompt },
-            ],
-            temperature: request.temperature || 0.7,
-            max_tokens: maxTokens,
-          }),
-        });
+          {
+            ...RETRY_CONFIGS.SLOW,
+            context: {
+              service: "ai-iflow",
+              operation: "completion",
+              model: model.id,
+              promptLength: request.prompt.length,
+            },
+          },
+        );
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -327,28 +354,44 @@ export class AIService {
           circuitState: this.tavilyCircuitBreaker.getMetrics().state,
         });
 
-        const response = await fetch("https://api.tavily.com/search", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            api_key: env.TAVILY_API_KEY,
-            query: request.query,
-            search_depth: "advanced",
-            include_answer: true,
-            include_raw_content: false,
-            max_results: request.maxResults || 10,
-            include_images: request.includeImages || false,
-          }),
-        });
+        // Layer 1: Retry (inner) - handles transient network failures
+        const response = await retryService.executeWithRetry(
+          async () => {
+            const fetchResponse = await fetch("https://api.tavily.com/search", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                api_key: env.TAVILY_API_KEY,
+                query: request.query,
+                search_depth: "advanced",
+                include_answer: true,
+                include_raw_content: false,
+                max_results: request.maxResults || 10,
+                include_images: request.includeImages || false,
+              }),
+            });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            `Tavily API error: ${response.status} ${JSON.stringify(errorData)}`,
-          );
-        }
+            if (!fetchResponse.ok) {
+              const errorData = await fetchResponse.json().catch(() => ({}));
+              throw new Error(
+                `Tavily API error: ${fetchResponse.status} ${JSON.stringify(errorData)}`,
+              );
+            }
+
+            return fetchResponse;
+          },
+          {
+            ...RETRY_CONFIGS.NETWORK_SENSITIVE,
+            context: {
+              service: "ai-tavily",
+              operation: "research",
+              query: request.query,
+              maxResults: request.maxResults,
+            },
+          },
+        );
 
         const data = await response.json();
 
