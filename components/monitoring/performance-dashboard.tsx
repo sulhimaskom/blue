@@ -25,7 +25,35 @@ import {
   isPerformanceData,
 } from "@/lib/types/performance-types";
 
-// Optimized metrics calculation hook
+/**
+ * Props interface for PerformanceDashboard component.
+ * @interface PerformanceDashboardProps
+ */
+interface PerformanceDashboardProps {
+  /** Enables detailed performance data fetching with additional metrics */
+  detailed?: boolean;
+}
+
+/**
+ * Custom hook to calculate and process performance metrics from raw data.
+ *
+ * This hook is memoized to prevent unnecessary recalculations on every render.
+ * It extracts and transforms raw performance data into a format suitable for UI display.
+ *
+ * @param performanceData - Raw performance data from API response
+ * @returns Processed metrics or null if data is invalid/missing
+ *
+ * Calculated Metrics:
+ * - performanceScore: Overall performance score (0-100)
+ * - bundleSizeKB: Total bundle size in kilobytes
+ * - bundleSizeGzippedKB: Gzipped bundle size in kilobytes
+ * - compressionRate: Compression percentage (0-100)
+ * - bandwidthSavedKB: Bandwidth savings in KB from compression
+ * - alertCount: Number of critical alerts
+ * - timestamp: Last updated timestamp
+ * - alerts: Top 3 critical alerts (filtered by type)
+ * - quickWins: Array of optimization recommendations
+ */
 function usePerformanceMetrics(
   performanceData: PerformanceData | null,
 ): ComputedPerformanceMetrics | null {
@@ -54,20 +82,48 @@ function usePerformanceMetrics(
   }, [performanceData]);
 }
 
-interface PerformanceDashboardProps {
-  detailed?: boolean;
-}
-
 /**
- * PerformanceDashboard component for real-time performance monitoring
+ * PerformanceDashboard component for real-time performance monitoring.
+ *
+ * Architectural Pattern:
+ * - Service Layer compliance: Zero business logic in UI component
+ * - Memoized component to prevent unnecessary re-renders
+ * - Optimized hooks with useCallback and useMemo
+ * - Automatic request cancellation to prevent memory leaks
  *
  * Features:
- * - Real-time performance metrics display
- * - Performance score visualization
- * - Critical alerts and recommendations
- * - Bundle size analysis
- * - Auto-optimization controls
- * - Historical performance trends
+ * - Real-time performance metrics display with auto-refresh (30s interval)
+ * - Performance score visualization with status indicators
+ * - Critical alerts and optimization recommendations
+ * - Bundle size analysis with compression metrics
+ * - Auto-optimization controls with one-click apply
+ * - Debounced manual refresh to prevent rapid API calls
+ * - Loading skeleton for better UX during data fetch
+ * - Historical performance trends with timestamp tracking
+ *
+ * Performance Optimizations:
+ * - React.memo for component memoization
+ * - useMemo for expensive calculations (metrics, status)
+ * - useCallback for stable function references
+ * - useDebounce to prevent rapid refresh calls
+ * - AbortController for request cancellation
+ * - Request deduplication during auto-refresh
+ *
+ * Data Flow:
+ * 1. Component mounts → initial data fetch from /api/performance/optimization
+ * 2. Auto-refresh runs every 30 seconds (if enabled)
+ * 3. Raw data processed by usePerformanceMetrics hook
+ * 4. Computed metrics passed to PerformanceScoreOverview component
+ * 5. Critical alerts and quick wins displayed in dedicated sections
+ *
+ * @example
+ * ```tsx
+ * // Basic usage
+ * <PerformanceDashboard />
+ *
+ * // With detailed metrics
+ * <PerformanceDashboard detailed={true} />
+ * ```
  */
 export const PerformanceDashboard = memo(
   function PerformanceDashboardComponent({

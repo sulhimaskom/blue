@@ -13,6 +13,11 @@
 
 ### 👔 For Enterprise Customers & Executives
 
+- **[EXECUTIVE_SUMMARY.md](./EXECUTIVE_SUMMARY.md)** - **Executive briefing with strategic vision & ROI** (NEW)
+- **[COMPETITIVE_ANALYSIS.md](./COMPETITIVE_ANALYSIS.md)** - **Market positioning & competitive advantages** (NEW)
+- **[CUSTOMER_SUCCESS_PLAYBOOK.md](./CUSTOMER_SUCCESS_PLAYBOOK.md)** - **Implementation guide & success methodology** (NEW)
+- **[PARTNERSHIP_PROGRAM.md](./PARTNERSHIP_PROGRAM.md)** - **Partner ecosystem & revenue opportunities** (NEW)
+- **[INDUSTRY_ROI_ANALYSIS.md](./INDUSTRY_ROI_ANALYSIS.md)** - **Industry-specific ROI models & business cases** (NEW)
 - **[ENTERPRISE_INTEGRATION.md](./ENTERPRISE_INTEGRATION.md)** - Sales-ready business documentation
 - **[SOLUTION_SHOWCASE.md](./SOLUTION_SHOWCASE.md)** - Platform achievements & ROI metrics
 - **[SUCCESS_STORIES.md](./SUCCESS_STORIES.md)** - Customer success stories by industry

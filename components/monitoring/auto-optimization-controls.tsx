@@ -8,17 +8,68 @@ import {
 import { Button } from "@/components/ui/button";
 import { TrendingUpIcon } from "@/components/ui/icons";
 
+/**
+ * Props interface for AutoOptimizationControls component.
+ * @interface AutoOptimizationControlsProps
+ */
 interface AutoOptimizationControlsProps {
+  /** Whether auto-refresh is currently enabled */
   autoRefresh: boolean;
+  /** Whether data is currently being loaded/refreshed */
   loading: boolean;
+  /** Callback function to toggle auto-refresh on/off */
   onToggleAutoRefresh: () => void;
+  /** Callback function to apply automatic performance optimizations */
   onApplyOptimizations: () => void;
+  /** Callback function to manually refresh performance data */
   onRefresh: () => void;
 }
 
 /**
- * Auto-optimization control buttons for performance dashboard
- * Handles auto-refresh toggle, optimization application, and manual refresh
+ * AutoOptimizationControls component that provides control buttons for the performance dashboard.
+ *
+ * Architectural Pattern:
+ * - Service Layer compliance: Zero business logic in UI component
+ * - Memoized component to prevent unnecessary re-renders
+ * - Theme-aware UI with consistent design system integration
+ * - Accessible controls with proper ARIA labels and roles
+ *
+ * Features:
+ * - Auto-refresh toggle button with visual state feedback
+ * - Auto-optimize button for one-click performance improvements
+ * - Manual refresh button with loading animation
+ * - Responsive button layout with gap spacing
+ * - Disabled state handling during loading
+ * - Keyboard accessible with proper focus states
+ * - Screen reader friendly with ARIA labels
+ *
+ * Button States:
+ * - Auto-refresh: Green when enabled, subtle background when disabled
+ * - Auto-optimize: Always active, blue theme accent
+ * - Refresh: Spinning animation when loading, disabled during fetch
+ *
+ * Accessibility Features:
+ * - Role="toolbar" for control grouping
+ * - aria-label on all interactive elements
+ * - aria-pressed for toggle button state
+ * - aria-busy for loading state indication
+ * - aria-hidden for decorative icons
+ *
+ * Performance Optimizations:
+ * - React.memo for component memoization
+ * - Stable function references prevent re-renders
+ * - Efficient conditional rendering and class name generation
+ *
+ * @example
+ * ```tsx
+ * <AutoOptimizationControls
+ *   autoRefresh={true}
+ *   loading={false}
+ *   onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
+ *   onApplyOptimizations={() => applyOptimizations()}
+ *   onRefresh={() => refreshData()}
+ * />
+ * ```
  */
 export const AutoOptimizationControls = memo(
   function AutoOptimizationControlsComponent({
