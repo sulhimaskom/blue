@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { logger } from "@/lib/logger";
 import {
   ValidationError,
@@ -17,6 +18,7 @@ export {
 /**
  * ServiceError - Enhanced error class for service layer operations
  */
+// eslint-disable-next-line no-unused-vars
 export class ServiceError extends Error {
   constructor(
     message: string,
@@ -231,6 +233,7 @@ export class ServiceErrorHandler {
   /**
    * Create a wrapper function for consistent error handling
    */
+  // eslint-disable-next-line no-unused-vars
   static wrap<T extends any[], R>(
     // eslint-disable-next-line no-unused-vars
     fn: (..._args: T) => R,
@@ -264,6 +267,7 @@ export class ServiceErrorHandler {
   /**
    * Validate input and throw standardized ValidationError if invalid
    */
+  // eslint-disable-next-line no-unused-vars
   static validate<T>(
     // eslint-disable-next-line no-unused-vars
     value: T,
