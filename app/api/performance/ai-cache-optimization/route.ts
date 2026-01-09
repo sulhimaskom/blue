@@ -4,63 +4,48 @@
  * Provides real-time metrics and analytics for AI cache optimization,
  * showing cost savings, performance improvements, and cache efficiency.
  *
- * Refactored to use standardized API response service
+ * Refactored to use standardized APIRouteHandler pattern
  */
 
-import { NextResponse } from "next/server";
-import { APIResponseService } from "@/lib/services/api-response-service";
 import { logger } from "@/lib/logger";
 import { redisManager } from "@/lib/redis";
-import { withRateLimiter } from "@/lib/api-utils";
-import { NextRequest } from "next/server";
+import { APIRouteHandler } from "@/lib/services/api-route-handler";
 
-export async function GET(req: NextRequest) {
-  return withRateLimiter(req, "standard", async () => {
-    const { requestId, startTime } =
-      APIResponseService.generateRequestContext();
+export const GET = APIRouteHandler.createSimpleCachedGETHandler(
+  async () => {
+    logger.info("AI cache optimization metrics requested", {
+      timestamp: new Date().toISOString(),
+    });
 
-    try {
-      logger.info("AI cache optimization metrics requested", {
-        requestId,
-        timestamp: new Date().toISOString(),
-      });
+    // Get current cache optimization statistics
+    const optimizationMetrics = await getOptimizationMetrics();
+    const cacheHitRate = await getOverallCacheHitRate();
 
-      // Get current cache optimization statistics
-      const optimizationMetrics = await getOptimizationMetrics(requestId);
-      const cacheHitRate = await getOverallCacheHitRate();
-
-      const response = APIResponseService.createPerformanceResponse(
-        requestId,
-        startTime,
-        optimizationMetrics,
-        cacheHitRate,
-      );
-
-      return NextResponse.json(response);
-    } catch (error) {
-      return APIResponseService.createErrorResponse(
-        requestId,
-        startTime,
-        error instanceof Error ? error.message : String(error),
-        { status: 500 },
-      );
-    }
-  });
-}
+    return {
+      ...optimizationMetrics,
+      cacheHitRate: `${cacheHitRate}%`,
+    };
+  },
+  {
+    ttl: 60, // 1 minute cache
+    tags: ["ai-cache-optimization"],
+    varyBy: [], // Same response for all users
+  },
+);
 
 /**
  * Get comprehensive cache optimization metrics
  */
-async function getOptimizationMetrics(requestId: string) {
+async function getOptimizationMetrics() {
   const metrics = {
     // Cache performance metrics
-    cachePerformance: await getCachePerformanceMetrics(requestId),
+    cachePerformance: await getCachePerformanceMetrics(),
 
     // Cost optimization analytics
-    costOptimization: await getCostOptimizationAnalytics(requestId),
+    costOptimization: await getCostOptimizationAnalytics(),
 
     // Pattern-based optimization effectiveness
-    patternOptimization: await getPatternOptimizationMetrics(requestId),
+    patternOptimization: await getPatternOptimizationMetrics(),
 
     // Time-based optimization efficiency
     timeOptimization: await getTimeBasedOptimizationMetrics(),
@@ -75,7 +60,7 @@ async function getOptimizationMetrics(requestId: string) {
 /**
  * Get cache performance metrics
  */
-async function getCachePerformanceMetrics(requestId: string) {
+async function getCachePerformanceMetrics() {
   try {
     // Get Redis cache performance statistics
     const redisStats = await redisManager.executeWithFallback(
@@ -101,7 +86,6 @@ async function getCachePerformanceMetrics(requestId: string) {
     };
   } catch (error) {
     logger.warn("Failed to get cache performance metrics", {
-      requestId,
       error: error instanceof Error ? error.message : String(error),
     });
 
@@ -117,7 +101,7 @@ async function getCachePerformanceMetrics(requestId: string) {
 /**
  * Get cost optimization analytics
  */
-async function getCostOptimizationAnalytics(requestId: string) {
+async function getCostOptimizationAnalytics() {
   try {
     // Simulate cost optimization metrics based on cache hit rates
     const cacheHitRate = await getOverallCacheHitRate();
@@ -141,7 +125,6 @@ async function getCostOptimizationAnalytics(requestId: string) {
     };
   } catch (error) {
     logger.warn("Failed to get cost optimization analytics", {
-      requestId,
       error: error instanceof Error ? error.message : String(error),
     });
 
@@ -161,7 +144,7 @@ async function getCostOptimizationAnalytics(requestId: string) {
 /**
  * Get pattern-based optimization metrics
  */
-async function getPatternOptimizationMetrics(requestId: string) {
+async function getPatternOptimizationMetrics() {
   try {
     // Get cache metrics for different AI patterns
     const patterns = [
@@ -187,7 +170,6 @@ async function getPatternOptimizationMetrics(requestId: string) {
     return patternMetrics;
   } catch (error) {
     logger.warn("Failed to get pattern optimization metrics", {
-      requestId,
       error: error instanceof Error ? error.message : String(error),
     });
 
