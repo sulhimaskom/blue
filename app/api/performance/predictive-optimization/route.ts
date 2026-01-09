@@ -79,7 +79,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
   requireAuth: false,
   rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
   schema: CacheWarmingSchema,
-  handler: async ({ _context, data }) => {
+  handler: async ({ data }) => {
     const { patterns, priority = "medium" } = data!;
 
     logger.info("On-demand cache warming requested", {
