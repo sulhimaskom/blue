@@ -227,7 +227,7 @@ export class PerformanceOptimizationService {
           "Enable experimental optimizePackageImports for large libraries",
         expectedImprovement: "10-20% smaller bundle size",
         implementation:
-          "Add clerk, lucide-react, and custom services to optimizePackageImports",
+          "Add clerk and custom services to optimizePackageImports",
       },
     ];
   }

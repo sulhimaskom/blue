@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   credits: integer("credits").default(0).notNull(),
   subscriptionTier: text("subscription_tier").default("free").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
   deletedAt: timestamp("deleted_at"),
 });
 
@@ -29,6 +30,7 @@ export const projects = pgTable("projects", {
   status: text("status").default("draft").notNull(),
   repoUrl: text("repo_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
   deletedAt: timestamp("deleted_at"),
 });
 
@@ -42,6 +44,7 @@ export const blueprints = pgTable("blueprints", {
   structuredData: jsonb("structured_data").notNull(),
   marketResearch: jsonb("market_research"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
   deletedAt: timestamp("deleted_at"),
 });
 
@@ -52,8 +55,9 @@ export const transactions = pgTable("transactions", {
     .notNull(),
   amount: integer("amount").notNull(),
   creditsAdded: integer("credits_added"),
-  stripePaymentId: text("stripe_payment_id"),
+  stripePaymentId: text("stripe_payment_id").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
   deletedAt: timestamp("deleted_at"),
 });
 
