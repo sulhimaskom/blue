@@ -433,9 +433,9 @@ class APIRouteHandler {
           async () => {
             const startTime = Timing.now();
             const context = createRequestContext();
-            let authenticatedUser:
-              | import("@/lib/services/user-service").AuthenticatedUser
-              | null = null;
+let authenticatedUser:
+        | import("@/lib/services/user-service").AuthenticatedUser
+        | null = null;
             const url = new URL(req.url);
 
             try {
@@ -539,6 +539,133 @@ class APIRouteHandler {
       },
       cacheConfig,
     );
+  }
+
+  /**
+   * Create a standardized DELETE handler with authentication and rate limiting
+   */
+  static createDELETEHandler(config: Omit<APIHandlerConfig, 'schema'>) {
+    return async (req: NextRequest) => {
+      const startTime = Timing.now();
+      const context = createRequestContext();
+      let authenticatedUser:
+        | import("@/lib/services/user-service").AuthenticatedUser
+        | null = null;
+      const url = new URL(req.url);
+
+      try {
+        // Authentication if required
+        if (config.requireAuth !== false) {
+          authenticatedUser = await UserService.getAuthenticatedUser(context);
+        }
+
+        // Rate limiting if configured
+        if (config.rateLimiter) {
+          const clientIp =
+            req.headers.get("x-forwarded-for") ||
+            req.headers.get("x-real-ip") ||
+            "unknown";
+          const identifier = authenticatedUser
+            ? `user:${authenticatedUser.clerkId}:${clientIp}`
+            : `ip:${clientIp}`;
+
+          const rateLimitCheck = await config.rateLimiter(identifier);
+          if (!rateLimitCheck.allowed) {
+            logger.security("API rate limit exceeded", {
+              requestId: context.requestId,
+              userId: authenticatedUser?.clerkId,
+              clientIp,
+              resetTime: rateLimitCheck.resetTime,
+            });
+
+            const headers: Record<string, string> = {};
+            if (rateLimitCheck.resetTime) {
+              headers['X-RateLimit-Reset'] = rateLimitCheck.resetTime.toString();
+            }
+
+            return NextResponse.json(
+              formatErrorResponse(new RateLimitError("Rate limit exceeded")),
+              { status: 429, headers }
+            );
+          }
+        }
+
+        // Log API request
+        logger.apiRequest("DELETE", url.pathname, context.requestId, authenticatedUser?.clerkId);
+
+        // Execute handler
+        const result = await config.handler({
+          req,
+          context,
+          user: authenticatedUser || undefined,
+        });
+
+        const duration = Timing.now() - startTime;
+        logger.apiResponse(
+          "DELETE",
+          url.pathname,
+          context.requestId,
+          200,
+          duration
+        );
+
+        return NextResponse.json(
+          formatSuccessResponse(result),
+          { status: 200 }
+        );
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          logger.apiError(
+            "Validation error in DELETE",
+            context.requestId,
+            error,
+            { url: url.pathname, userId: authenticatedUser?.clerkId }
+          );
+          return NextResponse.json(
+            formatErrorResponse(error),
+            { status: 400 }
+          );
+        }
+
+        if (error instanceof NotFoundError) {
+          logger.apiError(
+            "Not found in DELETE",
+            context.requestId,
+            error,
+            { url: url.pathname, userId: authenticatedUser?.clerkId }
+          );
+          return NextResponse.json(
+            formatErrorResponse(error),
+            { status: 404 }
+          );
+        }
+
+        if (error instanceof DatabaseError) {
+          logger.apiError(
+            "Database error in DELETE",
+            context.requestId,
+            error,
+            { url: url.pathname, userId: authenticatedUser?.clerkId }
+          );
+          return NextResponse.json(
+            formatErrorResponse(error),
+            { status: 500 }
+          );
+        }
+
+        const errorObj = error instanceof Error ? error : new Error(String(error));
+        logger.apiError(
+          "Unhandled error in DELETE",
+          context.requestId,
+          errorObj,
+          { url: url.pathname, userId: authenticatedUser?.clerkId }
+        );
+        return NextResponse.json(
+          formatErrorResponse(errorObj),
+          { status: 500 }
+        );
+      }
+    };
   }
 }
 

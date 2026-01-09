@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { z } from "zod";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
@@ -38,25 +39,31 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 export async function PUT(_req: NextRequest, { params }: RouteParams) {
   const { id } = await params;
 
-  return APIRouteHandler.createPOSTHandler({
+  return APIRouteHandler.createPUTHandler({
+    schema: z.object({
+      name: z.string().min(1).optional(),
+      description: z.string().optional(),
+    }),
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-    handler: async ({ context, user }) => {
-      // Update project logic would go here
-      // For now, we'll just return the project as-is
-      const project = await ProjectDataService.getProjectWithBlueprintCount(
+    handler: async ({ context, user, data }) => {
+      const { name, description } = data!;
+      
+      // Implement actual update logic
+      const updatedProject = await ProjectDataService.updateProject(
         id,
         user!.clerkId,
+        { name, description }
       );
 
       logger.userAction("Project updated", user!.clerkId, {
         requestId: context.requestId,
         projectId: id,
-        projectName: project.name,
+        projectName: updatedProject.name,
       });
 
       return {
-        project,
+        project: updatedProject,
         message: "Project updated successfully",
       };
     },
@@ -66,9 +73,9 @@ export async function PUT(_req: NextRequest, { params }: RouteParams) {
 export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   const { id } = await params;
 
-  return APIRouteHandler.createPOSTHandler({
+  return APIRouteHandler.createDELETEHandler({
     requireAuth: true,
-    rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+    rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
     handler: async ({ context, user }) => {
       // Delete the project
       const deletedProject = await ProjectDataService.deleteProject(

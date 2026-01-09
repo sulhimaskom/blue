@@ -93,7 +93,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   const { id } = await params;
 
-  return APIRouteHandler.createGETHandler({
+  return APIRouteHandler.createDELETEHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
     handler: async ({ user }) => {
