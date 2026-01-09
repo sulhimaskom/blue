@@ -28,18 +28,24 @@ export interface DashboardCardProps {
   target?: "_blank" | "_self";
   rel?: string;
   className?: string;
+  loading?: boolean;
+  disabled?: boolean;
 }
 
 /**
  * Reusable dashboard card component following atomic design principles
- * Consolidates the duplicate dashboard card pattern from the dashboard page
+ * Consolidates duplicate dashboard card pattern from dashboard page
  *
  * Features:
+ * - Enhanced hover effects with smooth transitions
  * - Consistent design system alignment using ui-themes
  * - Proper semantic HTML (article element)
- * - Accessible button states
+ * - Accessible button and focus states
  * - Optional badge and icon
  * - Design token-based coloring
+ * - Micro-interactions for improved user feedback
+ * - Keyboard navigation support
+ * - Loading state support
  */
 export const DashboardCard: React.FC<DashboardCardProps> = ({
   title,
@@ -52,19 +58,24 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
   target = "_self",
   rel,
   className,
+  loading = false,
+  disabled = false,
 }) => {
   return (
     <article
       className={cn(
-        `${getBackgroundColor("card")} p-6 rounded-lg ${CARD_VARIANTS.default}`,
+        `${getBackgroundColor("card")} p-6 rounded-lg border ${CARD_VARIANTS.default} hover:scale-[1.02] transition-all duration-300 ease-out group`,
+        loading && "opacity-60 cursor-not-allowed",
+        disabled && "pointer-events-none opacity-50",
         className,
       )}
+      aria-busy={loading}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <h3
             className={cn(
-              "text-lg font-semibold mb-2",
+              "text-lg font-semibold mb-2 transition-colors duration-200 group-hover:text-primary",
               getTextColor("heading"),
             )}
           >
@@ -72,15 +83,26 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
           </h3>
           <p className={cn("mb-4", getTextColor("body"))}>{description}</p>
         </div>
-        {icon && <div className="ml-3">{icon}</div>}
+        {icon && (
+          <div className="ml-3 transform transition-transform duration-300 group-hover:scale-110">
+            {icon}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
         <Button
           asChild
           variant={buttonVariant === "primary" ? "default" : "secondary"}
+          disabled={loading || disabled}
+          loading={loading}
         >
-          <a href={href} target={target} rel={rel}>
+          <a
+            href={href}
+            target={target}
+            rel={rel}
+            className="focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
             {buttonText}
           </a>
         </Button>
@@ -90,7 +112,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
         <div className="mt-3">
           <span
             className={cn(
-              "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
+              "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-transform duration-200 hover:scale-105",
               badgeStyles[badge.variant || "neutral"],
             )}
           >
