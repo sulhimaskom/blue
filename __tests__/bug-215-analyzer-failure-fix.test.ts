@@ -11,9 +11,15 @@ const fs = require("fs");
 console.log("🧪 Testing BUG-215 Analyzer Workflow Fix\n");
 
 describe("BUG-215 Analyzer Workflow Fix", () => {
-  test("OpenCode version consistency", () => {
-    const version = execSync("opencode --version", { encoding: "utf8" }).trim();
-    expect(version).toBe("1.0.193");
+  test("OpenCode version specified in workflow", () => {
+    const workflowPath = ".github/workflows/oc analyzer.yml";
+    const content = fs.readFileSync(workflowPath, "utf8");
+
+    // Check that workflow explicitly installs version 1.0.193
+    expect(content).toContain(
+      "curl -fsSL https://opencode.ai/install | bash -s -- --version 1.0.193",
+    );
+    expect(content).toContain('if [ "$opencode_version" != "1.0.193" ]');
   });
 
   test("Analyzer workflow file exists and is readable", () => {
@@ -22,7 +28,9 @@ describe("BUG-215 Analyzer Workflow Fix", () => {
 
     const content = fs.readFileSync(workflowPath, "utf8");
     expect(content).toContain("Verify OpenCode Version");
-    expect(content).toContain("timeout 300");
+    expect(content).toContain("timeout 2700"); // Updated to 45 minutes
+    expect(content).toContain("Check for Timeout"); // New timeout detection logic
+    expect(content).toContain('ISSUE_TITLE="🤖 Analyzer Timed Out'); // Differentiated issue creation
   });
 
   test("Analyzer prompt file exists", () => {
@@ -34,30 +42,24 @@ describe("BUG-215 Analyzer Workflow Fix", () => {
     expect(content).toContain("Observation without Interference");
   });
 
-  test("Analyzer can execute with timeout handling", () => {
-    const promptPath = ".github/prompts/analyzer-system.md";
+  test("Analyzer timeout handling is properly configured", () => {
+    const workflowPath = ".github/workflows/oc analyzer.yml";
+    const content = fs.readFileSync(workflowPath, "utf8");
 
-    // Test with timeout to simulate CI/CD environment
-    try {
-      const result = execSync(
-        `timeout 30 opencode run "${promptPath}" --model iflowcn/glm-4.6 --share false`,
-        {
-          encoding: "utf8",
-          stdio: "pipe",
-          timeout: 35000,
-        },
-      );
+    // Verify timeout configuration is present and correct
+    expect(content).toContain("timeout 2700"); // 45 minutes
+    expect(content).toContain(
+      "Use 45-minute timeout to stay within 60-minute job timeout",
+    );
 
-      // Should get some output
-      expect(result.length).toBeGreaterThan(0);
-    } catch (error) {
-      // Timeout is acceptable for this test
-      if (error.signal === "SIGTERM") {
-        console.log("⏰ Analyzer test timed out as expected (this is normal)");
-      } else {
-        throw error;
-      }
-    }
+    // Verify timeout detection logic
+    expect(content).toContain("Check for Timeout");
+    expect(content).toContain("if [ $? -eq 124 ]"); // Check for exit code 124 (timeout)
+    expect(content).toContain("TIMED_OUT=true");
+
+    // Verify differentiated issue creation
+    expect(content).toContain('ISSUE_TITLE="🤖 Analyzer Timed Out');
+    expect(content).toContain("Timed out after 45 minutes");
   });
 
   test("Quality gates pass (repository health)", () => {

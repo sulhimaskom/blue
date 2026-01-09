@@ -82,28 +82,71 @@ jobs:
       - name: Execute
         run: |
           export GITHUB_RUN_ID=${{ github.run_id }}
-          timeout 300 opencode run "$(cat .github/prompts/analyzer-system.md)" \
+          # Use 45-minute timeout to stay within 60-minute job timeout with buffer
+          timeout 2700 opencode run "$(cat .github/prompts/analyzer-system.md)" \
             --model iflowcn/glm-4.6 \
             --share false \
             || echo "Analyzer completed with exit code $?"
+
+      - name: Check for Timeout
+        if: failure()
+        run: |
+          # Check if this was a timeout failure
+          if [ $? -eq 124 ]; then
+            echo "⏱️ Analyzer timed out - this indicates the analysis task needed more time than expected"
+            echo "TIMED_OUT=true" >> $GITHUB_ENV
+          else
+            echo "❌ Analyzer failed to start or crashed"
+            echo "TIMED_OUT=false" >> $GITHUB_ENV
+          fi
 
       - name: Fallback on Failure
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          TIMED_OUT: ${{ env.TIMED_OUT }}
         run: |
           echo "⚠️ Analyzer workflow failed. Creating issue for manual review."
+
+          if [ "$TIMED_OUT" = "true" ]; then
+            ISSUE_TITLE="🤖 Analyzer Timed Out - $(date +%Y-%m-%d)"
+            ISSUE_BODY="## Analyzer Timeout Report
+
+            **Workflow**: oc analyzer
+            **Run ID**: ${{ github.run_id }}
+            **Time**: $(date)
+            **Issue**: Timed out after 45 minutes
+
+            ### Context
+            The analyzer process timed out after 45 minutes, indicating:
+            - Codebase size or complexity may have increased
+            - OpenCode may need more time for comprehensive analysis
+            - Consider breaking down analysis into smaller chunks
+
+            ### Action Required
+            1. Review if this is expected behavior for current codebase size
+            2. Consider increasing timeout or optimizing analysis prompts
+            3. May need to disable analyzer for very large repositories
+
+            ---
+            *This issue was auto-generated due to timeout.*"
+          else
+            ISSUE_TITLE="🤖 Analyzer Failed - $(date +%Y-%m-%d)"
+            ISSUE_BODY="## Analyzer Failure Report
+
+            **Workflow**: oc analyzer
+            **Run ID**: ${{ github.run_id }}
+            **Time**: $(date)
+
+            ### Action Required
+            Please review the workflow logs and manually address any issues.
+
+            ---
+            *This issue was auto-generated.*"
+          fi
+
           gh issue create \
-            --title "🤖 Analyzer Failed - $(date +%Y-%m-%d)" \
-            --body "## Analyzer Failure Report
-
-          **Workflow**: oc analyzer
-          **Run ID**: ${{ github.run_id }}
-          **Time**: $(date)
-
-          ### Action Required
-          Please review the workflow logs and manually address any issues.
-
-          ---
-          *This issue was auto-generated.*" \
-            --label "bug" || echo "Could not create issue"
+            --title "$ISSUE_TITLE" \
+            --body "$ISSUE_BODY" \
+            --label "bug" \
+            --label "analyzer" || echo "Could not create issue"
