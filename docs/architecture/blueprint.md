@@ -78,6 +78,8 @@ This logic follows the **Model Context Protocol (MCP)** concept, where the "Brai
 -- User Management is handled by Clerk (external)
 -- We map internal IDs to Clerk User IDs
 -- Row Level Security (RLS) enabled for multi-tenant data isolation
+-- Unique Constraints: stripe_payment_id (transactions), repo_url (projects, partial)
+-- Audit Trail: All tables have updated_at timestamps with automatic triggers
 
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
@@ -85,7 +87,9 @@ CREATE TABLE users (
   email TEXT NOT NULL,
   credits INT DEFAULT 0,
   subscription_tier TEXT DEFAULT 'free', -- free, pro, enterprise
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  deleted_at TIMESTAMP
 );
 
 CREATE TABLE projects (
@@ -94,8 +98,10 @@ CREATE TABLE projects (
   name TEXT NOT NULL,
   description TEXT,
   status TEXT DEFAULT 'draft', -- draft, generating, completed, deployed
-  repo_url TEXT, -- GitHub URL if deployed
-  created_at TIMESTAMP DEFAULT NOW()
+  repo_url TEXT, -- GitHub URL if deployed (UNIQUE when NOT NULL)
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  deleted_at TIMESTAMP
 );
 
 CREATE TABLE blueprints (
@@ -109,7 +115,9 @@ CREATE TABLE blueprints (
 
   market_research JSONB, -- The research data backing this blueprint
 
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  deleted_at TIMESTAMP
 );
 
 CREATE TABLE transactions (
@@ -117,8 +125,10 @@ CREATE TABLE transactions (
   user_id INT REFERENCES users(id),
   amount INT NOT NULL, -- In cents
   credits_added INT,
-  stripe_payment_id TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
+  stripe_payment_id TEXT UNIQUE, -- UNIQUE constraint prevents duplicate charges
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  deleted_at TIMESTAMP
 );
 
 -- RLS Policies (Multi-tenant Security)
