@@ -433,7 +433,7 @@ All agents MUST follow this workflow for ANY repository work:
 
 2. **Quality Gate Verification**: ALWAYS run these commands before starting work:
    - `npm audit` - MUST return 0 vulnerabilities
-   - `npm run build:clean` - MUST pass (14.1s compile time, 43 static pages, 378kB bundle)
+   - `npm run build:clean` - MUST pass (14.9s compile time, 43 static pages, 382kB bundle)
    - `npm run lint` - MUST return 0 warnings/errors
    - `npm run typecheck` - MUST return 0 TypeScript errors
    - `npm test --silent` - MUST return 100% pass rate (44/44 suites passing, 645/645 tests)
