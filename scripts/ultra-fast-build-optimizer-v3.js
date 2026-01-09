@@ -65,7 +65,7 @@ try {
   const buildEnv = {
     ...process.env,
     // Memory and performance optimizations
-    NODE_OPTIONS: `--max-old-space-size=${config.maxMemory} --max-old-semi-space-size=512`,
+    NODE_OPTIONS: `--max-old-space-size=${config.maxMemory}`,
     NEXT_BUILD_WORKERS: config.workers.toString(),
     NODE_ENV: "production",
     
