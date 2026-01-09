@@ -57,6 +57,7 @@ export const transactions = pgTable("transactions", {
   deletedAt: timestamp("deleted_at"),
 });
 
+// Webhook configurations table
 export const webhookConfigurations = pgTable("webhook_configurations", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: integer("user_id")
@@ -74,6 +75,7 @@ export const webhookConfigurations = pgTable("webhook_configurations", {
   deletedAt: timestamp("deleted_at"),
 });
 
+// Webhook event history table
 export const webhookEvents = pgTable("webhook_events", {
   id: uuid("id").primaryKey().defaultRandom(),
   webhookConfigurationId: uuid("webhook_configuration_id")
