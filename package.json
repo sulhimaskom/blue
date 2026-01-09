@@ -29,7 +29,6 @@
     "build:analyze": "ANALYZE=true NODE_OPTIONS='--max-old-space-size=4096' next build",
     "dev:perf": "NODE_OPTIONS='--max-old-space-size=4096' next dev --turbo",
     "dev:optimize": "node scripts/optimize-dev-performance.js",
-    "build:analyze": "ANALYZE=true NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
