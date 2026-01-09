@@ -13,6 +13,16 @@
  */
 
 // =============================================================================
+// CORE STATUS TYPES
+// =============================================================================
+
+/**
+ * Universal status type for system health, service status, and UI indicators
+ * Used across monitoring services, components, and APIs
+ */
+export type StatusType = "healthy" | "degraded" | "unhealthy" | "unknown";
+
+// =============================================================================
 // MONITORING & HEALTH TYPES
 // =============================================================================
 
@@ -241,6 +251,80 @@ export interface DatabasePerformanceMetrics {
     failedQueries: number;
   };
   cacheHitRate: number;
+}
+
+// =============================================================================
+// ADVANCED PERFORMANCE DASHBOARD TYPES
+// =============================================================================
+
+/**
+ * Comprehensive advanced performance metrics data structure containing system,
+ * application, and database performance indicators with timestamp tracking.
+ */
+export interface AdvancedPerformanceMetrics {
+  timestamp: string;
+  system: {
+    cpuUsage: number;
+    memoryUsage: number;
+    diskIOPS: number;
+    networkLatency: number;
+  };
+  application: {
+    averageResponseTime: number;
+    requestsPerSecond: number;
+    errorRate: number;
+    throughput: number;
+  };
+  database: {
+    connectionPool: number;
+    queryTime: number;
+    slowQueries: number;
+    cacheHitRate: number;
+  };
+}
+
+/**
+ * AI-powered cache optimization metrics containing optimization recommendations
+ * with estimated cost savings and confidence scoring.
+ */
+export interface AICacheOptimizationMetrics {
+  timestamp: string;
+  optimizations: Array<{
+    type: string;
+    description: string;
+    estimatedSavings: number;
+    confidence: number;
+    applied: boolean;
+  }>;
+  summary: {
+    totalSavings: number;
+    appliedOptimizations: number;
+    pendingOptimizations: number;
+    hitRateImprovement: number;
+  };
+}
+
+/**
+ * Predictive performance analytics data containing future performance predictions
+ * with confidence scoring and actionable recommendations.
+ */
+export interface PredictivePerformanceData {
+  timestamp: string;
+  predictions: Array<{
+    metric: string;
+    currentValue: number;
+    predictedValue: number;
+    confidence: number;
+    timeframe: string;
+    severity: "low" | "medium" | "high";
+    recommendations: string[];
+  }>;
+  summary: {
+    totalPredictions: number;
+    highSeverity: number;
+    mediumSeverity: number;
+    lowSeverity: number;
+  };
 }
 
 // =============================================================================

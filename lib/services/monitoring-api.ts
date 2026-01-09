@@ -2,7 +2,7 @@ import type {
   AdvancedPerformanceMetrics,
   AICacheOptimizationMetrics,
   PredictivePerformanceData,
-} from "@/components/monitoring/advanced-performance-dashboard.types";
+} from "./service-types";
 
 export interface WebhookQueueStats {
   queue: {

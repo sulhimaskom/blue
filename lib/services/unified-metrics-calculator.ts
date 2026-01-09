@@ -1,4 +1,4 @@
-import type { StatusType } from "@/components/ui/status-indicator";
+import type { StatusType } from "./service-types";
 
 /**
  * Unified interface for health score calculation results

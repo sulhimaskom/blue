@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { MetricCard } from "@/components/ui/metric-card";
-import { type StatusType } from "@/components/ui/status-indicator";
+import { type StatusType } from "@/lib/services/service-types";
 
 /**
  * Props interface for PerformanceScoreOverview component.
