@@ -61,14 +61,48 @@ describe("BUG-215 Analyzer Workflow Fix", () => {
       "Use 45-minute timeout to stay within 60-minute job timeout",
     );
 
-    // Verify timeout detection logic
+    // Verify enhanced OpenCode environment configuration
+    expect(content).toContain("OPENCODE_TIMEOUT=7200000"); // 2 hours internal timeout
+    expect(content).toContain("OPENCODE_KEEPALIVE=30000"); // 30 seconds keepalive
+
+    // Verify retry logic
+    expect(content).toContain("for attempt in {1..3}");
+    expect(content).toContain("Analyzer attempt $attempt of 3");
+
+    // Verify enhanced timeout detection logic
     expect(content).toContain("Check for Timeout");
-    expect(content).toContain("if [ $? -eq 124 ]"); // Check for exit code 124 (timeout)
+    expect(content).toContain("exit_code=$?"); // Enhanced exit code capture
+    expect(content).toContain("TIMEOUT_TYPE=network"); // Network timeout detection
+    expect(content).toContain("TIMEOUT_TYPE=shell"); // Shell timeout detection
     expect(content).toContain("TIMED_OUT=true");
 
     // Verify differentiated issue creation
     expect(content).toContain('ISSUE_TITLE="🤖 Analyzer Timed Out');
-    expect(content).toContain("Timed out after 45 minutes");
+    expect(content).toContain("Network Timeout Report");
+    expect(content).toContain("Shell Timeout Report");
+  });
+
+  test("Network timeout resilience enhancement", () => {
+    const workflowPath = ".github/workflows/oc analyzer.yml";
+    const content = fs.readFileSync(workflowPath, "utf8");
+
+    // Verify OpenCode network configuration
+    expect(content).toContain("OPENCODE_TIMEOUT=7200000"); // 2 hours
+    expect(content).toContain("OPENCODE_KEEPALIVE=30000"); // 30 seconds
+
+    // Verify retry logic with delays
+    expect(content).toContain("for attempt in {1..3}");
+    expect(content).toContain("Retrying in 10 seconds");
+
+    // Verify network timeout detection
+    expect(content).toContain("Network/keepalive timeout detected");
+    expect(content).toContain("keepalive watchdog timeout");
+    expect(content).toContain("TIMEOUT_TYPE=network");
+
+    // Verify enhanced issue reporting
+    expect(content).toContain("Analyzer Network Timeout Report");
+    expect(content).toContain("OpenCode connection watchdog timeout");
+    expect(content).toContain("BUG-215"); // Reference to the issue type
   });
 
   test("Quality gates pass (repository health)", () => {

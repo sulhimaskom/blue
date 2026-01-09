@@ -82,54 +82,120 @@ jobs:
       - name: Execute
         run: |
           export GITHUB_RUN_ID=${{ github.run_id }}
+          
+          # Set OpenCode environment variables for better connectivity
+          export OPENCODE_TIMEOUT=7200000  # 2 hours internal timeout
+          export OPENCODE_KEEPALIVE=30000   # 30 seconds keepalive interval
+          
           # Use 45-minute timeout to stay within 60-minute job timeout with buffer
-          timeout 2700 opencode run "$(cat .github/prompts/analyzer-system.md)" \
-            --model iflowcn/glm-4.6 \
-            --share false \
-            || echo "Analyzer completed with exit code $?"
+          # Add retry logic for network resilience
+          for attempt in {1..3}; do
+            echo "🤖 Analyzer attempt $attempt of 3..."
+            
+            if timeout 2700 opencode run "$(cat .github/prompts/analyzer-system.md)" \
+              --model iflowcn/glm-4.6 \
+              --share false; then
+              echo "✅ Analyzer completed successfully on attempt $attempt"
+              break
+            else
+              exit_code=$?
+              echo "⚠️ Analyzer attempt $attempt failed with exit code $exit_code"
+              
+              if [ $attempt -eq 3 ]; then
+                echo "❌ All 3 attempts failed"
+                exit $exit_code
+              else
+                echo "🔄 Retrying in 10 seconds..."
+                sleep 10
+              fi
+            fi
+          done
 
       - name: Check for Timeout
         if: failure()
         run: |
-          # Check if this was a timeout failure
-          if [ $? -eq 124 ]; then
-            echo "⏱️ Analyzer timed out - this indicates the analysis task needed more time than expected"
+          # Check if this was a timeout failure or network timeout
+          exit_code=$?
+          
+          if [ $exit_code -eq 124 ]; then
+            echo "⏱️ Shell timeout occurred - analyzer exceeded 45 minutes"
+            echo "TIMEOUT_TYPE=shell" >> $GITHUB_ENV
+            echo "TIMED_OUT=true" >> $GITHUB_ENV
+          elif [ $exit_code -eq 1 ]; then
+            echo "⚠️ Network/keepalive timeout detected - this is the OpenCode connection issue"
+            echo "TIMEOUT_TYPE=network" >> $GITHUB_ENV
             echo "TIMED_OUT=true" >> $GITHUB_ENV
           else
-            echo "❌ Analyzer failed to start or crashed"
+            echo "❌ Analyzer failed to start or crashed with exit code $exit_code"
+            echo "TIMEOUT_TYPE=other" >> $GITHUB_ENV
             echo "TIMED_OUT=false" >> $GITHUB_ENV
           fi
+          
+          echo "Exit code: $exit_code" >> $GITHUB_ENV
 
       - name: Fallback on Failure
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           TIMED_OUT: ${{ env.TIMED_OUT }}
+          TIMEOUT_TYPE: ${{ env.TIMEOUT_TYPE }}
         run: |
           echo "⚠️ Analyzer workflow failed. Creating issue for manual review."
 
           if [ "$TIMED_OUT" = "true" ]; then
             ISSUE_TITLE="🤖 Analyzer Timed Out - $(date +%Y-%m-%d)"
-            ISSUE_BODY="## Analyzer Timeout Report
+            
+            if [ "$TIMEOUT_TYPE" = "network" ]; then
+              ISSUE_BODY="## Analyzer Network Timeout Report
 
-            **Workflow**: oc analyzer
-            **Run ID**: ${{ github.run_id }}
-            **Time**: $(date)
-            **Issue**: Timed out after 45 minutes
+              **Workflow**: oc analyzer
+              **Run ID**: ${{ github.run_id }}
+              **Time**: $(date)
+              **Timeout Type**: Network/Keepalive Timeout
+              **Issue**: OpenCode connection watchdog timeout detected
 
-            ### Context
-            The analyzer process timed out after 45 minutes, indicating:
-            - Codebase size or complexity may have increased
-            - OpenCode may need more time for comprehensive analysis
-            - Consider breaking down analysis into smaller chunks
+              ### Context
+              The analyzer failed with a network connection timeout, indicating:
+              - OpenCode internal connection to AI service was lost
+              - Keepalive watchdog triggered (39s execution, 1h timeout)
+              - This is a known issue with OpenCode 1.0.186 → 1.0.193
 
-            ### Action Required
-            1. Review if this is expected behavior for current codebase size
-            2. Consider increasing timeout or optimizing analysis prompts
-            3. May need to disable analyzer for very large repositories
+              ### Technical Details
+              - Error pattern: \"keepalive watchdog timeout\"
+              - Root cause: Network connectivity to iflowcn/glm-4.6 service
+              - Retry logic: 3 attempts implemented but all failed
 
-            ---
-            *This issue was auto-generated due to timeout.*"
+              ### Action Required
+              1. This is a **BUG-215** type issue - requires OpenCode version consistency
+              2. Check if iflow.ai service is experiencing connectivity issues
+              3. Consider alternative model or service if issue persists
+              4. Review network stability between GitHub runners and AI service
+
+              ---
+              *This issue was auto-generated due to network timeout.*"
+            else
+              ISSUE_BODY="## Analyzer Shell Timeout Report
+
+              **Workflow**: oc analyzer
+              **Run ID**: ${{ github.run_id }}
+              **Time**: $(date)
+              **Timeout Type**: Shell Timeout
+              **Issue**: Analyzer exceeded 45-minute time limit
+
+              ### Context
+              The analyzer process timed out after 45 minutes, indicating:
+              - Codebase size or complexity may have increased
+              - OpenCode may need more time for comprehensive analysis
+              - Consider breaking down analysis into smaller chunks
+
+              ### Action Required
+              1. Review if this is expected behavior for current codebase size
+              2. Consider increasing timeout or optimizing analysis prompts
+              3. May need to disable analyzer for very large repositories
+
+              ---
+              *This issue was auto-generated due to shell timeout.*"
+            fi
           else
             ISSUE_TITLE="🤖 Analyzer Failed - $(date +%Y-%m-%d)"
             ISSUE_BODY="## Analyzer Failure Report
@@ -137,6 +203,8 @@ jobs:
             **Workflow**: oc analyzer
             **Run ID**: ${{ github.run_id }}
             **Time**: $(date)
+            **Timeout Type**: ${{ env.TIMEOUT_TYPE }}
+            **Exit Code**: ${{ env.Exit code }}
 
             ### Action Required
             Please review the workflow logs and manually address any issues.
