@@ -25,17 +25,17 @@ describe('Issue #178 - AGENTS.md Quality Gate Metrics', () => {
     const agentsContent = fs.readFileSync('AGENTS.md', 'utf8');
     
     // Extract build metrics
-    const buildMatch = agentsContent.match(/`npm run build` - MUST pass \(([^)]+)\)/);
+    const buildMatch = agentsContent.match(/`npm run build:clean` - MUST pass \(([^)]+)\)/);
     expect(buildMatch).toBeTruthy();
     
     const buildInfo = buildMatch[1];
     
     // Should have current metrics
     expect(buildInfo).toContain('43 static pages');
-    expect(buildInfo).toContain('25.5s compile time');
+    expect(buildInfo).toContain('14.9s compile time');
     
     // Should not have outdated metrics
-    expect(buildInfo).not.toContain('14.3s');
+    expect(buildInfo).not.toContain('25.5s');
   });
 
   it('should have current test metrics', () => {
