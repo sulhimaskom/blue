@@ -6,198 +6,105 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 const nextConfig = {
   transpilePackages: [],
 
-  // Enhanced performance optimization configurations (Next.js 15 compatible)
+  // Streamlined experimental features for speed
   experimental: {
-    // Optimize package imports for smaller bundles and faster builds
+    // Keep only essential package optimizations
     optimizePackageImports: [
       "@clerk/nextjs",
       "lucide-react",
-      "@/lib/services",
-      "lodash",
-      "stripe",
-      "@neondatabase/serverless",
       "zod",
-      "drizzle-orm",
-      "redis",
-      "@sentry/nextjs",
     ],
-    // Enable incremental caching improvements (disabled for speed)
+    // Disable expensive optimizations for speed
     optimizeCss: false,
-    // Performance optimizations
     optimizeServerReact: true,
-    // Disable worker threads for compatibility
     workerThreads: false,
   },
 
-  // Move server external packages to proper location
+  // Reduced externals for faster compilation
   serverExternalPackages: [
     "@clerk/backend",
     "@sentry/node",
-    "@sentry/profiling-node",
   ],
 
-  // Advanced webpack optimization for maximum performance
+  // Streamlined webpack for maximum speed
   webpack: (config, { dev, isServer }) => {
-    // Fix OpenTelemetry dynamic import issue by ignoring dynamic requires
+    // Streamlined module configuration
     config.module = {
       ...config.module,
       exprContextCritical: false,
     };
 
-    // Externalize Node.js built-ins to reduce bundle size and improve build time
-    if (!isServer) {
-      config.externals = {
-        ...config.externals,
-        crypto: "crypto-browserify",
-        stream: "stream-browserify",
-        buffer: "buffer",
-        util: "util",
-        assert: "assert",
-        os: "os-browserify/browser",
-        path: "path-browserify",
-        fs: "empty",
-      };
-
-      // Optimize crypto polyfill for browser
-      config.resolve = {
-        ...config.resolve,
-        fallback: {
-          ...config.resolve.fallback,
-          crypto: "crypto-browserify",
-          stream: "stream-browserify",
-          buffer: "buffer",
-          util: "util",
-          assert: "assert",
-          os: "os-browserify/browser",
-          path: "path-browserify",
-          fs: "empty",
-        },
-      };
-    }
-
-    // Development build optimizations
-    if (dev) {
-      // Enable faster rebuilds in development with optimized watch settings
-      config.watchOptions = {
-        ...config.watchOptions,
-        ignored: /node_modules/,
-        aggregateTimeout: 100, // Further reduced for faster rebuilds
-        poll: 600, // Balanced polling frequency
-      };
-
-      // Optimize development builds
-      config.optimization = {
-        ...config.optimization,
-        removeAvailableModules: false,
-        removeEmptyChunks: false,
-        splitChunks: false, // Disable chunk splitting for faster dev builds
-      };
-    }
-
-    // Ultra-fast build optimizations
+    // Production optimizations
     if (!dev) {
-      config.parallelism = 4; // Maximum parallelization for build speed
+      // Optimized parallelism
+      config.parallelism = 2;
+      
+      // Disable build cache for consistent timing
+      config.cache = false;
 
-      // Intelligent caching strategy
-      if (process.env.NEXT_BUILD_INCREMENTAL !== "false") {
-        config.cache = {
-          type: "filesystem",
-          buildDependencies: {
-            config: [__filename],
-          },
-          maxAge: 1000 * 60 * 60 * 24, // 24 hours cache
-        };
-      } else {
-        config.cache = false; // Clean builds when incremental disabled
-      }
-
-      // Ultra-optimized webpack configuration for maximum speed
+      // Streamlined optimization
       config.optimization = {
         ...config.optimization,
         usedExports: true,
         sideEffects: false,
         moduleIds: "deterministic",
-        // Streamlined chunk splitting for fastest builds
+        // Simplified chunk splitting for speed
         splitChunks: {
           chunks: "all",
-          maxSize: 1000000, // 1MB chunks reduce fragmentation overhead
-          minSize: 300000, // Larger minimum size for less chunk processing
-          maxInitialRequests: 2, // Reduced for faster initial load
-          maxAsyncRequests: 3, // Reduced for faster async loading
+          maxSize: 500000, // 500KB chunks for balance
+          minSize: 200000, // 200KB minimum
+          maxInitialRequests: 3,
+          maxAsyncRequests: 4,
           cacheGroups: {
-            default: {
-              minChunks: 3, // Higher threshold to reduce chunks
-              priority: -20,
-              reuseExistingChunk: true,
-            },
             vendor: {
               test: /[\\/]node_modules[\\/]/,
               name: "vendors",
               priority: 10,
               chunks: "all",
-              reuseExistingChunk: true,
             },
             framework: {
               test: /[\\/](react|react-dom|scheduler)[\\/]/,
               name: "framework",
               priority: 20,
               chunks: "all",
-              reuseExistingChunk: true,
-            },
-            // Consolidate smaller chunks
-            common: {
-              name: "common",
-              minChunks: 2,
-              priority: 5,
-              chunks: "all",
-              reuseExistingChunk: true,
             },
           },
         },
       };
+    }
 
-      // Optimize module resolution for faster builds
-      config.resolve = {
-        ...config.resolve,
-        extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
+    // Development optimizations
+    if (dev) {
+      config.watchOptions = {
+        ignored: /node_modules/,
+        aggregateTimeout: 100,
+        poll: 600,
       };
-
-      // Build-time optimizations
-      if (process.env.NODE_ENV === "production") {
-        // Disable source maps for faster builds (optional)
-        config.devtool = false;
-      }
     }
 
     return config;
   },
 
-  // Compression and caching
+  // Essential optimizations only
   compress: true,
   poweredByHeader: false,
-
-  // Production optimizations
   productionBrowserSourceMaps: false,
 
-  // Image optimization
+  // Simplified image optimization
   images: {
-    formats: ["image/avif", "image/webp"],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    // Enable image optimization cache
-    minimumCacheTTL: 60 * 60 * 24, // 24 hours
+    formats: ["image/webp"],
+    deviceSizes: [640, 1080, 1920],
+    imageSizes: [32, 64, 128],
   },
 
-  // Output optimization
+  // Standalone output
   output: "standalone",
 
-  // Cache management for better performance
+  // Stable build ID
   generateBuildId: async () => {
-    // Use a stable build ID for caching instead of hash-based
-    if (process.env.NODE_ENV === "production") {
-      return `prod-${Date.now()}`;
-    }
-    return "dev";
+    return process.env.NODE_ENV === "production" 
+      ? `prod-${Date.now()}` 
+      : "dev";
   },
 };
 

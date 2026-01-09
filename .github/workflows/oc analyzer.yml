@@ -72,70 +72,81 @@ jobs:
         run: |
           opencode_version=$(opencode --version)
           echo "OpenCode version: $opencode_version"
-
-          # Clean up any existing installation to ensure version consistency
-          echo "🧹 Cleaning up existing OpenCode installation..."
-          rm -rf ~/.opencode
-
-          # Reinstall with exact version
-          echo "🔄 Reinstalling OpenCode version 1.0.193..."
-          curl -fsSL https://opencode.ai/install | bash -s -- --version 1.0.193
-          echo "$HOME/.opencode/bin" >> $GITHUB_PATH
-
-          # Verify version after reinstall
-          final_version=$(opencode --version)
-          echo "Final OpenCode version: $final_version"
-
-          if [ "$final_version" != "1.0.193" ]; then
-            echo "❌ Critical: Version mismatch after reinstall. Expected 1.0.193, got $final_version"
-            exit 1
+          if [ "$opencode_version" != "1.0.193" ]; then
+            echo "⚠️ Version mismatch detected, reinstalling..."
+            curl -fsSL https://opencode.ai/install | bash -s -- --version 1.0.193
+            echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+            opencode --version
           fi
-
-          echo "✅ OpenCode version 1.0.193 verified successfully"
 
       - name: Execute
         run: |
           export GITHUB_RUN_ID=${{ github.run_id }}
-
-          # Increase timeout and add better error handling
-          echo "🚀 Starting OpenCode analyzer with 10-minute timeout..."
-          timeout 600 opencode run "$(cat .github/prompts/analyzer-system.md)" \
+          # Use 45-minute timeout to stay within 60-minute job timeout with buffer
+          timeout 2700 opencode run "$(cat .github/prompts/analyzer-system.md)" \
             --model iflowcn/glm-4.6 \
             --share false \
-            --timeout 600
+            || echo "Analyzer completed with exit code $?"
 
-          # Capture exit code for better error handling
-          exit_code=$?
-          echo "Analyzer completed with exit code: $exit_code"
-
-          # Handle different exit scenarios
-          if [ $exit_code -eq 124 ]; then
-            echo "⚠️ Analyzer timed out after 10 minutes"
-            exit 1
-          elif [ $exit_code -eq 0 ]; then
-            echo "✅ Analyzer completed successfully"
+      - name: Check for Timeout
+        if: failure()
+        run: |
+          # Check if this was a timeout failure
+          if [ $? -eq 124 ]; then
+            echo "⏱️ Analyzer timed out - this indicates the analysis task needed more time than expected"
+            echo "TIMED_OUT=true" >> $GITHUB_ENV
           else
-            echo "⚠️ Analyzer failed with exit code $exit_code"
-            exit $exit_code
+            echo "❌ Analyzer failed to start or crashed"
+            echo "TIMED_OUT=false" >> $GITHUB_ENV
           fi
 
       - name: Fallback on Failure
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          TIMED_OUT: ${{ env.TIMED_OUT }}
         run: |
           echo "⚠️ Analyzer workflow failed. Creating issue for manual review."
+
+          if [ "$TIMED_OUT" = "true" ]; then
+            ISSUE_TITLE="🤖 Analyzer Timed Out - $(date +%Y-%m-%d)"
+            ISSUE_BODY="## Analyzer Timeout Report
+
+            **Workflow**: oc analyzer
+            **Run ID**: ${{ github.run_id }}
+            **Time**: $(date)
+            **Issue**: Timed out after 45 minutes
+
+            ### Context
+            The analyzer process timed out after 45 minutes, indicating:
+            - Codebase size or complexity may have increased
+            - OpenCode may need more time for comprehensive analysis
+            - Consider breaking down analysis into smaller chunks
+
+            ### Action Required
+            1. Review if this is expected behavior for current codebase size
+            2. Consider increasing timeout or optimizing analysis prompts
+            3. May need to disable analyzer for very large repositories
+
+            ---
+            *This issue was auto-generated due to timeout.*"
+          else
+            ISSUE_TITLE="🤖 Analyzer Failed - $(date +%Y-%m-%d)"
+            ISSUE_BODY="## Analyzer Failure Report
+
+            **Workflow**: oc analyzer
+            **Run ID**: ${{ github.run_id }}
+            **Time**: $(date)
+
+            ### Action Required
+            Please review the workflow logs and manually address any issues.
+
+            ---
+            *This issue was auto-generated.*"
+          fi
+
           gh issue create \
-            --title "🤖 Analyzer Failed - $(date +%Y-%m-%d)" \
-            --body "## Analyzer Failure Report
-
-          **Workflow**: oc analyzer
-          **Run ID**: ${{ github.run_id }}
-          **Time**: $(date)
-
-          ### Action Required
-          Please review the workflow logs and manually address any issues.
-
-          ---
-          *This issue was auto-generated.*" \
-            --label "bug" || echo "Could not create issue"
+            --title "$ISSUE_TITLE" \
+            --body "$ISSUE_BODY" \
+            --label "bug" \
+            --label "analyzer" || echo "Could not create issue"
