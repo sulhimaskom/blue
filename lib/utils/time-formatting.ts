@@ -128,3 +128,151 @@ export const MONITORING_THRESHOLDS = {
   /** Long operation duration threshold (30 seconds) */
   LONG_OPERATION: DB_TIMEOUTS.LONG,
 } as const;
+
+/**
+ * Comprehensive date formatting configurations
+ * Centralizes all date/time display patterns used across the application
+ */
+export const DATE_FORMATTING = {
+  /** Standard date format for UI display (e.g., "Jan 15, 2024") */
+  STANDARD_DATE: {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  } as const,
+  
+  /** Detailed date format for tooltips (e.g., "January 15, 2024") */
+  DETAILED_DATE: {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  } as const,
+  
+  /** Time format for real-time displays (e.g., "3:45:30 PM") */
+  STANDARD_TIME: {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  } as const,
+  
+  /** Compact time format (e.g., "3:45 PM") */
+  COMPACT_TIME: {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  } as const,
+} as const;
+
+/**
+ * Standardized locale for date/time formatting
+ * Ensures consistency across all components
+ */
+export const DEFAULT_LOCALE = 'en-US';
+
+/**
+ * Formats date using standard configuration for UI displays
+ * Consolidates duplicate toLocaleDateString() calls
+ * @param date - Date to format
+ * @param locale - Locale to use (defaults to DEFAULT_LOCALE)
+ * @returns Formatted date string
+ */
+export function formatStandardDate(date: Date, locale: string = DEFAULT_LOCALE): string {
+  return date.toLocaleDateString(locale, DATE_FORMATTING.STANDARD_DATE);
+}
+
+/**
+ * Formats date using detailed configuration for tooltips/expanded views
+ * @param date - Date to format
+ * @param locale - Locale to use (defaults to DEFAULT_LOCALE)
+ * @returns Detailed formatted date string
+ */
+export function formatDetailedDate(date: Date, locale: string = DEFAULT_LOCALE): string {
+  return date.toLocaleDateString(locale, DATE_FORMATTING.DETAILED_DATE);
+}
+
+/**
+ * Formats time using standard configuration for real-time displays
+ * Consolidates duplicate toLocaleTimeString() calls
+ * @param date - Date to format
+ * @param locale - Locale to use (defaults to DEFAULT_LOCALE)
+ * @returns Formatted time string
+ */
+export function formatStandardTime(date: Date, locale: string = DEFAULT_LOCALE): string {
+  return date.toLocaleTimeString(locale, DATE_FORMATTING.STANDARD_TIME);
+}
+
+/**
+ * Formats time using compact configuration for space-constrained displays
+ * @param date - Date to format
+ * @param locale - Locale to use (defaults to DEFAULT_LOCALE)
+ * @returns Compact formatted time string
+ */
+export function formatCompactTime(date: Date, locale: string = DEFAULT_LOCALE): string {
+  return date.toLocaleTimeString(locale, DATE_FORMATTING.COMPACT_TIME);
+}
+
+/**
+ * Formats date and time combination for comprehensive display
+ * @param date - Date to format
+ * @param locale - Locale to use (defaults to DEFAULT_LOCALE)
+ * @returns Combined date and time string
+ */
+export function formatDateTime(date: Date, locale: string = DEFAULT_LOCALE): string {
+  return `${formatStandardDate(date, locale)} ${formatStandardTime(date, locale)}`;
+}
+
+/**
+ * Checks if a date is recent (within last 24 hours)
+ * @param date - Date to check
+ * @returns True if date is within last 24 hours
+ */
+export function isRecent(date: Date): boolean {
+  const now = new Date();
+  const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+  return diffHours < 24;
+}
+
+/**
+ * Formats date with relative context (shows "Today", "Yesterday", or full date)
+ * @param date - Date to format
+ * @param locale - Locale to use (defaults to DEFAULT_LOCALE)
+ * @returns Contextual formatted date string
+ */
+export function formatContextualDate(date: Date, locale: string = DEFAULT_LOCALE): string {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const inputDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  
+  if (inputDate.getTime() === today.getTime()) {
+    return 'Today';
+  } else if (inputDate.getTime() === yesterday.getTime()) {
+    return 'Yesterday';
+  } else {
+    return formatStandardDate(date, locale);
+  }
+}
+
+/**
+ * Formats timestamp with automatic contextual optimization
+ * Shows relative time for recent (<1h), contextual for today/yesterday, standard for older
+ * @param date - Date to format
+ * @param locale - Locale to use (defaults to DEFAULT_LOCALE)
+ * @returns Optimized formatted timestamp string
+ */
+export function formatOptimizedTimestamp(date: Date, locale: string = DEFAULT_LOCALE): string {
+  const now = new Date();
+  const diffMinutes = (now.getTime() - date.getTime()) / (1000 * 60);
+  
+  if (diffMinutes < 60) {
+    return formatRelativeTime(date);
+  } else if (isRecent(date)) {
+    return formatContextualDate(date, locale);
+  } else {
+    return formatStandardDate(date, locale);
+  }
+}

@@ -4,6 +4,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { MetricCard } from "@/components/ui/metric-card";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { useInterval, STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
+import { formatStandardTime } from "@/lib/utils/time-formatting";
 
 interface TaskAnalytics {
   totalTasks: number;
@@ -100,7 +101,7 @@ export default function TaskExcellenceDashboard(): React.ReactElement {
           <div className="text-right">
             <div className="text-sm text-gray-500">Last Updated</div>
             <div className="text-lg font-mono text-gray-700">
-              {currentTime.toLocaleTimeString()}
+              {formatStandardTime(currentTime)}
             </div>
           </div>
         </div>

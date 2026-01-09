@@ -6,6 +6,7 @@ import {
   monitoringAPI,
   WebhookQueueStats,
 } from "@/lib/services/monitoring-api";
+import { formatStandardTime } from "@/lib/utils/time-formatting";
 
 interface WebhookQueueMonitorProps {
   enableAutoRefresh?: boolean;
@@ -70,7 +71,7 @@ export function WebhookQueueMonitor({
         <div className="flex items-center space-x-3">
           {lastRefresh && (
             <span className="text-xs text-gray-500">
-              Updated: {lastRefresh.toLocaleTimeString()}
+              Updated: {formatStandardTime(lastRefresh)}
             </span>
           )}
           <button
