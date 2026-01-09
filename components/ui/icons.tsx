@@ -424,3 +424,122 @@ export const ZapIcon = ({ className = "w-5 h-5" }: IconProps) => (
     />
   </svg>
 );
+
+export const PlusIcon = ({ className = "w-5 h-5" }: IconProps) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M12 5v14m-7-7h14"
+    />
+  </svg>
+);
+
+export const Edit2Icon = ({ className = "w-5 h-5" }: IconProps) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+    />
+  </svg>
+);
+
+export const Trash2Icon = ({ className = "w-5 h-5" }: IconProps) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M3 6h18m-2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6m4-6v6m-6-6h10m-10 0V9a1 1 0 011-1h8a1 1 0 011 1v2"
+    />
+  </svg>
+);
+
+export const TestTubeIcon = ({ className = "w-5 h-5" }: IconProps) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M9 2v7.312c-2.5 1.313-4 3.794-4 6.688 0 4.418 3.582 8 8 8s8-3.582 8-8c0-2.894-1.5-5.375-4-6.688V2m3 15a5 5 0 01-10 0m5 3v3"
+    />
+  </svg>
+);
+
+export const RotateCcwIcon = ({ className = "w-5 h-5" }: IconProps) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M1 4v6h6M23 20v-6h-6M20.49 15a9 9 0 11-2.12-9.36L23 10"
+    />
+  </svg>
+);
+
+export const EyeIcon = ({ className = "w-5 h-5" }: IconProps) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+    />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+export const EyeOffIcon = ({ className = "w-5 h-5" }: IconProps) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M1 1l22 22"
+    />
+  </svg>
+);

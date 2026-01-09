@@ -3,15 +3,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { formatStandardDate, formatDateTime } from "@/lib/utils/time-formatting";
 import {
-  Plus,
-  Edit2,
-  Trash2,
-  TestTube,
-  RotateCcw,
-  Eye,
-  EyeOff,
-  X,
-} from "lucide-react";
+  PlusIcon,
+  Edit2Icon,
+  Trash2Icon,
+  TestTubeIcon,
+  RotateCcwIcon,
+  EyeIcon,
+  EyeOffIcon,
+  XIcon,
+} from "@/components/ui/icons";
 import { useNotification } from "@/lib/hooks/use-notification";
 import type {
   WebhookConfigurationInput,
@@ -263,7 +263,7 @@ export function WebhookConfigurationManager() {
             }}
             className="text-gray-400 hover:text-gray-600"
           >
-            <X className="h-5 w-5" />
+            <XIcon className="h-5 w-5" />
           </button>
         </div>
 
@@ -442,7 +442,7 @@ export function WebhookConfigurationManager() {
             onClick={() => setSelectedWebhook(null)}
             className="text-gray-400 hover:text-gray-600"
           >
-            <X className="h-5 w-5" />
+            <XIcon className="h-5 w-5" />
           </button>
         </div>
 
@@ -461,7 +461,7 @@ export function WebhookConfigurationManager() {
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
-          <Plus className="h-4 w-4" />
+          <PlusIcon className="h-4 w-4" />
           Add Webhook
         </button>
       </div>
@@ -532,7 +532,7 @@ export function WebhookConfigurationManager() {
                     {testingWebhook === webhook.id ? (
                       <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
                     ) : (
-                      <TestTube className="h-4 w-4" />
+                      <TestTubeIcon className="h-4 w-4" />
                     )}
                   </button>
 
@@ -546,7 +546,7 @@ export function WebhookConfigurationManager() {
                     className="p-2 text-green-600 hover:bg-green-50 rounded"
                     title="View event history"
                   >
-                    <Eye className="h-4 w-4" />
+                    <EyeIcon className="h-4 w-4" />
                   </button>
 
                   <button
@@ -555,9 +555,9 @@ export function WebhookConfigurationManager() {
                     title="Show/Hide secret"
                   >
                     {showSecrets[webhook.id] ? (
-                      <EyeOff className="h-4 w-4" />
+                      <EyeOffIcon className="h-4 w-4" />
                     ) : (
-                      <Eye className="h-4 w-4" />
+                      <EyeIcon className="h-4 w-4" />
                     )}
                   </button>
 
@@ -566,7 +566,7 @@ export function WebhookConfigurationManager() {
                     className="p-2 text-orange-600 hover:bg-orange-50 rounded"
                     title="Rotate secret"
                   >
-                    <RotateCcw className="h-4 w-4" />
+                    <RotateCcwIcon className="h-4 w-4" />
                   </button>
 
                   <button
@@ -574,7 +574,7 @@ export function WebhookConfigurationManager() {
                     className="p-2 text-gray-600 hover:bg-gray-50 rounded"
                     title="Edit webhook"
                   >
-                    <Edit2 className="h-4 w-4" />
+                    <Edit2Icon className="h-4 w-4" />
                   </button>
 
                   <button
@@ -582,7 +582,7 @@ export function WebhookConfigurationManager() {
                     className="p-2 text-red-600 hover:bg-red-50 rounded"
                     title="Delete webhook"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2Icon className="h-4 w-4" />
                   </button>
                 </div>
               </div>
