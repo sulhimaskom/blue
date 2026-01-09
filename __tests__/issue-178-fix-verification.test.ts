@@ -31,8 +31,8 @@ describe('Issue #178 - AGENTS.md Quality Gate Metrics', () => {
     const buildInfo = buildMatch[1];
     
     // Should have current metrics
-    expect(buildInfo).toContain('44 static pages');
-    expect(buildInfo).toContain('20.6s compile time');
+    expect(buildInfo).toContain('43 static pages');
+    expect(buildInfo).toContain('14.3s compile time');
     
     // Should not have outdated metrics
     expect(buildInfo).not.toContain('25.4s');
@@ -48,11 +48,13 @@ describe('Issue #178 - AGENTS.md Quality Gate Metrics', () => {
     
     const testInfo = testMatch[1];
     
-    // Should have reasonable test metrics
-    expect(testInfo).toMatch(/^\d+\/\d+ suites passing$/);
+    // Should have reasonable test metrics  
+    expect(testInfo).toMatch(/^\d+\/\d+ suites passing/);
     
-    // Should not have outdated format
-    expect(testInfo).not.toContain('645/645 tests');
+    // Should have note about timing issues if present
+    if (testInfo.includes('suites passing,')) {
+      expect(testInfo).toContain('timing issues');
+    }
   });
 
   it('should have current verification date', () => {

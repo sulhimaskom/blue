@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, memo } from "react";
+import { useInterval, STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
 import { BaseCard } from "@/components/ui/base-card";
 import {
   StatusIndicator,
@@ -195,16 +196,27 @@ export const PerformanceDashboard = memo(
       refreshPerformanceDataInner(controller.signal);
     }, [refreshPerformanceDataInner]);
 
-    // Auto-refresh effect with initial fetch
-    useEffect(() => {
-      // Initial data fetch
-      autoRefreshData();
+    // Use standardized interval management for auto-refresh
+    const { start: startAutoRefresh, stop: stopAutoRefresh } = useInterval(autoRefreshData, {
+      intervalMs: STANDARD_INTERVALS.DEFAULT_MONITORING, // 30 seconds
+      autoStart: autoRefresh,
+      runImmediately: true,
+      onError: (error) => {
+        logger.error("Performance dashboard auto-refresh failed", {
+          error: error.message,
+          component: "PerformanceDashboard",
+        });
+      },
+    });
 
+    // React to autoRefresh state changes
+    useEffect(() => {
       if (autoRefresh) {
-        const interval = setInterval(autoRefreshData, 30000); // 30 seconds
-        return () => clearInterval(interval);
+        startAutoRefresh();
+      } else {
+        stopAutoRefresh();
       }
-    }, [autoRefresh, autoRefreshData]);
+    }, [autoRefresh, startAutoRefresh, stopAutoRefresh]);
 
     // Auto-optimization function
     const applyOptimizations = async () => {

@@ -23,35 +23,79 @@ const nextConfig = {
   // Minimal externals
   serverExternalPackages: [],
 
-  // Ultra-streamlined webpack
+  // Ultra-streamlined webpack with advanced optimizations
   webpack: (config, { dev }) => {
     // Basic module config
     config.module.exprContextCritical = false;
 
     // Production ultra-optimizations
     if (!dev) {
-      // Single worker for reduced overhead
-      config.parallelism = 1;
+      // Enhanced parallelism for modern CPUs
+      config.parallelism = 2;
       
-      // Completely disable cache
-      config.cache = false;
+      // Strategic cache configuration
+      config.cache = {
+        type: 'filesystem',
+        maxGenerations: 1,
+        maxAge: 86400000, // 24 hours
+        buildDependencies: {
+          config: [__filename],
+        },
+      };
 
-      // Minimal optimization
+      // Advanced optimization with strategic chunk splitting
       config.optimization = {
-        // Only essential optimizations
+        // Essential optimizations
         usedExports: true,
         sideEffects: false,
-        // Skip complex chunk splitting
-        splitChunks: false,
-        // Disable minimization in development
+        moduleIds: "deterministic",
+        // Strategic chunk splitting for caching
+        splitChunks: {
+          chunks: "all",
+          maxSize: 400000, // 400KB chunks
+          minSize: 200000, // 200KB minimum  
+          maxInitialRequests: 3,
+          maxAsyncRequests: 4,
+          cacheGroups: {
+            // Framework chunk
+            framework: {
+              test: /[\\/](react|react-dom|scheduler)[\\/]/,
+              name: "framework",
+              priority: 20,
+              chunks: "all",
+            },
+            // Vendor chunk
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: "vendors", 
+              priority: 10,
+              chunks: "all",
+              exclude: /[\\/](react|react-dom|scheduler)[\\/]/,
+            },
+          },
+        },
+        // Minimize in production only
         minimize: process.env.NODE_ENV === "production",
       };
 
       // Remove expensive plugins
       config.plugins = config.plugins.filter(plugin => {
-        // Keep only essential plugins
         return plugin.constructor.name !== "FaviconsWebpackPlugin";
       });
+
+      // Enhanced resolve configuration
+      config.resolve = {
+        ...config.resolve,
+        symlinks: false,
+        extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+      };
+
+      // Reduced stats for speed
+      config.stats = {
+        preset: 'minimal',
+        modules: false,
+        children: false,
+      };
     }
 
     return config;
@@ -73,8 +117,15 @@ const nextConfig = {
   // Standalone output
   output: "standalone",
 
-  // Simple build ID
-  generateBuildId: () => "build",
+  // Optimized build ID with caching
+  generateBuildId: async () => {
+    if (process.env.NODE_ENV === "production") {
+      // Hourly granularity for cache optimization
+      const hourTimestamp = Math.floor(Date.now() / (1000 * 60 * 60));
+      return `speed-${hourTimestamp}`;
+    }
+    return "dev-speed";
+  },
 
   // Disable build analytics
   onDemandEntries: {
