@@ -30,67 +30,17 @@ console.log(`   • Memory: ${config.maxMemory}MB (enhanced allocation)`);
 console.log(`   • Target: ${(config.targetTime / 1000).toFixed(1)}s (aggressive target)`);
 console.log(`   • Cache: ${config.enableCache ? 'Strategic' : 'Disabled'}\n`);
 
-// Intelligent cache management
-if (fs.existsSync(".next")) {
-  console.log("🧹 Intelligent cache optimization...");
-  try {
-    // Clean problematic cache artifacts only
-    const cacheCleanPatterns = [
-      ".next/cache/pages",
-      ".next/cache/app",
-      ".next/server/app",
-      ".next/server/pages", 
-      ".next/static/chunks/webpack",
-      ".next/static/css",
-      ".next/traces",
-    ];
-    
-    cacheCleanPatterns.forEach(pattern => {
-      if (fs.existsSync(pattern)) {
-        execSync(`rm -rf ${pattern}`, { stdio: "pipe" });
-      }
-    });
-    
-    console.log("✓ Cache strategically optimized\n");
-  } catch (error) {
-    console.log("⚠️  Cache optimization skipped\n");
-  }
-}
-
 console.log("🔨 Starting ultra-fast build...");
 const startTime = Date.now();
 
 try {
-  // Advanced build configuration
+  // Advanced build configuration - simplified to match working fallback build
   const buildEnv = {
     ...process.env,
-    // Memory and performance optimizations
+    // Memory optimization
     NODE_OPTIONS: `--max-old-space-size=${config.maxMemory}`,
-    NEXT_BUILD_WORKERS: config.workers.toString(),
-    NODE_ENV: "production",
-    
-    // Next.js 15 performance flags
+    // Disable telemetry
     NEXT_TELEMETRY_DISABLED: "1",
-    
-    // Ultra-optimization flags
-    TURBOPACK: "0", // Use webpack for consistent performance
-    NEXT_BUILD_INCREMENTAL: config.enableCache ? "true" : "false",
-    ANALYZE: "false",
-    
-    // Aggressive optimization settings
-    NEXT_MINIMIZE: "true",
-    NEXT_DISABLE_SOURCEMAPS: "true",
-    NEXT_OPTIMIZE_CSS: "false", // Disable CSS optimization for speed
-    NEXT_BUILD_ANALYTICS: "false",
-    
-    // Advanced performance flags
-    NEXT_OPTIMIZE_SERVER_REACT: "true",
-    NEXT_DISABLE_TYPE_CHECK: "false", // Keep type checking for quality
-    NEXT_COMPRESS: "true",
-    
-    // Memory management
-    NODE_MAX_OLD_SPACE_SIZE: config.maxMemory,
-    NODE_MAX_SEMI_SPACE_SIZE: "512",
   };
 
   // Execute optimized build
