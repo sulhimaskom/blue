@@ -10,7 +10,11 @@ export const POST = APIRouteHandler.createPOSTHandler({
   requireCredits: 10,
   rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
   schema: webhookConfigurationSchema,
-  handler: async ({ validatedData, user }: any) => {
+  handler: async ({ data: validatedData, user }) => {
+    if (!user) {
+      throw new Error("Authentication required");
+    }
+
     const userId = user.id;
     const {
       name,
@@ -35,7 +39,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
       },
     );
 
-    logger.userAction("created_webhook_configuration", userId, {
+    logger.userAction("created_webhook_configuration", userId.toString(), {
       webhookId: configuration.id,
       name: configuration.name,
     });
@@ -60,7 +64,11 @@ export const POST = APIRouteHandler.createPOSTHandler({
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: true,
   rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-  handler: async ({ user }: any) => {
+  handler: async ({ user }) => {
+    if (!user) {
+      throw new Error("Authentication required");
+    }
+
     const configurations = await WebhookConfigurationService.getConfigurations(
       user.id,
     );
