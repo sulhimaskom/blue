@@ -213,6 +213,34 @@ export class ProjectDataService {
   }
 
   /**
+   * Update project details
+   * Used by: /api/projects/[id] (PUT)
+   */
+  static async updateProject(
+    projectId: string,
+    clerkId: string,
+    updates: { name?: string; description?: string }
+  ) {
+    const database = db();
+
+    // Verify project ownership first
+    await this.verifyProjectOwnership(projectId, clerkId);
+
+    const [updatedProject] = await database
+      .update(projects)
+      .set(updates)
+      .where(
+        and(
+          eq(projects.id, projectId),
+          isNull(projects.deletedAt)
+        )
+      )
+      .returning();
+
+    return updatedProject;
+  }
+
+  /**
    * Get blueprint by ID with version ordering
    * Used by: /api/blueprints/[id] (PUT)
    */
