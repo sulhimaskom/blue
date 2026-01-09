@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { WebhookConfigurationService } from "@/lib/services/webhook-configuration-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import type { WebhookStatus, WebhookEventType } from "@/lib/schemas/webhook-schema";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -13,14 +14,17 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   return APIRouteHandler.createGETHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-    handler: async ({ user, url }: any) => {
+    handler: async ({ req, user }) => {
+      if (!user) throw new Error("User not authenticated");
       const userId = user.id;
 
-      const urlObj = new URL(url);
+      const urlObj = new URL(req.url);
       const limit = parseInt(urlObj.searchParams.get("limit") || "50");
       const offset = parseInt(urlObj.searchParams.get("offset") || "0");
-      const status = urlObj.searchParams.get("status") as any;
-      const eventType = urlObj.searchParams.get("eventType") as any;
+      const statusStr = urlObj.searchParams.get("status");
+      const eventTypeStr = urlObj.searchParams.get("eventType");
+      const status = statusStr ? (statusStr as WebhookStatus) : undefined;
+      const eventType = eventTypeStr ? (eventTypeStr as WebhookEventType) : undefined;
 
       const events = await WebhookConfigurationService.getEventHistory(
         userId,

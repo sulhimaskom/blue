@@ -9,9 +9,10 @@ export const POST = APIRouteHandler.createPOSTHandler({
   requireCredits: 2,
   rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
   schema: webhookRetrySchema,
-  handler: async ({ validatedData, user }: any) => {
+  handler: async ({ data, user }) => {
+    if (!user) throw new Error("User not authenticated");
     const userId = user.id;
-    const { eventId } = validatedData as z.infer<typeof webhookRetrySchema>;
+    const { eventId } = data as z.infer<typeof webhookRetrySchema>;
 
     const success = await WebhookConfigurationService.retryWebhook(
       userId,

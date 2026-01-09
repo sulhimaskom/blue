@@ -9,9 +9,10 @@ export const POST = APIRouteHandler.createPOSTHandler({
   requireCredits: 1,
   rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
   schema: webhookSecretRotationSchema,
-  handler: async ({ validatedData, user }: any) => {
+  handler: async ({ data, user }) => {
+    if (!user) throw new Error("User not authenticated");
     const userId = user.id;
-    const { webhookId } = validatedData as z.infer<
+    const { webhookId } = data as z.infer<
       typeof webhookSecretRotationSchema
     >;
 

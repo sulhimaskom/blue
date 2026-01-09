@@ -83,7 +83,7 @@ export const PUT = APIRouteHandler.createPUTHandler({
 
     if (data?.brandName && data.brandName !== existingTheme.brandName) {
       const newCustomerId = data.brandName.toLowerCase().replace(/\s+/g, "-");
-      (updatedTheme as any).customerId = newCustomerId;
+      (updatedTheme as typeof existingTheme & { customerId: string }).customerId = newCustomerId;
     }
 
     enterpriseThemeManager.registerTheme(updatedTheme);
@@ -91,7 +91,7 @@ export const PUT = APIRouteHandler.createPUTHandler({
     logger.info("Enterprise theme updated", {
       requestId: context.requestId,
       customerId,
-      newCustomerId: (updatedTheme as any).customerId,
+      newCustomerId: (updatedTheme as typeof existingTheme & { customerId: string }).customerId,
       brandName: updatedTheme.brandName,
       updatedFields: Object.keys(data || {}),
     });

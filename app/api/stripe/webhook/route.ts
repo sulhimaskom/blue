@@ -33,7 +33,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     verifySignature: (body: string, headers: Headers) =>
       SecurityService.verifyStripeWebhook(body, headers),
     useQueue: true,
-    processEvent: async (event: any, context: { requestId: string }) => {
+    processEvent: async (event: unknown, context: { requestId: string }) => {
       const body = JSON.stringify(event);
       const signature = request.headers.get("stripe-signature") || "";
 

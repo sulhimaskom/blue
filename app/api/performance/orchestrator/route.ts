@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const service = url.searchParams.get("service"); // memory, cache, database, all
 
-    let result: any = {};
+    const result: Record<string, unknown> = {};
 
     if (!service || service === "all" || service === "memory") {
       const memoryHealth =
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       config,
     });
 
-    const results: any = {};
+    const results: Record<string, unknown> = {};
     let optimizationsExecuted = 0;
 
     try {
@@ -168,19 +168,35 @@ export async function POST(request: NextRequest) {
 /**
  * Calculate estimated performance improvement based on optimization results
  */
-function calculateEstimatedImprovement(results: any): number {
+function calculateEstimatedImprovement(results: Record<string, unknown>): number {
   let improvement = 0;
 
+  const memoryResult = results.memory as {
+    success?: boolean;
+    memoryFreed?: number;
+  } | undefined;
+
+  const cacheResult = results.cache as {
+    success?: boolean;
+    hitRateImprovement?: number;
+    memoryFreed?: number;
+  } | undefined;
+
+  const dbResult = results.database as {
+    success?: boolean;
+    improvements?: Record<string, number>;
+  } | undefined;
+
   // Memory optimization impact (30% weight)
-  if (results.memory && results.memory.success) {
-    const memoryFreed = results.memory.memoryFreed || 0;
+  if (memoryResult && memoryResult.success) {
+    const memoryFreed = memoryResult.memoryFreed || 0;
     improvement += Math.min(30, memoryFreed * 0.5);
   }
 
   // Cache optimization impact (40% weight)
-  if (results.cache && results.cache.success) {
-    const hitRateImprovement = results.cache.hitRateImprovement || 0;
-    const cacheMemoryFreed = results.cache.memoryFreed || 0;
+  if (cacheResult && cacheResult.success) {
+    const hitRateImprovement = cacheResult.hitRateImprovement || 0;
+    const cacheMemoryFreed = cacheResult.memoryFreed || 0;
     improvement += Math.min(
       40,
       hitRateImprovement * 2 + cacheMemoryFreed * 0.3,
@@ -188,12 +204,10 @@ function calculateEstimatedImprovement(results: any): number {
   }
 
   // Database optimization impact (30% weight)
-  if (results.database && results.database.success) {
-    const dbImprovements = Object.values(
-      results.database.improvements || ({} as Record<string, number>),
-    );
+  if (dbResult && dbResult.success) {
+    const dbImprovements = Object.values(dbResult.improvements || {}) as (number | undefined)[];
     const totalDBImprovement = dbImprovements.reduce(
-      (sum: number, val: any) => sum + (val || 0),
+      (sum: number, val: number | undefined) => sum + (val || 0),
       0,
     );
     improvement += Math.min(30, totalDBImprovement * 0.1);
