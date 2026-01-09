@@ -4,12 +4,13 @@ import path from 'path';
 
 describe('GitHub Issue #232 Fix Verification', () => {
   describe('Build System Fix', () => {
-    it('should have empty optimizePackageImports array in next.config.js', async () => {
+    it('should have removed optimizePackageImports from next.config.js', async () => {
       const configPath = path.resolve(process.cwd(), 'next.config.js');
       const configContent = fs.readFileSync(configPath, 'utf8');
       
-      // Verify optimizePackageImports is an empty array (Fix for Issue #232)
-      expect(configContent).toContain('optimizePackageImports: []');
+      // Verify optimizePackageImports configuration is removed (Fix for Issue #232)
+      expect(configContent).not.toContain('optimizePackageImports:');
+      expect(configContent).toContain('REMOVED: optimizePackageImports - causes Html import bug');
       expect(configContent).not.toContain('@clerk/nextjs');
     });
 

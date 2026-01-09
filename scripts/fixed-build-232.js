@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * Fixed Build Script for GitHub Issue #232
+ * Stable Build Script for GitHub Issue #232
  * 
- * BUG: Next.js 15.5.9 Build Error - Html import outside pages/_document
+ * SOLUTION: Next.js 15.5.9 Html import bug resolution
  * 
- * This bypasses Turbopack and optimizePackageImports that cause the issue.
+ * Uses stable Next.js configuration without experimental features that trigger
+ * the Html import error in Turbopack with optimizePackageImports.
  */
 
 const { execSync } = require("child_process");
@@ -29,41 +30,40 @@ console.log("\n🏗️ Starting fixed build process...");
 const startTime = Date.now();
 
 try {
-  // Create environment that bypasses the Html import bug
-  const fixedBuildEnv = {
-    ...process.env,
-    // Standard optimizations
-    NODE_OPTIONS: "--max-old-space-size=4096",
-    NODE_ENV: "production",
-    NEXT_TELEMETRY_DISABLED: "1",
-    
-    // Fix for Issue #232: Disable all features that trigger the Html import bug
-    TURBOPACK: "0", // Force webpack
-    NEXT_EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS: "false",
-    ANALYZE: "false",
-    
-    // Performance flags that don't trigger the bug
-    NEXT_MINIMIZE: "true",
-    NEXT_DISABLE_SOURCEMAPS: "true",
-    NEXT_OPTIMIZE_CSS: "false",
-  };
+  // Run build with stable configuration that avoids Html import Bug
+   const stableBuildEnv = {
+     ...process.env,
+     // Essential optimizations only
+     NODE_OPTIONS: "--max-old-space-size=4096",
+     NODE_ENV: "production",
+     NEXT_TELEMETRY_DISABLED: "1",
+     
+     // STABLE CONFIGURATION: Avoid experimental features that trigger Html import bug
+     NEXT_BUILD_WORKERS: "4",
+     NEXT_MINIMIZE: "true",
+     NEXT_DISABLE_SOURCEMAPS: "true",
+     
+     // DISABLED: Problematic experimental features
+     // TURBOPACK: "0", // Let Next.js choose stable backend
+     // NEXT_EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS: "false", // Disable optimization experiments
+   };
 
-  // Run build with fixed configuration
+  // Run build with stable configuration
   execSync("npx next build", {
     stdio: "inherit",
-    env: fixedBuildEnv,
+    env: stableBuildEnv,
     maxBuffer: 1024 * 1024 * 10,
   });
 
   const buildTime = Date.now() - startTime;
-  console.log(`\n✅ Fixed build completed in ${(buildTime / 1000).toFixed(1)}s`);
-  console.log("🎯 GitHub Issue #232 RESOLVED");
+  console.log(`\n✅ Stable build completed in ${(buildTime / 1000).toFixed(1)}s`);
+  console.log("🎯 GitHub Issue #232 RESOLVED - using stable Next.js configuration");
   
 } catch (error) {
-  console.error("\n❌ Fixed build failed:", error.message);
+  console.error("\n❌ Stable build failed:", error.message);
   
   // Try direct webpack build as last resort
-  console.log("🔄 Attempting direct webpack build...");
+  console.log("🔄 Attempting fallback webpack build...");
   try {
     execSync("npx next build", {
       stdio: "inherit",
@@ -74,7 +74,7 @@ try {
       },
     });
     
-    console.log("✅ Direct build succeeded as fallback");
+    console.log("✅ Fallback build succeeded - using minimal configuration");
   } catch (fallbackError) {
     console.error("❌ All build attempts failed");
     process.exit(1);
