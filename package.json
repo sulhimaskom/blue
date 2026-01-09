@@ -6,7 +6,9 @@
   "sideEffects": false,
   "scripts": {
     "dev": "next dev",
-    "build": "NEXT_BUILD_WORKERS=4 NODE_OPTIONS='--max-old-space-size=4096' npx next build",
+    "build": "node scripts/ultra-build-optimizer-v3.js",
+    "build:fast": "node scripts/ultra-build-optimizer-v3.js",
+    "build:standard": "NEXT_BUILD_WORKERS=4 NODE_OPTIONS='--max-old-space-size=4096' npx next build",
     "build:clean": "rm -rf .next && NODE_OPTIONS='--max-old-space-size=4096' NEXT_BUILD_WORKERS=4 next build",
     "build:analyze": "ANALYZE=true NODE_OPTIONS='--max-old-space-size=4096' next build",
     "dev:perf": "NODE_OPTIONS='--max-old-space-size=4096' next dev --turbo",
