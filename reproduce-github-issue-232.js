@@ -16,13 +16,13 @@ const path = require('path');
 console.log('🔍 Reproducing GitHub Issue #232: Next.js 15.5.9 Build Error');
 console.log('=' .repeat(60));
 
-function runCommand(command, description) {
+function runCommand(command, args, description) {
   console.log(`\n📋 ${description}`);
-  console.log(`🔧 Running: ${command}`);
-  
+  console.log(`🔧 Running: ${command} ${args.join(' ')}`);
+
   try {
-    const output = execSync(command, { 
-      encoding: 'utf8', 
+    const output = execSync(command, args, {
+      encoding: 'utf8',
       stdio: 'pipe',
       timeout: 180000 // 3 minutes
     });
@@ -36,23 +36,39 @@ function runCommand(command, description) {
 
 function verifyNoHtmlImports() {
   console.log('\n🔍 Verifying no Html imports in user code...');
-  
+
   const userCodeDirs = ['app', 'lib', 'components'];
   let htmlImportsFound = [];
-  
+
+  function findFiles(dir, extensions) {
+    const files = [];
+    const items = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const item of items) {
+      const fullPath = path.join(dir, item.name);
+      if (item.isDirectory() && item.name !== 'node_modules' && !item.name.startsWith('.')) {
+        files.push(...findFiles(fullPath, extensions));
+      } else if (item.isFile() && extensions.some(ext => item.name.endsWith(ext))) {
+        files.push(fullPath);
+      }
+    }
+
+    return files;
+  }
+
   userCodeDirs.forEach(dir => {
     if (fs.existsSync(dir)) {
-      const files = execSync(`find ${dir} -name "*.ts" -o -name "*.tsx"`, { encoding: 'utf8' }).trim().split('\n');
-      
+      const files = findFiles(dir, ['.ts', '.tsx']);
+
       files.forEach(file => {
         if (fs.existsSync(file) && !file.includes('node_modules')) {
           const content = fs.readFileSync(file, 'utf8');
-          
+
           // Check for Html imports
           if (content.includes('Html') && (content.includes('from') || content.includes('import'))) {
             htmlImportsFound.push({ file, type: 'import', snippet: extractSnippet(content, 'Html') });
           }
-          
+
           // Check for Html JSX usage
           if (content.includes('<Html>') || content.includes('<Html ')) {
             htmlImportsFound.push({ file, type: 'jsx', snippet: extractSnippet(content, '<Html') });
@@ -61,7 +77,7 @@ function verifyNoHtmlImports() {
       });
     }
   });
-  
+
   if (htmlImportsFound.length === 0) {
     console.log('✅ VERIFIED: No Html imports found in user code');
     return true;
@@ -121,13 +137,13 @@ async function reproduceIssue() {
   const noHtmlImports = verifyNoHtmlImports();
   
   // Step 2: Run quality gates
-  const auditResult = runCommand('npm audit', 'Security audit check');
-  const lintResult = runCommand('npm run lint', 'ESLint check');
-  const typecheckResult = runCommand('npm run typecheck', 'TypeScript check');
-  
+  const auditResult = runCommand('npm', ['audit'], 'Security audit check');
+  const lintResult = runCommand('npm', ['run', 'lint'], 'ESLint check');
+  const typecheckResult = runCommand('npm', ['run', 'typecheck'], 'TypeScript check');
+
   // Step 3: Attempt production build (this should trigger the bug)
   console.log('\n🎯 Attempting production build (this should reproduce the bug)...');
-  const buildResult = runCommand('npm run build', 'Production build attempt');
+  const buildResult = runCommand('npm', ['run', 'build'], 'Production build attempt');
   
   // Step 4: Analysis
   console.log('\n📊 Reproduction Analysis:');

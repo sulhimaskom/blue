@@ -1,4 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -65,23 +66,37 @@ describe('GitHub Issue #232 Fix Verification', () => {
     });
 
     it('should not have any Html imports in user code', async () => {
-      const { execSync } = require('child_process');
-      
       const userCodeDirs = ['app', 'lib', 'components'];
       const htmlImportsFound: Array<{file: string, type: string}> = [];
-      
+
+      function findFiles(dir: string, extensions: string[]): string[] {
+        const files: string[] = [];
+        const items = fs.readdirSync(dir, { withFileTypes: true });
+
+        for (const item of items) {
+          const fullPath = path.join(dir, item.name);
+          if (item.isDirectory() && item.name !== 'node_modules' && !item.name.startsWith('.')) {
+            files.push(...findFiles(fullPath, extensions));
+          } else if (item.isFile() && extensions.some(ext => item.name.endsWith(ext))) {
+            files.push(fullPath);
+          }
+        }
+
+        return files;
+      }
+
       userCodeDirs.forEach(dir => {
         if (fs.existsSync(dir)) {
-          const files = execSync(`find ${dir} -name "*.ts" -o -name "*.tsx"`, { encoding: 'utf8' }).trim().split('\n');
-          
+          const files = findFiles(dir, ['.ts', '.tsx']);
+
           files.forEach((file: string) => {
             if (fs.existsSync(file) && !file.includes('node_modules')) {
               const content = fs.readFileSync(file, 'utf8');
-              
+
               if (content.includes('Html') && (content.includes('from') || content.includes('import'))) {
                 htmlImportsFound.push({ file, type: 'import' });
               }
-              
+
               if (content.includes('<Html>') || content.includes('<Html ')) {
                 htmlImportsFound.push({ file, type: 'jsx' });
               }
@@ -89,24 +104,24 @@ describe('GitHub Issue #232 Fix Verification', () => {
           });
         }
       });
-      
+
       expect(htmlImportsFound).toHaveLength(0);
     });
   });
 
   describe('Build Performance', () => {
     it('should build successfully with standard webpack', async () => {
-      const { execSync } = require('child_process');
-      
       try {
         // Clean and build with direct command (this should now work)
-        execSync('rm -rf .next', { stdio: 'pipe' });
-        const result = execSync('npx next build', { 
-          encoding: 'utf8', 
+        if (fs.existsSync('.next')) {
+          fs.rmSync('.next', { recursive: true, force: true });
+        }
+        const result = execSync('npx next build', {
+          encoding: 'utf8',
           stdio: 'pipe',
           timeout: 300000 // 5 minutes
         });
-        
+
         expect(result).toContain('Creating an optimized production build');
         expect(result).toContain('✓ Generating static pages');
         expect(result).toContain('✓ Compiled successfully');

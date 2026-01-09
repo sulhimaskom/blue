@@ -19,7 +19,7 @@ console.log("=" .repeat(40));
 if (fs.existsSync(".next")) {
   console.log("🧹 Cleaning build artifacts...");
   try {
-    execSync("rm -rf .next", { stdio: "pipe" });
+    fs.rmSync(".next", { recursive: true, force: true });
     console.log("✓ Build artifacts cleaned");
   } catch (error) {
     console.log("⚠️  Cache cleanup failed");

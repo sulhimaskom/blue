@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from "next/link";
+import { logger } from '@/lib/logger';
 
 export default function Error({
   error,
@@ -11,9 +12,13 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log error to monitoring service
-    // eslint-disable-next-line no-console
-    console.error('Global error boundary triggered:', error);
+    logger.error('Global error boundary triggered', {
+      error: {
+        name: error.name,
+        message: error.message,
+        digest: error.digest,
+      },
+    });
   }, [error]);
 
   return (
