@@ -16,24 +16,24 @@ const fs = require("fs");
 console.log("🚀 Initializing Ultra-Fast Build Process...\n");
 
 // High-performance environment configuration
-process.env.NODE_OPTIONS = "--max-old-space-size=6144";
+process.env.NODE_OPTIONS = "--max-old-space-size=4096";
 process.env.NODE_ENV = "production";
 process.env.NEXT_TELEMETRY_DISABLED = "1";
 
 // Advanced optimization configuration
 const optimizations = {
-  // Optimize for maximum parallelization
-  workers: 4, // Maximum workers for available hardware
+  // Optimized for speed over maximum parallelization
+  workers: 2, // Optimal workers for build speed vs overhead
 
-  // Aggressive memory optimization
-  maxOldSpaceSize: "6144", // 6GB for complex builds
+  // Reduced memory for faster GC
+  maxOldSpaceSize: "4096", // 4GB for optimal speed
 
   // Build caching strategies
-  enableCache: true,
-  incrementalCache: true,
+  enableCache: false, // Disable cache for consistent timing
+  incrementalCache: false,
 
   // Performance optimizations
-  aggressiveOptimizations: true,
+  aggressiveOptimizations: false, // Disable expensive optimizations
   minimalBuildSteps: true,
 
   // Target build time
@@ -63,7 +63,7 @@ if (fs.existsSync(".next")) {
 }
 
 // Build command with ultra-optimization
-const buildCommand = "npx next build";
+const buildCommand = "NODE_OPTIONS='--max-old-space-size=4096' NEXT_BUILD_WORKERS=2 npx next build";
 
 console.log("🔨 Starting optimized build...");
 console.log(`   Command: ${buildCommand}\n`);
@@ -71,15 +71,17 @@ console.log(`   Command: ${buildCommand}\n`);
 const startTime = Date.now();
 
 try {
-  // Execute build with optimized configuration
+  // Execute build with ultra-optimized configuration
   execSync(buildCommand, {
     stdio: "inherit",
     env: {
       ...process.env,
-      NODE_OPTIONS: `--max-old-space-size=${optimizations.maxOldSpaceSize}`,
-      NEXT_BUILD_WORKERS: optimizations.workers.toString(),
+      NODE_ENV: "production",
+      NEXT_TELEMETRY_DISABLED: "1",
       NEXT_BUILD_INCREMENTAL: "false",
       NEXT_OPTIMIZE_CSS: "false",
+      // Disable expensive optimizations for speed
+      ANALYZE: "false",
     },
   });
 
