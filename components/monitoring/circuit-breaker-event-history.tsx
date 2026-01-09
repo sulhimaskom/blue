@@ -2,11 +2,9 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { BaseCard } from "@/components/ui/base-card";
-import {
-  StatusIndicator,
-  type StatusType,
-} from "@/components/ui/status-indicator";
+import { StatusIndicator } from "@/components/ui/status-indicator";
 import { cn } from "@/lib/constants/ui-themes";
+import type { StatusType } from "@/lib/services/service-types";
 import {
   formatRelativeTime,
   generateEventId,

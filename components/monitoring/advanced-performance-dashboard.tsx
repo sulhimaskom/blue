@@ -178,11 +178,9 @@ import React, { useState, useEffect, useCallback } from "react";
  * @returns {JSX.Element} Fully interactive performance analytics dashboard
  */
 import { BaseCard } from "@/components/ui/base-card";
-import {
-  StatusIndicator,
-  type StatusType,
-} from "@/components/ui/status-indicator";
+import { StatusIndicator } from "@/components/ui/status-indicator";
 import { Button } from "@/components/ui/button";
+import type { StatusType } from "@/lib/services/service-types";
 import {
   CpuIcon,
   TrendingUpIcon,

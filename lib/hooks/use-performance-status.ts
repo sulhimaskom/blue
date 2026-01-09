@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { StatusType } from "@/components/ui/status-indicator";
+import type { StatusType } from "@/lib/services/service-types";
 import { UnifiedMetricsCalculator } from "@/lib/services/unified-metrics-calculator";
 
 /**

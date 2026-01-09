@@ -1,11 +1,9 @@
 import React, { useEffect, useMemo, useState, useCallback, memo } from "react";
 import { useInterval, STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
 import { BaseCard } from "@/components/ui/base-card";
-import {
-  StatusIndicator,
-  type StatusType,
-} from "@/components/ui/status-indicator";
+import { StatusIndicator } from "@/components/ui/status-indicator";
 import { CardLoadingSkeleton } from "@/components/ui/loading-skeleton";
+import type { StatusType } from "@/lib/services/service-types";
 import { ActivityIcon, AlertTriangleIcon } from "@/components/ui/icons";
 import { getUIText } from "@/lib/constants/ui-text";
 import { useDebounce } from "@/lib/hooks/use-debounce";

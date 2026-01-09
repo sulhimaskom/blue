@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { ActivityIcon, ServerIcon, ChartIcon } from "./icons";
-import { StatusIndicator, type StatusType } from "./status-indicator";
+import { StatusIndicator } from "./status-indicator";
+import type { StatusType } from "@/lib/services/service-types";
 import {
   getTrendColor,
   getTextColor,

@@ -15,7 +15,7 @@ export { Skeleton, MetricCardSkeleton, DashboardSkeleton } from "./skeleton";
 // Data Display Components
 export { MetricCard, MetricSummaryCard } from "./metric-card";
 export { StatusIndicator } from "./status-indicator";
-export type { StatusType } from "./status-indicator";
+export type { StatusType } from "@/lib/services/service-types";
 
 // Icons (selective exports of available icons)
 export {

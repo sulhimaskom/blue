@@ -5,8 +5,7 @@ import {
   SIZE_VARIANTS,
   type StatusThemeType,
 } from "@/lib/constants/ui-themes";
-
-export type StatusType = "healthy" | "degraded" | "unhealthy" | "unknown";
+import type { StatusType } from "@/lib/services/service-types";
 
 interface StatusIndicatorProps {
   status: StatusType;
