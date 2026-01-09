@@ -114,7 +114,7 @@ describe('GitHub Issue #232 Fix Verification', () => {
         // If build fails, ensure it's not due to the Html import issue
         const errorMsg = error instanceof Error ? error.message : String(error);
         expect(errorMsg).not.toContain('<Html> should not be imported');
-        fail('Build should succeed with the fix applied');
+        throw new Error('Build should succeed with the fix applied');
       }
     }, 300000);
   });
