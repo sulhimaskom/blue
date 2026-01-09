@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useInterval } from "@/lib/hooks/use-interval";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { CircuitBreakerStatusPanel } from "@/components/monitoring/circuit-breaker-status-panel";
 import { CircuitBreakerResetControl } from "@/components/monitoring/circuit-breaker-reset-control";
@@ -54,17 +55,32 @@ export default function CircuitBreakersPage() {
     fetchMetrics();
   };
 
-  // Auto-refresh effect
+  // Initial fetch
   useEffect(() => {
-    fetchMetrics(); // Initial fetch
+    fetchMetrics();
+  }, []);
 
-    if (!autoRefresh || refreshInterval <= 0) {
-      return;
+  // Use standardized interval management
+  const { start: startRefreshing, stop: stopRefreshing } = useInterval(fetchMetrics, {
+    intervalMs: refreshInterval,
+    autoStart: autoRefresh && refreshInterval > 0,
+    runImmediately: false,
+    onError: (error) => {
+      logger.error("Circuit breakers page metrics fetch failed", {
+        error: error.message,
+        component: "CircuitBreakersPage",
+      });
+    },
+  });
+
+  // React to autoRefresh and refreshInterval changes
+  useEffect(() => {
+    if (autoRefresh && refreshInterval > 0) {
+      startRefreshing();
+    } else {
+      stopRefreshing();
     }
-
-    const interval = setInterval(fetchMetrics, refreshInterval);
-    return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]);
+  }, [autoRefresh, refreshInterval, startRefreshing, stopRefreshing]);
 
   // Handle reset completion
   const handleResetComplete = () => {

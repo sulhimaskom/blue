@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useInterval, STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
 import { BaseCard } from "@/components/ui/base-card";
 import {
   StatusIndicator,
@@ -92,15 +93,28 @@ export function CircuitBreakerStatusPanel({
 
     fetchMetrics();
 
-    if (!refreshInterval || !autoRefresh) {
-      return;
-    }
+    }, [_externalMetrics, fetchMetrics]);
 
-    // Note: Interval management could be enhanced with useInterval hook
-    // This approach maintains backward compatibility with existing API
-    const interval = setInterval(fetchMetrics, refreshInterval);
-    return () => clearInterval(interval);
-  }, [_externalMetrics, fetchMetrics, refreshInterval, autoRefresh]);
+  // Use standardized interval management
+  const { start: startRefreshing, stop: stopRefreshing } = useInterval(fetchMetrics, {
+    intervalMs: refreshInterval || STANDARD_INTERVALS.DEFAULT_MONITORING,
+    autoStart: autoRefresh && !!refreshInterval,
+    onError: (error) => {
+      logger.error("Circuit breaker metrics fetch failed", {
+        error: error.message,
+        component: "CircuitBreakerStatusPanel",
+      });
+    },
+  });
+
+  // React to autoRefresh changes
+  useEffect(() => {
+    if (autoRefresh && refreshInterval) {
+      startRefreshing();
+    } else {
+      stopRefreshing();
+    }
+  }, [autoRefresh, refreshInterval, startRefreshing, stopRefreshing]);
 
   // Get status type based on circuit breaker state
   const getStatusType = (state: string): StatusType => {

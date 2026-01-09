@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { MetricCard } from "@/components/ui/metric-card";
 import { GradientCard } from "@/components/ui/gradient-card";
-import { STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
+import { useInterval, STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
 
 interface TaskAnalytics {
   totalTasks: number;
@@ -74,11 +74,14 @@ export default function TaskExcellenceDashboard(): React.ReactElement {
 
   const updateTime = useCallback(() => setCurrentTime(new Date()), []);
 
-  // Use centralized real-time interval management
-  useEffect(() => {
-    const timer = setInterval(updateTime, STANDARD_INTERVALS.REAL_TIME);
-    return () => clearInterval(timer);
-  }, [updateTime]);
+  // Use standardized interval management for real-time updates
+  useInterval(updateTime, {
+    intervalMs: STANDARD_INTERVALS.REAL_TIME,
+    autoStart: true,
+    onError: (_error) => {
+      // Silently handle time update errors to avoid console spam
+    },
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">

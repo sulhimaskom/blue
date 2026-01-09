@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useInterval, STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
+import { logger } from "@/lib/logger";
 import { AIMemoryOptimizationService } from "@/lib/services/performance/ai-memory-optimization-service";
 import { AdvancedCacheStrategiesService } from "@/lib/services/performance/advanced-cache-strategies-service";
 import { DatabaseQueryOptimizationService } from "@/lib/services/performance/database-query-optimization-service";
@@ -145,99 +147,111 @@ export function RealTimePerformanceDashboard() {
    * - Graceful error handling and loading state management
    * - Data aggregation and normalization from multiple sources
    */
-  useEffect(() => {
-    /**
-     * Fetches performance metrics from all service endpoints in parallel
-     * Aggregates and normalizes data into a unified metrics structure
-     *
-     * Service Endpoints:
-     * - AIMemoryOptimizationService: Memory health and pressure metrics
-     * - AdvancedCacheStrategiesService: Cache hit rates and efficiency scores
-     * - DatabaseQueryOptimizationService: Query times and connection utilization
-     */
-    const fetchMetrics = async () => {
-      try {
-        setLoading(true);
+/**
+   * Fetches performance metrics from all service endpoints in parallel
+   * Aggregates and normalizes data into a unified metrics structure
+   *
+   * Service Endpoints:
+   * - AIMemoryOptimizationService: Memory health and pressure metrics
+   * - AdvancedCacheStrategiesService: Cache hit rates and efficiency scores
+   * - DatabaseQueryOptimizationService: Query times and connection utilization
+   */
+  const fetchMetrics = async () => {
+    try {
+      setLoading(true);
 
-        // Fetch all performance metrics in parallel
-        const [memoryHealth, cacheAnalytics, dbMetrics] = await Promise.all([
-          AIMemoryOptimizationService.getAIMemoryHealth(),
-          AdvancedCacheStrategiesService.getCacheAnalytics(),
-          DatabaseQueryOptimizationService.getDatabasePerformanceMetrics(),
-        ]);
+      // Fetch all performance metrics in parallel
+      const [memoryHealth, cacheAnalytics, dbMetrics] = await Promise.all([
+        AIMemoryOptimizationService.getAIMemoryHealth(),
+        AdvancedCacheStrategiesService.getCacheAnalytics(),
+        DatabaseQueryOptimizationService.getDatabasePerformanceMetrics(),
+      ]);
 
-        // Combine all metrics
-        const combinedMetrics = {
-          memory: memoryHealth.success
+      // Combine and normalize metrics
+      const combinedMetrics = {
+        memory: memoryHealth.success
+          ? {
+              usage: 0, // Would be calculated from actual metrics
+              pressure: memoryHealth.data
+                ? (100 - memoryHealth.data.score) / 100
+                : 0,
+              status: memoryHealth.data?.status || "healthy",
+            }
+          : { usage: 0, pressure: 0, status: "healthy" as const },
+
+        cache:
+          cacheAnalytics.success && cacheAnalytics.data
             ? {
-                usage: 0, // Would be calculated from actual metrics
-                pressure: memoryHealth.data
-                  ? (100 - memoryHealth.data.score) / 100
-                  : 0,
-                status: memoryHealth.data?.status || "healthy",
+                hitRate:
+                  Object.values(cacheAnalytics.data.patterns).reduce(
+                    (sum: number, pattern: any) => sum + pattern.hitRate,
+                    0,
+                  ) /
+                  Math.max(
+                    1,
+                    Object.keys(cacheAnalytics.data.patterns).length,
+                  ),
+                efficiency: cacheAnalytics.data.memoryEfficiency,
+                performanceScore: cacheAnalytics.data.performanceScore,
               }
-            : { usage: 0, pressure: 0, status: "healthy" as const },
+            : { hitRate: 0, efficiency: 0, performanceScore: 0 },
 
-          cache:
-            cacheAnalytics.success && cacheAnalytics.data
-              ? {
-                  hitRate:
-                    Object.values(cacheAnalytics.data.patterns).reduce(
-                      (sum: number, pattern: any) => sum + pattern.hitRate,
-                      0,
-                    ) /
-                    Math.max(
-                      1,
-                      Object.keys(cacheAnalytics.data.patterns).length,
-                    ),
-                  efficiency: cacheAnalytics.data.memoryEfficiency,
-                  performanceScore: cacheAnalytics.data.performanceScore,
-                }
-              : { hitRate: 0, efficiency: 0, performanceScore: 0 },
+        database:
+          dbMetrics.success && dbMetrics.data
+            ? {
+                queryTime: dbMetrics.data.queryStats.averageTime,
+                connectionUtilization:
+                  (dbMetrics.data.connectionPool.active /
+                    dbMetrics.data.connectionPool.max) *
+                  100,
+                slowQueries: dbMetrics.data.queryStats.totalQueries,
+              }
+            : { queryTime: 0, connectionUtilization: 0, slowQueries: 0 },
 
-          database:
-            dbMetrics.success && dbMetrics.data
-              ? {
-                  queryTime: dbMetrics.data.queryStats.averageTime,
-                  connectionUtilization:
-                    (dbMetrics.data.connectionPool.active /
-                      dbMetrics.data.connectionPool.max) *
-                    100,
-                  slowQueries: dbMetrics.data.queryStats.totalQueries,
-                }
-              : { queryTime: 0, connectionUtilization: 0, slowQueries: 0 },
+        recommendations: [
+          ...(memoryHealth.success && memoryHealth.data
+            ? memoryHealth.data.recommendations
+            : []),
+          ...(cacheAnalytics.success && cacheAnalytics.data
+            ? cacheAnalytics.data.recommendations
+            : []),
+          ...(dbMetrics.success && dbMetrics.data
+            ? dbMetrics.data.recommendations
+            : []),
+        ],
+      };
 
-          recommendations: [
-            ...(memoryHealth.success && memoryHealth.data
-              ? memoryHealth.data.recommendations
-              : []),
-            ...(cacheAnalytics.success && cacheAnalytics.data
-              ? cacheAnalytics.data.recommendations
-              : []),
-            ...(dbMetrics.success && dbMetrics.data
-              ? dbMetrics.data.recommendations
-              : []),
-          ],
-        };
-
-        setMetrics(combinedMetrics);
-        setLastUpdate(new Date());
-      } catch (error) {
-        // Handle error gracefully
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Initial fetch
-    fetchMetrics();
-
-    // Set up auto-refresh
-    if (autoRefresh) {
-      const interval = setInterval(fetchMetrics, 30000); // Refresh every 30 seconds
-      return () => clearInterval(interval);
+      setMetrics(combinedMetrics);
+      setLastUpdate(new Date());
+    } catch (error) {
+      // Handle error gracefully
+    } finally {
+      setLoading(false);
     }
-  }, [autoRefresh]);
+  };
+
+  // Use standardized interval management
+  const { start: startRefreshing, stop: stopRefreshing } = useInterval(fetchMetrics, {
+    intervalMs: STANDARD_INTERVALS.DEFAULT_MONITORING, // 30 seconds
+    autoStart: autoRefresh,
+    runImmediately: true,
+    onError: (error) => {
+      logger.error("Failed to fetch performance metrics", {
+        error: error.message,
+        component: "RealTimePerformanceDashboard",
+      });
+      setLoading(false);
+    },
+  });
+
+  // React to autoRefresh state changes
+  useEffect(() => {
+    if (autoRefresh) {
+      startRefreshing();
+    } else {
+      stopRefreshing();
+    }
+  }, [autoRefresh, startRefreshing, stopRefreshing]);
 
   /**
    * Handles optimization requests for different performance services
