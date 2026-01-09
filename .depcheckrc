@@ -1,0 +1,7 @@
+{
+  "ignoreMatches": [
+    "autoprefixer",
+    "jest-environment-jsdom",
+    "postcss"
+  ]
+}
