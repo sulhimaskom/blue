@@ -3,11 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useInterval, STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
 import { BaseCard } from "@/components/ui/base-card";
-import {
-  StatusIndicator,
-  type StatusType,
-} from "@/components/ui/status-indicator";
+import { StatusIndicator } from "@/components/ui/status-indicator";
 import { cn } from "@/lib/constants/ui-themes";
+import type { StatusType } from "@/lib/services/service-types";
 import { DashboardDataService } from "@/lib/services/dashboard-data-service";
 import { logger } from "@/lib/logger";
 

@@ -1,11 +1,9 @@
 import React, { useMemo } from "react";
 import { MetricCard } from "@/components/ui/metric-card";
 import { BaseCard } from "@/components/ui/base-card";
-import {
-  StatusIndicator,
-  type StatusType,
-} from "@/components/ui/status-indicator";
+import { StatusIndicator } from "@/components/ui/status-indicator";
 import { getUIText } from "@/lib/constants/ui-text";
+import type { StatusType } from "@/lib/services/service-types";
 import {
   getTextColor,
   getBackgroundColor,

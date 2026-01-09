@@ -2,11 +2,9 @@
 
 import React, { useMemo } from "react";
 import { ServerIcon } from "@/components/ui/icons";
-import {
-  StatusIndicator,
-  type StatusType,
-} from "@/components/ui/status-indicator";
+import { StatusIndicator } from "@/components/ui/status-indicator";
 import { BaseCard } from "@/components/ui/base-card";
+import type { StatusType } from "@/lib/services/service-types";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { UI_TEXT } from "@/lib/constants/ui-text";
 import {
