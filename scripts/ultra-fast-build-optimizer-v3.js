@@ -61,7 +61,7 @@ console.log("🔨 Starting ultra-fast build...");
 const startTime = Date.now();
 
 try {
-  // Advanced build configuration
+  // Advanced build configuration - Fixed for Issue #232
   const buildEnv = {
     ...process.env,
     // Memory and performance optimizations
@@ -72,8 +72,9 @@ try {
     // Next.js 15 performance flags
     NEXT_TELEMETRY_DISABLED: "1",
     
-    // Ultra-optimization flags
+    // Ultra-optimization flags - Fix for Issue #232: Force webpack to avoid Turbopack Html import bug
     TURBOPACK: "0", // Use webpack for consistent performance
+    NEXT_TURBO: "0", // Disable Turbopack completely
     NEXT_BUILD_INCREMENTAL: config.enableCache ? "true" : "false",
     ANALYZE: "false",
     
@@ -91,6 +92,9 @@ try {
     // Memory management
     NODE_MAX_OLD_SPACE_SIZE: config.maxMemory,
     NODE_MAX_SEMI_SPACE_SIZE: "512",
+    
+    // Fix for Issue #232: Disable experimental features that cause Html import errors
+    NEXT_EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS: "false",
   };
 
   // Execute optimized build
@@ -137,6 +141,11 @@ try {
         ...process.env,
         NODE_OPTIONS: "--max-old-space-size=4096",
         NEXT_TELEMETRY_DISABLED: "1",
+        // Fix for Issue #232: Force webpack to avoid Turbopack Html import bug
+        TURBOPACK: "0",
+        NEXT_TURBO: "0",
+        // Fix for Issue #232: Disable experimental features that cause Html import errors
+        NEXT_EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS: "false",
       },
     });
     

@@ -6,14 +6,10 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 const nextConfig = {
   transpilePackages: [],
 
-  // Streamlined experimental features for speed
+// Streamlined experimental features for speed - Fix for Issue #232: Disable problematic features
   experimental: {
-    // Keep only essential package optimizations
-    optimizePackageImports: [
-      "@clerk/nextjs",
-      "lucide-react",
-      "zod",
-    ],
+    // Fix for Issue #232: Empty array to avoid Html import bug in Next.js 15.5.9
+    optimizePackageImports: [],
     // Disable expensive optimizations for speed
     optimizeCss: false,
     optimizeServerReact: true,
