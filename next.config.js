@@ -28,6 +28,8 @@ const nextConfig = {
     optimizeServerReact: true,
     // Disable worker threads for compatibility
     workerThreads: false,
+    // Optimize CSS generation
+    optimizePackageCss: true,
   },
 
   // Move server external packages to proper location
@@ -74,6 +76,16 @@ const nextConfig = {
           fs: "empty",
         },
       };
+
+      // Externalize server-only dependencies to reduce client bundle size
+      config.externals = {
+        ...config.externals,
+        "@sentry/node": "@sentry/browser",
+        "@sentry/profiling-node": "commonjs @sentry/profiling-node",
+        stripe: "commonjs stripe",
+        "@neondatabase/serverless": "commonjs @neondatabase/serverless",
+        redis: "commonjs redis",
+      };
     }
 
     // Development build optimizations
@@ -106,29 +118,44 @@ const nextConfig = {
       config.optimization = {
         ...config.optimization,
         usedExports: true,
-        sideEffects: false,
+        sideEffects: true,
         moduleIds: "deterministic",
-        // Simplified chunk splitting for faster builds
+        // Simplified chunk splitting for optimal bundle size
         splitChunks: {
           chunks: "all",
-          maxSize: 500000, // Increased to reduce fragmentation
-          minSize: 200000, // Increased for faster processing
-          maxInitialRequests: 3, // Slightly increased for balance
+          maxSize: 300000, // 300KB max chunk size
+          minSize: 50000, // 50KB min size to reduce fragmentation
+          maxAsyncRequests: 20,
+          maxInitialRequests: 6,
           cacheGroups: {
             default: {
               minChunks: 2,
               priority: -20,
               reuseExistingChunk: true,
             },
-            vendor: {
+            defaultVendors: {
               test: /[\\/]node_modules[\\/]/,
-              name: "vendors",
-              priority: 10,
+              priority: -10,
               reuseExistingChunk: true,
             },
+            // Framework: React and Next.js core
             framework: {
-              test: /[\\/](react|react-dom|scheduler)[\\/]/,
+              test: /[\\/](react|react-dom|scheduler|next)[\\/]/,
               name: "framework",
+              priority: 40,
+              reuseExistingChunk: true,
+            },
+            // Clerk: Authentication (separate for code splitting)
+            clerk: {
+              test: /[\\/]node_modules[\\/]@clerk[\\/]/,
+              name: "vendors-clerk",
+              priority: 30,
+              reuseExistingChunk: true,
+            },
+            // All other vendors
+            vendors: {
+              test: /[\\/]node_modules[\\/]/,
+              name: "vendors",
               priority: 20,
               reuseExistingChunk: true,
             },
@@ -146,6 +173,9 @@ const nextConfig = {
 
   // Production optimizations
   productionBrowserSourceMaps: false,
+
+  // Reduce SWC output size
+  swcMinify: true,
 
   // Image optimization
   images: {
