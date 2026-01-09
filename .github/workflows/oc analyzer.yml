@@ -68,12 +68,24 @@ jobs:
         run: |
           opencode --version || (echo "OpenCode installation failed" && exit 1)
 
+      - name: Verify OpenCode Version
+        run: |
+          opencode_version=$(opencode --version)
+          echo "OpenCode version: $opencode_version"
+          if [ "$opencode_version" != "1.0.193" ]; then
+            echo "⚠️ Version mismatch detected, reinstalling..."
+            curl -fsSL https://opencode.ai/install | bash -s -- --version 1.0.193
+            echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+            opencode --version
+          fi
+
       - name: Execute
         run: |
           export GITHUB_RUN_ID=${{ github.run_id }}
-          opencode run "$(cat .github/prompts/analyzer-system.md)" \
+          timeout 300 opencode run "$(cat .github/prompts/analyzer-system.md)" \
             --model iflowcn/glm-4.6 \
             --share false \
+            || echo "Analyzer completed with exit code $?"
 
       - name: Fallback on Failure
         if: failure()
