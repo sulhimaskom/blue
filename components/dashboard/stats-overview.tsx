@@ -1,4 +1,5 @@
 import React from "react";
+import { formatStandardDate } from "@/lib/utils/time-formatting";
 
 interface BlueprintStats {
   totalProjects: number;
@@ -37,7 +38,7 @@ export const StatsOverview = React.memo(
       <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 transition-shadow hover:shadow-md">
         <p className="text-xs sm:text-sm text-gray-600">Last Activity</p>
         <p className="text-xs sm:text-sm font-medium text-gray-900">
-          {new Date(stats.lastActivity).toLocaleDateString()}
+          {formatStandardDate(new Date(stats.lastActivity))}
         </p>
       </div>
     </div>

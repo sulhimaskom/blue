@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/constants/ui-themes";
+import { formatStandardDate } from "@/lib/utils/time-formatting";
 
 export interface Project {
   id: string;
@@ -60,7 +61,7 @@ export const ProjectList = React.memo(
                     {project.blueprintCount} blueprints
                   </span>
                   <span className="text-xs text-gray-500">
-                    {new Date(project.updatedAt).toLocaleDateString()}
+                    {formatStandardDate(new Date(project.updatedAt))}
                   </span>
                 </div>
               </div>
