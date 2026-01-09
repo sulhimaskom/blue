@@ -1,4 +1,3 @@
-const path = require("path");
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
@@ -28,8 +27,6 @@ const nextConfig = {
     optimizeServerReact: true,
     // Disable worker threads for compatibility
     workerThreads: false,
-    // Optimize CSS generation
-    optimizePackageCss: true,
   },
 
   // Move server external packages to proper location
@@ -76,16 +73,6 @@ const nextConfig = {
           fs: "empty",
         },
       };
-
-      // Externalize server-only dependencies to reduce client bundle size
-      config.externals = {
-        ...config.externals,
-        "@sentry/node": "@sentry/browser",
-        "@sentry/profiling-node": "commonjs @sentry/profiling-node",
-        stripe: "commonjs stripe",
-        "@neondatabase/serverless": "commonjs @neondatabase/serverless",
-        redis: "commonjs redis",
-      };
     }
 
     // Development build optimizations
@@ -107,61 +94,79 @@ const nextConfig = {
       };
     }
 
-    // Optimize for fastest builds
+    // Ultra-fast build optimizations
     if (!dev) {
-      config.parallelism = 4; // Use 4 threads for optimal performance with available memory
+      config.parallelism = 4; // Maximum parallelization for build speed
 
-      // Disable caching for speed in production builds
-      config.cache = false;
+      // Intelligent caching strategy
+      if (process.env.NEXT_BUILD_INCREMENTAL !== "false") {
+        config.cache = {
+          type: "filesystem",
+          buildDependencies: {
+            config: [__filename],
+          },
+          maxAge: 1000 * 60 * 60 * 24, // 24 hours cache
+        };
+      } else {
+        config.cache = false; // Clean builds when incremental disabled
+      }
 
-      // Streamlined optimization for speed
+      // Ultra-optimized webpack configuration for maximum speed
       config.optimization = {
         ...config.optimization,
         usedExports: true,
-        sideEffects: true,
+        sideEffects: false,
         moduleIds: "deterministic",
-        // Simplified chunk splitting for optimal bundle size
+        // Streamlined chunk splitting for fastest builds
         splitChunks: {
           chunks: "all",
-          maxSize: 300000, // 300KB max chunk size
-          minSize: 50000, // 50KB min size to reduce fragmentation
-          maxAsyncRequests: 20,
-          maxInitialRequests: 6,
+          maxSize: 1000000, // 1MB chunks reduce fragmentation overhead
+          minSize: 300000, // Larger minimum size for less chunk processing
+          maxInitialRequests: 2, // Reduced for faster initial load
+          maxAsyncRequests: 3, // Reduced for faster async loading
           cacheGroups: {
             default: {
-              minChunks: 2,
+              minChunks: 3, // Higher threshold to reduce chunks
               priority: -20,
               reuseExistingChunk: true,
             },
-            defaultVendors: {
-              test: /[\\/]node_modules[\\/]/,
-              priority: -10,
-              reuseExistingChunk: true,
-            },
-            // Framework: React and Next.js core
-            framework: {
-              test: /[\\/](react|react-dom|scheduler|next)[\\/]/,
-              name: "framework",
-              priority: 40,
-              reuseExistingChunk: true,
-            },
-            // Clerk: Authentication (separate for code splitting)
-            clerk: {
-              test: /[\\/]node_modules[\\/]@clerk[\\/]/,
-              name: "vendors-clerk",
-              priority: 30,
-              reuseExistingChunk: true,
-            },
-            // All other vendors
-            vendors: {
+            vendor: {
               test: /[\\/]node_modules[\\/]/,
               name: "vendors",
+              priority: 10,
+              chunks: "all",
+              reuseExistingChunk: true,
+            },
+            framework: {
+              test: /[\\/](react|react-dom|scheduler)[\\/]/,
+              name: "framework",
               priority: 20,
+              chunks: "all",
+              reuseExistingChunk: true,
+            },
+            // Consolidate smaller chunks
+            common: {
+              name: "common",
+              minChunks: 2,
+              priority: 5,
+              chunks: "all",
               reuseExistingChunk: true,
             },
           },
         },
       };
+
+      // Optimize module resolution for faster builds
+      config.resolve = {
+        ...config.resolve,
+        extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
+      };
+
+      // Build-time optimizations
+      if (process.env.NODE_ENV === "production") {
+        // Disable source maps for faster builds (optional)
+        config.devtool = false;
+      }
     }
 
     return config;
@@ -173,9 +178,6 @@ const nextConfig = {
 
   // Production optimizations
   productionBrowserSourceMaps: false,
-
-  // Reduce SWC output size
-  swcMinify: true,
 
   // Image optimization
   images: {
