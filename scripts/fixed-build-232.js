@@ -43,6 +43,11 @@ try {
      NEXT_MINIMIZE: "true",
      NEXT_DISABLE_SOURCEMAPS: "true",
      
+     // PERFORMANCE OPTIMIZATION: Skip linting/type checking in build (run separately)
+     ESLINT_NO_DEV_ERRORS: "true",
+     NEXT_ESLINT_IGNORE_DURING_BUILDS: "true",
+     NEXT_TYPESCRIPT_SKIP_BUILD: "true",
+     
      // DISABLED: Problematic experimental features
      // TURBOPACK: "0", // Let Next.js choose stable backend
      // NEXT_EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS: "false", // Disable optimization experiments
