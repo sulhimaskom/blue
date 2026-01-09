@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { formatStandardDate, formatDateTime } from "@/lib/utils/time-formatting";
 import {
   Plus,
   Edit2,
@@ -515,7 +516,7 @@ export function WebhookConfigurationManager() {
                       <span>Timeout: {webhook.timeoutSeconds}s</span>
                       <span>
                         Created:{" "}
-                        {new Date(webhook.createdAt).toLocaleDateString()}
+                        {formatStandardDate(new Date(webhook.createdAt))}
                       </span>
                     </div>
                   </div>
@@ -736,7 +737,7 @@ function WebhookEventHistory({ webhookId }: { webhookId: string }) {
                   {event.attemptCount}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(event.createdAt).toLocaleString()}
+                  {formatDateTime(new Date(event.createdAt))}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   {event.status === "failed" && (

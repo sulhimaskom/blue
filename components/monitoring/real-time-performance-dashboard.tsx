@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useInterval, STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
 import { logger } from "@/lib/logger";
+import { formatStandardTime } from "@/lib/utils/time-formatting";
 import { AIMemoryOptimizationService } from "@/lib/services/performance/ai-memory-optimization-service";
 import { AdvancedCacheStrategiesService } from "@/lib/services/performance/advanced-cache-strategies-service";
 import { DatabaseQueryOptimizationService } from "@/lib/services/performance/database-query-optimization-service";
@@ -369,7 +370,7 @@ export function RealTimePerformanceDashboard() {
             Real-Time Performance Dashboard
           </h1>
           <p className="text-gray-600 mt-1">
-            Last updated: {lastUpdate.toLocaleTimeString()}
+            Last updated: {formatStandardTime(lastUpdate)}
           </p>
         </div>
         <div className="flex items-center space-x-4">
