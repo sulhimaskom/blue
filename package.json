@@ -22,8 +22,8 @@
   ],
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/ultra-build-optimizer-v3.js",
-    "build:fast": "node scripts/ultra-build-optimizer-v3.js",
+    "build": "node scripts/lightning-build-optimizer-final.js",
+    "build:fast": "node scripts/lightning-build-optimizer.js",
     "build:standard": "NEXT_BUILD_WORKERS=4 NODE_OPTIONS='--max-old-space-size=4096' npx next build",
     "build:clean": "rm -rf .next && NODE_OPTIONS='--max-old-space-size=4096' NEXT_BUILD_WORKERS=4 next build",
     "build:analyze": "ANALYZE=true NODE_OPTIONS='--max-old-space-size=4096' next build",
