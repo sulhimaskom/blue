@@ -13,7 +13,7 @@
 import {
   EnhancedCircuitBreaker,
   EnhancedCircuitBreakerConfig,
-} from "@/lib/services/enhanced-circuit-breaker";
+} from "../lib/services/enhanced-circuit-breaker";
 
 describe("EnhancedCircuitBreaker", () => {
   let circuitBreaker: EnhancedCircuitBreaker;
@@ -880,6 +880,10 @@ describe("EnhancedCircuitBreaker", () => {
 
   describe("Integration Scenarios", () => {
     beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
       jest.useRealTimers();
     });
 
@@ -901,7 +905,7 @@ describe("EnhancedCircuitBreaker", () => {
       expect(metrics.state).toBe("OPEN");
 
       // OPEN → CLOSED after timeout and success
-      await new Promise((resolve) => setTimeout(resolve, 1100));
+      jest.advanceTimersByTime(1100);
       await circuitBreaker.execute(successRequest);
 
       metrics = circuitBreaker.getMetrics();
@@ -925,7 +929,7 @@ describe("EnhancedCircuitBreaker", () => {
         }
 
         // Recovery
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        jest.advanceTimersByTime(1000);
         await circuitBreaker.execute(successRequest);
       }
 
@@ -974,8 +978,8 @@ describe("EnhancedCircuitBreaker", () => {
         }
       }
 
-      // Immediate recovery attempt (use real timers)
-      await new Promise((resolve) => setTimeout(resolve, 1100));
+      // Immediate recovery attempt
+      jest.advanceTimersByTime(1100);
       await circuitBreaker.execute(successRequest);
 
       // Rapid failures again
