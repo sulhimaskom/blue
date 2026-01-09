@@ -43,6 +43,8 @@
     "infrastructure:check": "./scripts/infrastructure-health-monitor.sh",
     "migrate:up": "npx tsx migrations/0001_add_data_integrity_constraints.ts",
     "migrate:down": "npx tsx migrations/0001_add_data_integrity_constraints.ts down",
+    "migrate:webhook:up": "npx tsx migrations/webhook-runner.ts",
+    "migrate:webhook:down": "npx tsx migrations/webhook-runner.ts down",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node migrations/drizzle-migrate.js",
     "db:rollback": "node migrations/drizzle-rollback.js",
