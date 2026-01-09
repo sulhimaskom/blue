@@ -6,6 +6,7 @@ import { EnterpriseThemeProvider } from "@/components/enterprise/enterprise-them
 import { NavigationBar } from "@/components/layout/navigation-bar";
 import { SkipLink } from "@/components/ui/skip-link";
 import { getUIText } from "@/lib/constants/ui-text";
+import { Environment } from "@/lib/utils/environment";
 import "@/lib/sentry"; // Initialize error monitoring
 import "./globals.css";
 
@@ -22,7 +23,7 @@ const clerkOptions = {
   afterSignInUrl: "/dashboard/monitoring",
   afterSignUpUrl: "/dashboard/monitoring",
   // Allow build to proceed without valid keys for development
-  ...(process.env.NODE_ENV === "development" && {
+  ...(Environment.isDevelopment() && {
     telemetry: { disabled: true },
   }),
 };

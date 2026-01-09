@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import Link from "next/link";
 import { logger } from '@/lib/logger';
+import { Environment } from '@/lib/utils/environment';
 
 export default function Error({
   error,
@@ -42,8 +43,8 @@ export default function Error({
           >
             Go Home
           </Link>
-        </div>
-        {process.env.NODE_ENV === 'development' && (
+          </div>
+          {Environment.isDevelopment() && (
           <details className="mt-8 text-left">
             <summary className="cursor-pointer text-sm text-gray-500">
               Error Details (Development Only)
