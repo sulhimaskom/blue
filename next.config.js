@@ -27,6 +27,9 @@ const nextConfig = {
   serverExternalPackages: [
     "@clerk/backend",
     "@sentry/node",
+    "redis",
+    "@redis/client",
+    "@redis/client/dist/lib/client/enterprise-maintenance-manager.js",
   ],
 
   // Streamlined webpack for maximum speed
@@ -118,6 +121,11 @@ const nextConfig = {
         aggregateTimeout: 100,
         poll: 600,
       };
+    }
+
+    // Mark Redis as external for client builds to prevent bundling Node.js modules
+    if (!isServer) {
+      config.externals = [...(config.externals || []), 'redis', '@redis/client', '@redis/client/dist/lib/client/enterprise-maintenance-manager.js'];
     }
 
     return config;

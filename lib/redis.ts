@@ -10,7 +10,7 @@ import {
  * RedisError - Error class for Redis-related operations
  */
 export class RedisError extends Error {
-  constructor(message: string, public readonly cause?: Error) {
+  constructor(message: string, public readonly _cause?: Error) {
     super(message);
     this.name = "RedisError";
   }
