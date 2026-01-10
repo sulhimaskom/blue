@@ -101,12 +101,9 @@ describe("Teams API", () => {
          schema: expect.any(Object), // Zod schema
          handler: expect.any(Function),
        });
-     });
-    });
+});
 
-     });
-
-    it("should validate team name format", async () => {
+     it("should validate team name format", async () => {
       // The validation is handled by Zod schema in APIRouteHandler
       // This test ensures the schema is properly configured
       const mockHandler = jest.fn();

@@ -1,14 +1,32 @@
 import { automatedCacheWarmingService } from "../../lib/services/automated-cache-warming";
 import { logger } from "../../lib/logger";
+import { AIPatternDetector } from '../../lib/services/ai-pattern-detector';
 
 // Mock dependencies
 jest.mock("../../lib/logger");
-jest.mock("../../lib/services/ai-pattern-detector");
+
+// Mock AIPatternDetector with proper module mock
+jest.mock("../../lib/services/ai-pattern-detector", () => ({
+  AIPatternDetector: {
+    performIntelligentWarming: jest.fn(() => Promise.resolve({
+      warmedRules: 0,
+      estimatedSavings: 0,
+      patternsDetected: [],
+    })),
+  },
+}));
+
+// Get reference to the mocks
+const mockPerformIntelligentWarming = AIPatternDetector.performIntelligentWarming as jest.MockedFunction<typeof AIPatternDetector.performIntelligentWarming>;
+const mockLogger = logger as jest.Mocked<typeof logger>;
 
 describe("automatedCacheWarmingService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    // Reset service state for clean tests
+    automatedCacheWarmingService.resetMetrics();
+    automatedCacheWarmingService.resetSchedules();
   });
 
   afterEach(() => {
@@ -74,13 +92,12 @@ describe("automatedCacheWarmingService", () => {
   describe("performOnDemandWarming", () => {
     it("should perform warming for specified patterns", async () => {
       // Arrange
-      const mockAIPatternDetector = require("../../lib/services/ai-pattern-detector").AIPatternDetector;
-      mockAIPatternDetector.performIntelligentWarming = jest.fn().mockResolvedValue({
+      mockPerformIntelligentWarming.mockResolvedValue({
         warmedRules: 5,
         estimatedSavings: 100,
         patternsDetected: ["marketplace", "ecommerce"],
       });
-
+      
       const patterns = ["marketplace", "ecommerce"] as any;
 
       // Act
@@ -91,13 +108,12 @@ describe("automatedCacheWarmingService", () => {
       expect(result.success).toBe(true);
       expect(result.warmedEntries).toBe(5);
       expect(result.estimatedSavings).toBe(100);
-      expect(mockAIPatternDetector.performIntelligentWarming).toHaveBeenCalled();
+      expect(mockPerformIntelligentWarming).toHaveBeenCalled();
     });
 
     it("should handle warming errors gracefully", async () => {
       // Arrange
-      const mockAIPatternDetector = require("../../lib/services/ai-pattern-detector").AIPatternDetector;
-      mockAIPatternDetector.performIntelligentWarming = jest.fn().mockRejectedValue(
+      mockPerformIntelligentWarming.mockRejectedValue(
         new Error("Warming failed"),
       );
 
@@ -116,8 +132,7 @@ describe("automatedCacheWarmingService", () => {
 
     it("should update metrics after successful warming", async () => {
       // Arrange
-      const mockAIPatternDetector = require("../../lib/services/ai-pattern-detector").AIPatternDetector;
-      mockAIPatternDetector.performIntelligentWarming = jest.fn().mockResolvedValue({
+      mockPerformIntelligentWarming.mockResolvedValue({
         warmedRules: 10,
         estimatedSavings: 200,
         patternsDetected: ["marketplace", "ecommerce", "social"],
@@ -233,8 +248,7 @@ describe("automatedCacheWarmingService", () => {
   describe("Metrics Calculation", () => {
     it("should calculate hit rate improvement based on warmed entries", async () => {
       // Arrange
-      const mockAIPatternDetector = require("../../lib/services/ai-pattern-detector").AIPatternDetector;
-      mockAIPatternDetector.performIntelligentWarming = jest.fn().mockResolvedValue({
+      mockPerformIntelligentWarming.mockResolvedValue({
         warmedRules: 10,
         estimatedSavings: 200,
         patternsDetected: ["marketplace", "ecommerce", "social"],
@@ -254,10 +268,10 @@ describe("automatedCacheWarmingService", () => {
 
     it("should track duration of warming operations", async () => {
       // Arrange
-      const mockAIPatternDetector = require("../../lib/services/ai-pattern-detector").AIPatternDetector;
-      mockAIPatternDetector.performIntelligentWarming = jest.fn().mockImplementation(
+      mockPerformIntelligentWarming.mockImplementation(
         async () => {
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          // Simulate some processing time using jest's fake timers
+          jest.advanceTimersByTime(100);
           return {
             warmedRules: 5,
             estimatedSavings: 100,
@@ -269,7 +283,6 @@ describe("automatedCacheWarmingService", () => {
       const patterns = ["marketplace"] as any;
 
       // Act
-      const startTime = Date.now();
       await automatedCacheWarmingService.performOnDemandWarming(patterns);
       const metrics = automatedCacheWarmingService.getMetrics();
 
@@ -282,8 +295,7 @@ describe("automatedCacheWarmingService", () => {
   describe("Edge Cases", () => {
     it("should handle empty pattern list", async () => {
       // Arrange
-      const mockAIPatternDetector = require("../../lib/services/ai-pattern-detector").AIPatternDetector;
-      mockAIPatternDetector.performIntelligentWarming = jest.fn().mockResolvedValue({
+      mockPerformIntelligentWarming.mockResolvedValue({
         warmedRules: 0,
         estimatedSavings: 0,
         patternsDetected: [],
@@ -302,8 +314,7 @@ describe("automatedCacheWarmingService", () => {
 
     it("should handle single pattern", async () => {
       // Arrange
-      const mockAIPatternDetector = require("../../lib/services/ai-pattern-detector").AIPatternDetector;
-      mockAIPatternDetector.performIntelligentWarming = jest.fn().mockResolvedValue({
+      mockPerformIntelligentWarming.mockResolvedValue({
         warmedRules: 2,
         estimatedSavings: 40,
         patternsDetected: ["dashboard"],
@@ -319,10 +330,9 @@ describe("automatedCacheWarmingService", () => {
       expect(result.warmedEntries).toBe(2);
     });
 
-    it("should handle all supported patterns", async () => {
+it("should handle all supported patterns", async () => {
       // Arrange
-      const mockAIPatternDetector = require("../../lib/services/ai-pattern-detector").AIPatternDetector;
-      mockAIPatternDetector.performIntelligentWarming = jest.fn().mockResolvedValue({
+      mockPerformIntelligentWarming.mockResolvedValue({
         warmedRules: 20,
         estimatedSavings: 400,
         patternsDetected: [
@@ -357,9 +367,7 @@ describe("automatedCacheWarmingService", () => {
   describe("Integration Scenarios", () => {
     it("should maintain metrics across multiple warming operations", async () => {
       // Arrange
-      const mockAIPatternDetector = require("../../lib/services/ai-pattern-detector").AIPatternDetector;
-      mockAIPatternDetector.performIntelligentWarming = jest
-        .fn()
+      mockPerformIntelligentWarming
         .mockResolvedValueOnce({
           warmedRules: 5,
           estimatedSavings: 100,
@@ -405,8 +413,7 @@ describe("automatedCacheWarmingService", () => {
 
     it("should log errors appropriately", async () => {
       // Arrange
-      const mockAIPatternDetector = require("../../lib/services/ai-pattern-detector").AIPatternDetector;
-      mockAIPatternDetector.performIntelligentWarming = jest.fn().mockRejectedValue(
+      mockPerformIntelligentWarming.mockRejectedValue(
         new Error("Warming error"),
       );
 
@@ -416,7 +423,7 @@ describe("automatedCacheWarmingService", () => {
       await automatedCacheWarmingService.performOnDemandWarming(patterns);
 
       // Assert
-      expect(logger.error).toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalled();
     });
   });
 });

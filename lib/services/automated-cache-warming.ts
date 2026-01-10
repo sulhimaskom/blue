@@ -278,6 +278,20 @@ class AutomatedCacheWarmingService {
   }
 
   /**
+   * Reset metrics to default state (for testing)
+   */
+  static resetMetrics(): void {
+    this.metrics = {
+      lastRun: 0,
+      warmedEntries: 0,
+      estimatedSavings: 0,
+      hitRateImprovement: 0,
+      patternsWarmed: [],
+      duration: 0,
+    };
+  }
+
+  /**
    * Perform on-demand warming for specific patterns
    */
   static async performOnDemandWarming(patterns: AIPattern["type"][]): Promise<{
@@ -286,6 +300,8 @@ class AutomatedCacheWarmingService {
     estimatedSavings: number;
     error?: string;
   }> {
+    const startTime = Date.now();
+    
     try {
       logger.info("Performing on-demand cache warming", { patterns });
 
@@ -293,10 +309,19 @@ class AutomatedCacheWarmingService {
       const result =
         await AIPatternDetector.performIntelligentWarming(mockRequests);
 
+      // Update metrics
+      this.metrics.lastRun = Date.now();
+      this.metrics.warmedEntries = result.warmedRules;
+      this.metrics.estimatedSavings = result.estimatedSavings;
+      this.metrics.patternsWarmed = patterns;
+      this.metrics.hitRateImprovement = this.calculateHitRateImprovement();
+      this.metrics.duration = Date.now() - startTime;
+
       logger.info("On-demand cache warming completed", {
         patterns,
         warmedRules: result.warmedRules,
         estimatedSavings: result.estimatedSavings,
+        duration: this.metrics.duration,
       });
 
       return {
@@ -333,13 +358,13 @@ class AutomatedCacheWarmingService {
   } {
     const now = Date.now();
     const nextInterval = Math.min(
-      ...this.WARMING_SCHEDULES.filter((s) => s.enabled).map((s) => s.interval),
+      ...this.currentSchedules.filter((s) => s.enabled).map((s) => s.interval),
     );
     const nextWarming = nextInterval > 0 ? now + nextInterval * 60 * 1000 : 0;
 
     return {
       running: true, // Using interval manager
-      schedules: this.WARMING_SCHEDULES,
+      schedules: this.currentSchedules,
       lastWarming: this.metrics.lastRun,
       nextWarming,
       intervalManagerHealth: optimizedIntervalManager.healthCheck(),
@@ -349,22 +374,33 @@ class AutomatedCacheWarmingService {
   /**
    * Update warming schedules
    */
+  private static currentSchedules: WarmingSchedule[] = [...this.WARMING_SCHEDULES];
+
   static updateSchedules(newSchedules: Partial<WarmingSchedule>[]): void {
     // Update schedules with new configurations
     newSchedules.forEach((newSchedule, index) => {
-      if (this.WARMING_SCHEDULES[index]) {
-        this.WARMING_SCHEDULES[index] = {
-          ...this.WARMING_SCHEDULES[index],
+      if (this.currentSchedules[index]) {
+        this.currentSchedules[index] = {
+          ...this.currentSchedules[index],
           ...newSchedule,
         };
       }
     });
 
     logger.info("Cache warming schedules updated", {
-      schedulesCount: this.WARMING_SCHEDULES.length,
-      enabledCount: this.WARMING_SCHEDULES.filter((s) => s.enabled).length,
+      schedulesCount: this.currentSchedules.length,
+      enabledCount: this.currentSchedules.filter((s) => s.enabled).length,
     });
   }
+
+  /**
+   * Reset schedules to default state (for testing)
+   */
+  static resetSchedules(): void {
+    this.currentSchedules = [...this.WARMING_SCHEDULES];
+  }
+
+  
 }
 
 // Singleton service instance
