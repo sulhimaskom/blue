@@ -174,8 +174,19 @@ export class AICacheOptimizationService {
   private async getTotalCacheKeys(): Promise<number> {
     try {
       const result = await redisManager.executeWithFallback(async (client) => {
-        const keys = await client.keys("cache:*");
-        return keys.length;
+        let count = 0;
+        let cursor = "0";
+        
+        do {
+          const scanReply = await client.scan(cursor, {
+            MATCH: "cache:*",
+            COUNT: 100,
+          });
+          cursor = scanReply.cursor;
+          count += scanReply.keys.length;
+        } while (cursor !== "0");
+        
+        return count;
       });
       return result;
     } catch {
@@ -192,7 +203,7 @@ export class AICacheOptimizationService {
         memoryData.usedHuman = line.split(":")[1];
       }
       if (line.includes("used_memory:")) {
-        memoryData.used = parseInt(line.split(":")[1]);
+        memoryData.used = parseInt(line.split(":")[1], 10);
       }
     }
 
@@ -244,7 +255,19 @@ export class AICacheOptimizationService {
   private async getCacheKeysByPattern(pattern: string): Promise<string[]> {
     try {
       return await redisManager.executeWithFallback(async (client) => {
-        return await client.keys(`*${pattern}*`);
+        const keys: string[] = [];
+        let cursor = "0";
+        
+        do {
+          const scanReply = await client.scan(cursor, {
+            MATCH: `*${pattern}*`,
+            COUNT: 100,
+          });
+          cursor = scanReply.cursor;
+          keys.push(...scanReply.keys);
+        } while (cursor !== "0");
+        
+        return keys;
       });
     } catch {
       return [];
