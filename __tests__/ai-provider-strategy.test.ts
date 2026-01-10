@@ -11,7 +11,7 @@ import {
   createOpenAIStrategy,
 } from "../lib/services/ai/strategies/openai-strategy";
 import { AIProviderRegistry } from "../lib/services/ai/ai-provider-registry";
-import { AIService } from "../lib/services/ai-service-refactored";
+
 import type {
   AICompletionRequest,
   ResearchRequest,
@@ -301,90 +301,6 @@ describe("AI Provider Strategy Pattern", () => {
     });
   });
 
-  describe("AIService (Refactored)", () => {
-    let service: AIService;
-
-    beforeEach(() => {
-      service = AIService.getInstance();
-    });
-
-    describe("Service Pattern Compliance", () => {
-      test("should be singleton", () => {
-        const instance1 = AIService.getInstance();
-        const instance2 = AIService.getInstance();
-        expect(instance1).toBe(instance2);
-      });
-
-      test("should have registry access", () => {
-        expect(service.getRegistry()).toBeDefined();
-        expect(typeof service.getRegistry().getProvider).toBe("function");
-      });
-    });
-
-    describe("Model Management", () => {
-      test("should get models from default provider", () => {
-        const models = service.getModels();
-        expect(typeof models).toBe("object");
-        expect(Object.keys(models).length).toBeGreaterThan(0);
-      });
-
-      test("should get models by provider", () => {
-        const models = service.getModelsByProvider("iflow");
-        expect(typeof models).toBe("object");
-        expect(models["iflow-reasoning"]).toBeDefined();
-        expect(models["iflow-fast"]).toBeDefined();
-      });
-
-      test("should get all models from all providers", () => {
-        const models = service.getAllModels();
-        expect(typeof models).toBe("object");
-        expect(Object.keys(models).length).toBeGreaterThan(2);
-      });
-
-      test("should throw error for unknown provider in getModelsByProvider", () => {
-        expect(() => {
-          service.getModelsByProvider("unknown-provider");
-        }).toThrow("Provider 'unknown-provider' not found");
-      });
-    });
-
-    describe("Provider Switching", () => {
-      test("should switch default provider", () => {
-        const currentConfig = service.getCurrentProviderConfig();
-        expect(currentConfig.providerId).toBeDefined();
-
-        service.switchProvider("openai");
-        const newConfig = service.getCurrentProviderConfig();
-        expect(newConfig.providerId).toBe("openai");
-      });
-
-      test("should get current provider configuration", () => {
-        const config = service.getCurrentProviderConfig();
-        expect(config).toHaveProperty("providerId");
-        expect(config).toHaveProperty("providerName");
-        expect(config).toHaveProperty("config");
-        expect(config).toHaveProperty("supportedModels");
-      });
-    });
-
-    describe("Health Monitoring", () => {
-      test("should health check default provider", async () => {
-        const isHealthy = await service.healthCheck();
-        expect(typeof isHealthy).toBe("boolean");
-      });
-
-      test("should health check specific provider", async () => {
-        const isHealthy = await service.healthCheckProvider("iflow");
-        expect(typeof isHealthy).toBe("boolean");
-      });
-
-      test("should health check all providers", async () => {
-        const healthStatus = await service.healthCheckAll();
-        expect(healthStatus).toBeInstanceOf(Map);
-      });
-    });
-  });
-
   describe("Strategy Pattern Benefits", () => {
     let registry: AIProviderRegistry;
 
@@ -432,8 +348,7 @@ describe("AI Provider Strategy Pattern", () => {
     });
 
     test("should enable runtime provider switching", () => {
-      const service = AIService.getInstance();
-      const registry = service.getRegistry();
+      const registry = AIProviderRegistry.getInstance();
 
       const initialProvider = registry.getDefaultProvider().providerId;
       expect(initialProvider).toBe("iflow");
