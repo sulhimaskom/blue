@@ -27,12 +27,12 @@ export type StatusType = "healthy" | "degraded" | "unhealthy" | "unknown";
 // =============================================================================
 
 export interface SystemHealth {
-  status: "healthy" | "degraded" | "unhealthy";
+  status: StatusType;
   timestamp: string;
   uptime: number;
   checks: Array<{
     service: string;
-    status: "healthy" | "degraded" | "unhealthy";
+    status: StatusType;
     responseTime?: number;
     error?: string;
   }>;
@@ -81,7 +81,7 @@ export interface HealthScoreMetrics {
 
 export interface ServiceStatusData {
   name: string;
-  status: "healthy" | "degraded" | "unhealthy";
+  status: StatusType;
   responseTime?: number;
   error?: string;
   lastChecked: Date;
