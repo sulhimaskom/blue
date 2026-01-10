@@ -137,10 +137,49 @@ export interface StripeWebhookEvent extends WebhookEventBase {
 }
 
 // ========================================
+// Platform Event Types
+// ========================================
+
+export interface BlueprintEventData {
+  id: string;
+  projectId: string;
+  projectName: string;
+  contentMarkdown: string;
+  structuredData: unknown;
+  version: number;
+  userId: number;
+}
+export interface PlatformWebhookEvent extends WebhookEventBase {
+  type:
+    | "blueprint.created"
+    | "blueprint.updated"
+    | "project.deployed"
+    | "credits.consumed"
+    | "webhook.failed";
+  data: BlueprintEventData | {
+    projectId: string;
+    projectName: string;
+    deploymentUrl?: string;
+    status: string;
+    userId: number;
+  } | {
+    userId: number;
+    creditsConsumed: number;
+    creditsRemaining: number;
+    threshold: number;
+  } | {
+    webhookConfigurationId: string;
+    eventType: string;
+    errorMessage: string;
+    retryCount: number;
+  };
+}
+
+// ========================================
 // Webhook Event Union Types
 // ========================================
 
-export type WebhookEvent = ClerkWebhookEvent | StripeWebhookEvent;
+export type WebhookEvent = ClerkWebhookEvent | StripeWebhookEvent | PlatformWebhookEvent;
 
 export function isClerkWebhookEvent(
   event: WebhookEvent,
@@ -196,4 +235,59 @@ export function isClerkUserUpdated(
   data: { id: string; email_addresses: ClerkEmail[] };
 } {
   return event.type === "user.updated";
+}
+
+// ========================================
+// Platform Event Type Guards  
+// ========================================
+
+export function isPlatformWebhookEvent(
+  event: WebhookEvent,
+): event is PlatformWebhookEvent {
+  return (
+    event.type.startsWith("blueprint.") ||
+    event.type.startsWith("project.") ||
+    event.type.startsWith("credits.") ||
+    event.type.startsWith("webhook.")
+  );
+}
+
+export function isBlueprintCreated(
+  event: WebhookEvent,
+): event is PlatformWebhookEvent & {
+  data: BlueprintEventData;
+} {
+  return event.type === "blueprint.created";
+}
+
+export function isBlueprintUpdated(
+  event: WebhookEvent,
+): event is PlatformWebhookEvent & {
+  data: BlueprintEventData;
+} {
+  return event.type === "blueprint.updated";
+}
+
+export function isProjectDeployed(
+  event: WebhookEvent,
+): event is PlatformWebhookEvent & {
+  data: { projectId: string; projectName: string; deploymentUrl?: string; status: string; userId: number };
+} {
+  return event.type === "project.deployed";
+}
+
+export function isCreditsConsumed(
+  event: WebhookEvent,
+): event is PlatformWebhookEvent & {
+  data: { userId: number; creditsConsumed: number; creditsRemaining: number; threshold: number };
+} {
+  return event.type === "credits.consumed";
+}
+
+export function isWebhookFailed(
+  event: WebhookEvent,
+): event is PlatformWebhookEvent & {
+  data: { webhookConfigurationId: string; eventType: string; errorMessage: string; retryCount: number };
+} {
+  return event.type === "webhook.failed";
 }
