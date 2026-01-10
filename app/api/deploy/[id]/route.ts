@@ -53,7 +53,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       const { project } = projectDetails;
 
 // Check if deployment already exists for this environment
-      const existingDeployment = await DeploymentService.checkExistingDeployment(id, environment);
+      const existingDeployment = await DeploymentService.checkExistingDeployment(id, environment!);
       if (existingDeployment) {
         throw new ValidationError(`Project already has a ${environment} deployment`);
       }
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       await ProjectDataService.updateProjectStatus(id, "generating");
 
       // Generate environment-specific repository name
-      const environmentRepoName = DeploymentService.generateEnvironmentRepoName(repoName, environment);
+      const environmentRepoName = DeploymentService.generateEnvironmentRepoName(repoName!, environment!);
 
       // Calculate expiration for preview environments
       const expiresAt = environment === "preview" 
@@ -98,7 +98,7 @@ try {
         // Create deployment record
         const deploymentId = await DeploymentService.createDeploymentRecord({
           projectId: id,
-          environment,
+          environment: environment!,
           githubOrg,
           githubRepoName: environmentRepoName,
           blueprintVersion,
