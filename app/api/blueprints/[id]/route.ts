@@ -97,3 +97,30 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     },
   })(_req);
 }
+
+export async function DELETE(_req: NextRequest, { params }: RouteParams) {
+  const { id } = await params;
+
+  return APIRouteHandler.createDELETEHandler({
+    requireAuth: true,
+    rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
+    handler: async ({ context, user }) => {
+      // Delete the blueprint
+      const deletedBlueprint = await ProjectDataService.deleteBlueprint(
+        id,
+        user!.clerkId,
+      );
+
+      logger.userAction("Blueprint deleted", user!.clerkId, {
+        requestId: context.requestId,
+        blueprintId: id,
+        blueprintName: deletedBlueprint.name,
+      });
+
+      return {
+        blueprint: deletedBlueprint,
+        message: "Blueprint deleted successfully",
+      };
+    },
+  })(_req);
+}
