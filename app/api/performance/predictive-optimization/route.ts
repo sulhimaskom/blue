@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { NextRequest } from "next/server";
 import { predictiveCacheOptimizer } from "@/lib/services/predictive-cache-optimizer";
 import { logger } from "@/lib/logger";
 import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
@@ -36,7 +37,7 @@ const validPatterns = [
 type ValidPattern = typeof validPatterns[number];
 
 export const GET = APIRouteHandler.createSimpleCachedGETHandler(
-  async (req: any) => {
+  async (req: NextRequest) => {
     logger.info("Predictive cache optimization requested", {
       userAgent: req.headers.get("user-agent"),
       ip: req.headers.get("x-forwarded-for") || "unknown",
