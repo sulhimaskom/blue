@@ -37,6 +37,11 @@ export const EVENT_TYPES = {
     { type: "blueprint.updated", description: "Blueprint content modified", category: "blueprint" },
     { type: "project.deployed", description: "Repository deployment completed", category: "project" },
     { type: "credits.consumed", description: "Credit usage threshold reached", category: "credit" },
+    { type: "credit.low_balance", description: "Credit balance below threshold", category: "credit" },
+    { type: "credit.depleted", description: "Credit balance reached zero", category: "credit" },
+    { type: "credit.purchased", description: "Credits bought or added", category: "credit" },
+    { type: "credit.usage_spike", description: "Abnormal credit usage pattern detected", category: "credit" },
+    { type: "credit.renewed", description: "Subscription credits renewed", category: "credit" },
     { type: "webhook.failed", description: "Webhook delivery failed", category: "system" },
   ],
   CLERK: [

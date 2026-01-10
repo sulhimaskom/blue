@@ -6,6 +6,7 @@ import { UserService } from "@/lib/services/user-service";
 import { RequestContext } from "@/lib/services/user-service";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
 import { softDelete } from "@/lib/db/soft-delete-service";
+import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 
 /**
  * Service for common project and blueprint database operations
@@ -502,6 +503,17 @@ export class ProjectDataService {
       context,
     );
     await DatabaseQueryCache.invalidateUserCache(userId);
+
+    // Emit credit purchased webhook event
+    await WebhookEventDispatcher.emitCreditPurchased(
+      userId,
+      updatedUser.clerkId,
+      creditsToAdd,
+      updatedUser.credits,
+      newTransaction.id,
+      paymentId,
+      context,
+    );
 
     return {
       transaction: newTransaction,

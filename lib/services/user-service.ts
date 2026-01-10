@@ -5,6 +5,7 @@ import { eq, sql, isNull, and } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 import { AuthenticationError, DatabaseError } from "@/lib/api-utils";
 import { setRLSContext } from "@/lib/db/rls-policies";
+import { WebhookEventDispatcher } from "./webhook-event-dispatcher";
 
 // Legacy type for backward compatibility - can be deprecated
 export interface AuthenticatedUser {
@@ -123,6 +124,9 @@ export class UserService {
         await setRLSContext(currentUser.clerkId);
       }
 
+      // Store previous balance for threshold monitoring
+      const previousBalance = currentUser?.credits || 0;
+
       const [updatedUser] = await database
         .update(users)
         .set({ credits: sql`${users.credits} + ${creditsChange}` })
@@ -139,6 +143,14 @@ export class UserService {
         creditsChange,
         newBalance: updatedUser.credits,
       });
+
+      // Monitor credit thresholds and emit webhook events
+      await WebhookEventDispatcher.monitorCreditThresholds(
+        userId,
+        previousBalance,
+        updatedUser.credits,
+        context,
+      );
 
       return {
         clerkId: updatedUser.clerkId,

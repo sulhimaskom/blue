@@ -1,12 +1,13 @@
 import { aiService, ResearchResult } from "./ai-service";
 import { logger } from "../logger";
 import { db } from "../db";
-import { blueprints, projects } from "../db/schema";
+import { blueprints, projects, users } from "../db/schema";
 import { eq, isNull, and } from "drizzle-orm";
 import { UnifiedCacheManager } from "./cache-orchestrator";
 import { AIPatternDetector, type AIPattern } from "./ai-pattern-detector";
 import DatabaseQueryCache from "./database-cache-service";
 import { ValidationError, DatabaseError } from "./service-error-handler";
+import { WebhookEventDispatcher } from "./webhook-event-dispatcher";
 
 export interface BlueprintGenerationRequest {
   userId: number;
@@ -757,6 +758,36 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
         duration: `${duration}ms`,
         status: "completed",
       });
+
+      // Emit blueprint created webhook event
+      try {
+        // Get user clerkId for webhook emission
+        const database = db();
+        const [userRecord] = await database
+          .select()
+          .from(users)
+          .where(eq(users.id, request.userId))
+          .limit(1);
+          
+        if (userRecord) {
+          await WebhookEventDispatcher.emitBlueprintCreated(
+            request.userId,
+            userRecord.clerkId,
+            projectId.toString(),
+            blueprintId.toString(),
+            1, // First version
+            blueprintData.projectName,
+            { requestId: `blueprint-${blueprintId}` },
+          );
+        }
+      } catch (webhookError) {
+        logger.error("Failed to emit blueprint created webhook", {
+          blueprintId,
+          userId: request.userId,
+          error: webhookError instanceof Error ? webhookError.message : String(webhookError),
+        });
+        // Don't fail the blueprint generation if webhook fails
+      }
 
       return {
         projectId: projectId.toString(),
