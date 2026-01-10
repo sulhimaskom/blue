@@ -702,6 +702,35 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
 
       logger.info("Project record created", { projectId });
 
+      // Emit blueprint generating webhook event
+      try {
+        const [userRecord] = await database
+          .select()
+          .from(users)
+          .where(eq(users.id, request.userId))
+          .limit(1);
+          
+        if (userRecord) {
+          await WebhookEventDispatcher.emitBlueprintGenerating(
+            request.userId,
+            userRecord.clerkId,
+            projectId.toString(),
+            "pending-blueprint", // Will be updated when blueprint is created
+            1, // First version
+            project[0].name,
+            30, // Estimated duration in seconds
+            { requestId: `blueprint-generating-${projectId}` },
+          );
+        }
+      } catch (webhookError) {
+        logger.error("Failed to emit blueprint generating webhook", {
+          projectId,
+          userId: request.userId,
+          error: webhookError instanceof Error ? webhookError.message : String(webhookError),
+        });
+        // Don't fail the blueprint generation if webhook fails
+      }
+
       // Step 2: Phase 1 - Market Research (optimized with concurrent cache warming)
       const researchPromise = this.conductMarketResearch(request.input);
 
@@ -744,13 +773,48 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
 
       const blueprintId = blueprint[0].id;
 
+      // Calculate duration before webhook emissions
+      const duration = Date.now() - startTime;
+
       // Step 5: Update project status
       await database
         .update(projects)
         .set({ status: "completed" })
         .where(eq(projects.id, projectId));
 
-      const duration = Date.now() - startTime;
+      // Emit blueprint status changed webhook event
+      try {
+        const [userRecord] = await database
+          .select()
+          .from(users)
+          .where(eq(users.id, request.userId))
+          .limit(1);
+          
+        if (userRecord) {
+          await WebhookEventDispatcher.emitBlueprintStatusChanged(
+            request.userId,
+            userRecord.clerkId,
+            projectId.toString(),
+            "status-change-blueprint",
+            1, // First version
+            project[0].name,
+            "generating", // Previous status
+            "completed", // Current status
+            {
+              duration: `${duration}ms`,
+              blueprintId: blueprintId.toString(),
+            },
+            { requestId: `blueprint-status-${projectId}` },
+          );
+        }
+      } catch (webhookError) {
+        logger.error("Failed to emit blueprint status changed webhook", {
+          projectId,
+          userId: request.userId,
+          error: webhookError instanceof Error ? webhookError.message : String(webhookError),
+        });
+        // Don't fail if webhook fails
+      }
 
       logger.info("Blueprint generation pipeline completed", {
         projectId,
@@ -770,6 +834,22 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
           .limit(1);
           
         if (userRecord) {
+          await WebhookEventDispatcher.emitBlueprintCompleted(
+            request.userId,
+            userRecord.clerkId,
+            projectId.toString(),
+            blueprintId.toString(),
+            1, // First version
+            blueprintData.projectName,
+            {
+              duration: `${duration}ms`,
+              aiModelsUsed: ["gpt-4", "claude-2"],
+              features: blueprintData.features,
+              techStack: blueprintData.techStack,
+            },
+            { requestId: `blueprint-${blueprintId}` },
+          );
+
           await WebhookEventDispatcher.emitBlueprintCreated(
             request.userId,
             userRecord.clerkId,
@@ -804,6 +884,41 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
         error: error instanceof Error ? error.message : String(error),
         duration: `${duration}ms`,
       });
+
+      // Emit blueprint failed webhook event
+      try {
+        const database = db();
+        const [userRecord] = await database
+          .select()
+          .from(users)
+          .where(eq(users.id, request.userId))
+          .limit(1);
+          
+        if (userRecord && projectId) {
+          await WebhookEventDispatcher.emitBlueprintFailed(
+            request.userId,
+            userRecord.clerkId,
+            projectId.toString(),
+            "failed-blueprint",
+            0, // No version created
+            request.projectName || "Untitled Project",
+            error instanceof Error ? error.message : String(error),
+            {
+              duration: `${duration}ms`,
+              inputLength: request.input.length,
+              errorType: error instanceof Error ? error.constructor.name : "Unknown",
+            },
+            { requestId: `blueprint-failed-${projectId}` },
+          );
+        }
+      } catch (webhookError) {
+        logger.error("Failed to emit blueprint failed webhook", {
+          projectId,
+          userId: request.userId,
+          error: webhookError instanceof Error ? webhookError.message : String(webhookError),
+        });
+        // Don't fail the cleanup if webhook fails
+      }
 
       // Clean up project on failure
       if (projectId) {

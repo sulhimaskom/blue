@@ -35,6 +35,10 @@ export const EVENT_TYPES = {
   PLATFORM: [
     { type: "blueprint.created", description: "New blueprint generated", category: "blueprint" },
     { type: "blueprint.updated", description: "Blueprint content modified", category: "blueprint" },
+    { type: "blueprint.generating", description: "Blueprint generation initiated", category: "blueprint" },
+    { type: "blueprint.completed", description: "Blueprint generation completed successfully", category: "blueprint" },
+    { type: "blueprint.failed", description: "Blueprint generation failed", category: "blueprint" },
+    { type: "blueprint.status_changed", description: "Blueprint status changed", category: "blueprint" },
     { type: "project.deployed", description: "Repository deployment completed", category: "project" },
     { type: "credits.consumed", description: "Credit usage threshold reached", category: "credit" },
     { type: "credit.low_balance", description: "Credit balance below threshold", category: "credit" },
