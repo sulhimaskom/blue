@@ -78,6 +78,26 @@ export const projects = pgTable("projects", {
   deletedAt: timestamp("deleted_at"),
 });
 
+// Deployments table for tracking multiple environments
+export const deployments = pgTable("deployments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .references(() => projects.id, { onDelete: "cascade" })
+    .notNull(),
+  environment: text("environment").notNull(), // production, staging, preview
+  githubRepoId: integer("github_repo_id"),
+  githubRepoUrl: text("github_repo_url"),
+  githubRepoName: text("github_repo_name"),
+  githubOrg: text("github_org"),
+  blueprintVersion: integer("blueprint_version").notNull(),
+  status: text("status").default("pending").notNull(), // pending, deploying, deployed, failed, deleted
+  deploymentLogs: jsonb("deployment_logs"),
+  expiresAt: timestamp("expires_at"), // For preview environments
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  deletedAt: timestamp("deleted_at"),
+});
+
 export const blueprints = pgTable("blueprints", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id")
