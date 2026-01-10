@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { webhookSubscriptions, webhookConfigurations } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { DatabaseError, NotFoundError, ValidationError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
@@ -111,7 +111,7 @@ export class WebhookSubscriptionService {
         .where(and(
           eq(webhookConfigurations.id, data.webhookConfigurationId),
           eq(webhookConfigurations.userId, userId),
-          eq(webhookConfigurations.deletedAt, null),
+          isNull(webhookConfigurations.deletedAt),
         ))
         .limit(1);
 
@@ -145,24 +145,23 @@ export class WebhookSubscriptionService {
         "webhook_subscription_created",
         userId.toString(),
         {
-          subscriptionId: subscription.id,
+          subscriptionId: subscriptions[0].id,
           webhookConfigurationId: data.webhookConfigurationId,
           eventType: data.eventType,
         },
       );
 
       return {
-        ...subscription,
+        ...subscriptions[0],
         webhookConfiguration: webhookConfig[0],
       };
 
     } catch (error) {
-      logger.apiError(
-        "Failed to create webhook subscription",
-        null,
-        error as Error,
-        { userId, eventType: data.eventType },
-      );
+      logger.error("Failed to create webhook subscription", {
+        userId,
+        eventType: data.eventType,
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
   }
@@ -185,7 +184,7 @@ export class WebhookSubscriptionService {
       let conditions = [
         eq(webhookConfigurations.id, webhookConfigurationId),
         eq(webhookConfigurations.userId, userId),
-        eq(webhookConfigurations.deletedAt, null),
+        isNull(webhookConfigurations.deletedAt),
       ];
 
       if (options.activeOnly) {
@@ -223,12 +222,11 @@ export class WebhookSubscriptionService {
       return subscriptions;
 
     } catch (error) {
-      logger.apiError(
-        "Failed to get webhook subscriptions",
-        null,
-        error as Error,
-        { userId, webhookConfigurationId },
-      );
+      logger.error("Failed to get webhook subscriptions", {
+        userId,
+        webhookConfigurationId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
   }
@@ -249,19 +247,19 @@ export class WebhookSubscriptionService {
         this.validateFilterExpression(data.filterExpression);
       }
 
-      // First verify ownership through a subquery
+// First verify ownership through a subquery
       const configCheck = await database
         .select({ id: webhookConfigurations.id })
         .from(webhookConfigurations)
         .where(and(
           eq(webhookConfigurations.userId, userId),
-          eq(webhookConfigurations.deletedAt, null),
+          isNull(webhookConfigurations.deletedAt),
+          eq(webhookSubscriptions.id, subscriptionId)
         ))
         .innerJoin(
           webhookSubscriptions,
           eq(webhookConfigurations.id, webhookSubscriptions.webhookConfigurationId)
         )
-        .where(eq(webhookSubscriptions.id, subscriptionId))
         .limit(1);
 
       if (configCheck.length === 0) {
@@ -295,12 +293,11 @@ export class WebhookSubscriptionService {
       return this.getSubscriptionById(userId, subscriptionId);
 
     } catch (error) {
-      logger.apiError(
-        "Failed to update webhook subscription",
-        null,
-        error as Error,
-        { userId, subscriptionId },
-      );
+      logger.error("Failed to update webhook subscription", {
+        userId,
+        subscriptionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
   }
@@ -321,13 +318,13 @@ export class WebhookSubscriptionService {
         .from(webhookConfigurations)
         .where(and(
           eq(webhookConfigurations.userId, userId),
-          eq(webhookConfigurations.deletedAt, null),
+          isNull(webhookConfigurations.deletedAt),
+          eq(webhookSubscriptions.id, subscriptionId)
         ))
         .innerJoin(
           webhookSubscriptions,
           eq(webhookConfigurations.id, webhookSubscriptions.webhookConfigurationId)
         )
-        .where(eq(webhookSubscriptions.id, subscriptionId))
         .limit(1);
 
       if (configCheck.length === 0) {
@@ -348,12 +345,11 @@ export class WebhookSubscriptionService {
       );
 
     } catch (error) {
-      logger.apiError(
-        "Failed to delete webhook subscription",
-        null,
-        error as Error,
-        { userId, subscriptionId },
-      );
+      logger.error("Failed to delete webhook subscription", {
+        userId,
+        subscriptionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
   }
@@ -393,7 +389,7 @@ export class WebhookSubscriptionService {
           and(
             eq(webhookSubscriptions.id, subscriptionId),
             eq(webhookConfigurations.userId, userId),
-            eq(webhookConfigurations.deletedAt, null),
+            isNull(webhookConfigurations.deletedAt),
           ),
         )
         .limit(1);
@@ -405,12 +401,11 @@ export class WebhookSubscriptionService {
       return subscriptions[0];
 
     } catch (error) {
-      logger.apiError(
-        "Failed to get webhook subscription",
-        null,
-        error as Error,
-        { userId, subscriptionId },
-      );
+      logger.error("Failed to get webhook subscription", {
+        userId,
+        subscriptionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
   }
@@ -458,12 +453,11 @@ export class WebhookSubscriptionService {
       return this.evaluateFilterExpression(subscription.filterExpression, eventData);
 
     } catch (error) {
-      logger.apiError(
-        "Failed to check webhook subscription",
-        null,
-        error as Error,
-        { webhookConfigurationId, eventType },
-      );
+      logger.error("Failed to check webhook subscription", {
+        webhookConfigurationId,
+        eventType,
+        error: error instanceof Error ? error.message : String(error),
+      });
       // Default to not delivering to prevent data leaks
       return false;
     }
@@ -507,12 +501,10 @@ export class WebhookSubscriptionService {
       return String(actualValue) === expectedValue;
       
     } catch (error) {
-      logger.apiError(
-        "Failed to evaluate webhook filter expression",
-        null,
-        error as Error,
-        { expression },
-      );
+      logger.error("Failed to evaluate webhook filter expression", {
+        expression,
+        error: error instanceof Error ? error.message : String(error),
+      });
       // Default to not delivering if evaluation fails
       return true; // Be conservative - if filter fails, deliver the event
     }

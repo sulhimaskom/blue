@@ -10,15 +10,16 @@ export async function GET(req: NextRequest) {
   return APIRouteHandler.createGETHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-    handler: async ({ user, query }) => {
+    handler: async ({ user, req }) => {
       if (!user) {
         throw new NotFoundError("Authentication required");
       }
 
       // Extract query parameters
-      const webhookId = query.get("webhookId") || undefined;
-      const eventType = query.get("eventType") || undefined;
-      const activeOnly = query.get("active") === "true";
+      const { searchParams } = new URL(req.url);
+      const webhookId = searchParams.get("webhookId") || undefined;
+      const eventType = searchParams.get("eventType") || undefined;
+      const activeOnly = searchParams.get("active") === "true";
 
       // If webhookId provided, get subscriptions for that webhook
       if (webhookId) {
