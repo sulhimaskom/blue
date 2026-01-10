@@ -51,6 +51,7 @@ Based on blueprint.md Service Layer principles (blueprint.md:498-501), the follo
   - `getRuleByPattern(pattern)` - Get rule by pattern
   - `shouldWarmRule(rule, detectedPatterns)` - Determine if rule should warm
   - `calculateEstimatedSavings(rule)` - Calculate cost savings
+<<<<<<< HEAD
 - **Lines**: ~380 lines (9 warming rules with detailed data)
 
 ### 5. AIUsageAnalyticsService
