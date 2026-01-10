@@ -54,9 +54,19 @@ export async function POST(req: NextRequest) {
             .limit(1);
 
           if (userRecord) {
-            // Add credits to user account
-            const creditsToAdd = parseInt(metadata.creditsAdded);
-              await database
+            // Add credits to user account with validation
+            const creditsToAdd = parseInt(metadata.creditsAdded, 10);
+            if (isNaN(creditsToAdd) || creditsToAdd <= 0) {
+              logger.error("Invalid credits amount in metadata", {
+                requestId: context.requestId,
+                userId: metadata.userId,
+                creditsToAdd: metadata.creditsAdded,
+                paymentIntent: event.data.object.id,
+              });
+              return; // Skip this webhook processing
+            }
+            
+            await database
                .update(users)
                .set({
                  credits: userRecord.credits + creditsToAdd,
