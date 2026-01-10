@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { ServiceError } from "./service-error-handler";
 
 /**
  * Service interfaces for dashboard data operations
@@ -96,7 +97,13 @@ export class DashboardDataService {
 
       if (!response.ok) {
         const errorText = response.statusText;
-        throw new Error(`API call failed: ${endpoint} - ${errorText}`);
+        throw ServiceError.database(
+          `API call failed: ${endpoint} - ${errorText}`,
+          "DashboardDataService",
+          "makeApiCall",
+          undefined,
+          { endpoint, status: response.status, statusText: errorText }
+        );
       }
 
       return await response.json();
@@ -126,10 +133,14 @@ export class DashboardDataService {
         credits: data.credits || 0,
       };
     } catch (error) {
-      throw new Error(
+      throw ServiceError.database(
         error instanceof Error
           ? error.message
           : "Failed to load blueprints data",
+        "DashboardDataService",
+        "getBlueprintData",
+        error instanceof Error ? error : new Error("Failed to load blueprints data"),
+        { endpoint: "/blueprints/dashboard" }
       );
     }
   }
@@ -147,10 +158,14 @@ export class DashboardDataService {
       );
       return data;
     } catch (error) {
-      throw new Error(
+      throw ServiceError.database(
         error instanceof Error
           ? error.message
           : "Failed to load project blueprints",
+        "DashboardDataService",
+        "getProjectBlueprints",
+        error instanceof Error ? error : new Error("Failed to load project blueprints"),
+        { projectId }
       );
     }
   }
@@ -164,8 +179,12 @@ export class DashboardDataService {
       const data = await this.apiCall<CreditsData>("/credits");
       return data;
     } catch (error) {
-      throw new Error(
+      throw ServiceError.database(
         error instanceof Error ? error.message : "Failed to load credits data",
+        "DashboardDataService",
+        "getCreditsData",
+        error instanceof Error ? error : new Error("Failed to load credits data"),
+        { endpoint: "/credits" }
       );
     }
   }
@@ -181,8 +200,12 @@ export class DashboardDataService {
         body: JSON.stringify(formData),
       });
     } catch (error) {
-      throw new Error(
+      throw ServiceError.database(
         error instanceof Error ? error.message : "Failed to create blueprint",
+        "DashboardDataService",
+        "createBlueprint",
+        error instanceof Error ? error : new Error("Failed to create blueprint"),
+        { formData }
       );
     }
   }
@@ -205,8 +228,12 @@ export class DashboardDataService {
       );
       return data;
     } catch (error) {
-      throw new Error(
+      throw ServiceError.database(
         error instanceof Error ? error.message : "Deployment failed",
+        "DashboardDataService", 
+        "deployToRepository",
+        error instanceof Error ? error : new Error("Deployment failed"),
+        { deployId, deploymentForm }
       );
     }
   }
@@ -230,8 +257,12 @@ export class DashboardDataService {
         }),
       });
     } catch (error) {
-      throw new Error(
+      throw ServiceError.database(
         error instanceof Error ? error.message : "Purchase failed",
+        "DashboardDataService",
+        "purchaseCredits",
+        error instanceof Error ? error : new Error("Purchase failed"),
+        { amount, paymentMethodId }
       );
     }
   }
@@ -260,8 +291,12 @@ export class DashboardDataService {
 
       return projectsWithDeployment;
     } catch (error) {
-      throw new Error(
+      throw ServiceError.database(
         error instanceof Error ? error.message : "Failed to load projects",
+        "DashboardDataService",
+        "getProjectsWithDeployment",
+        error instanceof Error ? error : new Error("Failed to load projects"),
+        {}
       );
     }
   }
@@ -283,10 +318,14 @@ export class DashboardDataService {
       }>("/circuit-breakers/metrics");
       return data;
     } catch (error) {
-      throw new Error(
+      throw ServiceError.database(
         error instanceof Error
           ? error.message
           : "Failed to load circuit breaker metrics",
+        "DashboardDataService",
+        "getCircuitBreakerMetrics",
+        error instanceof Error ? error : new Error("Failed to load circuit breaker metrics"),
+        { endpoint: "/circuit-breakers/metrics" }
       );
     }
   }
@@ -309,10 +348,14 @@ export class DashboardDataService {
       });
       return data;
     } catch (error) {
-      throw new Error(
+      throw ServiceError.database(
         error instanceof Error
           ? error.message
           : "Failed to reset circuit breaker",
+        "DashboardDataService",
+        "resetCircuitBreaker",
+        error instanceof Error ? error : new Error("Failed to reset circuit breaker"),
+        { circuitName }
       );
     }
   }

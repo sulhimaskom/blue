@@ -1,4 +1,5 @@
 import type { WebhookConfigurationInput } from "@/lib/schemas/webhook-schema";
+import { ServiceError } from "./service-error-handler";
 
 export interface WebhookConfiguration {
   id: string;
@@ -109,7 +110,13 @@ export class WebhookManagementService {
         return result.data;
       }
 
-      throw new Error(result.error || "Failed to load webhooks");
+      throw ServiceError.database(
+          result.error || "Failed to load webhooks",
+          "WebhookManagementService",
+          "loadWebhooks",
+          undefined,
+          { result }
+        );
     } catch (error) {
       this.state.error =
         error instanceof Error ? error.message : "Error loading webhooks";
@@ -134,7 +141,13 @@ export class WebhookManagementService {
         return result.data;
       }
 
-      throw new Error(result.error || "Failed to create webhook");
+      throw ServiceError.database(
+          result.error || "Failed to create webhook",
+          "WebhookManagementService",
+          "createWebhook",
+          undefined,
+          { result, data }
+        );
     } catch (error) {
       this.state.error =
         error instanceof Error ? error.message : "Error creating webhook";
@@ -160,7 +173,13 @@ export class WebhookManagementService {
         return result.data;
       }
 
-      throw new Error(result.error || "Failed to update webhook");
+      throw ServiceError.database(
+          result.error || "Failed to update webhook",
+          "WebhookManagementService",
+          "updateWebhook",
+          undefined,
+          { result, id, data }
+        );
     } catch (error) {
       this.state.error =
         error instanceof Error ? error.message : "Error updating webhook";
@@ -177,7 +196,13 @@ export class WebhookManagementService {
       if (result.success) {
         this.state.webhooks.delete(id);
       } else {
-        throw new Error(result.error || "Failed to delete webhook");
+        throw ServiceError.database(
+          result.error || "Failed to delete webhook",
+          "WebhookManagementService",
+          "deleteWebhook",
+          undefined,
+          { result, id }
+        );
       }
     } catch (error) {
       this.state.error =
@@ -203,7 +228,13 @@ export class WebhookManagementService {
         return result.data;
       }
 
-      throw new Error(result.error || "Failed to test webhook");
+      throw ServiceError.database(
+          result.error || "Failed to test webhook",
+          "WebhookManagementService",
+          "testWebhook",
+          undefined,
+          { result, id }
+        );
     } catch (error) {
       this.state.error =
         error instanceof Error ? error.message : "Error testing webhook";
@@ -219,7 +250,13 @@ export class WebhookManagementService {
       });
 
       if (!result.success) {
-        throw new Error(result.error || "Failed to rotate secret");
+        throw ServiceError.database(
+          result.error || "Failed to rotate secret",
+          "WebhookManagementService",
+          "rotateSecret",
+          undefined,
+          { result, id }
+        );
       }
     } catch (error) {
       this.state.error =
@@ -246,7 +283,13 @@ export class WebhookManagementService {
         return result.data;
       }
 
-      throw new Error(result.error || "Failed to load webhook events");
+      throw ServiceError.database(
+          result.error || "Failed to load webhook events",
+          "WebhookManagementService",
+          "loadWebhookEvents",
+          undefined,
+          { result, webhookId, options }
+        );
     } catch (error) {
       this.state.error =
         error instanceof Error ? error.message : "Error loading webhook events";
@@ -262,7 +305,13 @@ export class WebhookManagementService {
       });
 
       if (!result.success) {
-        throw new Error(result.error || "Failed to retry event");
+        throw ServiceError.database(
+          result.error || "Failed to retry event",
+          "WebhookManagementService",
+          "retryEvent",
+          undefined,
+          { result, eventId }
+        );
       }
     } catch (error) {
       this.state.error =

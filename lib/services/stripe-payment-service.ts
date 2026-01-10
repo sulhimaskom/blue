@@ -1,6 +1,7 @@
 import { logger } from "@/lib/logger";
 import { retryService, RETRY_CONFIGS } from "./retry-service";
 import type { RequestContext } from "@/lib/services/user-service";
+import { DatabaseError, ValidationError } from "@/lib/api-utils";
 
 export interface PaymentIntentRequest {
   amount: number;
@@ -56,7 +57,7 @@ export class StripePaymentService {
         logger.error("Failed to initialize Stripe", {
           error: error instanceof Error ? error.message : "Unknown error",
         });
-        throw new Error(
+        throw new DatabaseError(
           "Stripe library not available or invalid configuration",
         );
       }
@@ -82,7 +83,7 @@ export class StripePaymentService {
     context: RequestContext,
   ): Promise<PaymentIntentResponse> {
     if (!this.stripe) {
-      throw new Error("Stripe payment service not configured");
+      throw new DatabaseError("Stripe payment service not configured");
     }
 
     try {
@@ -150,7 +151,7 @@ export class StripePaymentService {
         error: error instanceof Error ? error.message : "Unknown error",
       });
 
-      throw new Error(
+      throw new DatabaseError(
         `Payment processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
@@ -165,14 +166,14 @@ export class StripePaymentService {
     context: RequestContext,
   ): Promise<{ processed: boolean; type: string }> {
     if (!this.stripe) {
-      throw new Error("Stripe payment service not configured");
+      throw new DatabaseError("Stripe payment service not configured");
     }
 
     if (!process.env.STRIPE_WEBHOOK_SECRET) {
       logger.error("STRIPE_WEBHOOK_SECRET not configured", {
         requestId: context.requestId,
       });
-      throw new Error("Webhook secret not configured");
+      throw new ValidationError("Webhook secret not configured");
     }
 
     try {
@@ -212,7 +213,7 @@ export class StripePaymentService {
         error: error instanceof Error ? error.message : "Unknown error",
       });
 
-      throw new Error(
+      throw new DatabaseError(
         `Webhook processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
@@ -336,7 +337,7 @@ export class StripePaymentService {
     context: RequestContext,
   ): Promise<any> {
     if (!this.stripe) {
-      throw new Error("Stripe payment service not configured");
+      throw new DatabaseError("Stripe payment service not configured");
     }
 
     try {
@@ -357,7 +358,7 @@ export class StripePaymentService {
         error: error instanceof Error ? error.message : "Unknown error",
       });
 
-      throw new Error(
+      throw new DatabaseError(
         `Failed to retrieve payment: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
@@ -376,7 +377,7 @@ export class StripePaymentService {
   public getPublishableKey(): string {
     const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
     if (!key) {
-      throw new Error("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY not configured");
+      throw new ValidationError("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY not configured");
     }
     return key;
   }

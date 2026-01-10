@@ -8,6 +8,7 @@ import {
 import { UnifiedCacheManager } from "../../cache-orchestrator";
 import { AIPatternDetector } from "../../ai-pattern-detector";
 import { IdGenerators } from "../../../utils/id-generator";
+import { DatabaseError } from "@/lib/api-utils";
 import { Timing } from "../../../utils/time-measurement";
 import { retryService, RETRY_CONFIGS } from "../../retry-service";
 import { env } from "../../../env";
@@ -94,7 +95,7 @@ export class IFlowStrategy implements AIProviderStrategy {
     try {
       if (!this.iflowCircuitBreaker.isAvailable()) {
         const metrics = this.iflowCircuitBreaker.getMetrics();
-        throw new Error(
+        throw new DatabaseError(
           `IFlow service temporarily unavailable (circuit breaker: ${metrics.state})`,
         );
       }
@@ -161,9 +162,8 @@ export class IFlowStrategy implements AIProviderStrategy {
             );
 
             if (!fetchResponse.ok) {
-              const errorData = await fetchResponse.json().catch(() => ({}));
-              throw new Error(
-                `IFlow API error: ${fetchResponse.status} ${JSON.stringify(errorData)}`,
+              throw new DatabaseError(
+                `IFlow API error: ${fetchResponse.statusText} (${fetchResponse.status})`,
               );
             }
 
@@ -265,7 +265,7 @@ export class IFlowStrategy implements AIProviderStrategy {
         "high",
       );
 
-      throw new Error(
+      throw new DatabaseError(
         `IFlow completion failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
@@ -304,7 +304,7 @@ export class IFlowStrategy implements AIProviderStrategy {
 
       if (!this.tavilyCircuitBreaker.isAvailable()) {
         const metrics = this.tavilyCircuitBreaker.getMetrics();
-        throw new Error(
+        throw new DatabaseError(
           `Research service temporarily unavailable (circuit breaker: ${metrics.state})`,
         );
       }
@@ -336,7 +336,7 @@ export class IFlowStrategy implements AIProviderStrategy {
 
             if (!fetchResponse.ok) {
               const errorData = await fetchResponse.json().catch(() => ({}));
-              throw new Error(
+              throw new DatabaseError(
                 `Tavily API error: ${fetchResponse.status} ${JSON.stringify(errorData)}`,
               );
             }
@@ -411,7 +411,7 @@ export class IFlowStrategy implements AIProviderStrategy {
         "high",
       );
 
-      throw new Error(
+      throw new DatabaseError(
         `Market research failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }

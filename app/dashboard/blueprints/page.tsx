@@ -7,6 +7,7 @@ import { useBlueprintsData } from "@/lib/hooks/use-dashboard-data";
 import { StatsOverview } from "@/components/dashboard/stats-overview";
 import { ProjectList } from "@/components/dashboard/project-list";
 import { BlueprintList } from "@/components/dashboard/blueprint-list";
+import { ValidationError } from "@/lib/api-utils";
 
 const BlueprintCreateModal = lazy(() =>
   import("@/components/dashboard/blueprint-create-modal").then((m) => ({
@@ -60,7 +61,7 @@ export default function BlueprintsPage() {
 
     if (!validationResult.isValid) {
       // Error will be handled by the hook's error state
-      throw new Error("Please fix the validation errors before submitting");
+      throw new ValidationError("Please fix the validation errors before submitting");
     }
 
     try {

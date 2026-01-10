@@ -8,6 +8,7 @@ import { ActivityIcon, AlertTriangleIcon } from "@/components/ui/icons";
 import { getUIText } from "@/lib/constants/ui-text";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { logger } from "@/lib/logger";
+import { DatabaseError } from "@/lib/api-utils";
 import {
   getTextColor,
   getStatusTheme,
@@ -153,7 +154,7 @@ export const PerformanceDashboard = memo(
           );
 
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            throw new DatabaseError(`HTTP ${response.status}: ${response.statusText}`);
           }
 
           const data = await response.json();

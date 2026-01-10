@@ -3,6 +3,7 @@ import type {
   AICacheOptimizationMetrics,
   PredictivePerformanceData,
 } from "./service-types";
+import { DatabaseError } from "@/lib/api-utils";
 
 export interface WebhookQueueStats {
   queue: {
@@ -39,7 +40,7 @@ class MonitoringAPI {
     const response = await fetch(`${this.apiBase}/webhooks/monitor`);
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new DatabaseError(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -48,7 +49,7 @@ class MonitoringAPI {
       return data.data as WebhookQueueStats;
     }
 
-    throw new Error(data.error || "Failed to fetch webhook stats");
+    throw new DatabaseError(data.error || "Failed to fetch webhook stats");
   }
 
   async retryDeadLetterEvents(): Promise<void> {
@@ -64,13 +65,13 @@ class MonitoringAPI {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new DatabaseError(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
 
     if (!data.success) {
-      throw new Error(data.error || "Failed to retry dead letter events");
+      throw new DatabaseError(data.error || "Failed to retry dead letter events");
     }
   }
 
@@ -83,13 +84,13 @@ class MonitoringAPI {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new DatabaseError(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
 
     if (!data.success) {
-      throw new Error(data.error || "Failed to reset circuit breakers");
+      throw new DatabaseError(data.error || "Failed to reset circuit breakers");
     }
 
     return data.data as CircuitBreakerResetResult;
@@ -101,7 +102,7 @@ class MonitoringAPI {
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new DatabaseError(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -110,7 +111,7 @@ class MonitoringAPI {
       return data.data as AdvancedPerformanceMetrics;
     }
 
-    throw new Error(data.error || "Failed to fetch advanced monitoring data");
+    throw new DatabaseError(data.error || "Failed to fetch advanced monitoring data");
   }
 
   async getAICacheOptimization(): Promise<AICacheOptimizationMetrics> {
@@ -119,7 +120,7 @@ class MonitoringAPI {
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new DatabaseError(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -128,14 +129,14 @@ class MonitoringAPI {
       return data.data as AICacheOptimizationMetrics;
     }
 
-    throw new Error(data.error || "Failed to fetch AI cache optimization data");
+    throw new DatabaseError(data.error || "Failed to fetch AI cache optimization data");
   }
 
   async getPredictivePerformance(): Promise<PredictivePerformanceData> {
     const response = await fetch(`${this.apiBase}/performance/predictive`);
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new DatabaseError(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -144,8 +145,8 @@ class MonitoringAPI {
       return data.data as PredictivePerformanceData;
     }
 
-    throw new Error(
-      data.error || "Failed to fetch predictive performance data",
+throw new DatabaseError(
+      data.error || "Failed to fetch webhook detailed performance stats",
     );
   }
 
@@ -169,7 +170,7 @@ class MonitoringAPI {
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new DatabaseError(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -178,8 +179,8 @@ class MonitoringAPI {
       return { success: true, message: data.message };
     }
 
-    throw new Error(
-      data.error || "Failed to fetch predictive optimization data",
+throw new DatabaseError(
+      data.error || "Failed to fetch predictive performance monitoring data",
     );
   }
 }

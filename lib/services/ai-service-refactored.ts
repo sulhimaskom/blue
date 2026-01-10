@@ -2,6 +2,7 @@ import { logger } from "../logger";
 import { errorMonitoring } from "./error-monitoring-service";
 import { IdGenerators } from "../utils/id-generator";
 import { Timing } from "../utils/time-measurement";
+import { DatabaseError, ValidationError } from "@/lib/api-utils";
 import type {
   AIModel,
   AICompletionRequest,
@@ -65,7 +66,7 @@ export class AIService {
       const provider = this.registry.getDefaultProvider();
 
       if (!provider) {
-        throw new Error("No AI provider available");
+        throw new DatabaseError("No AI provider available");
       }
 
       logger.info("AI completion request initiated", {
@@ -133,12 +134,12 @@ export class AIService {
       const provider = this.registry.getProvider(providerId);
 
       if (!provider) {
-        throw new Error(`Provider '${providerId}' not found`);
+        throw new ValidationError(`Provider '${providerId}' not found`);
       }
 
       if (!provider.supportsModel(request.model?.id || "")) {
-        throw new Error(
-          `Provider '${providerId}' does not support requested model`,
+        throw new ValidationError(
+          `Model '${request.model?.id}' not supported by provider '${provider.providerName}'`,
         );
       }
 
@@ -204,7 +205,7 @@ export class AIService {
       const provider = this.registry.getDefaultProvider();
 
       if (!provider) {
-        throw new Error("No AI provider available");
+        throw new DatabaseError("No AI provider available");
       }
 
       logger.info("Market research initiated", {
@@ -260,7 +261,7 @@ export class AIService {
     const provider = this.registry.getDefaultProvider();
 
     if (!provider) {
-      throw new Error("No AI provider available");
+      throw new DatabaseError("No AI provider available");
     }
 
     const models: Record<string, AIModel> = {};
@@ -281,7 +282,7 @@ export class AIService {
     const provider = this.registry.getProvider(providerId);
 
     if (!provider) {
-      throw new Error(`Provider '${providerId}' not found`);
+      throw new ValidationError(`Provider '${providerId}' not found`);
     }
 
     const models: Record<string, AIModel> = {};
@@ -407,7 +408,7 @@ export class AIService {
     const provider = this.registry.getDefaultProvider();
 
     if (!provider) {
-      throw new Error("No AI provider available");
+      throw new DatabaseError("No AI provider available");
     }
 
     return {

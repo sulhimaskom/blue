@@ -6,6 +6,7 @@ import { UnifiedCacheManager } from "../../cache-orchestrator";
 import { IdGenerators } from "../../../utils/id-generator";
 import { Timing } from "../../../utils/time-measurement";
 import { retryService, RETRY_CONFIGS } from "../../retry-service";
+import { DatabaseError, ValidationError } from "@/lib/api-utils";
 import type {
   AIModel,
   AICompletionRequest,
@@ -91,7 +92,7 @@ export class OpenAIStrategy implements AIProviderStrategy {
     try {
       if (!this.circuitBreaker.isAvailable()) {
         const metrics = this.circuitBreaker.getMetrics();
-        throw new Error(
+        throw new DatabaseError(
           `OpenAI service temporarily unavailable (circuit breaker: ${metrics.state})`,
         );
       }
@@ -155,7 +156,7 @@ export class OpenAIStrategy implements AIProviderStrategy {
 
             if (!fetchResponse.ok) {
               const errorData = await fetchResponse.json().catch(() => ({}));
-              throw new Error(
+              throw new DatabaseError(
                 `OpenAI API error: ${fetchResponse.status} ${JSON.stringify(errorData)}`,
               );
             }
@@ -243,14 +244,14 @@ export class OpenAIStrategy implements AIProviderStrategy {
         "high",
       );
 
-      throw new Error(
+      throw new DatabaseError(
         `OpenAI completion failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
 
   async conductResearch(_query: ResearchRequest): Promise<ResearchResult> {
-    throw new Error("OpenAI strategy does not support research operations");
+    throw new ValidationError("OpenAI strategy does not support research operations");
   }
 
   async healthCheck(): Promise<boolean> {
