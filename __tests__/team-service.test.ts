@@ -101,6 +101,26 @@ describe("TeamService", () => {
   });
 
   describe("error handling", () => {
+it("should handle database errors gracefully", async () => {
+      jest.spyOn(db, 'select').mockReturnValueOnce({
+        where: jest.fn().mockReturnValue({
+          limit: jest.fn().mockReturnValue({
+            from: jest.fn().mockReturnThis(),
+          }),
+        }),
+        from: jest.fn().mockReturnThis(),
+      } as any);
+
+      const mockWhere = jest.spyOn(db.select() as any, 'where');
+      mockWhere.mockRejectedValueOnce(new Error("Database connection failed"));
+
+      await expect(
+        teamService.createTeam({ name: "Test Team", ownerId: 1 })
+      ).rejects.toThrow(DatabaseError);
+
+      mockWhere.mockRestore();
+    });
+
     it("should handle validation errors properly", async () => {
       // Test that validation errors are properly thrown
       await expect(

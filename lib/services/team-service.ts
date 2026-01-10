@@ -315,6 +315,11 @@ class TeamService {
         throw new ValidationError("Invalid role. Must be admin, member, or viewer");
       }
 
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(invitation.email.trim())) {
+        throw new ValidationError("Invalid email format");
+      }
+
       // Verify inviting user is team admin
       await this.verifyTeamAccess(teamId, invitingUserId, ["admin"]);
 
