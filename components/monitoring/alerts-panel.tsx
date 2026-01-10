@@ -6,7 +6,7 @@ import {
   getStatusTheme,
 } from "@/lib/constants/ui-themes";
 import { AlertTriangleIcon } from "@/components/ui/icons";
-import { PerformanceAlert } from "@/lib/types/webhook-types";
+import { PerformanceAlert } from "@/lib/types/performance-types";
 
 /**
  * Props interface for AlertsPanel component.

@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import {
-  PerformanceMetrics,
-  DashboardPerformanceMetrics,
+  PerformanceData,
+  ComputedPerformanceMetrics,
   PerformanceAlert,
-} from "@/lib/types/webhook-types";
+} from "@/lib/types/performance-types";
 
 /**
  * usePerformanceMetrics hook for performance metrics calculation
@@ -25,8 +25,8 @@ import {
  * ```
  */
 export function usePerformanceMetrics(
-  performanceData: PerformanceMetrics | null,
-): DashboardPerformanceMetrics | null {
+  performanceData: PerformanceData | null,
+): ComputedPerformanceMetrics | null {
   return useMemo(() => {
     if (!performanceData) return null;
 
