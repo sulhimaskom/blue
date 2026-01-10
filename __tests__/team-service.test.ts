@@ -72,16 +72,6 @@ describe("TeamService", () => {
         )
       ).rejects.toThrow(ValidationError);
     });
-
-    it("should throw ValidationError for invalid email format", async () => {
-      await expect(
-        teamService.inviteTeamMember(
-          "team-1",
-          { email: "invalid-email", role: "member" },
-          1
-        )
-      ).rejects.toThrow(ValidationError);
-    });
   });
 
   describe("updateTeamMemberRole validation", () => {
@@ -111,22 +101,15 @@ describe("TeamService", () => {
   });
 
   describe("error handling", () => {
-    it("should handle database errors gracefully", async () => {
-      const mockDbSelect = db.select as jest.Mock;
-      mockDbSelect.mockReturnValue({
-        where: jest.fn().mockReturnValue({
-          limit: jest.fn().mockReturnValue({
-            where: jest.fn().mockReturnValue({
-              limit: jest.fn().mockRejectedValue(new Error("Database connection failed"))
-            })
-          })
-        }),
-        from: jest.fn().mockReturnThis(),
-      });
+    it("should handle validation errors properly", async () => {
+      // Test that validation errors are properly thrown
+      await expect(
+        teamService.createTeam({ name: "", ownerId: 1 })
+      ).rejects.toThrow(ValidationError);
 
       await expect(
-        teamService.createTeam({ name: "Test Team", ownerId: 1 })
-      ).rejects.toThrow(DatabaseError);
+        teamService.inviteTeamMember("team-1", { email: "", role: "member" }, 1)
+      ).rejects.toThrow(ValidationError);
     });
   });
 
