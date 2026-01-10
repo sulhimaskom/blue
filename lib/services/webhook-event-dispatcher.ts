@@ -24,6 +24,13 @@ export interface BlueprintEventData {
   timestamp: Date;
 }
 
+export interface BlueprintLifecycleEventData extends BlueprintEventData {
+  blueprintStatus: "generating" | "completed" | "failed";
+  estimatedDuration?: number;
+  errorMessage?: string;
+  metadata?: Record<string, any>;
+}
+
 export interface ProjectDeploymentData {
   userId: number;
   clerkId: string;
@@ -207,6 +214,147 @@ export class WebhookEventDispatcher {
 
     await this.dispatchEventToSubscribers(
       "blueprint.created",
+      eventData,
+      `user-${clerkId}`,
+      context,
+    );
+  }
+
+  /**
+   * Emit blueprint generating webhook event
+   * Triggered when blueprint generation is initiated
+   */
+  static async emitBlueprintGenerating(
+    userId: number,
+    clerkId: string,
+    projectId: string,
+    blueprintId: string,
+    blueprintVersion: number,
+    blueprintName?: string,
+    estimatedDuration?: number,
+    context?: RequestContext,
+  ): Promise<void> {
+    const eventData: BlueprintLifecycleEventData = {
+      userId,
+      clerkId,
+      projectId,
+      blueprintId,
+      blueprintVersion,
+      blueprintName,
+      blueprintStatus: "generating",
+      estimatedDuration,
+      timestamp: new Date(),
+    };
+
+    await this.dispatchEventToSubscribers(
+      "blueprint.generating",
+      eventData,
+      `user-${clerkId}`,
+      context,
+    );
+  }
+
+  /**
+   * Emit blueprint completed webhook event
+   * Triggered when blueprint generation completes successfully
+   */
+  static async emitBlueprintCompleted(
+    userId: number,
+    clerkId: string,
+    projectId: string,
+    blueprintId: string,
+    blueprintVersion: number,
+    blueprintName?: string,
+    metadata?: Record<string, any>,
+    context?: RequestContext,
+  ): Promise<void> {
+    const eventData: BlueprintLifecycleEventData = {
+      userId,
+      clerkId,
+      projectId,
+      blueprintId,
+      blueprintVersion,
+      blueprintName,
+      blueprintStatus: "completed",
+      metadata,
+      timestamp: new Date(),
+    };
+
+    await this.dispatchEventToSubscribers(
+      "blueprint.completed",
+      eventData,
+      `user-${clerkId}`,
+      context,
+    );
+  }
+
+  /**
+   * Emit blueprint failed webhook event
+   * Triggered when blueprint generation fails
+   */
+  static async emitBlueprintFailed(
+    userId: number,
+    clerkId: string,
+    projectId: string,
+    blueprintId: string,
+    blueprintVersion: number,
+    blueprintName?: string,
+    errorMessage?: string,
+    metadata?: Record<string, any>,
+    context?: RequestContext,
+  ): Promise<void> {
+    const eventData: BlueprintLifecycleEventData = {
+      userId,
+      clerkId,
+      projectId,
+      blueprintId,
+      blueprintVersion,
+      blueprintName,
+      blueprintStatus: "failed",
+      errorMessage,
+      metadata,
+      timestamp: new Date(),
+    };
+
+    await this.dispatchEventToSubscribers(
+      "blueprint.failed",
+      eventData,
+      `user-${clerkId}`,
+      context,
+    );
+  }
+
+  /**
+   * Emit blueprint status changed webhook event
+   * Triggered when blueprint status changes between any states
+   */
+  static async emitBlueprintStatusChanged(
+    userId: number,
+    clerkId: string,
+    projectId: string,
+    blueprintId: string,
+    blueprintVersion: number,
+    blueprintName?: string,
+    previousStatus?: string,
+    currentStatus: "generating" | "completed" | "failed" = "generating",
+    metadata?: Record<string, any>,
+    context?: RequestContext,
+  ): Promise<void> {
+    const eventData: BlueprintLifecycleEventData & { previousStatus?: string } = {
+      userId,
+      clerkId,
+      projectId,
+      blueprintId,
+      blueprintVersion,
+      blueprintName,
+      blueprintStatus: currentStatus,
+      previousStatus,
+      metadata,
+      timestamp: new Date(),
+    };
+
+    await this.dispatchEventToSubscribers(
+      "blueprint.status_changed",
       eventData,
       `user-${clerkId}`,
       context,

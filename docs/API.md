@@ -2591,8 +2591,12 @@ All API operations are logged with:
 
 | Event Category     | Event Type                             | Description                     | Business Impact              |
 | ------------------ | -------------------------------------- | ------------------------------- | ---------------------------- |
-| **Blueprints**     | `blueprint.completed`                  | Blueprint generation finished   | Trigger CI/CD pipelines      |
+| **Blueprints**     | `blueprint.generating`                 | Blueprint generation initiated  | Start deployment processes    |
+|                    | `blueprint.completed`                  | Blueprint generation finished   | Trigger CI/CD pipelines      |
 |                    | `blueprint.failed`                     | Blueprint generation failed     | Alert development team       |
+|                    | `blueprint.status_changed`             | Blueprint status updated        | Update project dashboards    |
+|                    | `blueprint.created`                    | New blueprint generated         | Initialize project assets    |
+|                    | `blueprint.updated`                    | Blueprint content modified      | Sync documentation systems   |
 |                    | `blueprint.refinement.started`         | Blueprint refinement initiated  | Update project management    |
 | **Deployments**    | `deployment.started`                   | GitHub deployment initiated     | Notify team resources        |
 |                    | `deployment.completed`                 | Repository created and deployed | Trigger downstream processes |
@@ -2621,6 +2625,120 @@ All webhook payloads follow a consistent structure:
     "projectName": "E-commerce Platform",
     "status": "completed",
     "version": 1
+  },
+  "signature": "sha256=hashed_signature",
+  "retryCount": 0
+}
+```
+
+### Blueprint Lifecycle Webhook Payloads
+
+#### blueprint.generating
+
+```json
+{
+  "eventId": "evt_bp_generate_1234567890abcdef",
+  "eventType": "blueprint.generating",
+  "timestamp": "2025-12-24T10:00:00Z",
+  "data": {
+    "userId": 123,
+    "clerkId": "user_2hK7Lx8y9Z0w1X2",
+    "projectId": "proj_uuid_123",
+    "blueprintId": "pending-blueprint",
+    "blueprintVersion": 1,
+    "blueprintName": "E-commerce Platform",
+    "blueprintStatus": "generating",
+    "estimatedDuration": 30,
+    "timestamp": "2025-12-24T10:00:00Z"
+  },
+  "signature": "sha256=hashed_signature",
+  "retryCount": 0
+}
+```
+
+#### blueprint.completed
+
+```json
+{
+  "eventId": "evt_bp_complete_1234567890abcdef",
+  "eventType": "blueprint.completed",
+  "timestamp": "2025-12-24T10:01:30Z",
+  "data": {
+    "userId": 123,
+    "clerkId": "user_2hK7Lx8y9Z0w1X2",
+    "projectId": "proj_uuid_123",
+    "blueprintId": "bp_uuid_456",
+    "blueprintVersion": 1,
+    "blueprintName": "E-commerce Platform",
+    "blueprintStatus": "completed",
+    "metadata": {
+      "duration": "2500ms",
+      "aiModelsUsed": ["gpt-4", "claude-2"],
+      "features": ["authentication", "database", "api"],
+      "techStack": {
+        "runtime": "node.js",
+        "framework": "next.js",
+        "database": "postgresql"
+      }
+    },
+    "timestamp": "2025-12-24T10:01:30Z"
+  },
+  "signature": "sha256=hashed_signature",
+  "retryCount": 0
+}
+```
+
+#### blueprint.failed
+
+```json
+{
+  "eventId": "evt_bp_fail_1234567890abcdef",
+  "eventType": "blueprint.failed",
+  "timestamp": "2025-12-24T10:02:00Z",
+  "data": {
+    "userId": 123,
+    "clerkId": "user_2hK7Lx8y9Z0w1X2",
+    "projectId": "proj_uuid_123",
+    "blueprintId": "failed-blueprint",
+    "blueprintVersion": 0,
+    "blueprintName": "E-commerce Platform",
+    "blueprintStatus": "failed",
+    "errorMessage": "AI model timeout exceeded",
+    "metadata": {
+      "duration": "45000ms",
+      "inputLength": 1000,
+      "errorType": "TimeoutError",
+      "aiModelsAttempted": ["gpt-4", "claude-2"]
+    },
+    "timestamp": "2025-12-24T10:02:00Z"
+  },
+  "signature": "sha256=hashed_signature",
+  "retryCount": 0
+}
+```
+
+#### blueprint.status_changed
+
+```json
+{
+  "eventId": "evt_bp_status_1234567890abcdef",
+  "eventType": "blueprint.status_changed",
+  "timestamp": "2025-12-24T10:01:30Z",
+  "data": {
+    "userId": 123,
+    "clerkId": "user_2hK7Lx8y9Z0w1X2",
+    "projectId": "proj_uuid_123",
+    "blueprintId": "bp_uuid_456",
+    "blueprintVersion": 1,
+    "blueprintName": "E-commerce Platform",
+    "blueprintStatus": "completed",
+    "previousStatus": "generating",
+    "metadata": {
+      "duration": "2500ms",
+      "blueprintId": "bp_uuid_456",
+      "statusTransitionTime": "2025-12-24T10:01:30Z"
+    },
+    "timestamp": "2025-12-24T10:01:30Z"
   },
   "signature": "sha256=hashed_signature",
   "retryCount": 0

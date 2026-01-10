@@ -79,6 +79,80 @@ describe("WebhookEventDispatcher Integration", () => {
         ),
       ).resolves.toBeUndefined();
     });
+
+    it("should handle blueprint generating emission without errors", async () => {
+      await expect(
+        WebhookEventDispatcher.emitBlueprintGenerating(
+          123,
+          "clerk-123",
+          "proj-123",
+          "bp-123",
+          1,
+          "Test Blueprint",
+          30,
+          mockContext,
+        ),
+      ).resolves.toBeUndefined();
+    });
+
+    it("should handle blueprint completed emission without errors", async () => {
+      await expect(
+        WebhookEventDispatcher.emitBlueprintCompleted(
+          123,
+          "clerk-123",
+          "proj-123",
+          "bp-123",
+          1,
+          "Test Blueprint",
+          {
+            duration: "2500ms",
+            aiModelsUsed: ["gpt-4", "claude-2"],
+            features: ["auth", "database", "api"],
+          },
+          mockContext,
+        ),
+      ).resolves.toBeUndefined();
+    });
+
+    it("should handle blueprint failed emission without errors", async () => {
+      await expect(
+        WebhookEventDispatcher.emitBlueprintFailed(
+          123,
+          "clerk-123",
+          "proj-123",
+          "bp-123",
+          1,
+          "Test Blueprint",
+          "AI model timeout exceeded",
+          {
+            duration: "45000ms",
+            inputLength: 1000,
+            errorType: "TimeoutError",
+          },
+          mockContext,
+        ),
+      ).resolves.toBeUndefined();
+    });
+
+    it("should handle blueprint status changed emission without errors", async () => {
+      await expect(
+        WebhookEventDispatcher.emitBlueprintStatusChanged(
+          123,
+          "clerk-123",
+          "proj-123",
+          "bp-123",
+          1,
+          "Test Blueprint",
+          "generating",
+          "completed",
+          {
+            duration: "2500ms",
+            blueprintId: "bp-123",
+          },
+          mockContext,
+        ),
+      ).resolves.toBeUndefined();
+    });
   });
 
   describe("Project deployment webhook events", () => {
