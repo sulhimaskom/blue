@@ -2,6 +2,23 @@ import { db } from "@/lib/db";
 import { deployments as deploymentsTable } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 
+export interface DeploymentRecord {
+  id: string;
+  projectId: string;
+  environment: "production" | "staging" | "preview";
+  githubOrg: string;
+  githubRepoName: string;
+  githubRepoId?: number;
+  githubRepoUrl?: string;
+  blueprintVersion: number;
+  status: "pending" | "deployed" | "failed" | "deleted";
+  deploymentLogs?: any;
+  expiresAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+}
+
 
 /**
  * Deployment Service for environment management
@@ -12,7 +29,7 @@ export class DeploymentService {
   /**
    * Check if deployment already exists for environment
    */
-  static async checkExistingDeployment(projectId: string, environment: string): Promise<any> {
+  static async checkExistingDeployment(projectId: string, environment: string): Promise<DeploymentRecord | null> {
     const database = db();
     const deployments = await database
       .select()
@@ -25,7 +42,7 @@ export class DeploymentService {
         )
       )
       .limit(1);
-    return deployments[0] || null;
+    return deployments[0] as DeploymentRecord || null;
   }
 
   /**
@@ -70,12 +87,7 @@ export class DeploymentService {
    */
   static async updateDeploymentRecord(
     deploymentId: string, 
-    updates: Partial<{
-      githubRepoId: number;
-      githubRepoUrl: string;
-      status: string;
-      deploymentLogs: any;
-    }>
+updates: Partial<Pick<DeploymentRecord, 'githubRepoId' | 'githubRepoUrl' | 'status' | 'deploymentLogs'>>
   ): Promise<void> {
     const database = db();
     await database
@@ -90,7 +102,7 @@ export class DeploymentService {
   /**
    * Get all deployments for a project
    */
-  static async getProjectDeployments(projectId: string): Promise<any[]> {
+  static async getProjectDeployments(projectId: string): Promise<DeploymentRecord[]> {
     const database = db();
     const deployments = await database
       .select()
@@ -102,7 +114,7 @@ export class DeploymentService {
         )
       )
       .orderBy(deploymentsTable.createdAt);
-    return deployments;
+    return deployments as DeploymentRecord[];
   }
 
   /**

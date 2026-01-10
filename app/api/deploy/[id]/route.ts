@@ -33,15 +33,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   return APIRouteHandler.createPOSTHandler({
     schema: deployRepoSchema,
     requireAuth: true,
-    rateLimiter: (identifier: string) => {
-      // Stricter rate limiting for production deployments
-      const data = req.clone().json().catch(() => ({ environment: "production" }));
-      return data.then(reqData => 
-        reqData.environment === "production" 
-          ? RateLimiters.strict()(identifier)
-          : RateLimiters.moderate()(identifier)
-      );
-    },
+    rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
     handler: async ({ context, user, data }) => {
       const { githubOrg, repoName, isPrivate, environment } = data!;
 

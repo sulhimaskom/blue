@@ -100,25 +100,28 @@ describe("TeamService", () => {
     });
   });
 
-  describe("error handling", () => {
-it("should handle database errors gracefully", async () => {
-      jest.spyOn(db, 'select').mockReturnValueOnce({
-        where: jest.fn().mockReturnValue({
-          limit: jest.fn().mockReturnValue({
-            from: jest.fn().mockReturnThis(),
+describe("error handling", () => {
+    it("should handle database errors gracefully", async () => {
+      // Mock the db function to return a database that throws on transaction
+      const mockDb = {
+        select: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue({
+            limit: jest.fn().mockReturnValue({}),
+            from: jest.fn().mockReturnValue({}),
           }),
         }),
-        from: jest.fn().mockReturnThis(),
-      } as any);
-
-      const mockWhere = jest.spyOn(db.select() as any, 'where');
-      mockWhere.mockRejectedValueOnce(new Error("Database connection failed"));
+        transaction: jest.fn().mockRejectedValue(new Error("Database connection failed")),
+      };
+      
+      const { db: originalDb } = require("@/lib/db");
+      require("@/lib/db").db = jest.fn().mockReturnValue(mockDb);
 
       await expect(
         teamService.createTeam({ name: "Test Team", ownerId: 1 })
       ).rejects.toThrow(DatabaseError);
 
-      mockWhere.mockRestore();
+      // Restore original mock
+      require("@/lib/db").db = originalDb;
     });
 
     it("should handle validation errors properly", async () => {
