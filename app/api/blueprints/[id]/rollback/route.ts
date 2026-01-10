@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { ValidationError, NotFoundError } from '@/lib/api-utils';
 
 const rollbackSchema = z.object({
   targetVersionId: z.string().uuid("Invalid target version ID"),
@@ -37,13 +38,13 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
       // Verify user can rollback (current version is not already target)
       if (blueprint.id === targetVersionId) {
-        throw new Error("Cannot rollback to current version");
+        throw new ValidationError("Cannot rollback to current version");
       }
 
       // Find target version
       const targetVersion = allVersions.find((v) => v.id === targetVersionId);
       if (!targetVersion) {
-        throw new Error("Target version not found");
+        throw new NotFoundError("Target version not found");
       }
 
       // Calculate next version number

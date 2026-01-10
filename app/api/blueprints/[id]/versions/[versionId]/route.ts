@@ -3,6 +3,7 @@ import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { NotFoundError } from '@/lib/api-utils';
 
 interface RouteParams {
   params: Promise<{ id: string; versionId: string }>;
@@ -28,7 +29,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
       // Find the specific version
       const specificVersion = allVersions.find((v) => v.id === versionId);
       if (!specificVersion) {
-        throw new Error("Blueprint version not found");
+        throw new NotFoundError("Blueprint version not found");
       }
 
       logger.userAction("Specific blueprint version fetched", user!.clerkId, {

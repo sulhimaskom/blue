@@ -5,6 +5,10 @@ import { teams, teamMembers, transactions } from "@/lib/db/schema";
 import { eq, and, count, sum, isNull, inArray } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 import { NextRequest } from "next/server";
+import { 
+  AuthorizationError
+} from '@/lib/api-utils';
+import { ServiceError } from '@/lib/services/service-error-handler';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -37,7 +41,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           .limit(1);
 
         if (!accessCheck.length || !["admin", "member"].includes(accessCheck[0].role)) {
-          throw new Error("Insufficient permissions to view team analytics");
+          throw new AuthorizationError("Insufficient permissions to view team analytics");
         }
 
 // Get team member count
@@ -101,10 +105,15 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         });
 
         if (error instanceof Error && error.message.includes("Insufficient permissions")) {
-          throw new Error(error.message);
+          throw new AuthorizationError(error.message);
         }
 
-        throw new Error("Failed to get team analytics");
+        throw new ServiceError(
+          error instanceof Error ? error.message : "Unknown error occurred",
+          "TeamService", 
+          "getAnalytics",
+          error instanceof Error ? error : new Error(String(error))
+        );
       }
     },
   })(req);

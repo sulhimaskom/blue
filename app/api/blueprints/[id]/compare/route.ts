@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { NotFoundError } from '@/lib/api-utils';
 
 const compareSchema = z.object({
   from: z.string().uuid("Invalid from version ID"),
@@ -46,10 +47,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       const toVersion = allVersions.find((v) => v.id === to);
 
       if (!fromVersion) {
-        throw new Error("From version not found");
+        throw new NotFoundError("From version not found");
       }
       if (!toVersion) {
-        throw new Error("To version not found");
+        throw new NotFoundError("To version not found");
       }
 
       // Generate comparison
