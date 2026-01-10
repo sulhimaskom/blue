@@ -65,3 +65,6 @@ describe("TeamService - Basic Functionality", () => {
       });
 
       mockCreatePOSTHandler.mockReturnValue(mockHandler);
+    });
+  });
+});

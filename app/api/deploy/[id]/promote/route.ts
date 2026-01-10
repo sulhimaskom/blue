@@ -5,6 +5,7 @@ import { RateLimiters } from "@/lib/rate-limit-config";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { ValidationError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+import { DeploymentService } from "@/lib/services/deployment-service";
 
 const promoteEnvironmentSchema = z.object({
   targetEnvironment: z.enum(["production"]),
@@ -30,8 +31,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         user!.clerkId,
       );
 
-      // Import deployment service
-      const { DeploymentService } = await import("@/lib/services/deployment-service");
+      
 
 // Get staging deployment
         const stagingDeployment = await DeploymentService.checkExistingDeployment(id, "staging");

@@ -4,6 +4,7 @@ import { RateLimiters } from "@/lib/rate-limit-config";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { ValidationError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+import { DeploymentService } from "@/lib/services/deployment-service";
 
 
 interface RouteParams {
@@ -18,7 +19,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     throw new ValidationError("Only staging and preview environments can be deleted");
   }
 
-  return APIRouteHandler.createPUTHandler({
+  return APIRouteHandler.createDELETEHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
     handler: async ({ context, user }) => {
@@ -27,8 +28,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         user!.clerkId,
       );
 
-      // Import deployment service
-      const { DeploymentService } = await import("@/lib/services/deployment-service");
+      
 
       // Get deployment record
       const deployment = await DeploymentService.checkExistingDeployment(id, environment);
