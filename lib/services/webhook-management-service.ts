@@ -59,6 +59,10 @@ export class WebhookManagementService {
     return WebhookManagementService.instance;
   }
 
+  public static resetInstance(): void {
+    WebhookManagementService.instance = new WebhookManagementService();
+  }
+
   private async request<T>(
     endpoint: string,
     options?: RequestInit,
@@ -71,7 +75,16 @@ export class WebhookManagementService {
           ...options?.headers,
         },
       });
+
       const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: result.error || `HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+
       return result;
     } catch (error) {
       return {

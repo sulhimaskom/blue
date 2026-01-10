@@ -13,9 +13,9 @@ describe("WebhookManagementService", () => {
   let service: WebhookManagementService;
 
   beforeEach(() => {
+    WebhookManagementService.resetInstance();
     service = WebhookManagementService.getInstance();
     mockFetch.mockClear();
-    service.clearCache();
   });
 
   afterEach(() => {
@@ -134,6 +134,30 @@ describe("WebhookManagementService", () => {
 
       expect(webhooks).toHaveLength(0);
       expect(service.getAllWebhooks()).toHaveLength(0);
+    });
+
+    it("should handle HTTP error status codes", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        json: async () => ({}),
+      });
+
+      await expect(service.loadWebhooks()).rejects.toThrow(
+        "HTTP 500: Internal Server Error",
+      );
+    });
+
+    it("should handle HTTP error status codes with API error message", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        json: async () => ({ error: "Server error" }),
+      });
+
+      await expect(service.loadWebhooks()).rejects.toThrow("Server error");
     });
   });
 
