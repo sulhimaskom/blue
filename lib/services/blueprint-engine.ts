@@ -773,6 +773,9 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
 
       const blueprintId = blueprint[0].id;
 
+      // Calculate duration before webhook emissions
+      const duration = Date.now() - startTime;
+
       // Step 5: Update project status
       await database
         .update(projects)
@@ -812,8 +815,6 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
         });
         // Don't fail if webhook fails
       }
-
-      const duration = Date.now() - startTime;
 
       logger.info("Blueprint generation pipeline completed", {
         projectId,
