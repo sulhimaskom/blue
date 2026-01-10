@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { blueprints, projects, users, transactions } from "@/lib/db/schema";
 import { eq, and, desc, count, isNull } from "drizzle-orm";
-import { ValidationError } from "@/lib/api-utils";
+import { ValidationError, DatabaseError } from "@/lib/api-utils";
 import { UserService } from "@/lib/services/user-service";
 import { RequestContext } from "@/lib/services/user-service";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
@@ -507,5 +507,38 @@ export class ProjectDataService {
       transaction: newTransaction,
       user: updatedUser,
     };
+  }
+
+  /**
+   * Create a new blueprint version (for rollback operations)
+   * Used by: /api/blueprints/[id]/versions (POST - rollback)
+   */
+  static async createBlueprintVersion(
+    projectId: string,
+    version: number,
+    contentMarkdown: string,
+    structuredData: any,
+    marketResearch?: any,
+  ) {
+    const database = db();
+    
+    const [newVersion] = await database
+      .insert(blueprints)
+      .values({
+        projectId,
+        version,
+        contentMarkdown,
+        structuredData,
+        marketResearch,
+      })
+      .returning();
+
+    if (!newVersion) {
+      throw new DatabaseError("Failed to create blueprint version");
+    }
+
+    await DatabaseQueryCache.invalidateProjectCache(projectId);
+
+    return newVersion;
   }
 }
