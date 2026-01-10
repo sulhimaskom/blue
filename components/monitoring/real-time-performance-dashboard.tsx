@@ -43,42 +43,6 @@ interface PerformanceMetrics {
 }
 
 /**
- * Interface for comprehensive performance metrics data structure
- * Contains all performance indicators across memory, cache, and database systems
- */
-interface PerformanceMetrics {
-  /** Memory performance indicators with usage, pressure, and health status */
-  memory: {
-    /** Current memory usage percentage (0-100) */
-    usage: number;
-    /** Memory pressure indicator (0-1, higher indicates more pressure) */
-    pressure: number;
-    /** Overall memory health status classification */
-    status: "healthy" | "warning" | "critical";
-  };
-  /** Cache performance metrics with hit rates and efficiency scores */
-  cache: {
-    /** Cache hit success rate percentage (0-100) */
-    hitRate: number;
-    /** Cache efficiency score (0-100, higher is better) */
-    efficiency: number;
-    /** Overall cache performance score (0-100) */
-    performanceScore: number;
-  };
-  /** Database performance indicators for connection and query metrics */
-  database: {
-    /** Average query execution time in milliseconds */
-    queryTime: number;
-    /** Connection pool utilization percentage (0-100) */
-    connectionUtilization: number;
-    /** Count of slow performing queries */
-    slowQueries: number;
-  };
-  /** Array of performance optimization recommendations from all services */
-  recommendations: string[];
-}
-
-/**
  * RealTimePerformanceDashboard Component
  *
  * Advanced real-time performance monitoring dashboard that provides comprehensive
