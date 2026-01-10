@@ -129,12 +129,17 @@ export const CREDIT_RULES = {
 } as const;
 
 // Pricing packages constants
-export const PRICING_PACKAGES = [
+export interface PricingPackage {
+  credits: number;
+  price: string;
+}
+
+export const PRICING_PACKAGES: PricingPackage[] = [
   { credits: 10, price: "$1.00" },
   { credits: 50, price: "$5.00" },
   { credits: 100, price: "$10.00" },
   { credits: 500, price: "$50.00 (Pro tier)" },
-] as const;
+];
 
 // Homepage content constants moved to UI_TEXT system for complete centralization
 // Previously defined here, now available in lib/constants/ui-text.ts as UI_TEXT.homepage
