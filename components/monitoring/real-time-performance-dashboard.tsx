@@ -67,7 +67,7 @@ export function RealTimePerformanceDashboard() {
             ? {
                 hitRate:
                   Object.values(cacheAnalytics.data.patterns).reduce(
-                    (sum: number, pattern: any) => sum + pattern.hitRate,
+                    (sum: number, pattern: { hitRate: number }) => sum + pattern.hitRate,
                     0,
                   ) /
                   Math.max(

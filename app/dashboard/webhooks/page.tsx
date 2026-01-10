@@ -2,11 +2,23 @@
 
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { WebhookQueueMonitor } from "@/components/monitoring/webhook-queue-monitor";
-import { WebhookConfigurationManager } from "@/components/webhooks/webhook-configuration-manager";
 import { useNotification } from "@/lib/hooks/use-notification";
 import { DashboardHeader } from "@/components/monitoring/dashboard-layout";
 import { DashboardFooter } from "@/components/monitoring/dashboard-footer";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
+import { lazy, Suspense } from "react";
+
+const WebhookQueueMonitor = lazy(() =>
+  import("@/components/monitoring/webhook-queue-monitor").then(
+    (module) => ({ default: module.WebhookQueueMonitor }),
+  ),
+);
+
+const WebhookConfigurationManager = lazy(() =>
+  import("@/components/webhooks/webhook-configuration-manager").then(
+    (module) => ({ default: module.WebhookConfigurationManager }),
+  ),
+);
 
 interface WebhookStats {
   queue: {
@@ -172,11 +184,13 @@ export default function WebhookMonitoringPage() {
         <div className="space-y-8">
           {activeTab === "monitor" && (
             <>
-              <WebhookQueueMonitor
-                enableAutoRefresh={autoRefresh}
-                refreshInterval={refreshInterval}
-                onEventsUpdate={handleStatsUpdate}
-              />
+              <Suspense fallback={<DashboardSkeleton />}>
+                <WebhookQueueMonitor
+                  enableAutoRefresh={autoRefresh}
+                  refreshInterval={refreshInterval}
+                  onEventsUpdate={handleStatsUpdate}
+                />
+              </Suspense>
 
               {/* Additional Information Section */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -348,7 +362,11 @@ export default function WebhookMonitoringPage() {
             </>
           )}
 
-          {activeTab === "configure" && <WebhookConfigurationManager />}
+          {activeTab === "configure" && (
+            <Suspense fallback={<DashboardSkeleton />}>
+              <WebhookConfigurationManager />
+            </Suspense>
+          )}
 
           {activeTab === "history" && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

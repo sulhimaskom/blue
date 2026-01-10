@@ -402,8 +402,7 @@ export class WebhookEventDispatcher {
     context?: RequestContext,
   ): Promise<void> {
     try {
-      // Get all user webhook configurations (this would need to be adapted for multi-user scenarios)
-      // For now, we'll use a system user ID or implement user-based webhook retrieval
+      // Get all active webhook configurations for event delivery
       const webhookConfigurations = await this.getAllActiveWebhookConfigurations();
       
       if (webhookConfigurations.length === 0) {
@@ -520,12 +519,51 @@ export class WebhookEventDispatcher {
 
   /**
    * Get all active webhook configurations across all users
-   * TODO: This should be scoped to specific users or implement system-wide webhooks
+   * Returns active, non-deleted webhook configurations for event delivery
    */
-  private static async getAllActiveWebhookConfigurations(): Promise<any[]> {
-    // For now, return empty array - this would need proper implementation
-    // based on your webhook configuration requirements
-    return [];
+  private static async getAllActiveWebhookConfigurations(): Promise<
+    Array<{
+      id: string;
+      userId: number;
+      name: string;
+      url: string;
+      secret: string;
+      eventTypes: any;
+      isActive: boolean;
+    }>
+  > {
+    try {
+      const { db } = await import("@/lib/db");
+      const { webhookConfigurations } = await import("@/lib/db/schema");
+      const { eq, isNull, and } = await import("drizzle-orm");
+
+      const database = db();
+
+      const configurations = await database
+        .select({
+          id: webhookConfigurations.id,
+          userId: webhookConfigurations.userId,
+          name: webhookConfigurations.name,
+          url: webhookConfigurations.url,
+          secret: webhookConfigurations.secret,
+          eventTypes: webhookConfigurations.eventTypes,
+          isActive: webhookConfigurations.isActive,
+        })
+        .from(webhookConfigurations)
+        .where(
+          and(
+            eq(webhookConfigurations.isActive, true),
+            isNull(webhookConfigurations.deletedAt),
+          ),
+        );
+
+      return configurations;
+    } catch (error) {
+      logger.error("Failed to get active webhook configurations", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return [];
+    }
   }
 
   /**
