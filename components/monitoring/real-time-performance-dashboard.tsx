@@ -107,6 +107,10 @@ export function RealTimePerformanceDashboard() {
       setMetrics(combinedMetrics);
       setLastUpdate(new Date());
     } catch (error) {
+      logger.error("Failed to fetch performance metrics", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        component: "RealTimePerformanceDashboard",
+      });
     } finally {
       setLoading(false);
     }
@@ -146,8 +150,13 @@ export function RealTimePerformanceDashboard() {
           await DatabaseQueryOptimizationService.optimizeConnectionPool();
           break;
       }
-      window.location.reload();
+      await fetchMetrics();
     } catch (error) {
+      logger.error(`Failed to optimize ${service}`, {
+        error: error instanceof Error ? error.message : "Unknown error",
+        component: "RealTimePerformanceDashboard",
+        service,
+      });
     }
   };
 
