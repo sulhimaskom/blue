@@ -3,6 +3,7 @@ import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { WebhookConfigurationService } from "@/lib/services/webhook-configuration-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import type { WebhookStatus, WebhookEventType } from "@/lib/schemas/webhook-schema";
+import { AuthenticationError } from "@/lib/api-utils";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
     handler: async ({ req, user }) => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user) throw new AuthenticationError("User not authenticated");
       const userId = user.id;
 
       const urlObj = new URL(req.url);

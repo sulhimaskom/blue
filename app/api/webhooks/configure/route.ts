@@ -4,6 +4,7 @@ import { WebhookConfigurationService } from "@/lib/services/webhook-configuratio
 import { webhookConfigurationSchema } from "@/lib/schemas/webhook-schema";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { logger } from "@/lib/logger";
+import { AuthenticationError } from "@/lib/api-utils";
 
 export const POST = APIRouteHandler.createPOSTHandler({
   requireAuth: true,
@@ -12,7 +13,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
   schema: webhookConfigurationSchema,
   handler: async ({ data: validatedData, user }) => {
     if (!user) {
-      throw new Error("Authentication required");
+      throw new AuthenticationError("Authentication required");
     }
 
     const userId = user.id;
@@ -66,7 +67,7 @@ export const GET = APIRouteHandler.createGETHandler({
   rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
   handler: async ({ user }) => {
     if (!user) {
-      throw new Error("Authentication required");
+      throw new AuthenticationError("Authentication required");
     }
 
     const configurations = await WebhookConfigurationService.getConfigurations(

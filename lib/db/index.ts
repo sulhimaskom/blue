@@ -2,6 +2,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import * as schema from "./schema";
 import { logger } from "../logger";
+import { DatabaseError, DatabaseConnectionError } from "./errors";
 
 interface ConnectionPool {
   max: number;
@@ -27,13 +28,13 @@ export function getDb() {
     process.env.NEXT_PHASE === "phase-production-build" ||
     (process.env.NODE_ENV === "development" && !process.env.DATABASE_URL)
   ) {
-    throw new Error("Database unavailable during build time");
+    throw new DatabaseError("Database unavailable during build time");
   }
 
   if (!_db) {
     const databaseUrl = process.env.DATABASE_URL;
     if (!databaseUrl) {
-      throw new Error("DATABASE_URL is not set in the environment");
+      throw new DatabaseConnectionError("DATABASE_URL is not set in the environment");
     }
     try {
       // Neon automatically handles connection pooling for serverless connections
@@ -55,8 +56,9 @@ export function getDb() {
         logger: process.env.NODE_ENV === "development" ? true : false,
       });
     } catch (error) {
-      throw new Error(
+      throw new DatabaseError(
         `Database connection failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        error,
       );
     }
   }

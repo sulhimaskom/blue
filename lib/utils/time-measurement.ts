@@ -7,6 +7,16 @@
  * Replaces scattered Date.now() patterns with atomic, testable timing operations.
  */
 
+/**
+ * TimerError - Error class for timing-related operations
+ */
+export class TimerError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TimerError";
+  }
+}
+
 export interface TimeMeasurementConfig {
   precision?: number; // Decimal places for duration formatting
   unit?: "ms" | "s" | "auto"; // Output unit
@@ -55,7 +65,7 @@ export class TimeMeasurement {
   static endTimer(label: string, config: TimeMeasurementConfig = {}): number {
     const timer = this.timers.get(label);
     if (!timer) {
-      throw new Error(`Timer "${label}" not found`);
+      throw new TimerError(`Timer "${label}" not found`);
     }
 
     const duration = this.now() - timer.startTime;

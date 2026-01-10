@@ -2,6 +2,7 @@ import { monitoringService } from "@/lib/monitoring";
 import { circuitBreakerRegistry } from "@/lib/circuit-breaker";
 import { DatabasePerformanceMonitor } from "@/lib/db/performance-monitor";
 import DatabaseQueryCache from "./database-cache-service";
+import { ServiceError } from "./service-error-handler";
 
 /**
  * Centralized API metrics calculation service
@@ -191,7 +192,7 @@ export class APIMetricsService {
     const metricSummary = monitoringService.getMetricSummary(metricName);
 
     if (!metricSummary) {
-      throw new Error("Metric not found");
+      throw new ServiceError("Metric not found", "ApiMetricsService", "getMetricDetails", undefined, { metricName });
     }
 
     return {

@@ -6,6 +6,7 @@ import type {
   MonitoringServiceOptions,
 } from "./service-types";
 import { Timing } from "@/lib/utils/time-measurement";
+import { ServiceError } from "./service-error-handler";
 
 /**
  * MonitoringService class that handles all monitoring data operations.
@@ -234,7 +235,7 @@ export class MonitoringService {
     );
 
     if (!response.ok) {
-      throw new Error(`Health API failed: ${response.status}`);
+      throw new ServiceError(`Health API failed: ${response.status}`, "MonitoringService", "fetchHealthData");
     }
 
     return response.json();
@@ -268,7 +269,7 @@ export class MonitoringService {
     });
 
     if (!response.ok) {
-      throw new Error(`Metrics API failed: ${response.status}`);
+      throw new ServiceError(`Metrics API failed: ${response.status}`, "MonitoringService", "fetchMetricsData");
     }
 
     return response.json();
@@ -338,7 +339,7 @@ export class MonitoringService {
 
     // If we have no data at all, throw to indicate complete failure
     if (errors.length > 0 && !result.health && !result.metrics) {
-      throw new Error(errors.join("; "));
+      throw new ServiceError(errors.join("; "), "MonitoringService", "getComprehensiveMonitoring");
     }
 
     return result;
