@@ -8,6 +8,7 @@ import { AIPatternDetector } from "./ai-pattern-detector";
 import { IdGenerators } from "../utils/id-generator";
 import { Timing } from "../utils/time-measurement";
 import { retryService, RETRY_CONFIGS } from "./retry-service";
+import { ServiceError } from "./service-error-handler";
 import type {
   AIModel,
   AICompletionRequest,
@@ -169,8 +170,12 @@ export class AIService {
 
             if (!fetchResponse.ok) {
               const errorData = await fetchResponse.json().catch(() => ({}));
-              throw new Error(
+              throw ServiceError.database(
                 `IFlow API error: ${fetchResponse.status} ${JSON.stringify(errorData)}`,
+                "AIService",
+                "generateCompletion",
+                undefined,
+                { status: fetchResponse.status, errorData }
               );
             }
 
@@ -189,8 +194,12 @@ export class AIService {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(
+          throw ServiceError.database(
             `IFlow API error: ${response.status} ${JSON.stringify(errorData)}`,
+            "AIService",
+            "generateCompletion",
+            undefined,
+            { status: response.status, errorData }
           );
         }
 
@@ -289,8 +298,12 @@ export class AIService {
         "high",
       );
 
-      throw new Error(
+      throw ServiceError.database(
         `AI completion failed: ${error instanceof Error ? error.message : String(error)}`,
+        "AIService",
+        "generateCompletion",
+        error instanceof Error ? error : new Error(String(error)),
+        { model: request.model?.id, duration }
       );
     }
   }
@@ -375,8 +388,12 @@ export class AIService {
 
             if (!fetchResponse.ok) {
               const errorData = await fetchResponse.json().catch(() => ({}));
-              throw new Error(
+              throw ServiceError.database(
                 `Tavily API error: ${fetchResponse.status} ${JSON.stringify(errorData)}`,
+                "AIService",
+                "conductResearch",
+                undefined,
+                { status: fetchResponse.status, errorData }
               );
             }
 
@@ -458,8 +475,12 @@ export class AIService {
         "high",
       );
 
-      throw new Error(
+      throw ServiceError.database(
         `Market research failed: ${error instanceof Error ? error.message : String(error)}`,
+        "AIService",
+        "conductResearch",
+        error instanceof Error ? error : new Error(String(error)),
+        { query: request.query, duration }
       );
     }
   }
