@@ -104,10 +104,11 @@ export const PUT = APIRouteHandler.createPUTHandler({
 });
 
 // DELETE /api/enterprise/themes/[customerId] - Delete theme
-export const DELETE = APIRouteHandler.createPOSTHandler({
+export const DELETE = APIRouteHandler.createDELETEHandler({
   requireAuth: false,
   handler: async ({ context, req }) => {
-    const urlParts = req.url.split("/");
+    // Extract customerId from the route parameter
+    const urlParts = new URL(req.url).pathname.split("/");
     const customerId = urlParts[urlParts.length - 1];
 
     const existingTheme = enterpriseThemeManager.getTheme(customerId!);
