@@ -97,6 +97,19 @@ export const webhookEvents = pgTable("webhook_events", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Webhook subscriptions table for event filtering
+export const webhookSubscriptions = pgTable("webhook_subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  webhookConfigurationId: uuid("webhook_configuration_id")
+    .references(() => webhookConfigurations.id, { onDelete: "cascade" })
+    .notNull(),
+  eventType: text("event_type").notNull(),
+  filterExpression: text("filter_expression"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Project = typeof projects.$inferSelect;
@@ -109,3 +122,5 @@ export type WebhookConfiguration = typeof webhookConfigurations.$inferSelect;
 export type NewWebhookConfiguration = typeof webhookConfigurations.$inferInsert;
 export type WebhookEvent = typeof webhookEvents.$inferSelect;
 export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
+export type WebhookSubscription = typeof webhookSubscriptions.$inferSelect;
+export type NewWebhookSubscription = typeof webhookSubscriptions.$inferInsert;

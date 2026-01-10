@@ -7,7 +7,10 @@ import {
 import { logger } from "@/lib/logger";
 import { IdGenerators } from "@/lib/utils/id-generator";
 import { APIResponseFormatter } from "@/lib/services/api-response-formatter";
-import { WebhookEvent, type WebhookContext } from "@/lib/types/webhook-events";
+import { 
+  WebhookEvent, 
+  type WebhookContext 
+} from "@/lib/types/webhook-events";
 
 export interface WebhookHandlerConfig<TEvent extends WebhookEvent> {
   serviceName: string;
@@ -150,49 +153,78 @@ export class WebhookService {
   static handleOptions(): Response {
     return new Response(null, { status: 200 });
   }
-  /**
-   * Enhanced webhook response using APIResponseFormatter
-   * Provides consistent error handling and response structure
-   */
-  static createStandardizedWebhookResponse<T = Record<string, unknown>>(
-    success: boolean,
-    data: T = { received: true } as T,
-    error?: Error,
-    requestId?: string,
-    service?: string,
-  ): NextResponse | Response {
-    // Handle test environment differently for backward compatibility
-    if (process.env.NODE_ENV === "test") {
-      return new NextResponse(
-        JSON.stringify({
-          success,
-          data: success ? data : null,
-          error: success ? null : error?.message,
-        }),
-        {
-          status: success ? 200 : 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    // Use standardized API response formatter for production
-    if (success) {
-      return APIResponseFormatter.createSuccessResponse(
-        data,
-        requestId,
-        service,
-        "webhook_processing",
-      );
-    } else {
-      return APIResponseFormatter.createErrorResponse(
-        error || new Error("Webhook processing failed"),
-        requestId,
-        service,
-        "webhook_processing",
-      );
-    }
+/**
+ * Enhanced webhook response using APIResponseFormatter
+ * Provides consistent error handling and response structure
+ */
+static createStandardizedWebhookResponse<T = Record<string, unknown>>(
+  success: boolean,
+  data: T = { received: true } as T,
+  error?: Error,
+  requestId?: string,
+  service?: string,
+): NextResponse | Response {
+  // Handle test environment differently for backward compatibility
+  if (process.env.NODE_ENV === "test") {
+    return new NextResponse(
+      JSON.stringify({
+        success,
+        data: success ? data : null,
+        error: success ? null : error?.message,
+      }),
+      {
+        status: success ? 200 : 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
+
+  // Use standardized API response formatter for production
+  if (success) {
+    return APIResponseFormatter.createSuccessResponse(
+      data,
+      requestId,
+      service,
+      "webhook_processing",
+    );
+  } else {
+    return APIResponseFormatter.createErrorResponse(
+      error || new Error("Webhook processing failed"),
+      requestId,
+      service,
+      "webhook_processing",
+    );
+  }
+}
+
+/**
+ * Check if a webhook event should be delivered based on subscription filtering
+ */
+static async shouldDeliverEvent(
+  webhookConfigurationId: string,
+  eventType: string,
+  eventData: unknown,
+): Promise<boolean> {
+  try {
+    // Import dynamically to avoid circular dependencies
+    const { WebhookSubscriptionService } = await import("./webhook-subscription-service");
+    
+    return await WebhookSubscriptionService.shouldDeliverEvent(
+      webhookConfigurationId,
+      eventType,
+      eventData,
+    );
+  } catch (error) {
+    logger.apiError(
+      "Failed to check webhook subscription for event delivery",
+      Math.random().toString(),
+      error as Error,
+      { webhookConfigurationId, eventType },
+    );
+    // Default to delivering the event if subscription check fails
+    return true;
+  }
+}
 
   /**
    * Process webhook with enhanced reliability features

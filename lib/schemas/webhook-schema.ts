@@ -74,3 +74,71 @@ export const WEBHOOK_STATUS = {
 
 export type WebhookStatus =
   (typeof WEBHOOK_STATUS)[keyof typeof WEBHOOK_STATUS];
+
+// Webhook subscription schemas
+export const webhookSubscriptionCreateSchema = z.object({
+  webhookConfigurationId: z.string().uuid("Invalid webhook configuration ID"),
+  eventType: z.enum([
+    // Platform events
+    "blueprint.created",
+    "blueprint.updated", 
+    "project.deployed",
+    "credits.consumed",
+    "webhook.failed",
+    // Clerk events
+    "user.created",
+    "user.updated",
+    "user.deleted",
+    "user.email.created",
+    "user.email.verified",
+    "email.created",
+    // Stripe events
+    "payment_intent.succeeded",
+    "payment_intent.payment_failed",
+    "invoice.payment_succeeded",
+    "invoice.payment_failed",
+    "customer.subscription.created",
+    "customer.subscription.updated",
+    "customer.subscription.deleted",
+  ], {
+    message: "Invalid event type",
+  }),
+  filterExpression: z.string().max(255, "Filter expression too long").optional(),
+});
+
+export const webhookSubscriptionUpdateSchema = z.object({
+  filterExpression: z.string().max(255, "Filter expression too long").optional(),
+  isActive: z.boolean().optional(),
+});
+
+export type WebhookSubscriptionCreateInput = z.infer<typeof webhookSubscriptionCreateSchema>;
+export type WebhookSubscriptionUpdateInput = z.infer<typeof webhookSubscriptionUpdateSchema>;
+
+// Updated webhook event types to include platform events
+export const WEBHOOK_EVENT_TYPES_UPDATED = [
+  // Platform events
+  "blueprint.created",
+  "blueprint.updated",
+  "project.deployed", 
+  "credits.consumed",
+  "webhook.failed",
+  // Clerk events
+  "clerk.user.created",
+  "clerk.user.updated",
+  "clerk.user.deleted",
+  "clerk.session.created",
+  "clerk.session.ended",
+  // Stripe events
+  "stripe.payment_intent.succeeded",
+  "stripe.payment_intent.payment_failed",
+  "stripe.invoice.payment_succeeded",
+  "stripe.invoice.payment_failed",
+  // GitHub events
+  "github.push",
+  "github.pull_request.opened",
+  "github.pull_request.closed",
+  "github.issues.opened",
+  "github.issues.closed",
+] as const;
+
+export type WebhookEventTypeUpdated = (typeof WEBHOOK_EVENT_TYPES_UPDATED)[number];
