@@ -486,7 +486,8 @@ describe("EnhancedCircuitBreaker", () => {
 
   describe("Request Batching", () => {
     beforeEach(() => {
-      // Use real timers for batching tests since the circuit breaker uses real setTimeout for batch processing
+      // For batching, we need real timers since the circuit breaker uses 
+      // setTimeout for both batch window and execution timeouts
       jest.useRealTimers();
     });
 
