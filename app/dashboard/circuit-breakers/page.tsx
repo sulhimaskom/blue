@@ -3,15 +3,31 @@
 import { useState, useEffect } from "react";
 import { useInterval } from "@/lib/hooks/use-interval";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { CircuitBreakerStatusPanel } from "@/components/monitoring/circuit-breaker-status-panel";
-import { CircuitBreakerResetControl } from "@/components/monitoring/circuit-breaker-reset-control";
-import { CircuitBreakerEventHistory } from "@/components/monitoring/circuit-breaker-event-history";
 import { DashboardHeader } from "@/components/monitoring/dashboard-layout";
 import { DashboardFooter } from "@/components/monitoring/dashboard-footer";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/constants/ui-themes";
 import { DashboardDataService } from "@/lib/services/dashboard-data-service";
 import { logger } from "@/lib/logger";
+import { lazy, Suspense } from "react";
+
+const CircuitBreakerStatusPanel = lazy(() =>
+  import("@/components/monitoring/circuit-breaker-status-panel").then(
+    (module) => ({ default: module.CircuitBreakerStatusPanel }),
+  ),
+);
+
+const CircuitBreakerResetControl = lazy(() =>
+  import("@/components/monitoring/circuit-breaker-reset-control").then(
+    (module) => ({ default: module.CircuitBreakerResetControl }),
+  ),
+);
+
+const CircuitBreakerEventHistory = lazy(() =>
+  import("@/components/monitoring/circuit-breaker-event-history").then(
+    (module) => ({ default: module.CircuitBreakerEventHistory }),
+  ),
+);
 
 // Circuit breaker data types
 interface CircuitBreakerMetrics {
@@ -176,30 +192,36 @@ export default function CircuitBreakersPage() {
         {/* Main Content */}
         {metrics && (
           <div className="space-y-8">
-            {/* Circuit Breaker Status Panel */}
-            <CircuitBreakerStatusPanel
-              metrics={metrics}
-              showDetails={true}
-              refreshInterval={autoRefresh ? refreshInterval : undefined}
-              onMetricsUpdate={(newMetrics) => {
-                setMetrics(newMetrics);
-                setLastRefresh(new Date());
-              }}
-            />
+            {/* Circuit Breaker Status Panel - Lazy loaded for performance */}
+            <Suspense fallback={<DashboardSkeleton />}>
+              <CircuitBreakerStatusPanel
+                metrics={metrics}
+                showDetails={true}
+                refreshInterval={autoRefresh ? refreshInterval : undefined}
+                onMetricsUpdate={(newMetrics) => {
+                  setMetrics(newMetrics);
+                  setLastRefresh(new Date());
+                }}
+              />
+            </Suspense>
 
-            {/* Circuit Breaker Reset Control */}
-            <CircuitBreakerResetControl
-              onResetComplete={handleResetComplete}
-              onRefreshMetrics={refreshData}
-              requireConfirmation={true}
-            />
+            {/* Circuit Breaker Reset Control - Lazy loaded for performance */}
+            <Suspense fallback={<DashboardSkeleton />}>
+              <CircuitBreakerResetControl
+                onResetComplete={handleResetComplete}
+                onRefreshMetrics={refreshData}
+                requireConfirmation={true}
+              />
+            </Suspense>
 
-            {/* Circuit Breaker Event History */}
-            <CircuitBreakerEventHistory
-              metrics={metrics}
-              maxEvents={50}
-              showDetails={true}
-            />
+            {/* Circuit Breaker Event History - Lazy loaded for performance */}
+            <Suspense fallback={<DashboardSkeleton />}>
+              <CircuitBreakerEventHistory
+                metrics={metrics}
+                maxEvents={50}
+                showDetails={true}
+              />
+            </Suspense>
 
             {/* Additional Information Section */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
