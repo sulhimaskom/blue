@@ -4,12 +4,22 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useMonitoring } from "@/lib/hooks/use-monitoring";
 import { useMonitoringDashboardState } from "@/lib/hooks/use-monitoring-dashboard-state";
 import { DashboardHeader } from "@/components/monitoring/dashboard-layout";
-import { SystemHealthOverview } from "@/components/monitoring/system-health-overview";
-import { PerformanceMetrics } from "@/components/monitoring/performance-metrics";
 import { DashboardFooter } from "@/components/monitoring/dashboard-footer";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { BaseCard } from "@/components/ui/base-card";
 import { useEffect, useRef, lazy, Suspense } from "react";
+
+const SystemHealthOverview = lazy(() =>
+  import("@/components/monitoring/system-health-overview").then(
+    (module) => ({ default: module.SystemHealthOverview }),
+  ),
+);
+
+const PerformanceMetrics = lazy(() =>
+  import("@/components/monitoring/performance-metrics").then(
+    (module) => ({ default: module.PerformanceMetrics }),
+  ),
+);
 
 // Dynamic imports for performance optimization - reduces initial bundle size
 const PerformanceDashboard = lazy(() =>
@@ -86,23 +96,27 @@ export default function MonitoringDashboard() {
           </div>
         )}
 
-        {/* System Health Overview */}
+        {/* System Health Overview - Lazy loaded for performance */}
         {health && (
           <div className="mb-8">
-            <SystemHealthOverview
-              health={health}
-              expandedService={expandedService}
-              onToggleServiceExpansion={toggleServiceExpansion}
-            />
+            <Suspense fallback={<DashboardSkeleton />}>
+              <SystemHealthOverview
+                health={health}
+                expandedService={expandedService}
+                onToggleServiceExpansion={toggleServiceExpansion}
+              />
+            </Suspense>
           </div>
         )}
 
-        {/* Performance Metrics with loading state */}
+        {/* Performance Metrics with loading state - Lazy loaded for performance */}
         <div className="mb-8">
-          <PerformanceMetrics
-            metrics={metrics || undefined}
-            loading={loading}
-          />
+          <Suspense fallback={<DashboardSkeleton />}>
+            <PerformanceMetrics
+              metrics={metrics || undefined}
+              loading={loading}
+            />
+          </Suspense>
         </div>
 
         {/* Quick Navigation to Related Monitoring Tools */}
