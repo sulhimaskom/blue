@@ -155,7 +155,7 @@ getStats(): Promise<RegistryStats>
 
 ### 4. Refactored AIService
 
-**File**: `lib/services/ai-service-refactored.ts`
+**File**: `lib/services/ai-service.ts` (active service) - *Note: ai-service-refactored.ts was removed as unused*
 
 **Architecture Improvements**:
 
@@ -214,7 +214,7 @@ healthCheckProvider(providerId: string): Promise<boolean>
 ### Basic Usage (Default Provider)
 
 ```typescript
-import { aiService } from "@/lib/services/ai-service-refactored";
+import { aiService } from "@/lib/services/ai-service";
 
 // Generate completion using default provider (IFlow)
 const response = await aiService.generateCompletion({
@@ -360,7 +360,7 @@ for (const provider of providers) {
 
 ```typescript
 // Old API still works
-import { aiService } from "@/lib/services/ai-service-refactored";
+import { aiService } from "@/lib/services/ai-service";
 const response = await aiService.generateCompletion(request);
 ```
 
@@ -422,7 +422,7 @@ const response = await aiService.generateCompletion(request);
 
 ```typescript
 // This still works exactly as before
-import { aiService } from "@/lib/services/ai-service-refactored";
+import { aiService } from "@/lib/services/ai-service";
 
 const response = await aiService.generateCompletion({
   prompt: "Generate blueprint for marketplace",
