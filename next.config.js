@@ -34,6 +34,27 @@ const nextConfig = {
 
   // Streamlined webpack for maximum speed
   webpack: (config, { dev, isServer }) => {
+    // Fix for Issue #299: Handle node: scheme imports from Sentry
+    config.resolve = {
+      ...config.resolve,
+      alias: {
+        ...config.resolve.alias,
+        // Map node: schemes to regular modules to handle webpack resolution
+        'node:child_process': 'child_process',
+        'node:fs': 'fs',
+        'node:http': 'http',
+        'node:https': 'https',
+        'node:diagnostics_channel': 'diagnostics_channel',
+      },
+      fallback: {
+        ...config.resolve.fallback,
+        // Provide fallbacks for node modules in client build
+        child_process: false,
+        fs: false,
+        diagnostics_channel: false,
+      },
+    };
+
     // Streamlined module configuration
     config.module = {
       ...config.module,
