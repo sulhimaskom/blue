@@ -1,15 +1,17 @@
 /**
  * Production Error Monitoring Service - TEMPORARY BUILD FIX
  *
- * CRITICAL ISSUE: Next.js 15 webpack fails to handle node: protocol imports from Sentry
- * This is a production blocker preventing builds from completing.
+ * CRITICAL ISSUE: Next.js 15 webpack cannot handle node: protocol imports from Sentry
+ * Webpack aliases in next.config.js are insufficient for Sentry's internal node: imports
  * 
  * STATUS: Sentry integration temporarily disabled to unblock production deployment
- * IMPACT: Error monitoring temporarily unavailable until node: protocol issue is resolved
+ * IMPACT: Error monitoring temporarily unavailable until proper webpack fix is implemented
+ * NEXT STEPS: Need Sentry-compatible webpack configuration or Sentry package update
  */
 
-// TEMPORARY WORKAROUND: Disable Sentry due to Next.js 15 node: protocol webpack issue
-// TODO: Re-enable Sentry once Next.js 15 node: protocol handling is fixed
+// TEMPORARY WORKAROUND: Disable Sentry due to Next.js 15 webpack node: protocol issue
+// ISSUE: Webpack aliases in next.config.js insufficient for Sentry's internal node: imports
+// TODO: Re-enable Sentry once proper webpack configuration is implemented
 // const Sentry = require("@sentry/node");
 
 import { logger } from "../logger";
@@ -109,9 +111,10 @@ export class ErrorMonitoringService {
       }
 
       // TEMPORARY FIX: Sentry integration disabled due to Next.js 15 node: protocol issue
-      // TODO: Re-enable Sentry.init() once webpack issue is resolved
+      // TODO: Re-enable Sentry.init() once webpack node: protocol handling is properly fixed
       /*
-      // TEMPORARY: Disabled Sentry.init until Next.js 15 issue resolved
+      // NOTE: Webpack aliases in next.config.js insufficient for Sentry's internal node: imports
+      // Sentry.init() disabled until proper webpack configuration or Sentry package update
       Sentry.init({
         dsn: sentryDsn,
         environment: this.config.environment,
@@ -121,10 +124,31 @@ export class ErrorMonitoringService {
         debug: this.config.debug,
         integrations: [],
         beforeSend: (event, hint) => { 
-          // Filter out development errors...
+          // Filter out development errors in non-production environments
+          if (this.config.environment !== "production") {
+            const error = hint?.originalException;
+            if (error && error instanceof Error) {
+              // Filter out expected development errors
+              const devErrorPatterns = [
+                "NEXT_NOT_FOUND",
+                "Module not found",
+                "Cannot resolve module",
+              ];
+              if (devErrorPatterns.some(pattern => error.message.includes(pattern))) {
+                return null;
+              }
+            }
+          }
+          return event;
         },
         beforeSendTransaction: (event) => { 
-          // Add business context...
+          // Add business context to transactions
+          event.tags = {
+            ...event.tags,
+            service: "blue-platform",
+            environment: this.config.environment,
+          };
+          return event;
         },
       });
       */
@@ -140,8 +164,9 @@ export class ErrorMonitoringService {
         profilesSampleRate: this.config.profilesSampleRate,
         release: this.getReleaseVersion(),
         enterpriseReady: false,
-        buildIssue: "Next.js 15 node: protocol webpack compatibility",
+        buildIssue: "Next.js 15 webpack node: protocol compatibility - aliases insufficient",
         status: "TEMPORARY_WORKAROUND",
+        nextSteps: "Need proper webpack configuration or Sentry package update",
       });
     } catch (error) {
       logger.error("Failed to initialize error monitoring", {
@@ -177,7 +202,7 @@ export class ErrorMonitoringService {
       const errorObject = typeof error === "string" ? new Error(error) : error;
 
       // TEMPORARY FIX: Sentry integration disabled - using logging instead
-      // TODO: Re-enable Sentry.setUser() once webpack issue is resolved
+      // TODO: Re-enable Sentry context methods once webpack node: protocol is properly fixed
       if (context?.user) {
         logger.info("User context (logging mode)", {
           userId: context.user.id,
@@ -185,33 +210,37 @@ export class ErrorMonitoringService {
           clerkId: context.user.clerkId,
           subscriptionTier: context.user.subscriptionTier,
           sentryDisabled: true,
+          webpackIssue: "Next.js 15 node: protocol compatibility insufficient",
         });
       }
 
-      // TODO: Re-enable Sentry.setTags() once webpack issue is resolved
+      // TODO: Re-enable Sentry.setTags() once webpack node: protocol is properly fixed
       if (context?.tags) {
         logger.info("Business context tags (logging mode)", {
           tags: context.tags,
           sentryDisabled: true,
+          webpackIssue: "Next.js 15 node: protocol compatibility insufficient",
         });
       }
 
-      // TODO: Re-enable Sentry.setExtra() once webpack issue is resolved
+      // TODO: Re-enable Sentry.setExtras() once webpack node: protocol is properly fixed
       if (context?.extra) {
         logger.info("Additional context (logging mode)", {
           extra: context.extra,
           sentryDisabled: true,
+          webpackIssue: "Next.js 15 node: protocol compatibility insufficient",
         });
       }
 
       // TEMPORARY: Replace Sentry.captureException with enhanced logging
-      // TODO: Re-enable Sentry.captureException() once webpack issue is resolved
+      // TODO: Re-enable Sentry.captureException() once webpack node: protocol is properly fixed
       logger.error("Error captured (logging-only mode)", {
         error: errorObject.message,
         stack: errorObject.stack,
         severity: severity?.level || "error",
         sentryDisabled: true,
-        nextjs15BuildIssue: true,
+        webpackIssue: "Next.js 15 node: protocol compatibility insufficient",
+        aliasesStatus: "Webpack aliases insufficient for internal Sentry node: imports",
       });
 
       // Log to local system for redundancy
@@ -314,14 +343,14 @@ export class ErrorMonitoringService {
 
     // TEMPORARY FIX: Sentry breadcrumb disabled - using logging instead
     try {
-      // TODO: Re-enable Sentry.addBreadcrumb() once webpack issue is resolved
+      // TODO: Re-enable Sentry.addBreadcrumb() once webpack node: protocol is properly fixed
       logger.info("Business event captured (logging-only mode)", {
         event,
         category: data?.category || "business",
         businessMetric: true,
         metadata: data?.metadata,
         sentryDisabled: true,
-        nextjs15BuildIssue: true,
+        webpackIssue: "Next.js 15 node: protocol compatibility insufficient",
       });
 
       logger.info("Business event tracked", {
