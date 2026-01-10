@@ -26,6 +26,24 @@ if (fs.existsSync(".next")) {
   }
 }
 
+// Fix for Next.js standalone mode: Create standalone directory structure
+// Next.js expects .next/standalone/.next to exist before copy operations
+console.log("🔧 Preparing standalone output structure...");
+try {
+  if (!fs.existsSync(".next")) {
+    fs.mkdirSync(".next", { recursive: true });
+  }
+  if (!fs.existsSync(".next/standalone")) {
+    fs.mkdirSync(".next/standalone", { recursive: true });
+  }
+  if (!fs.existsSync(".next/standalone/.next")) {
+    fs.mkdirSync(".next/standalone/.next", { recursive: true });
+  }
+  console.log("✓ Standalone structure prepared");
+} catch (error) {
+  console.log("⚠️  Standalone structure preparation failed");
+}
+
 console.log("\n🏗️ Starting fixed build process...");
 const startTime = Date.now();
 
