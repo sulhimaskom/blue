@@ -21,7 +21,7 @@ export type { CachedResponse } from "./cache/http-cache-service";
 export const teamCache = {
   get: (key: string) => UnifiedCacheManager.getData(key),
   set: (key: string, value: any, ttl?: number) => UnifiedCacheManager.setData(key, value, { ttl }),
-  invalidate: (key: string) => UnifiedCacheManager.invalidate(key),
+  invalidate: (key: string) => UnifiedCacheManager.invalidateKey(key),
 };
 
 /**

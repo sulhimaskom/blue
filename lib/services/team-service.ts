@@ -1,4 +1,4 @@
-import { eq, and, desc, count, ilike } from "drizzle-orm";
+import { eq, and, desc, count, ilike, isNull, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   teams,
@@ -10,6 +10,7 @@ import {
   type TeamMember,
   type TeamProject,
   type User,
+  type Project,
 } from "@/lib/db/schema";
 import {
   ServiceError,
@@ -68,7 +69,8 @@ class TeamService {
       }
 
       // Check if user exists
-      const user = await db.select({ id: users.id }).from(users)
+      const database = db();
+      const user = await database.select({ id: users.id, subscriptionTier: users.subscriptionTier }).from(users)
         .where(eq(users.id, request.ownerId))
         .limit(1);
 
@@ -87,7 +89,7 @@ class TeamService {
       }
 
       // Create team and add owner as admin
-      const [team] = await db.transaction(async (tx) => {
+      const [team] = await database.transaction(async (tx: any) => {
         const [newTeam] = await tx.insert(teams).values({
           name: request.name.trim(),
           ownerId: request.ownerId,
@@ -109,7 +111,7 @@ class TeamService {
       await teamCache.invalidate(`user:${request.ownerId}:teams`);
 
       const duration = Date.now() - startTime;
-      logger.userAction("team_created", request.ownerId, {
+      logger.userAction("team_created", request.ownerId.toString(), {
         teamId: team.id,
         teamName: team.name,
         duration: `${duration}ms`,
@@ -147,7 +149,23 @@ class TeamService {
         return cached;
       }
 
-      let query = db.select({
+      const database = db();
+      
+      let baseWhereConditions = and(
+          eq(teamMembers.teamId, teams.id),
+          eq(teamMembers.userId, userId),
+          isNull(teamMembers.deletedAt),
+          isNull(teams.deletedAt)
+        );
+        
+      if (search) {
+        baseWhereConditions = and(
+          baseWhereConditions,
+          ilike(teams.name, `%${search}%`)
+        );
+      }
+
+      const teamsQuery = database.select({
         id: teams.id,
         name: teams.name,
         ownerId: teams.ownerId,
@@ -157,30 +175,17 @@ class TeamService {
         deletedAt: teams.deletedAt,
         memberCount: count(teamMembers.id),
       }).from(teams)
-        .innerJoin(teamMembers, and(
-          eq(teamMembers.teamId, teams.id),
-          eq(teamMembers.userId, userId),
-          eq(teamMembers.deletedAt, null)
-        ))
-        .leftJoin(teamMembers, eq(teamMembers.teamId, teams.id))
-        .where(eq(teams.deletedAt, null));
-
-      if (search) {
-        query = query.where(and(
-          eq(teams.deletedAt, null),
-          ilike(teams.name, `%${search}%`)
-        ));
-      }
+        .innerJoin(teamMembers, baseWhereConditions);
 
       const [teamsData, [{ count: total }]] = await Promise.all([
-        query.orderBy(desc(teams.createdAt)).limit(limit).offset(offset),
-        db.select({ count: count() }).from(teams)
+        teamsQuery.orderBy(desc(teams.createdAt)).limit(limit).offset(offset),
+        database.select({ count: count() }).from(teams)
           .innerJoin(teamMembers, and(
             eq(teamMembers.teamId, teams.id),
             eq(teamMembers.userId, userId),
-            eq(teamMembers.deletedAt, null)
+            isNull(teamMembers.deletedAt)
           ))
-          .where(eq(teams.deletedAt, null)),
+          .where(isNull(teams.deletedAt)),
       ]);
 
       const result = { teams: teamsData, total };
@@ -214,9 +219,11 @@ class TeamService {
         return cached;
       }
 
+      const database = db();
+      
       // Get team details
-      const [team] = await db.select().from(teams)
-        .where(and(eq(teams.id, teamId), eq(teams.deletedAt, null)))
+      const [team] = await database.select().from(teams)
+        .where(and(eq(teams.id, teamId), isNull(teams.deletedAt)))
         .limit(1);
 
       if (!team) {
@@ -227,7 +234,7 @@ class TeamService {
       await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
 
       // Get team members with user details
-      const members = await db.select({
+      const members = await database.select({
         id: teamMembers.id,
         teamId: teamMembers.teamId,
         userId: teamMembers.userId,
@@ -236,6 +243,7 @@ class TeamService {
         joinedAt: teamMembers.joinedAt,
         createdAt: teamMembers.createdAt,
         updatedAt: teamMembers.updatedAt,
+        deletedAt: teamMembers.deletedAt,
         user: {
           id: users.id,
           email: users.email,
@@ -243,13 +251,13 @@ class TeamService {
         },
       }).from(teamMembers)
         .innerJoin(users, eq(teamMembers.userId, users.id))
-        .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.deletedAt, null)))
+        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)))
         .orderBy(teamMembers.joinedAt);
 
       // Get member count
-      const [{ memberCount }] = await db.select({ memberCount: count() })
+      const [{ memberCount }] = await database.select({ memberCount: count() })
         .from(teamMembers)
-        .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.deletedAt, null)));
+        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
 
       const result = { ...team, memberCount, members };
 
@@ -294,11 +302,12 @@ class TeamService {
       await this.verifyTeamAccess(teamId, invitingUserId, ["admin"]);
 
       // Get team and check member limits
-      const [team] = await db.select({
+      const database = db();
+      const [team] = await database.select({
         id: teams.id,
         subscriptionTier: teams.subscriptionTier,
       }).from(teams)
-        .where(and(eq(teams.id, teamId), eq(teams.deletedAt, null)))
+        .where(and(eq(teams.id, teamId), isNull(teams.deletedAt)))
         .limit(1);
 
       if (!team) {
@@ -315,8 +324,8 @@ class TeamService {
       }
 
       // Find user by email
-      const [user] = await db.select().from(users)
-        .where(and(eq(users.email, invitation.email.trim().toLowerCase()), eq(users.deletedAt, null)))
+      const [user] = await database.select().from(users)
+        .where(and(eq(users.email, invitation.email.trim().toLowerCase()), isNull(users.deletedAt)))
         .limit(1);
 
       if (!user) {
@@ -324,11 +333,11 @@ class TeamService {
       }
 
       // Check if user is already a member
-      const existingMember = await db.select().from(teamMembers)
+      const existingMember = await database.select().from(teamMembers)
         .where(and(
           eq(teamMembers.teamId, teamId),
           eq(teamMembers.userId, user.id),
-          eq(teamMembers.deletedAt, null)
+          isNull(teamMembers.deletedAt)
         ))
         .limit(1);
 
@@ -337,7 +346,7 @@ class TeamService {
       }
 
       // Create invitation
-      const [newMember] = await db.insert(teamMembers).values({
+      const [newMember] = await database.insert(teamMembers).values({
         teamId,
         userId: user.id,
         role: invitation.role as TeamRole,
@@ -348,7 +357,7 @@ class TeamService {
       await teamCache.invalidate(`team:${teamId}:details`);
       await teamCache.invalidate(`user:${user.id}:teams`);
 
-      logger.userAction("team_member_invited", invitingUserId, {
+      logger.userAction("team_member_invited", invitingUserId.toString(), {
         teamId,
         userId: user.id,
         email: invitation.email,
@@ -394,8 +403,9 @@ class TeamService {
       await this.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
 
       // Cannot remove owner's admin role
-      const [team] = await db.select({ ownerId: teams.ownerId }).from(teams)
-        .where(and(eq(teams.id, teamId), eq(teams.deletedAt, null)))
+      const database = db();
+      const [team] = await database.select({ ownerId: teams.ownerId }).from(teams)
+        .where(and(eq(teams.id, teamId), isNull(teams.deletedAt)))
         .limit(1);
 
       if (!team) {
@@ -407,12 +417,12 @@ class TeamService {
       }
 
       // Update member role
-      const [updatedMember] = await db.update(teamMembers)
+      const [updatedMember] = await database.update(teamMembers)
         .set({ role: newRole, updatedAt: new Date() })
         .where(and(
           eq(teamMembers.teamId, teamId),
           eq(teamMembers.userId, targetUserId),
-          eq(teamMembers.deletedAt, null)
+          isNull(teamMembers.deletedAt)
         ))
         .returning();
 
@@ -423,7 +433,7 @@ class TeamService {
       // Clear cache
       await teamCache.invalidate(`team:${teamId}:details`);
 
-      logger.userAction("team_member_role_updated", requestingUserId, {
+      logger.userAction("team_member_role_updated", requestingUserId.toString(), {
         teamId,
         targetUserId,
         newRole,
@@ -460,8 +470,9 @@ class TeamService {
       await this.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
 
       // Cannot remove team owner
-      const [team] = await db.select({ ownerId: teams.ownerId }).from(teams)
-        .where(and(eq(teams.id, teamId), eq(teams.deletedAt, null)))
+      const database = db();
+      const [team] = await database.select({ ownerId: teams.ownerId }).from(teams)
+        .where(and(eq(teams.id, teamId), isNull(teams.deletedAt)))
         .limit(1);
 
       if (!team) {
@@ -473,12 +484,12 @@ class TeamService {
       }
 
       // Soft delete member
-      const [removedMember] = await db.update(teamMembers)
+      const [removedMember] = await database.update(teamMembers)
         .set({ deletedAt: new Date(), updatedAt: new Date() })
         .where(and(
           eq(teamMembers.teamId, teamId),
           eq(teamMembers.userId, targetUserId),
-          eq(teamMembers.deletedAt, null)
+          isNull(teamMembers.deletedAt)
         ))
         .returning();
 
@@ -487,20 +498,23 @@ class TeamService {
       }
 
       // Remove from team projects
-      await db.update(teamProjects)
-        .set({ deletedAt: new Date() })
-        .where(and(
-          eq(teamProjects.teamId, teamId),
-          eq(teamProjects.projectId, (subquery) => 
-            subquery.select(projects.id).from(projects).where(eq(projects.ownerId, targetUserId))
-          )
-        ));
+      const userProjects = await database.select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.ownerId, targetUserId));
+      
+      if (userProjects.length > 0) {
+        await database.delete(teamProjects)
+          .where(and(
+            eq(teamProjects.teamId, teamId),
+            inArray(teamProjects.projectId, userProjects.map(p => p.id))
+          ));
+      }
 
       // Clear cache
       await teamCache.invalidate(`team:${teamId}:details`);
       await teamCache.invalidate(`user:${targetUserId}:teams`);
 
-      logger.userAction("team_member_removed", requestingUserId, {
+      logger.userAction("team_member_removed", requestingUserId.toString(), {
         teamId,
         targetUserId,
       });
@@ -534,8 +548,9 @@ class TeamService {
       await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
 
       // Verify user is project owner
-      const [project] = await db.select({ ownerId: projects.ownerId }).from(projects)
-        .where(and(eq(projects.id, projectId), eq(projects.deletedAt, null)))
+      const database = db();
+      const [project] = await database.select({ ownerId: projects.ownerId }).from(projects)
+        .where(and(eq(projects.id, projectId), isNull(projects.deletedAt)))
         .limit(1);
 
       if (!project) {
@@ -547,7 +562,7 @@ class TeamService {
       }
 
       // Check if project is already in team
-      const existing = await db.select().from(teamProjects)
+      const existing = await database.select().from(teamProjects)
         .where(and(
           eq(teamProjects.projectId, projectId),
           eq(teamProjects.teamId, teamId)
@@ -559,13 +574,13 @@ class TeamService {
       }
 
       // Add project to team
-      const [teamProject] = await db.insert(teamProjects).values({
+      const [teamProject] = await database.insert(teamProjects).values({
         projectId,
         teamId,
         role,
       }).returning();
 
-      logger.userAction("project_added_to_team", requestingUserId, {
+      logger.userAction("project_added_to_team", requestingUserId.toString(), {
         teamId,
         projectId,
         role,
@@ -595,7 +610,7 @@ class TeamService {
     teamId: string,
     requestingUserId: number,
     options: { limit?: number; offset?: number } = {}
-  ): Promise<{ projects: Array<Project & { role: TeamRole }>; total: number }> {
+  ): Promise<{ projects: Array<Project & { role: string }>; total: number }> {
     const { limit = 20, offset = 0 } = options;
 
     try {
@@ -603,7 +618,8 @@ class TeamService {
       await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
 
       // Get team projects
-      const projectsData = await db.select({
+      const database = db();
+      const projectsData = await database.select({
         id: projects.id,
         ownerId: projects.ownerId,
         name: projects.name,
@@ -616,15 +632,15 @@ class TeamService {
         role: teamProjects.role,
       }).from(teamProjects)
         .innerJoin(projects, eq(teamProjects.projectId, projects.id))
-        .where(and(eq(teamProjects.teamId, teamId), eq(projects.deletedAt, null)))
+        .where(and(eq(teamProjects.teamId, teamId), isNull(projects.deletedAt)))
         .orderBy(desc(projects.updatedAt))
         .limit(limit)
         .offset(offset);
 
-      const [{ count: total }] = await db.select({ count: count() })
+      const [{ count: total }] = await database.select({ count: count() })
         .from(teamProjects)
         .innerJoin(projects, eq(teamProjects.projectId, projects.id))
-        .where(and(eq(teamProjects.teamId, teamId), eq(projects.deletedAt, null)));
+        .where(and(eq(teamProjects.teamId, teamId), isNull(projects.deletedAt)));
 
       return { projects: projectsData, total };
     } catch (error) {
@@ -647,9 +663,11 @@ class TeamService {
    */
   async deleteTeam(teamId: string, requestingUserId: number): Promise<void> {
     try {
-      // Verify user is team owner
-      const [team] = await db.select({ ownerId: teams.ownerId }).from(teams)
-        .where(and(eq(teams.id, teamId), eq(teams.deletedAt, null)))
+      const database = db();
+      
+      // Get team and verify ownership
+      const [team] = await database.select({ ownerId: teams.ownerId }).from(teams)
+        .where(and(eq(teams.id, teamId), isNull(teams.deletedAt)))
         .limit(1);
 
       if (!team) {
@@ -661,17 +679,17 @@ class TeamService {
       }
 
       // Check if team has active projects
-      const [{ projectCount }] = await db.select({ projectCount: count() })
+      const [{ projectCount }] = await database.select({ projectCount: count() })
         .from(teamProjects)
         .innerJoin(projects, eq(teamProjects.projectId, projects.id))
-        .where(and(eq(teamProjects.teamId, teamId), eq(projects.deletedAt, null)));
+        .where(and(eq(teamProjects.teamId, teamId), isNull(projects.deletedAt)));
 
       if (projectCount > 0) {
         throw new ValidationError("Cannot delete team with active projects");
       }
 
       // Soft delete team
-      await db.transaction(async (tx) => {
+      await database.transaction(async (tx: any) => {
         await tx.update(teams)
           .set({ deletedAt: new Date(), updatedAt: new Date() })
           .where(eq(teams.id, teamId));
@@ -679,7 +697,7 @@ class TeamService {
         // Soft delete all team members
         await tx.update(teamMembers)
           .set({ deletedAt: new Date() })
-          .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.deletedAt, null)));
+          .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
 
         // Soft delete all team projects
         await tx.update(teamProjects)
@@ -690,7 +708,7 @@ class TeamService {
       // Clear cache
       await teamCache.invalidate(`team:${teamId}:details`);
 
-      logger.userAction("team_deleted", requestingUserId, {
+      logger.userAction("team_deleted", requestingUserId.toString(), {
         teamId,
       });
     } catch (error) {
@@ -717,16 +735,17 @@ class TeamService {
    */
   private async getUserActiveTeamCount(userId: number): Promise<number> {
     try {
-      const [{ count }] = await db.select({ count: count() })
+      const database = db();
+      const [{ count: teamCount }] = await database.select({ count: count() })
         .from(teamMembers)
         .innerJoin(teams, eq(teamMembers.teamId, teams.id))
         .where(and(
           eq(teamMembers.userId, userId),
-          eq(teamMembers.deletedAt, null),
-          eq(teams.deletedAt, null)
+          isNull(teamMembers.deletedAt),
+          isNull(teams.deletedAt)
         ));
 
-      return count;
+      return teamCount;
     } catch (error) {
       logger.error("Failed to get user team count", {
         error: error instanceof Error ? error.message : String(error),
@@ -741,11 +760,12 @@ class TeamService {
    */
   private async getTeamMemberCount(teamId: string): Promise<number> {
     try {
-      const [{ count }] = await db.select({ count: count() })
+      const database = db();
+      const [{ count: memberCount }] = await database.select({ count: count() })
         .from(teamMembers)
-        .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.deletedAt, null)));
+        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
 
-      return count;
+      return memberCount;
     } catch (error) {
       logger.error("Failed to get team member count", {
         error: error instanceof Error ? error.message : String(error),
@@ -764,11 +784,12 @@ class TeamService {
     allowedRoles: TeamRole[]
   ): Promise<TeamMember> {
     try {
-      const [member] = await db.select().from(teamMembers)
+      const database = db();
+      const [member] = await database.select().from(teamMembers)
         .where(and(
           eq(teamMembers.teamId, teamId),
           eq(teamMembers.userId, userId),
-          eq(teamMembers.deletedAt, null)
+          isNull(teamMembers.deletedAt)
         ))
         .limit(1);
 

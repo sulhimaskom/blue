@@ -1,5 +1,6 @@
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { teamService } from "@/lib/services/team-service";
 
@@ -16,7 +17,7 @@ interface RouteParams {
 /**
  * Add project to team
  */
-export async function POST(req: Request, { params }: RouteParams) {
+export async function POST(req: NextRequest, { params }: RouteParams) {
   const { id: teamId } = await params;
 
   return APIRouteHandler.createPOSTHandler({
@@ -24,14 +25,14 @@ export async function POST(req: Request, { params }: RouteParams) {
     requireCredits: 5, // Adding project to team costs 5 credits
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
     schema: addProjectSchema,
-    handler: async ({ context, user }) => {
-      const { projectId, role } = context.validatedData;
+    handler: async ({ user, data }) => {
+      const { projectId, role } = data!;
 
       const teamProject = await teamService.addProjectToTeam(
         teamId,
         projectId,
         role,
-        user.id
+        user!.id
       );
 
       return {
@@ -45,21 +46,22 @@ export async function POST(req: Request, { params }: RouteParams) {
 /**
  * Get team projects
  */
-export async function GET(req: Request, { params }: RouteParams) {
+export async function GET(req: NextRequest, { params }: RouteParams) {
   const { id: teamId } = await params;
 
   return APIRouteHandler.createGETHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-    handler: async ({ context, user }) => {
-      const { searchParams } = context;
+    handler: async ({ user, req: request }) => {
+      const url = new URL(request.url);
+      const searchParams = url.searchParams;
       
       const options = {
         limit: searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined,
         offset: searchParams.get("offset") ? parseInt(searchParams.get("offset")!) : undefined,
       };
 
-      const result = await teamService.getTeamProjects(teamId, user.id, options);
+      const result = await teamService.getTeamProjects(teamId, user!.id, options);
 
       return {
         data: result,

@@ -1,5 +1,6 @@
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { teamService } from "@/lib/services/team-service";
 
@@ -15,21 +16,21 @@ interface RouteParams {
 /**
  * Update team member role
  */
-export async function PUT(req: Request, { params }: RouteParams) {
+export async function PUT(req: NextRequest, { params }: RouteParams) {
   const { id: teamId, userId } = await params;
 
   return APIRouteHandler.createPUTHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
     schema: updateMemberRoleSchema,
-    handler: async ({ context, user }) => {
-      const { role } = context.validatedData;
+    handler: async ({ user, data }) => {
+      const { role } = data!;
       
       const updatedMember = await teamService.updateTeamMemberRole(
         teamId,
         parseInt(userId),
         role,
-        user.id
+        user!.id
       );
 
       return {
@@ -43,7 +44,7 @@ export async function PUT(req: Request, { params }: RouteParams) {
 /**
  * Remove team member
  */
-export async function DELETE(req: Request, { params }: RouteParams) {
+export async function DELETE(req: NextRequest, { params }: RouteParams) {
   const { id: teamId, userId } = await params;
 
   return APIRouteHandler.createPOSTHandler({
@@ -53,7 +54,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
       await teamService.removeTeamMember(
         teamId,
         parseInt(userId),
-        user.id
+        user!.id
       );
 
       return {

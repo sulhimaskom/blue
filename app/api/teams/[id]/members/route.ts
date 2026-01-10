@@ -1,5 +1,6 @@
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { teamService } from "@/lib/services/team-service";
 
@@ -19,7 +20,7 @@ interface RouteParams {
 /**
  * Invite a member to the team
  */
-export async function POST(req: Request, { params }: RouteParams) {
+export async function POST(req: NextRequest, { params }: RouteParams) {
   const { id: teamId } = await params;
 
   return APIRouteHandler.createPOSTHandler({
@@ -27,13 +28,13 @@ export async function POST(req: Request, { params }: RouteParams) {
     requireCredits: 10, // Team member invitation costs 10 credits
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
     schema: inviteMemberSchema,
-    handler: async ({ context, user }) => {
-      const { email, role } = context.validatedData;
+    handler: async ({ user, data }) => {
+      const { email, role } = data!;
 
       const result = await teamService.inviteTeamMember(teamId, {
         email,
         role,
-      }, user.id);
+      }, user!.id);
 
       return {
         data: result,
@@ -46,7 +47,7 @@ export async function POST(req: Request, { params }: RouteParams) {
 /**
  * Get team members
  */
-export async function GET(req: Request, { params }: RouteParams) {
+export async function GET(req: NextRequest, { params }: RouteParams) {
   const { id: teamId } = await params;
 
   return APIRouteHandler.createGETHandler({
@@ -55,7 +56,7 @@ export async function GET(req: Request, { params }: RouteParams) {
     handler: async ({ user }) => {
       // This would need to be implemented in TeamService
       // For now, we get the team details which includes members
-      const team = await teamService.getTeamById(teamId, user.id);
+      const team = await teamService.getTeamById(teamId, user!.id);
 
       return {
         data: {

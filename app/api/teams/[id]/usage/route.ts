@@ -2,8 +2,9 @@ import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { db } from "@/lib/db";
 import { teams, teamMembers, transactions } from "@/lib/db/schema";
-import { eq, and, count, sum } from "drizzle-orm";
+import { eq, and, count, sum, isNull, inArray } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+import { NextRequest } from "next/server";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -12,7 +13,7 @@ interface RouteParams {
 /**
  * Get team usage analytics
  */
-export async function GET(req: Request, { params }: RouteParams) {
+export async function GET(req: NextRequest, { params }: RouteParams) {
   const { id: teamId } = await params;
 
   return APIRouteHandler.createGETHandler({
@@ -20,16 +21,18 @@ export async function GET(req: Request, { params }: RouteParams) {
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
     handler: async ({ user }) => {
       try {
+        const database = db();
+        
         // Verify user has access to team analytics (admin or member)
-        const accessCheck = await db.select({
+        const accessCheck = await database.select({
           role: teamMembers.role,
         }).from(teamMembers)
           .innerJoin(teams, eq(teamMembers.teamId, teams.id))
           .where(and(
             eq(teamMembers.teamId, teamId),
-            eq(teamMembers.userId, user.id),
-            eq(teamMembers.deletedAt, null),
-            eq(teams.deletedAt, null)
+            eq(teamMembers.userId, user!.id),
+            isNull(teamMembers.deletedAt),
+            isNull(teams.deletedAt)
           ))
           .limit(1);
 
@@ -37,39 +40,37 @@ export async function GET(req: Request, { params }: RouteParams) {
           throw new Error("Insufficient permissions to view team analytics");
         }
 
-        // Get team member count
-        const [{ memberCount }] = await db
+// Get team member count
+        const [{ memberCount }] = await database
           .select({ memberCount: count() })
           .from(teamMembers)
-          .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.deletedAt, null)));
+          .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
 
         // Get team project count
-        const [{ projectCount }] = await db
+        const [{ projectCount }] = await database
           .select({ projectCount: count() })
           .from(teamMembers)
-          .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.deletedAt, null)));
+          .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
 
         // Get credits consumed by team members
-        const creditUsageResults = await db
+        const teamMemberIds = await database
+          .select({ userId: teamMembers.userId })
+          .from(teamMembers)
+          .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
+        
+        const memberIds = teamMemberIds.map(m => m.userId);
+        
+        const creditUsageResults = memberIds.length > 0 ? await database
           .select({
             userId: transactions.userId,
             credits: sum(transactions.amount),
           })
           .from(transactions)
-          .where(
-            eq(
-              transactions.userId,
-              (subquery) =>
-                subquery
-                  .select(teamMembers.userId)
-                  .from(teamMembers)
-                  .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.deletedAt, null)))
-            )
-          )
-          .groupBy(transactions.userId);
+          .where(inArray(transactions.userId, memberIds))
+          .groupBy(transactions.userId) : [];
 
         const totalCreditsConsumed = creditUsageResults.reduce(
-          (sum, row) => sum + (row.credits || 0),
+          (sum: number, row: any) => sum + (row.credits || 0),
           0
         );
 
@@ -96,7 +97,7 @@ export async function GET(req: Request, { params }: RouteParams) {
         logger.error("Failed to get team analytics", {
           error: error instanceof Error ? error.message : String(error),
           teamId,
-          userId: user.id,
+          userId: user!.id,
         });
 
         if (error instanceof Error && error.message.includes("Insufficient permissions")) {

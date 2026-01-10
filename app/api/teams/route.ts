@@ -20,12 +20,12 @@ export const POST = APIRouteHandler.createPOSTHandler({
   requireCredits: 50, // Team creation costs 50 credits
   rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
   schema: createTeamSchema,
-  handler: async ({ context, user }) => {
-    const { name, subscriptionTier } = context.validatedData;
+  handler: async ({ user, data }) => {
+    const { name, subscriptionTier } = data!;
     
     const team = await teamService.createTeam({
       name,
-      ownerId: user.id,
+      ownerId: user!.id,
       subscriptionTier,
     });
 
@@ -42,8 +42,9 @@ export const POST = APIRouteHandler.createPOSTHandler({
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: true,
   rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-  handler: async ({ context, user }) => {
-    const { searchParams } = context;
+  handler: async ({ user, req }) => {
+    const url = new URL(req.url);
+    const searchParams = url.searchParams;
     
     const options = {
       limit: searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined,
@@ -51,7 +52,7 @@ export const GET = APIRouteHandler.createGETHandler({
       search: searchParams.get("search") || undefined,
     };
 
-    const result = await teamService.getUserTeams(user.id, options);
+    const result = await teamService.getUserTeams(user!.id, options);
 
     return {
       data: result,
