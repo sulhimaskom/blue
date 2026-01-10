@@ -399,6 +399,48 @@ export class ProjectDataService {
   }
 
   /**
+   * Delete blueprint with ownership verification and soft delete
+   * Used by: /api/blueprints/[id] (DELETE)
+   */
+  static async deleteBlueprint(blueprintId: string, clerkId: string) {
+    const database = db();
+
+    // Verify blueprint exists and get project ID
+    const [blueprint] = await database
+      .select()
+      .from(blueprints)
+      .where(
+        and(
+          eq(blueprints.id, blueprintId),
+          isNull(blueprints.deletedAt)
+        )
+      )
+      .limit(1);
+
+    if (!blueprint) {
+      throw new ValidationError("Blueprint not found");
+    }
+
+    // Verify user owns the project containing this blueprint
+    await this.verifyProjectOwnership(
+      blueprint.projectId,
+      clerkId
+    );
+
+    // Soft-delete blueprint (non-destructive, reversible)
+    await softDelete("blueprints", blueprintId);
+
+    // Return soft-deleted blueprint for UI feedback
+    const [deletedBlueprint] = await database
+      .select()
+      .from(blueprints)
+      .where(eq(blueprints.id, blueprintId))
+      .limit(1);
+
+    return deletedBlueprint;
+  }
+
+  /**
    * Get detailed project with blueprint count
    * Used by: Projects management UI
    */

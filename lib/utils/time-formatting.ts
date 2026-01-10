@@ -4,7 +4,7 @@
  * Follows DRY principle and Atomic Modularity
  */
 
-import { DB_TIMEOUTS } from "@/lib/constants";
+
 
 /**
  * Formats milliseconds into human readable string
@@ -69,7 +69,7 @@ export function formatMetricDisplayName(name: string): string {
 /**
  * Standard refresh interval for monitoring dashboards
  */
-export const MONITORING_REFRESH_INTERVAL = DB_TIMEOUTS.LONG; // 30 seconds
+export const MONITORING_REFRESH_INTERVAL = 30000; // 30 seconds
 
 /**
  * Formats relative time for display (e.g., "2s ago", "5m ago", "1h ago")
@@ -122,11 +122,11 @@ export function formatClientTime(timestamp: Date | null): string {
  */
 export const MONITORING_THRESHOLDS = {
   /** Response time threshold for slow operations (5 seconds) */
-  SLOW_RESPONSE: DB_TIMEOUTS.SHORT,
+  SLOW_RESPONSE: 5000,
   /** Freshness threshold for real-time data (5 seconds) */
-  DATA_FRESHNESS: DB_TIMEOUTS.SHORT,
+  DATA_FRESHNESS: 5000,
   /** Long operation duration threshold (30 seconds) */
-  LONG_OPERATION: DB_TIMEOUTS.LONG,
+  LONG_OPERATION: 30000,
 } as const;
 
 /**
