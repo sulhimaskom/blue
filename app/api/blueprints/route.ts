@@ -3,12 +3,9 @@ import { logger } from "@/lib/logger";
 import { UserService } from "@/lib/services/user-service";
 import { blueprintEngine } from "@/lib/services/blueprint-engine";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
-import { RateLimiter } from "@/lib/api-utils";
+import { RateLimiters } from "@/lib/rate-limit-config";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
 import { BlueprintQueryOptimizer } from "@/lib/db/blueprint-query-optimizer";
-
-// Rate limiting: 3 requests per minute for blueprint generation
-const blueprintRateLimiter = RateLimiter(3, 60 * 1000);
 
 const generateBlueprintSchema = z.object({
   input: z
@@ -25,7 +22,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
   schema: generateBlueprintSchema,
   requireAuth: true,
   requireCredits: 1,
-  rateLimiter: (identifier: string) => blueprintRateLimiter(identifier),
+  rateLimiter: (identifier: string) => RateLimiters.blueprintsPost()(identifier),
   handler: async ({ context, user, data }) => {
     const { input, projectName } = data!;
 
@@ -72,6 +69,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
 
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.blueprintsGet()(identifier),
   handler: async ({ context, user }) => {
     // Try to get user blueprint stats from cache first
     let cachedStats = await DatabaseQueryCache.getCachedUserBlueprintStats(
