@@ -1,5 +1,7 @@
 import { logger } from "@/lib/logger";
 import { ServiceError } from "./service-error-handler";
+import type { BlueprintFormData } from "./blueprint-validation-service";
+import type { PricingPackage } from "@/lib/constants";
 
 /**
  * Service interfaces for dashboard data operations
@@ -44,7 +46,7 @@ export interface CreditsData {
   }>;
   pricing: {
     creditValue: string;
-    packages: any[]; // Will import PRICING_PACKAGES in components
+    packages: PricingPackage[];
   };
   stripeConfig: {
     configured: boolean;
@@ -193,7 +195,7 @@ export class DashboardDataService {
    * Create a new blueprint
    * Consolidates blueprint creation logic from blueprints/page.tsx (lines 136-165)
    */
-  static async createBlueprint(formData: any): Promise<void> {
+  static async createBlueprint(formData: BlueprintFormData): Promise<void> {
     try {
       await this.apiCall("/blueprints", {
         method: "POST",
