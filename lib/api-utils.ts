@@ -215,6 +215,7 @@ export class ValidationError extends Error {
   ) {
     super(message);
     this.name = "ValidationError";
+    Object.setPrototypeOf(this, ValidationError.prototype);
     // Use statusCode in error handling
     void statusCode;
   }
@@ -224,6 +225,7 @@ export class AuthenticationError extends Error {
   constructor(message: string = "Authentication required") {
     super(message);
     this.name = "AuthenticationError";
+    Object.setPrototypeOf(this, AuthenticationError.prototype);
   }
 }
 
@@ -231,6 +233,7 @@ export class AuthorizationError extends Error {
   constructor(message: string = "Access denied") {
     super(message);
     this.name = "AuthorizationError";
+    Object.setPrototypeOf(this, AuthorizationError.prototype);
   }
 }
 
