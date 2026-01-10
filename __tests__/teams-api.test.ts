@@ -40,8 +40,8 @@ describe("Teams API", () => {
         message: "Team created successfully",
       });
 
-      jest.mocked(APIRouteHandler.createPOSTHandler).mockReturnValue(mockHandler);
-      jest.mocked(teamService.createTeam).mockResolvedValue(mockTeam);
+      jest.mocked(APIRouteHandler).createPOSTHandler = (mockHandler);
+      jest.mocked(teamService).createTeam = (mockTeam);
 
       // Mock request and context
       const mockRequest = {
@@ -75,7 +75,7 @@ describe("Teams API", () => {
       });
 
       // Test the handler function directly
-      const handlerArg = jest.mocked(APIRouteHandler.createPOSTHandler).mock.calls[0][0];
+      const handlerArg = (jest.mocked(APIRouteHandler) as any).createPOSTHandler.mock.calls[0][0];
       const handler = handlerArg.handler;
       const result = await handler(mockContext as any);
 
@@ -89,11 +89,11 @@ describe("Teams API", () => {
       // The validation is handled by Zod schema in APIRouteHandler
       // This test ensures the schema is properly configured
       const mockHandler = jest.fn();
-      jest.mocked(APIRouteHandler.createPOSTHandler).mockReturnValue(mockHandler);
+      jest.mocked(APIRouteHandler).createPOSTHandler = (mockHandler);
 
       await POST({} as any, {} as any);
 
-      const [config] = jest.mocked(APIRouteHandler.createPOSTHandler).mock.calls[0];
+      const [config] = (jest.mocked(APIRouteHandler) as any).createPOSTHandler.mock.calls[0];
       
       expect(config.schema).toBeDefined();
       
@@ -124,8 +124,8 @@ describe("Teams API", () => {
         message: "Teams retrieved successfully",
       });
 
-      jest.mocked(APIRouteHandler.createGETHandler).mockReturnValue(mockHandler);
-      jest.mocked(teamService.getUserTeams).mockResolvedValue({
+      jest.mocked(APIRouteHandler).createGETHandler = (mockHandler);
+      jest.mocked(teamService).getUserTeams = ({
         teams: mockTeams,
         total: 1,
       });
@@ -154,7 +154,7 @@ describe("Teams API", () => {
       });
 
       // Test the handler function directly
-      const handlerArg = jest.mocked(APIRouteHandler.createGETHandler).mock.calls[0][0];
+      const handlerArg = (jest.mocked(APIRouteHandler) as any).createGETHandler.mock.calls[0][0];
       const handler = handlerArg.handler;
       const result = await handler(mockContext as any);
 
@@ -177,8 +177,8 @@ describe("Teams API", () => {
         message: "Teams retrieved successfully",
       });
 
-      jest.mocked(APIRouteHandler.createGETHandler).mockReturnValue(mockHandler);
-      jest.mocked(teamService.getUserTeams).mockResolvedValue({
+      jest.mocked(APIRouteHandler).createGETHandler = (mockHandler);
+      jest.mocked(teamService).getUserTeams = ({
         teams: [],
         total: 0,
       });
@@ -206,29 +206,29 @@ describe("Teams API", () => {
 
   describe("API configuration", () => {
     it("should require authentication for all endpoints", async () => {
-      jest.mocked(APIRouteHandler.createPOSTHandler).mockReturnValue(jest.fn());
-      jest.mocked(APIRouteHandler.createGETHandler).mockReturnValue(jest.fn());
+      jest.mocked(APIRouteHandler).createPOSTHandler = (jest.fn());
+      jest.mocked(APIRouteHandler).createGETHandler = (jest.fn());
 
       await POST({} as any, {} as any);
       await GET({} as any, {} as any);
 
-      expect(jest.mocked(APIRouteHandler.createPOSTHandler).mock.calls[0][0].requireAuth).toBe(true);
-      expect(jest.mocked(APIRouteHandler.createGETHandler).mock.calls[0][0].requireAuth).toBe(true);
+      expect((jest.mocked(APIRouteHandler) as any).createPOSTHandler.mock.calls[0][0].requireAuth).toBe(true);
+      expect((jest.mocked(APIRouteHandler) as any).createGETHandler.mock.calls[0][0].requireAuth).toBe(true);
     });
 
     it("should require credits for team creation", async () => {
-      jest.mocked(APIRouteHandler.createPOSTHandler).mockReturnValue(jest.fn());
+      jest.mocked(APIRouteHandler).createPOSTHandler = (jest.fn());
       
       await POST({} as any, {} as any);
 
-      expect(jest.mocked(APIRouteHandler.createPOSTHandler).mock.calls[0][0].requireCredits).toBe(50);
+      expect((jest.mocked(APIRouteHandler) as any).createPOSTHandler.mock.calls[0][0].requireCredits).toBe(50);
     });
 
     it("should use appropriate rate limiters", async () => {
       const { RateLimiters } = await import("@/lib/rate-limit-config");
       
-      jest.mocked(APIRouteHandler.createPOSTHandler).mockReturnValue(jest.fn());
-      jest.mocked(APIRouteHandler.createGETHandler).mockReturnValue(jest.fn());
+      jest.mocked(APIRouteHandler).createPOSTHandler = (jest.fn());
+      jest.mocked(APIRouteHandler).createGETHandler = (jest.fn());
 
       await POST({} as any, {} as any);
       await GET({} as any, {} as any);

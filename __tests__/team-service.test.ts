@@ -2,13 +2,16 @@ import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import { teamService } from "@/lib/services/team-service";
 import { db } from "@/lib/db";
 import { teams, teamMembers, users } from "@/lib/db/schema";
-import { ValidationError, AuthorizationError, NotFoundError } from "@/lib/api-utils";
-import { DatabaseError } from "@/lib/services/service-error-handler";
+import { ValidationError, AuthorizationError, NotFoundError, DatabaseError } from "@/lib/api-utils";
 
 // Mock dependencies
 jest.mock("@/lib/db", () => ({
   db: {
-    select: jest.fn(),
+    select: jest.fn().mockReturnValue({
+      where: jest.fn().mockReturnValue({
+        limit: jest.fn().mockReturnValue({}),
+      }),
+    }),
     insert: jest.fn(),
     update: jest.fn(),
     transaction: jest.fn(),
