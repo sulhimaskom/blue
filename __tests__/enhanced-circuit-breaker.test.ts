@@ -234,10 +234,8 @@ describe("EnhancedCircuitBreaker", () => {
   });
 
   describe("Execution Behavior", () => {
-    beforeEach(() => {
-      // Use real timers for execution behavior tests to properly measure response times
-      jest.useRealTimers();
-    });
+    // Use fake timers consistently to avoid conflicts with other test sections
+    // Response time measurements will use mock timing via jest.advanceTimersByTime()
 
     it("should execute successful request in CLOSED state", async () => {
       const request = () => Promise.resolve("success");
@@ -302,11 +300,8 @@ describe("EnhancedCircuitBreaker", () => {
         }
       }
 
-      // Use real timers for this test
-      jest.useRealTimers();
-
-      // Wait past reset timeout
-      await new Promise((resolve) => setTimeout(resolve, 1100));
+      // Fast-forward past reset timeout using fake timers
+      jest.advanceTimersByTime(1100);
 
       const successRequest = () => Promise.resolve("success");
       const result = await circuitBreaker.execute(successRequest);
@@ -368,9 +363,7 @@ describe("EnhancedCircuitBreaker", () => {
   });
 
   describe("Adaptive Timeout", () => {
-    beforeEach(() => {
-      jest.useRealTimers();
-    });
+    // Use fake timers consistently for all adaptive timeout tests
 
     it("should update adaptive timeout based on response times", async () => {
       const cb = new EnhancedCircuitBreaker({
@@ -493,7 +486,13 @@ describe("EnhancedCircuitBreaker", () => {
 
   describe("Request Batching", () => {
     beforeEach(() => {
+      // Use real timers for batching tests since the circuit breaker uses real setTimeout for batch processing
       jest.useRealTimers();
+    });
+
+    afterEach(() => {
+      // Reset to fake timers for other test sections
+      jest.useFakeTimers();
     });
 
     it("should batch requests in CLOSED state", async () => {
@@ -535,7 +534,7 @@ describe("EnhancedCircuitBreaker", () => {
         cb.execute(request),
       ]);
 
-      // Wait for batch to execute
+      // Wait for batch to execute with real timers
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const metrics = cb.getMetrics();
@@ -594,7 +593,7 @@ describe("EnhancedCircuitBreaker", () => {
         cb.execute(request),
       ]);
 
-      // Wait for batch to execute
+      // Wait for batch to execute with real timers
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const metrics = cb.getMetrics();
@@ -641,9 +640,7 @@ describe("EnhancedCircuitBreaker", () => {
   });
 
   describe("Metrics Collection", () => {
-    beforeEach(() => {
-      jest.useRealTimers();
-    });
+    // Use fake timers consistently for all metrics tests
 
     it("should return comprehensive metrics", async () => {
       const request = () => Promise.resolve("success");
@@ -795,9 +792,7 @@ describe("EnhancedCircuitBreaker", () => {
   });
 
   describe("Edge Cases", () => {
-    beforeEach(() => {
-      jest.useRealTimers();
-    });
+    // Use fake timers consistently for all edge case tests
 
     it("should handle empty response time array", () => {
       const metrics = circuitBreaker.getMetrics();
@@ -879,13 +874,8 @@ describe("EnhancedCircuitBreaker", () => {
   });
 
   describe("Integration Scenarios", () => {
-    beforeEach(() => {
-      jest.useFakeTimers();
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
+    // Global beforeEach/afterEach already handle fake timers
+    // No need to override them here
 
     it("should handle complete lifecycle: CLOSED → OPEN → CLOSED", async () => {
       const successRequest = () => Promise.resolve("success");
