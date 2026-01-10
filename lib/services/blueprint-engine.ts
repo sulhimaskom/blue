@@ -676,6 +676,7 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
     request: BlueprintGenerationRequest,
   ): Promise<BlueprintGenerationResponse> {
     const startTime = Date.now();
+    let projectId: string | undefined = undefined;
 
     try {
       logger.info("Blueprint generation pipeline started", {
@@ -696,7 +697,7 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
         })
         .returning();
 
-      const projectId = project[0].id;
+      projectId = project[0].id;
 
       logger.info("Project record created", { projectId });
 
@@ -774,14 +775,15 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
       });
 
       // Clean up project on failure
-      if (request.projectName) {
+      if (projectId) {
         try {
           const database = db();
           await database
             .delete(projects)
-            .where(eq(projects.ownerId, request.userId));
+            .where(eq(projects.id, projectId));
         } catch (cleanupError) {
           logger.error("Failed to cleanup project after error", {
+            projectId,
             cleanupError,
           });
         }
