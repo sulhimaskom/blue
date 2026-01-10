@@ -80,6 +80,15 @@ This logic follows the **Model Context Protocol (MCP)** concept, where the "Brai
 -- Row Level Security (RLS) enabled for multi-tenant data isolation
 -- Unique Constraints: stripe_payment_id (transactions), repo_url (projects, partial)
 -- Audit Trail: All tables have updated_at timestamps with automatic triggers
+-- CHECK Constraints: Database-level validation (Migration 0007 - January 17, 2026)
+--   - Users: credits >= 0
+--   - Projects: status enum, repo_url format
+--   - Deployments: environment/status enums, positive version, expiry validation
+--   - Blueprints: positive version
+--   - Transactions: positive amount, non-negative credits
+--   - Webhook Configurations: retry/timeout ranges, URL format, secret length
+--   - Teams: subscription tier enum
+--   - Team Members: role enum
 
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,

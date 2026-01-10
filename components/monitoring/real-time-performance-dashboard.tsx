@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useInterval, STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
 import { logger } from "@/lib/logger";
 import { formatStandardTime } from "@/lib/utils/time-formatting";
@@ -6,86 +6,25 @@ import { AIMemoryOptimizationService } from "@/lib/services/performance/ai-memor
 import { AdvancedCacheStrategiesService } from "@/lib/services/performance/advanced-cache-strategies-service";
 import { DatabaseQueryOptimizationService } from "@/lib/services/performance/database-query-optimization-service";
 
-/**
- * Interface for comprehensive performance metrics data structure
- * Contains all performance indicators across memory, cache, and database systems
- */
 interface PerformanceMetrics {
-  /** Memory performance indicators with usage, pressure, and health status */
   memory: {
-    /** Current memory usage percentage (0-100) */
     usage: number;
-    /** Memory pressure indicator (0-1, higher indicates more pressure) */
     pressure: number;
-    /** Overall memory health status classification */
     status: "healthy" | "warning" | "critical";
   };
-  /** Cache performance metrics with hit rates and efficiency scores */
   cache: {
-    /** Cache hit success rate percentage (0-100) */
     hitRate: number;
-    /** Cache efficiency score (0-100, higher is better) */
     efficiency: number;
-    /** Overall cache performance score (0-100) */
     performanceScore: number;
   };
-  /** Database performance indicators for connection and query metrics */
   database: {
-    /** Average query execution time in milliseconds */
     queryTime: number;
-    /** Connection pool utilization percentage (0-100) */
     connectionUtilization: number;
-    /** Count of slow performing queries */
     slowQueries: number;
   };
-  /** Array of performance optimization recommendations from all services */
   recommendations: string[];
 }
 
-/**
- * RealTimePerformanceDashboard Component
- *
- * Advanced real-time performance monitoring dashboard that provides comprehensive
- * system health visualization with AI-powered optimization capabilities.
- *
- * Features:
- * - Real-time metrics collection from multiple service endpoints
- * - Interactive optimization controls for memory, cache, and database systems
- * - Visual performance indicators with color-coded status alerts
- * - Automated recommendations based on AI analysis
- * - Overall performance score calculation with weighted metrics
- *
- * Architecture:
- * - Service Layer Integration: Consumes performance data from 3 specialized services
- * - State Management: Local React state with auto-refresh capabilities
- * - Error Resilience: Graceful fallback handling for service failures
- * - Performance Optimization: 30-second refresh intervals with manual controls
- *
- * Service Integrations:
- * - AIMemoryOptimizationService: Memory health analysis and optimization
- * - AdvancedCacheStrategiesService: Cache performance analytics
- * - DatabaseQueryOptimizationService: Database metrics and connection optimization
- *
- * Performance Characteristics:
- * - Auto-refresh interval: 30 seconds (configurable via state)
- * - Real-time updates with visual loading states
- * - Optimistic optimization with page refresh on completion
- * - Composite scoring algorithm with weighted metric calculations
- *
- * @example
- * ```typescript
- * import { RealTimePerformanceDashboard } from '@/components/monitoring/real-time-performance-dashboard';
- *
- * // In your component
- * function PerformanceMonitoring() {
- *   return <RealTimePerformanceDashboard />;
- * }
- * ```
- *
- * @since 1.0.0
- * @version 1.1.0
- * @author Worldclass Software Architect
- */
 export function RealTimePerformanceDashboard() {
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     memory: {
@@ -102,41 +41,20 @@ export function RealTimePerformanceDashboard() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  /**
-   * Effect hook for managing real-time metrics fetching and auto-refresh behavior
-   *
-   * This effect handles:
-   * - Initial metrics loading on component mount
-   * - Parallel fetching from all performance services
-   * - Automatic refresh at 30-second intervals when enabled
-   * - Graceful error handling and loading state management
-   * - Data aggregation and normalization from multiple sources
-   */
-/**
-   * Fetches performance metrics from all service endpoints in parallel
-   * Aggregates and normalizes data into a unified metrics structure
-   *
-   * Service Endpoints:
-   * - AIMemoryOptimizationService: Memory health and pressure metrics
-   * - AdvancedCacheStrategiesService: Cache hit rates and efficiency scores
-   * - DatabaseQueryOptimizationService: Query times and connection utilization
-   */
   const fetchMetrics = async () => {
     try {
       setLoading(true);
 
-      // Fetch all performance metrics in parallel
       const [memoryHealth, cacheAnalytics, dbMetrics] = await Promise.all([
         AIMemoryOptimizationService.getAIMemoryHealth(),
         AdvancedCacheStrategiesService.getCacheAnalytics(),
         DatabaseQueryOptimizationService.getDatabasePerformanceMetrics(),
       ]);
 
-      // Combine and normalize metrics
       const combinedMetrics = {
         memory: memoryHealth.success
           ? {
-              usage: 0, // Would be calculated from actual metrics
+              usage: 0,
               pressure: memoryHealth.data
                 ? (100 - memoryHealth.data.score) / 100
                 : 0,
@@ -149,7 +67,7 @@ export function RealTimePerformanceDashboard() {
             ? {
                 hitRate:
                   Object.values(cacheAnalytics.data.patterns).reduce(
-                    (sum: number, pattern: any) => sum + pattern.hitRate,
+                    (sum: number, pattern: { hitRate: number }) => sum + pattern.hitRate,
                     0,
                   ) /
                   Math.max(
@@ -189,15 +107,13 @@ export function RealTimePerformanceDashboard() {
       setMetrics(combinedMetrics);
       setLastUpdate(new Date());
     } catch (error) {
-      // Handle error gracefully
     } finally {
       setLoading(false);
     }
   };
 
-  // Use standardized interval management
   const { start: startRefreshing, stop: stopRefreshing } = useInterval(fetchMetrics, {
-    intervalMs: STANDARD_INTERVALS.DEFAULT_MONITORING, // 30 seconds
+    intervalMs: STANDARD_INTERVALS.DEFAULT_MONITORING,
     autoStart: autoRefresh,
     runImmediately: true,
     onError: (error) => {
@@ -209,7 +125,6 @@ export function RealTimePerformanceDashboard() {
     },
   });
 
-  // React to autoRefresh state changes
   useEffect(() => {
     if (autoRefresh) {
       startRefreshing();
@@ -218,18 +133,6 @@ export function RealTimePerformanceDashboard() {
     }
   }, [autoRefresh, startRefreshing, stopRefreshing]);
 
-  /**
-   * Handles optimization requests for different performance services
-   * Calls the appropriate optimization service and refreshes the page
-   *
-   * @param service - The service to optimize ("memory", "cache", or "database")
-   *
-   * @example
-   * ```typescript
-   * // Optimize memory performance
-   * await handleOptimize("memory");
-   * ```
-   */
   const handleOptimize = async (service: "memory" | "cache" | "database") => {
     try {
       switch (service) {
@@ -243,61 +146,21 @@ export function RealTimePerformanceDashboard() {
           await DatabaseQueryOptimizationService.optimizeConnectionPool();
           break;
       }
-      // Refresh metrics after optimization
       window.location.reload();
     } catch (error) {
-      // Handle optimization error
     }
   };
 
-  /**
-   * Determines the appropriate color class for progress bars based on value thresholds
-   *
-   * @param value - Current metric value (percentage or similar)
-   * @param thresholds - Warning and critical threshold values
-   * @returns Tailwind CSS color class for the progress bar
-   *
-   * @example
-   * ```typescript
-   * const color = getProgressBarColor(75, { warning: 60, critical: 80 });
-   * // Returns "bg-yellow-500" for warning state
-   * ```
-   */
-  /**
-   * Determines the appropriate color class for progress bars based on value thresholds
-   *
-   * @param value - Current metric value (percentage or similar)
-   * @param thresholds - Warning and critical threshold values
-   * @returns Tailwind CSS color class for the progress bar
-   *
-   * @example
-   * ```typescript
-   * const color = getProgressBarColor(75, { warning: 60, critical: 80 });
-   * // Returns "bg-yellow-500" for warning state
-   * ```
-   */
-  const getProgressBarColor = (
+  const getProgressBarColor = useCallback((
     value: number,
     thresholds: { warning: number; critical: number },
   ) => {
     if (value >= thresholds.critical) return "bg-red-500";
     if (value >= thresholds.warning) return "bg-yellow-500";
     return "bg-green-500";
-  };
+  }, []);
 
-  /**
-   * Maps system status to appropriate text color classes
-   *
-   * @param status - Current system health status
-   * @returns Tailwind CSS text color class for the status
-   *
-   * @example
-   * ```typescript
-   * const color = getStatusColor("warning");
-   * // Returns "text-yellow-600"
-   * ```
-   */
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case "healthy":
         return "text-green-600";
@@ -308,7 +171,47 @@ export function RealTimePerformanceDashboard() {
       default:
         return "text-gray-600";
     }
-  };
+  }, []);
+
+  const memoryEfficiency = useMemo(() => {
+    return metrics.memory.pressure <= 0.5
+      ? 100 - metrics.memory.pressure * 50
+      : 50;
+  }, [metrics.memory.pressure]);
+
+  const databaseEfficiency = useMemo(() => {
+    return metrics.database.queryTime <= 200
+      ? 100 - metrics.database.queryTime / 10
+      : 80;
+  }, [metrics.database.queryTime]);
+
+  const overallPerformanceScore = useMemo(() => {
+    return Math.round(
+      memoryEfficiency * 0.3 +
+      metrics.cache.performanceScore * 0.4 +
+      databaseEfficiency * 0.3,
+    );
+  }, [memoryEfficiency, metrics.cache.performanceScore, databaseEfficiency]);
+
+  const memoryPressurePercent = useMemo(() => {
+    return Math.round(metrics.memory.pressure * 100);
+  }, [metrics.memory.pressure]);
+
+  const cacheHitRatePercent = useMemo(() => {
+    return Math.round(metrics.cache.hitRate);
+  }, [metrics.cache.hitRate]);
+
+  const cachePerformanceScore = useMemo(() => {
+    return Math.round(metrics.cache.performanceScore);
+  }, [metrics.cache.performanceScore]);
+
+  const dbConnectionUtilization = useMemo(() => {
+    return Math.round(metrics.database.connectionUtilization);
+  }, [metrics.database.connectionUtilization]);
+
+  const dbQueryTime = useMemo(() => {
+    return Math.round(metrics.database.queryTime);
+  }, [metrics.database.queryTime]);
 
   if (loading) {
     return (
@@ -327,7 +230,6 @@ export function RealTimePerformanceDashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
@@ -356,9 +258,7 @@ export function RealTimePerformanceDashboard() {
         </div>
       </div>
 
-      {/* Performance Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* AI Memory Optimization */}
         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">AI Memory</h2>
@@ -373,19 +273,19 @@ export function RealTimePerformanceDashboard() {
             <div>
               <div className="flex justify-between text-sm text-gray-600 mb-1">
                 <span>Memory Pressure</span>
-                <span>{Math.round(metrics.memory.pressure * 100)}%</span>
+                <span>{memoryPressurePercent}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(metrics.memory.pressure * 100, { warning: 60, critical: 80 })}`}
-                  style={{ width: `${metrics.memory.pressure * 100}%` }}
+                  className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(memoryPressurePercent, { warning: 60, critical: 80 })}`}
+                  style={{ width: `${memoryPressurePercent}%` }}
                 ></div>
               </div>
             </div>
 
             <div className="pt-2">
               <div className="text-2xl font-bold text-gray-900">
-                {Math.round(metrics.memory.pressure * 100)}%
+                {memoryPressurePercent}%
               </div>
               <div className="text-sm text-gray-600">Memory Usage</div>
             </div>
@@ -399,7 +299,6 @@ export function RealTimePerformanceDashboard() {
           </button>
         </div>
 
-        {/* Cache Performance */}
         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">
@@ -415,19 +314,19 @@ export function RealTimePerformanceDashboard() {
             <div>
               <div className="flex justify-between text-sm text-gray-600 mb-1">
                 <span>Hit Rate</span>
-                <span>{Math.round(metrics.cache.hitRate)}%</span>
+                <span>{cacheHitRatePercent}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(metrics.cache.hitRate, { warning: 70, critical: 50 })}`}
-                  style={{ width: `${metrics.cache.hitRate}%` }}
+                  className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(cacheHitRatePercent, { warning: 70, critical: 50 })}`}
+                  style={{ width: `${cacheHitRatePercent}%` }}
                 ></div>
               </div>
             </div>
 
             <div className="pt-2">
               <div className="text-2xl font-bold text-gray-900">
-                {Math.round(metrics.cache.performanceScore)}
+                {cachePerformanceScore}
               </div>
               <div className="text-sm text-gray-600">Performance Score</div>
             </div>
@@ -441,7 +340,6 @@ export function RealTimePerformanceDashboard() {
           </button>
         </div>
 
-        {/* Database Performance */}
         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Database</h2>
@@ -458,14 +356,14 @@ export function RealTimePerformanceDashboard() {
               <div className="flex justify-between text-sm text-gray-600 mb-1">
                 <span>Connection Utilization</span>
                 <span>
-                  {Math.round(metrics.database.connectionUtilization)}%
+                  {dbConnectionUtilization}%
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(metrics.database.connectionUtilization, { warning: 70, critical: 85 })}`}
+                  className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(dbConnectionUtilization, { warning: 70, critical: 85 })}`}
                   style={{
-                    width: `${metrics.database.connectionUtilization}%`,
+                    width: `${dbConnectionUtilization}%`,
                   }}
                 ></div>
               </div>
@@ -473,7 +371,7 @@ export function RealTimePerformanceDashboard() {
 
             <div className="pt-2">
               <div className="text-2xl font-bold text-gray-900">
-                {Math.round(metrics.database.queryTime)}ms
+                {dbQueryTime}ms
               </div>
               <div className="text-sm text-gray-600">Avg Query Time</div>
             </div>
@@ -488,7 +386,6 @@ export function RealTimePerformanceDashboard() {
         </div>
       </div>
 
-      {/* Recommendations */}
       {metrics.recommendations.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <h3 className="text-lg font-semibold text-yellow-800 mb-3">
@@ -516,26 +413,6 @@ export function RealTimePerformanceDashboard() {
         </div>
       )}
 
-      {/* Performance Score Summary */}
-      {/**
-       * Overall Performance Score Calculation
-       *
-       * Weighted scoring algorithm combining all performance metrics:
-       *
-       * Memory Efficiency (30% weight):
-       * - Formula: 100 - (pressure * 50) for pressure <= 0.5, otherwise 50
-       * - Higher pressure reduces score proportionally
-       *
-       * Cache Performance (40% weight):
-       * - Direct use of performanceScore from cache service
-       * - Higher scores indicate better cache efficiency
-       *
-       * Database Efficiency (30% weight):
-       * - Formula: 100 - (queryTime / 10) for queryTime <= 200ms, otherwise 80
-       * - Faster query times result in higher scores
-       *
-       * Scoring Range: 0-100, with higher values indicating better overall performance
-       */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Overall Performance Score
@@ -543,17 +420,7 @@ export function RealTimePerformanceDashboard() {
         <div className="flex items-center space-x-8">
           <div className="text-center">
             <div className="text-4xl font-bold text-gray-900">
-              {Math.round(
-                (metrics.memory.pressure <= 0.5
-                  ? 100 - metrics.memory.pressure * 50
-                  : 50) *
-                  0.3 +
-                  metrics.cache.performanceScore * 0.4 +
-                  (metrics.database.queryTime <= 200
-                    ? 100 - metrics.database.queryTime / 10
-                    : 80) *
-                    0.3,
-              )}
+              {overallPerformanceScore}
             </div>
             <div className="text-sm text-gray-600 mt-1">Overall Score</div>
           </div>
@@ -561,29 +428,19 @@ export function RealTimePerformanceDashboard() {
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Memory Efficiency</span>
               <span className="text-gray-900 font-medium">
-                {Math.round(
-                  metrics.memory.pressure <= 0.5
-                    ? 100 - metrics.memory.pressure * 50
-                    : 50,
-                )}
-                %
+                {memoryEfficiency.toFixed(0)}%
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Cache Performance</span>
               <span className="text-gray-900 font-medium">
-                {Math.round(metrics.cache.performanceScore)}%
+                {cachePerformanceScore}%
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Database Efficiency</span>
               <span className="text-gray-900 font-medium">
-                {Math.round(
-                  metrics.database.queryTime <= 200
-                    ? 100 - metrics.database.queryTime / 10
-                    : 80,
-                )}
-                %
+                {databaseEfficiency.toFixed(0)}%
               </span>
             </div>
           </div>

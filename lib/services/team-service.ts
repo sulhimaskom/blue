@@ -14,11 +14,14 @@ import {
 } from "@/lib/db/schema";
 import {
   ServiceError,
-  ValidationError,
-  AuthorizationError,
-  DatabaseError,
 } from "@/lib/services/service-error-handler";
-import { NotFoundError } from "@/lib/api-utils";
+import {
+  ValidationError,
+  AuthenticationError,
+  AuthorizationError,
+  NotFoundError,
+  DatabaseError,
+} from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { teamCache } from "@/lib/services/cache-orchestrator";
 
@@ -124,7 +127,14 @@ class TeamService {
         request,
       });
 
-      if (error instanceof ServiceError) {
+      if (
+        error instanceof ServiceError ||
+        error instanceof ValidationError ||
+        error instanceof AuthenticationError ||
+        error instanceof AuthorizationError ||
+        error instanceof NotFoundError ||
+        error instanceof DatabaseError
+      ) {
         throw error;
       }
 
@@ -272,7 +282,14 @@ class TeamService {
         requestingUserId,
       });
 
-      if (error instanceof ServiceError) {
+      if (
+        error instanceof ServiceError ||
+        error instanceof ValidationError ||
+        error instanceof AuthenticationError ||
+        error instanceof AuthorizationError ||
+        error instanceof NotFoundError ||
+        error instanceof DatabaseError
+      ) {
         throw error;
       }
 
@@ -376,7 +393,14 @@ class TeamService {
         invitingUserId,
       });
 
-      if (error instanceof ServiceError) {
+      if (
+        error instanceof ServiceError ||
+        error instanceof ValidationError ||
+        error instanceof AuthenticationError ||
+        error instanceof AuthorizationError ||
+        error instanceof NotFoundError ||
+        error instanceof DatabaseError
+      ) {
         throw error;
       }
 
@@ -449,7 +473,14 @@ class TeamService {
         requestingUserId,
       });
 
-      if (error instanceof ServiceError) {
+      if (
+        error instanceof ServiceError ||
+        error instanceof ValidationError ||
+        error instanceof AuthenticationError ||
+        error instanceof AuthorizationError ||
+        error instanceof NotFoundError ||
+        error instanceof DatabaseError
+      ) {
         throw error;
       }
 
@@ -526,7 +557,14 @@ class TeamService {
         requestingUserId,
       });
 
-      if (error instanceof ServiceError) {
+      if (
+        error instanceof ServiceError ||
+        error instanceof ValidationError ||
+        error instanceof AuthenticationError ||
+        error instanceof AuthorizationError ||
+        error instanceof NotFoundError ||
+        error instanceof DatabaseError
+      ) {
         throw error;
       }
 
@@ -595,7 +633,14 @@ class TeamService {
         requestingUserId,
       });
 
-      if (error instanceof ServiceError) {
+      if (
+        error instanceof ServiceError ||
+        error instanceof ValidationError ||
+        error instanceof AuthenticationError ||
+        error instanceof AuthorizationError ||
+        error instanceof NotFoundError ||
+        error instanceof DatabaseError
+      ) {
         throw error;
       }
 
@@ -650,7 +695,14 @@ class TeamService {
         requestingUserId,
       });
 
-      if (error instanceof ServiceError) {
+      if (
+        error instanceof ServiceError ||
+        error instanceof ValidationError ||
+        error instanceof AuthenticationError ||
+        error instanceof AuthorizationError ||
+        error instanceof NotFoundError ||
+        error instanceof DatabaseError
+      ) {
         throw error;
       }
 
@@ -718,7 +770,14 @@ class TeamService {
         requestingUserId,
       });
 
-      if (error instanceof ServiceError) {
+      if (
+        error instanceof ServiceError ||
+        error instanceof ValidationError ||
+        error instanceof AuthenticationError ||
+        error instanceof AuthorizationError ||
+        error instanceof NotFoundError ||
+        error instanceof DatabaseError
+      ) {
         throw error;
       }
 
@@ -803,10 +862,18 @@ class TeamService {
 
       return member;
     } catch (error) {
-      if (error instanceof ServiceError) {
+      if (
+        error instanceof ServiceError ||
+        error instanceof ValidationError ||
+        error instanceof AuthenticationError ||
+        error instanceof AuthorizationError ||
+        error instanceof NotFoundError ||
+        error instanceof DatabaseError
+      ) {
         throw error;
       }
-      throw new AuthorizationError("Failed to verify team access");
+
+      throw new DatabaseError("Failed to verify team access");
     }
   }
 
