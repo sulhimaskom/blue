@@ -53,12 +53,12 @@ The Architect Platform repository is in **exceptional production-ready state** w
 - **Current State**: Services use `process.env` directly instead of validated `env.ts`
 - **Analysis**: Services directly accessing `process.env`:
   - `lib/services/github-service.ts` (4 occurrences)
-  - `lib/services/security-service.ts` (7 occurrences)
-  - `lib/services/api-metrics-service.ts` (5 occurrences)
+  - `lib/services/security-service.ts` (9 occurrences)
+  - `lib/services/api-metrics-service.ts` (6 occurrences)
   - `lib/services/error-monitoring-service.ts` (6 occurrences)
   - `lib/services/build-cache-optimizer.ts` (3 occurrences)
   - `lib/services/ai/strategies/openai-strategy.ts` (1 occurrence)
-  - `lib/services/runtime-service-initializer.ts` (2 occurrences)
+  - `lib/services/runtime-service-initializer.ts` (18 occurrences)
 
 - **Challenge**: Direct env schema migration caused webpack build errors:
   ```
