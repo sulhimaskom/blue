@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { BaseCard } from "@/components/ui/base-card";
 import { Alert } from "@/components/ui/alert";
 import type { WebhookConfiguration } from "@/lib/db/schema";
+import { DatabaseError } from "@/lib/api-utils";
 
 interface WebhookTestModalProps {
   config: WebhookConfiguration;
@@ -59,7 +60,7 @@ export function WebhookTestModal({ config, onClose }: WebhookTestModalProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Test failed");
+        throw new DatabaseError(data.error || "Test failed");
       }
 
       setTestResult(data.data);

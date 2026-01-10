@@ -2,6 +2,7 @@ import { logger } from "../../logger";
 import type { AIProviderStrategy } from "./ai-provider-strategy";
 import { createIFlowStrategy } from "./strategies/iflow-strategy";
 import { createOpenAIStrategy } from "./strategies/openai-strategy";
+import { DatabaseError, ValidationError } from "@/lib/api-utils";
 
 /**
  * AIProviderRegistry - Centralized provider management
@@ -74,7 +75,7 @@ export class AIProviderRegistry {
     const existingProvider = this.providers.get(provider.providerId);
 
     if (existingProvider) {
-      throw new Error(
+      throw new ValidationError(
         `Provider with ID '${provider.providerId}' already registered`,
       );
     }
@@ -125,7 +126,7 @@ export class AIProviderRegistry {
     const provider = this.providers.get(this.defaultProviderId);
 
     if (!provider) {
-      throw new Error(`Default provider '${this.defaultProviderId}' not found`);
+      throw new ValidationError(`Default provider '${this.defaultProviderId}' not found`);
     }
 
     return provider;
@@ -141,7 +142,7 @@ export class AIProviderRegistry {
     const provider = this.providers.get(providerId);
 
     if (!provider) {
-      throw new Error(`Provider '${providerId}' not found`);
+      throw new ValidationError(`Provider '${providerId}' not found`);
     }
 
     this.defaultProviderId = providerId;

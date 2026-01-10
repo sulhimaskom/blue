@@ -88,7 +88,7 @@ export function EnterpriseThemeProvider({
 export function useEnterpriseThemeContext() {
   const context = useContext(EnterpriseThemeContext);
   if (!context) {
-    throw new Error(
+    throw new ValidationError(
       "useEnterpriseThemeContext must be used within an EnterpriseThemeProvider",
     );
   }

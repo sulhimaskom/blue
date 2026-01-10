@@ -6,6 +6,7 @@
  */
 
 import { logger } from "../logger";
+import { DatabaseError } from "@/lib/api-utils";
 
 export interface EnhancedCircuitBreakerConfig {
   failureThreshold: number;
@@ -96,7 +97,7 @@ export class EnhancedCircuitBreaker {
           openDuration: Date.now() - (this.lastFailureTime || 0),
         });
       } else {
-        throw new Error(
+        throw new DatabaseError(
           `Circuit breaker is OPEN (next attempt: ${new Date(this.nextAttempt).toISOString()})`,
         );
       }

@@ -653,7 +653,7 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
           projectName: blueprint.projectName,
           critique: critique.content,
         });
-        throw new Error(` Blueprint validation failed: ${critique.content}`);
+        throw new ValidationError(` Blueprint validation failed: ${critique.content}`);
       }
 
       logger.info("Blueprint validation passed", {

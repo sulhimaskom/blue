@@ -108,7 +108,7 @@ export function RateLimiter(maxRequests: number, windowMs: number) {
 
           const results = await pipeline.exec();
           if (!results || results.length === 0) {
-            throw new Error("Redis pipeline failed");
+            throw new DatabaseError("Redis pipeline failed");
           }
 
           const currentCount = results[0] as unknown as number;
