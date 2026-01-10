@@ -58,7 +58,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       const comparison = blueprintComparisonService.compareBlueprints({
         fromVersion,
         toVersion,
-        format,
       });
 
       logger.userAction("Blueprint versions compared", user!.clerkId, {
