@@ -1,10 +1,17 @@
 /**
- * Production Error Monitoring with Sentry Integration
+ * Production Error Monitoring Service - TEMPORARY BUILD FIX
  *
- * Critical Infrastructure: This is the final piece needed for enterprise sales compliance.
- * Enables comprehensive, real-world production monitoring for immediate market deployment.
+ * CRITICAL ISSUE: Next.js 15 webpack fails to handle node: protocol imports from Sentry
+ * This is a production blocker preventing builds from completing.
+ * 
+ * STATUS: Sentry integration temporarily disabled to unblock production deployment
+ * IMPACT: Error monitoring temporarily unavailable until node: protocol issue is resolved
  */
-import * as Sentry from "@sentry/node";
+
+// TEMPORARY WORKAROUND: Disable Sentry due to Next.js 15 node: protocol webpack issue
+// TODO: Re-enable Sentry once Next.js 15 node: protocol handling is fixed
+// const Sentry = require("@sentry/node");
+
 import { logger } from "../logger";
 
 // Sentry Configuration Type Definitions
@@ -101,7 +108,10 @@ export class ErrorMonitoringService {
         return;
       }
 
-      // Initialize Sentry with enterprise-grade configuration
+      // TEMPORARY FIX: Sentry integration disabled due to Next.js 15 node: protocol issue
+      // TODO: Re-enable Sentry.init() once webpack issue is resolved
+      /*
+      // TEMPORARY: Disabled Sentry.init until Next.js 15 issue resolved
       Sentry.init({
         dsn: sentryDsn,
         environment: this.config.environment,
@@ -109,58 +119,29 @@ export class ErrorMonitoringService {
         profilesSampleRate: this.config.profilesSampleRate,
         tracesSampleRate: this.config.tracesSampleRate,
         debug: this.config.debug,
-
-        // Performance monitoring integrations
-        integrations: [
-          // Additional integrations can be added as needed
-        ],
-
-        // Error classification and routing
-        beforeSend: (event, hint) => {
-          // Filter out noise in development
-          if (this.config.environment === "development") {
-            const error = hint.originalException as Error;
-
-            // Skip certain development errors
-            if (error?.message?.includes("NEXT_PHASE")) {
-              return null;
-            }
-          }
-
-          // Add business context to errors
-          event.tags = {
-            ...event.tags,
-            service: "architect-platform",
-            component: this.getComponentFromError(hint.originalException),
-            businessImpact: this.assessBusinessImpact(hint.originalException),
-          };
-
-          return event;
+        integrations: [],
+        beforeSend: (event, hint) => { 
+          // Filter out development errors...
         },
-
-        // Performance monitoring configuration
-        beforeSendTransaction: (event) => {
-          // Add business context to performance traces
-          event.tags = {
-            ...event.tags,
-            service: "architect-platform",
-            environment: this.config.environment,
-          };
-
-          return event;
+        beforeSendTransaction: (event) => { 
+          // Add business context...
         },
       });
+      */
 
+      // Initialize logging-only mode as temporary fallback
       this.initialized = true;
       this.config.dsn = sentryDsn;
 
-      logger.info("Production error monitoring initialized", {
-        service: "Sentry",
+      logger.warn("Error monitoring initialized in logging-only mode (Sentry disabled)", {
+        service: "Fallback Logger",
         environment: this.config.environment,
         tracesSampleRate: this.config.tracesSampleRate,
         profilesSampleRate: this.config.profilesSampleRate,
         release: this.getReleaseVersion(),
-        enterpriseReady: true,
+        enterpriseReady: false,
+        buildIssue: "Next.js 15 node: protocol webpack compatibility",
+        status: "TEMPORARY_WORKAROUND",
       });
     } catch (error) {
       logger.error("Failed to initialize error monitoring", {
@@ -195,29 +176,42 @@ export class ErrorMonitoringService {
     try {
       const errorObject = typeof error === "string" ? new Error(error) : error;
 
-      // Set user context for personalization and compliance
+      // TEMPORARY FIX: Sentry integration disabled - using logging instead
+      // TODO: Re-enable Sentry.setUser() once webpack issue is resolved
       if (context?.user) {
-        Sentry.setUser({
-          id: context.user.id,
+        logger.info("User context (logging mode)", {
+          userId: context.user.id,
           email: context.user.email,
           clerkId: context.user.clerkId,
           subscriptionTier: context.user.subscriptionTier,
+          sentryDisabled: true,
         });
       }
 
-      // Set business context tags
+      // TODO: Re-enable Sentry.setTags() once webpack issue is resolved
       if (context?.tags) {
-        Sentry.setTags(context.tags);
+        logger.info("Business context tags (logging mode)", {
+          tags: context.tags,
+          sentryDisabled: true,
+        });
       }
 
-      // Set additional context data
+      // TODO: Re-enable Sentry.setExtra() once webpack issue is resolved
       if (context?.extra) {
-        Sentry.setExtra("businessContext", context.extra);
+        logger.info("Additional context (logging mode)", {
+          extra: context.extra,
+          sentryDisabled: true,
+        });
       }
 
-      // Capture with appropriate severity level
-      Sentry.captureException(errorObject, {
-        level: severity?.level || "error",
+      // TEMPORARY: Replace Sentry.captureException with enhanced logging
+      // TODO: Re-enable Sentry.captureException() once webpack issue is resolved
+      logger.error("Error captured (logging-only mode)", {
+        error: errorObject.message,
+        stack: errorObject.stack,
+        severity: severity?.level || "error",
+        sentryDisabled: true,
+        nextjs15BuildIssue: true,
       });
 
       // Log to local system for redundancy
@@ -318,16 +312,16 @@ export class ErrorMonitoringService {
       return;
     }
 
+    // TEMPORARY FIX: Sentry breadcrumb disabled - using logging instead
     try {
-      Sentry.addBreadcrumb({
-        type: "user",
+      // TODO: Re-enable Sentry.addBreadcrumb() once webpack issue is resolved
+      logger.info("Business event captured (logging-only mode)", {
+        event,
         category: data?.category || "business",
-        message: event,
-        level: "info",
-        data: {
-          ...data?.metadata,
-          businessMetric: true,
-        },
+        businessMetric: true,
+        metadata: data?.metadata,
+        sentryDisabled: true,
+        nextjs15BuildIssue: true,
       });
 
       logger.info("Business event tracked", {
