@@ -1,6 +1,7 @@
 // Enhanced middleware with production-grade security headers and CORS handling
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { logger } from "./lib/logger";
 
 // Helper function to determine allowed origin
 function getAllowedOrigin(requestedOrigin?: string): string {
@@ -103,7 +104,7 @@ export default function middleware(req: NextRequest) {
 
   // Log that we're running in development mode without authentication
   if (process.env.NODE_ENV === "development") {
-    console.log("🚧 Development mode: Authentication bypassed");
+    logger.debug("Development mode: Authentication bypassed");
   }
 
   // For regular requests, continue to API routes which will handle CORS headers
