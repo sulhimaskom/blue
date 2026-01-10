@@ -120,5 +120,5 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         message: `Blueprint successfully rolled back to version ${targetVersion.version}`,
       };
     },
-  });
+  })(req);
 }

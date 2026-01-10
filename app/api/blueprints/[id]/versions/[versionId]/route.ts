@@ -58,5 +58,5 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
         message: "Blueprint version retrieved successfully",
       };
     },
-  });
+  })(_req);
 }

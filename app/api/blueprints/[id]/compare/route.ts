@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   return APIRouteHandler.createGETHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
-    handler: async ({ context, user, req }) => {
+    handler: async ({ context, user }) => {
       // Parse query parameters manually for GET request
       const { searchParams } = new URL(req.url);
       const parsed = compareSchema.parse({
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         message: "Blueprint comparison completed successfully",
       };
     },
-  });
+  })(req);
 }
 
 /**
