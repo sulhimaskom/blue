@@ -9,6 +9,7 @@ import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ValidationError } from "@/lib/api-utils";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { DeploymentService } from "@/lib/services/deployment-service";
 
 const deployRepoSchema = z.object({
   githubOrg: z
@@ -19,6 +20,7 @@ const deployRepoSchema = z.object({
     .min(3, "Repository name must be at least 3 characters")
     .max(100),
   isPrivate: z.boolean().default(false),
+  environment: z.enum(["production", "staging", "preview"]).default("production"),
 });
 
 interface RouteParams {
@@ -31,9 +33,17 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   return APIRouteHandler.createPOSTHandler({
     schema: deployRepoSchema,
     requireAuth: true,
-    rateLimiter: (identifier: string) => RateLimiters.deployPost()(identifier),
+    rateLimiter: (identifier: string) => {
+      // Stricter rate limiting for production deployments
+      const data = req.clone().json().catch(() => ({ environment: "production" }));
+      return data.then(reqData => 
+        reqData.environment === "production" 
+          ? RateLimiters.strict()(identifier)
+          : RateLimiters.moderate()(identifier)
+      );
+    },
     handler: async ({ context, user, data }) => {
-      const { githubOrg, repoName, isPrivate } = data!;
+      const { githubOrg, repoName, isPrivate, environment } = data!;
 
       // Verify user owns the project
       const projectDetails = await ProjectDataService.verifyProjectOwnership(
@@ -42,72 +52,108 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
       const { project } = projectDetails;
 
-      if (project.status === "completed" || project.status === "deployed") {
-        logger.warn(
-          "Project deployment attempted on already deployed project",
-          {
-            requestId: context.requestId,
-            userId: user!.clerkId,
-            projectId: id,
-            currentStatus: project.status,
-          },
-        );
-        throw new ValidationError("Project is already deployed");
+// Check if deployment already exists for this environment
+      const existingDeployment = await DeploymentService.checkExistingDeployment(id, environment!);
+      if (existingDeployment) {
+        throw new ValidationError(`Project already has a ${environment} deployment`);
+      }
+
+      // For production deployment, validate staging exists
+      if (environment === "production") {
+        const stagingDeployment = await DeploymentService.checkExistingDeployment(id, "staging");
+        if (!stagingDeployment || stagingDeployment.status !== "deployed") {
+          throw new ValidationError("Staging deployment required before production");
+        }
       }
 
       // Get the latest blueprint content
       const latestBlueprint = await ProjectDataService.getLatestBlueprint(id);
+      
+      // Ensure blueprint version is available (required field)
+      const blueprintVersion = latestBlueprint.version || 1;
 
       // Update project status to generating
       await ProjectDataService.updateProjectStatus(id, "generating");
 
-      logger.info("Starting GitHub repository creation", {
+      // Generate environment-specific repository name
+      const environmentRepoName = DeploymentService.generateEnvironmentRepoName(repoName!, environment!);
+
+      // Calculate expiration for preview environments
+      const expiresAt = environment === "preview" 
+        ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+        : undefined;
+
+      logger.info("Starting environment deployment", {
         requestId: context.requestId,
         userId: user!.clerkId,
         projectId: id,
         githubOrg,
-        repoName,
-        blueprintVersion: latestBlueprint.version,
+        repoName: environmentRepoName,
+        environment,
+        blueprintVersion,
+        expiresAt,
       });
 
-      try {
+try {
+        // Create deployment record
+        const deploymentId = await DeploymentService.createDeploymentRecord({
+          projectId: id,
+          environment: environment!,
+          githubOrg,
+          githubRepoName: environmentRepoName,
+          blueprintVersion,
+          expiresAt,
+        });
+
         // Create GitHub repository with blueprint
         const repo = await githubService.createRepository({
           org: githubOrg,
-          name: repoName,
-          description: project.description || "AI-generated software project",
+          name: environmentRepoName,
+          description: `${project.description || "AI-generated software project"} (${environment})`,
           isPrivate: isPrivate || false,
           blueprintContent: latestBlueprint.contentMarkdown,
         });
 
-        const updatedProject = await ProjectDataService.updateProjectDeployment(
-          id,
-          repo.html_url,
-        );
+        // Update deployment record with GitHub details
+        await DeploymentService.updateDeploymentRecord(deploymentId, {
+          githubRepoId: repo.id,
+          githubRepoUrl: repo.html_url,
+          status: "deployed",
+        });
 
-        logger.userAction("Repository deployment successful", user!.clerkId, {
+        // Update project status if this is production deployment
+        if (environment === "production") {
+          await ProjectDataService.updateProjectDeployment(id, repo.html_url);
+        }
+
+        logger.userAction("Environment deployment successful", user!.clerkId, {
           requestId: context.requestId,
           projectId: id,
+          deploymentId,
+          environment,
           repoUrl: repo.html_url,
           githubOrg,
-          repoName,
-          isPrivate,
+          repoName: environmentRepoName,
         });
 
         return {
-          projectId: updatedProject.id,
-          repoUrl: updatedProject.repoUrl,
-          status: updatedProject.status,
-          message: "Repository deployment successful",
+          projectId: project.id,
+          deploymentId,
+          environment,
+          repoUrl: repo.html_url,
+          repoName: environmentRepoName,
+          status: "deployed",
+          message: `${environment} deployment successful`,
           deploymentDetails: {
             repositoryId: repo.id,
             fullName: repo.full_name,
             cloneUrl: repo.clone_url,
             organization: githubOrg,
-            repository: repoName,
+            repository: environmentRepoName,
             visibility: isPrivate ? "private" : "public",
             createdAt: repo.created_at,
-            blueprintVersion: latestBlueprint.version,
+            blueprintVersion,
+            expiresAt,
           },
         };
       } catch (error) {
@@ -119,6 +165,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
             requestId: context.requestId,
             userId: user!.clerkId,
             projectId: id,
+            environment,
             statusCode: error.statusCode,
             message: error.message,
           });
@@ -139,7 +186,6 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
   return APIRouteHandler.createGETHandler({
     requireAuth: true,
     handler: async ({ context, user }) => {
-      // Get project details and deployment status
       const projectDetails = await ProjectDataService.verifyProjectOwnership(
         id,
         user!.clerkId,
@@ -150,7 +196,6 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
         requestId: context.requestId,
         projectId: id,
         status: project.status,
-        isDeployed: project.status === "deployed",
       });
 
       return {
