@@ -18,25 +18,11 @@ import type {
   WebhookEventType,
 } from "@/lib/schemas/webhook-schema";
 import { WEBHOOK_EVENT_TYPES } from "@/lib/schemas/webhook-schema";
-
-export interface WebhookConfiguration {
-  id: string;
-  name: string;
-  url: string;
-  eventTypes: string[];
-  isActive: boolean;
-  retryCount: number;
-  timeoutSeconds: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface WebhookTestResult {
-  success: boolean;
-  status: number;
-  responseTime: number;
-  error?: string;
-}
+import {
+  WebhookManagementService,
+  type WebhookConfiguration,
+  type WebhookEvent,
+} from "@/lib/services/webhook-management-service";
 
 interface WebhookEventManager {
   webhookId: string;
@@ -55,6 +41,8 @@ export function WebhookConfigurationManager() {
     useState<WebhookEventManager | null>(null);
   const { showNotification } = useNotification();
 
+  const webhookService = WebhookManagementService.getInstance();
+
   const [formData, setFormData] = useState<WebhookConfigurationInput>({
     name: "",
     url: "",
@@ -67,20 +55,14 @@ export function WebhookConfigurationManager() {
 
   const loadWebhooks = useCallback(async () => {
     try {
-      const response = await fetch("/api/webhooks/configure");
-      const result = await response.json();
-
-      if (result.success) {
-        setWebhooks(result.data);
-      } else {
-        showNotification("Failed to load webhooks", "error");
-      }
+      const data = await webhookService.loadWebhooks();
+      setWebhooks(data);
     } catch (error) {
-      showNotification("Error loading webhooks", "error");
+      showNotification("Failed to load webhooks", "error");
     } finally {
       setLoading(false);
     }
-  }, [showNotification]);
+  }, [showNotification, webhookService]);
 
   useEffect(() => {
     loadWebhooks();
@@ -90,37 +72,23 @@ export function WebhookConfigurationManager() {
     e.preventDefault();
 
     try {
-      const method = editingWebhook ? "PUT" : "POST";
-      const url = editingWebhook
-        ? `/api/webhooks/configure/${editingWebhook.id}`
-        : "/api/webhooks/configure";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        showNotification(
-          editingWebhook
-            ? "Webhook updated successfully"
-            : "Webhook created successfully",
-          "success",
-        );
-        setShowForm(false);
-        setEditingWebhook(null);
-        resetForm();
-        loadWebhooks();
+      if (editingWebhook) {
+        await webhookService.updateWebhook(editingWebhook.id, formData);
+        showNotification("Webhook updated successfully", "success");
       } else {
-        showNotification(result.error || "Operation failed", "error");
+        await webhookService.createWebhook(formData);
+        showNotification("Webhook created successfully", "success");
       }
+
+      setShowForm(false);
+      setEditingWebhook(null);
+      resetForm();
+      loadWebhooks();
     } catch (error) {
-      showNotification("Error saving webhook", "error");
+      showNotification(
+        error instanceof Error ? error.message : "Operation failed",
+        "error",
+      );
     }
   };
 
@@ -128,20 +96,14 @@ export function WebhookConfigurationManager() {
     if (!confirm("Are you sure you want to delete this webhook?")) return;
 
     try {
-      const response = await fetch(`/api/webhooks/configure/${webhookId}`, {
-        method: "DELETE",
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        showNotification("Webhook deleted successfully", "success");
-        loadWebhooks();
-      } else {
-        showNotification(result.error || "Failed to delete webhook", "error");
-      }
+      await webhookService.deleteWebhook(webhookId);
+      showNotification("Webhook deleted successfully", "success");
+      loadWebhooks();
     } catch (error) {
-      showNotification("Error deleting webhook", "error");
+      showNotification(
+        error instanceof Error ? error.message : "Failed to delete webhook",
+        "error",
+      );
     }
   };
 
@@ -149,32 +111,18 @@ export function WebhookConfigurationManager() {
     setTestingWebhook(webhookId);
 
     try {
-      const response = await fetch(`/api/webhooks/test/${webhookId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          eventType: "test.event",
-          payload: { test: true, timestamp: new Date().toISOString() },
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        const testResult = result.data as WebhookTestResult;
-        showNotification(
-          testResult.success
-            ? `Test successful (${testResult.status}, ${testResult.responseTime}ms)`
-            : `Test failed: ${testResult.error}`,
-          testResult.success ? "success" : "error",
-        );
-      } else {
-        showNotification(result.error || "Test failed", "error");
-      }
+      const result = await webhookService.testWebhook(webhookId);
+      showNotification(
+        result.success
+          ? `Test successful (${result.status}, ${result.responseTime}ms)`
+          : `Test failed: ${result.error}`,
+        result.success ? "success" : "error",
+      );
     } catch (error) {
-      showNotification("Error testing webhook", "error");
+      showNotification(
+        error instanceof Error ? error.message : "Error testing webhook",
+        "error",
+      );
     } finally {
       setTestingWebhook(null);
     }
@@ -227,24 +175,14 @@ export function WebhookConfigurationManager() {
       return;
 
     try {
-      const response = await fetch("/api/webhooks/rotate-secret", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ webhookId }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        showNotification("Secret rotated successfully", "success");
-        loadWebhooks();
-      } else {
-        showNotification(result.error || "Failed to rotate secret", "error");
-      }
+      await webhookService.rotateSecret(webhookId);
+      showNotification("Secret rotated successfully", "success");
+      loadWebhooks();
     } catch (error) {
-      showNotification("Error rotating secret", "error");
+      showNotification(
+        error instanceof Error ? error.message : "Failed to rotate secret",
+        "error",
+      );
     }
   };
 
@@ -610,31 +548,22 @@ export function WebhookConfigurationManager() {
 }
 
 function WebhookEventHistory({ webhookId }: { webhookId: string }) {
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<WebhookEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination] = useState({ limit: 50, offset: 0 });
 
+  const webhookService = WebhookManagementService.getInstance();
+
   const loadEvents = useCallback(async () => {
     try {
-      const params = new URLSearchParams({
-        limit: pagination.limit.toString(),
-        offset: pagination.offset.toString(),
-      });
-
-      const response = await fetch(
-        `/api/webhooks/history/${webhookId}?${params}`,
-      );
-      const result = await response.json();
-
-      if (result.success) {
-        setEvents(result.data);
-      }
+      const data = await webhookService.loadWebhookEvents(webhookId, pagination);
+      setEvents(data);
     } catch (error) {
       // Error loading events will be handled silently
     } finally {
       setLoading(false);
     }
-  }, [webhookId, pagination]);
+  }, [webhookId, pagination, webhookService]);
 
   useEffect(() => {
     loadEvents();
@@ -642,19 +571,8 @@ function WebhookEventHistory({ webhookId }: { webhookId: string }) {
 
   const handleRetry = async (eventId: string) => {
     try {
-      const response = await fetch("/api/webhooks/retry", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ eventId }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        loadEvents();
-      }
+      await webhookService.retryEvent(eventId);
+      loadEvents();
     } catch (error) {
       // Error retrying event will be handled silently
     }
