@@ -8,7 +8,7 @@ import {
 import { UnifiedCacheManager } from "../../cache-orchestrator";
 import { AIPatternDetector } from "../../ai-pattern-detector";
 import { IdGenerators } from "../../../utils/id-generator";
-import { DatabaseError, ValidationError } from "@/lib/api-utils";
+import { DatabaseError } from "@/lib/api-utils";
 import { Timing } from "../../../utils/time-measurement";
 import { retryService, RETRY_CONFIGS } from "../../retry-service";
 import { env } from "../../../env";
@@ -162,10 +162,9 @@ export class IFlowStrategy implements AIProviderStrategy {
             );
 
             if (!fetchResponse.ok) {
-              const errorData = await fetchResponse.json().catch(() => ({}));
-throw new DatabaseError(
-            `IFlow API error: ${response.statusText} (${response.status})`,
-          );
+              throw new DatabaseError(
+                `IFlow API error: ${fetchResponse.statusText} (${fetchResponse.status})`,
+              );
             }
 
             return fetchResponse;

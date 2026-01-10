@@ -138,8 +138,8 @@ export class AIService {
       }
 
       if (!provider.supportsModel(request.model?.id || "")) {
-throw new DatabaseError(
-          `Failed to generate AI completion with ${strategy.name}`,
+        throw new ValidationError(
+          `Model '${request.model?.id}' not supported by provider '${provider.providerName}'`,
         );
       }
 

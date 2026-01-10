@@ -16,6 +16,7 @@ import {
   useEnterpriseTheme,
 } from "@/lib/constants/enterprise-themes";
 import { enterpriseThemeService } from "@/lib/services/enterprise-theme-service";
+import { ValidationError } from "@/lib/api-utils";
 
 interface EnterpriseThemeContextType {
   activeTheme: EnterpriseThemeConfig | null;

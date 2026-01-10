@@ -2,7 +2,7 @@ import { logger } from "../../logger";
 import type { AIProviderStrategy } from "./ai-provider-strategy";
 import { createIFlowStrategy } from "./strategies/iflow-strategy";
 import { createOpenAIStrategy } from "./strategies/openai-strategy";
-import { DatabaseError, ValidationError } from "@/lib/api-utils";
+import { ValidationError } from "@/lib/api-utils";
 
 /**
  * AIProviderRegistry - Centralized provider management
