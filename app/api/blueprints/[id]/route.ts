@@ -114,7 +114,6 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
       logger.userAction("Blueprint deleted", user!.clerkId, {
         requestId: context.requestId,
         blueprintId: id,
-        blueprintName: deletedBlueprint.name,
       });
 
       return {
