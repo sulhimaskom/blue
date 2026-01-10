@@ -42,7 +42,7 @@ export class DeploymentService {
         )
       )
       .limit(1);
-    return deployments[0] || null;
+    return deployments[0] as DeploymentRecord || null;
   }
 
   /**
@@ -114,7 +114,7 @@ updates: Partial<Pick<DeploymentRecord, 'githubRepoId' | 'githubRepoUrl' | 'stat
         )
       )
       .orderBy(deploymentsTable.createdAt);
-    return deployments;
+    return deployments as DeploymentRecord[];
   }
 
   /**

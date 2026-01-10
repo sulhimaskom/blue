@@ -63,8 +63,10 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         });
 
       // Update project status
-      projectDetails.project.repoUrl = stagingDeployment.githubRepoUrl;
-      await ProjectDataService.updateProjectDeployment(id, stagingDeployment.githubRepoUrl);
+      if (stagingDeployment.githubRepoUrl) {
+        projectDetails.project.repoUrl = stagingDeployment.githubRepoUrl;
+        await ProjectDataService.updateProjectDeployment(id, stagingDeployment.githubRepoUrl);
+      }
 
       logger.userAction("Environment promotion successful", user!.clerkId, {
         requestId: context.requestId,
