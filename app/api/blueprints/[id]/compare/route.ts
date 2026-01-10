@@ -5,6 +5,7 @@ import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { NotFoundError } from '@/lib/api-utils';
+import { blueprintComparisonService } from "@/lib/services/blueprint-comparison-service";
 
 const compareSchema = z.object({
   from: z.string().uuid("Invalid from version ID"),
@@ -53,8 +54,12 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         throw new NotFoundError("To version not found");
       }
 
-      // Generate comparison
-      const comparison = generateBlueprintComparison(fromVersion, toVersion, format);
+      // Generate comparison using service layer
+      const comparison = blueprintComparisonService.compareBlueprints({
+        fromVersion,
+        toVersion,
+        format,
+      });
 
       logger.userAction("Blueprint versions compared", user!.clerkId, {
         requestId: context.requestId,
@@ -100,189 +105,4 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       };
     },
   })(req);
-}
-
-/**
- * Generate detailed blueprint comparison
- */
-function generateBlueprintComparison(
-  fromVersion: any,
-  toVersion: any,
-  _format: "summary" | "detailed" = "summary",
-): { changes: Array<any>; summary: any } {
-  const changes: Array<any> = [];
-
-  try {
-    // Parse structured data for comparison
-    const fromData = typeof fromVersion.structuredData === 'string' 
-      ? JSON.parse(fromVersion.structuredData) 
-      : fromVersion.structuredData;
-    const toData = typeof toVersion.structuredData === 'string' 
-      ? JSON.parse(toVersion.structuredData) 
-      : toVersion.structuredData;
-
-    // Compare project name and description
-    if (fromData.projectName !== toData.projectName) {
-      changes.push({
-        type: "project",
-        field: "name",
-        status: "changed",
-        from: fromData.projectName || "Unnamed Project",
-        to: toData.projectName || "Unnamed Project",
-        description: "Project name changed",
-      });
-    }
-
-    if (fromData.projectDescription !== toData.projectDescription) {
-      changes.push({
-        type: "project",
-        field: "description",
-        status: "changed",
-        from: fromData.projectDescription || "",
-        to: toData.projectDescription || "",
-        description: "Project description changed",
-      });
-    }
-
-    // Compare features
-    if (fromData.features && toData.features) {
-      const fromFeatures = new Set(fromData.features);
-      const toFeatures = new Set(toData.features);
-
-      // Added features
-      for (const feature of toFeatures) {
-        if (!fromFeatures.has(feature)) {
-          changes.push({
-            type: "feature",
-            status: "added",
-            value: feature,
-            description: `Added feature: ${feature}`,
-          });
-        }
-      }
-
-      // Removed features
-      for (const feature of fromFeatures) {
-        if (!toFeatures.has(feature)) {
-          changes.push({
-            type: "feature",
-            status: "removed",
-            value: feature,
-            description: `Removed feature: ${feature}`,
-          });
-        }
-      }
-    }
-
-    // Compare tech stack
-    if (fromData.techStack && toData.techStack) {
-      for (const [key, value] of Object.entries(toData.techStack)) {
-        if (fromData.techStack[key] !== value) {
-          changes.push({
-            type: "tech",
-            field: key,
-            status: "changed",
-            from: fromData.techStack[key] || "none",
-            to: value,
-            description: `${key} technology changed`,
-          });
-        }
-      }
-    }
-
-    // Compare architecture
-    if (fromData.architecture && toData.architecture) {
-      if (fromData.architecture.type !== toData.architecture.type) {
-        changes.push({
-          type: "architecture",
-          field: "type",
-          status: "changed",
-          from: fromData.architecture.type,
-          to: toData.architecture.type,
-          description: "Architecture type changed",
-        });
-      }
-
-      if (fromData.architecture.scaling !== toData.architecture.scaling) {
-        changes.push({
-          type: "architecture",
-          field: "scaling",
-          status: "changed",
-          from: fromData.architecture.scaling,
-          to: toData.architecture.scaling,
-          description: "Scaling strategy changed",
-        });
-      }
-
-      // Compare security features
-      const fromSecurity = new Set(fromData.architecture.security || []);
-      const toSecurity = new Set(toData.architecture.security || []);
-
-      for (const security of toSecurity) {
-        if (!fromSecurity.has(security)) {
-          changes.push({
-            type: "security",
-            status: "added",
-            value: security,
-            description: `Added security feature: ${security}`,
-          });
-        }
-      }
-
-      for (const security of fromSecurity) {
-        if (!toSecurity.has(security)) {
-          changes.push({
-            type: "security",
-            status: "removed",
-            value: security,
-            description: `Removed security feature: ${security}`,
-          });
-        }
-      }
-    }
-
-    // Compare monetization strategy
-    if (fromData.monetizationStrategy !== toData.monetizationStrategy) {
-      changes.push({
-        type: "monetization",
-        field: "strategy",
-        status: "changed",
-        from: fromData.monetizationStrategy || "",
-        to: toData.monetizationStrategy || "",
-        description: "Monetization strategy changed",
-      });
-    }
-
-  } catch (error) {
-    // Fallback to basic comparison if JSON parsing fails
-    const contentChanged = fromVersion.contentMarkdown !== toVersion.contentMarkdown;
-    if (contentChanged) {
-      changes.push({
-        type: "content",
-        status: "changed",
-        description: "Blueprint content updated",
-      });
-    }
-  }
-
-  // Generate summary
-  const summary = {
-    totalChanges: changes.length,
-    changesByType: {
-      project: changes.filter((c) => c.type === "project").length,
-      feature: changes.filter((c) => c.type === "feature").length,
-      tech: changes.filter((c) => c.type === "tech").length,
-      architecture: changes.filter((c) => c.type === "architecture").length,
-      security: changes.filter((c) => c.type === "security").length,
-      monetization: changes.filter((c) => c.type === "monetization").length,
-      content: changes.filter((c) => c.type === "content").length,
-    },
-    changesByStatus: {
-      added: changes.filter((c) => c.status === "added").length,
-      removed: changes.filter((c) => c.status === "removed").length,
-      changed: changes.filter((c) => c.status === "changed").length,
-    },
-  };
-
-  return { changes, summary };
 }
