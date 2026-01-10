@@ -16,6 +16,15 @@ import { HttpCacheService } from "./cache/http-cache-service";
 export type { CachedResponse } from "./cache/http-cache-service";
 
 /**
+ * Team-specific cache service for team management operations
+ */
+export const teamCache = {
+  get: (key: string) => UnifiedCacheManager.getData(key),
+  set: (key: string, value: any, ttl?: number) => UnifiedCacheManager.setData(key, value, { ttl }),
+  invalidate: (key: string) => UnifiedCacheManager.invalidateKey(key),
+};
+
+/**
  * Main cache options interface
  */
 export interface UnifiedCacheOptions {
