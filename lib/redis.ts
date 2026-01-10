@@ -6,6 +6,16 @@ import {
   type CircuitBreakerMetrics,
 } from "./circuit-breaker";
 
+/**
+ * RedisError - Error class for Redis-related operations
+ */
+export class RedisError extends Error {
+  constructor(message: string, public readonly _cause?: Error) {
+    super(message);
+    this.name = "RedisError";
+  }
+}
+
 interface ConnectionPoolMetrics {
   activeConnections: number;
   idleConnections: number;
@@ -94,9 +104,9 @@ class RedisManager {
           if (devConfig.fallbackMode) {
             // Silent fallback for development - don't throw in noisy environments
             if (devConfig.silentMode) {
-              throw new Error("Redis not configured - using fallback mode");
+              throw new RedisError("Redis not configured - using fallback mode");
             } else {
-              throw new Error(
+              throw new RedisError(
                 "Redis not configured - see logs for setup instructions",
               );
             }
@@ -234,7 +244,7 @@ class RedisManager {
     const redisPassword = process.env.REDIS_PASSWORD;
 
     if (!redisUrl) {
-      throw new Error("REDIS_URL environment variable is required");
+      throw new RedisError("REDIS_URL environment variable is required");
     }
 
     // Use any type to avoid Redis client version conflicts

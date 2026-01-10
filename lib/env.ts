@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+/**
+ * EnvironmentError - Error class for environment validation failures
+ */
+export class EnvironmentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "EnvironmentError";
+  }
+}
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -87,7 +97,7 @@ function validateEnv(): Env {
       const missingVars = error.errors
         .map((err) => `${err.path.join(".")}: ${err.message}`)
         .join("\n");
-      throw new Error(`Environment validation failed:\n${missingVars}`);
+      throw new EnvironmentError(`Environment validation failed:\n${missingVars}`);
     }
     throw error;
   }
