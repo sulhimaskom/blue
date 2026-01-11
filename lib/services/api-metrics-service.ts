@@ -243,15 +243,9 @@ export class APIMetricsService {
         status: "healthy" as const,
         responseTime: 0,
         metadata: {
-          version: (() => {
-            const { env } = require("@/lib/env");
-            return env.NPM_PACKAGE_VERSION;
-          })(),
+          version: process.env.npm_package_version || "1.0.0",
           nodeVersion: process.version,
-          environment: (() => {
-            const { env } = require("@/lib/env");
-            return env.NODE_ENV;
-          })(),
+          environment: process.env.NODE_ENV || "development",
         },
       },
 

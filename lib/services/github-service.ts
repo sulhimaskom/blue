@@ -55,10 +55,9 @@ class GitHubService {
   }
 
   private getCredentials() {
-    const { env } = require("@/lib/env");
-    const appId = env.GITHUB_APP_ID || "";
-    const privateKey = env.GITHUB_APP_PRIVATE_KEY || "";
-    
+    const appId = process.env.GITHUB_APP_ID || "";
+    const privateKey = process.env.GITHUB_APP_PRIVATE_KEY || "";
+
     if (!appId || !privateKey) {
       logger.error("GitHub App credentials not configured", {
         hasAppId: !!appId,
