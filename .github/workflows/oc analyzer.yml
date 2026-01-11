@@ -60,9 +60,37 @@ jobs:
 
       - name: Install OpenCode
         run: |
-          # Use specific version to avoid GitHub API rate limiting issues
-          curl -fsSL https://opencode.ai/install | bash -s -- --version 1.0.193
-          echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+          # Install OpenCode with retry logic for network resilience
+          for attempt in {1..3}; do
+            echo "🔧 Installing OpenCode attempt $attempt of 3..."
+            
+            if curl -fsSL https://opencode.ai/install | bash -s -- --version 1.0.193; then
+              echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+              echo "✅ OpenCode installed successfully on attempt $attempt"
+              break
+            else
+              exit_code=$?
+              echo "⚠️ OpenCode installation attempt $attempt failed with exit code $exit_code"
+              
+              if [ $attempt -eq 3 ]; then
+                echo "❌ All 3 installation attempts failed"
+                echo "🔄 Attempting alternative installation without version pinning..."
+                
+                # Fallback: Try without version pinning
+                if curl -fsSL https://opencode.ai/install | bash; then
+                  echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+                  echo "✅ OpenCode installed successfully with fallback method"
+                  break
+                else
+                  echo "❌ Fallback installation also failed"
+                  exit 1
+                fi
+              else
+                echo "🔄 Retrying in 5 seconds..."
+                sleep 5
+              fi
+            fi
+          done
 
       - name: Verify OpenCode Installation
         run: |
