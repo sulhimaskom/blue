@@ -1,8 +1,10 @@
 import { logger } from "@/lib/logger";
+import type { Blueprint } from "@/lib/db/schema";
+import type { BlueprintData } from "@/lib/services/blueprint-engine";
 
 export interface BlueprintComparisonRequest {
-  fromVersion: any;
-  toVersion: any;
+  fromVersion: Blueprint;
+  toVersion: Blueprint;
 }
 
 export interface BlueprintChange {
@@ -10,8 +12,8 @@ export interface BlueprintChange {
   status: string;
   field?: string;
   value?: unknown;
-  from?: string | any;
-  to?: string | any;
+  from?: string | number;
+  to?: string | number;
   description: string;
 }
 
@@ -56,8 +58,8 @@ export class BlueprintComparisonService {
     const changes: BlueprintChange[] = [];
 
     try {
-      const fromData = this.parseStructuredData(fromVersion.structuredData);
-      const toData = this.parseStructuredData(toVersion.structuredData);
+      const fromData = this.parseStructuredData(fromVersion.structuredData as string | Record<string, unknown>);
+      const toData = this.parseStructuredData(toVersion.structuredData as string | Record<string, unknown>);
 
       this.compareProjectInfo(fromData, toData, changes);
       this.compareFeatures(fromData, toData, changes);
@@ -82,16 +84,17 @@ export class BlueprintComparisonService {
   /**
    * Parse structured data (handle both string and object formats)
    */
-  private parseStructuredData(data: any): any {
-    return typeof data === "string" ? JSON.parse(data) : data;
+  private parseStructuredData(data: string | Record<string, unknown>): BlueprintData {
+    const parsed = typeof data === "string" ? JSON.parse(data) : data;
+    return parsed as unknown as BlueprintData;
   }
 
   /**
    * Compare project name and description
    */
   private compareProjectInfo(
-    fromData: any,
-    toData: any,
+    fromData: BlueprintData,
+    toData: BlueprintData,
     changes: BlueprintChange[],
   ): void {
     if (fromData.projectName !== toData.projectName) {
@@ -121,8 +124,8 @@ export class BlueprintComparisonService {
    * Compare feature lists
    */
   private compareFeatures(
-    fromData: any,
-    toData: any,
+    fromData: BlueprintData,
+    toData: BlueprintData,
     changes: BlueprintChange[],
   ): void {
     if (fromData.features && toData.features) {
@@ -157,19 +160,20 @@ export class BlueprintComparisonService {
    * Compare tech stack configuration
    */
   private compareTechStack(
-    fromData: any,
-    toData: any,
+    fromData: BlueprintData,
+    toData: BlueprintData,
     changes: BlueprintChange[],
   ): void {
     if (fromData.techStack && toData.techStack) {
       for (const [key, value] of Object.entries(toData.techStack)) {
-        if (fromData.techStack[key] !== value) {
+        const fromValue = fromData.techStack[key as keyof BlueprintData["techStack"]];
+        if (fromValue !== value) {
           changes.push({
             type: "tech",
             field: key,
             status: "changed",
-            from: fromData.techStack[key] || "none",
-            to: value,
+            from: fromValue ?? "none",
+            to: String(value),
             description: `${key} technology changed`,
           });
         }
@@ -181,8 +185,8 @@ export class BlueprintComparisonService {
    * Compare architecture configuration
    */
   private compareArchitecture(
-    fromData: any,
-    toData: any,
+    fromData: BlueprintData,
+    toData: BlueprintData,
     changes: BlueprintChange[],
   ): void {
     if (fromData.architecture && toData.architecture) {
@@ -254,8 +258,8 @@ export class BlueprintComparisonService {
    * Compare monetization strategy
    */
   private compareMonetization(
-    fromData: any,
-    toData: any,
+    fromData: BlueprintData,
+    toData: BlueprintData,
     changes: BlueprintChange[],
   ): void {
     if (fromData.monetizationStrategy !== toData.monetizationStrategy) {
@@ -274,8 +278,8 @@ export class BlueprintComparisonService {
    * Fallback to basic comparison if detailed parsing fails
    */
   private fallbackToBasicComparison(
-    fromVersion: any,
-    toVersion: any,
+    fromVersion: Blueprint,
+    toVersion: Blueprint,
     changes: BlueprintChange[],
   ): void {
     const contentChanged = fromVersion.contentMarkdown !== toVersion.contentMarkdown;

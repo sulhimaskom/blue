@@ -485,8 +485,8 @@ export interface BlueprintVersion {
   projectId: string;
   version: number;
   contentMarkdown: string;
-  structuredData: any;
-  marketResearch?: any;
+  structuredData: Record<string, unknown>;
+  marketResearch?: ResearchResult;
   createdAt: string;
 }
 
@@ -537,7 +537,7 @@ export interface QueryFilter {
     | "lte"
     | "like"
     | "ilike";
-  value: any;
+  value: string | number | boolean | Array<string | number>;
 }
 
 export interface QueryOptions {
@@ -584,7 +584,7 @@ export interface UseMonitoringReturn {
   error: string | null;
   lastRefresh: Date | null;
   refreshData: () => Promise<void>;
-  setAutoRefresh: any;
+  setAutoRefresh: (_value: boolean) => void;
 }
 
 // =============================================================================
