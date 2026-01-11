@@ -120,7 +120,7 @@ export class ErrorMonitoringService {
         tracesSampleRate: this.config.tracesSampleRate,
         debug: this.config.debug,
         integrations: [],
-        beforeSend: (event, hint) => { 
+        beforeSend: (event: any, hint: any) => { 
           // Filter out development errors in non-production environments
           if (this.config.environment !== "production") {
             const error = hint?.originalException;
@@ -138,7 +138,7 @@ export class ErrorMonitoringService {
           }
           return event;
         },
-        beforeSendTransaction: (event) => { 
+        beforeSendTransaction: (event: any) => { 
           // Add business context to transactions
           event.tags = {
             ...event.tags,
