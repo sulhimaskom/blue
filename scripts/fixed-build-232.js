@@ -66,9 +66,8 @@ const stableBuildEnv = {
       NEXT_ESLINT_IGNORE_DURING_BUILDS: "true",
       NEXT_TYPESCRIPT_SKIP_BUILD: "true",
       
-      // CI BUILD FIX: Add mock Clerk keys to prevent build failures
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_ci_build_mock_key_for_dev_use_only",
-      CLERK_SECRET_KEY: "sk_test_ci_build_mock_key_for_dev_use_only",
+      // CI BUILD FIX: Do NOT set Clerk keys to trigger SafeClerkProvider in layout.tsx
+      // This prevents Clerk validation errors during build prerendering
       
       // DISABLED: Problematic experimental features
       // TURBOPACK: "0", // Let Next.js choose stable backend
