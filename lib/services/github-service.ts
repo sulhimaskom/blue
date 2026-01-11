@@ -2,6 +2,7 @@ import { logger, createRequestContext } from "@/lib/logger";
 import { monitoringService } from "@/lib/monitoring";
 import { circuitBreakerRegistry, SERVICE_CONFIGS } from "@/lib/circuit-breaker";
 import { retryService, RETRY_CONFIGS } from "./retry-service";
+import { env } from "@/lib/env";
 import * as crypto from "crypto";
 import type {
   GitHubRepoConfig,
@@ -55,8 +56,8 @@ class GitHubService {
   }
 
   private getCredentials() {
-    const appId = process.env.GITHUB_APP_ID || "";
-    const privateKey = process.env.GITHUB_APP_PRIVATE_KEY || "";
+    const appId = env.GITHUB_APP_ID || "";
+    const privateKey = env.GITHUB_APP_PRIVATE_KEY || "";
 
     if (!appId || !privateKey) {
       logger.error("GitHub App credentials not configured", {
@@ -175,7 +176,7 @@ class GitHubService {
       return await this.circuitBreaker.execute(async () => {
         // For now, use personal access token as fallback
         // In production, you'd implement proper GitHub App installation flow
-        const token = process.env.GITHUB_ACCESS_TOKEN;
+        const token = env.GITHUB_ACCESS_TOKEN;
 
         if (!token) {
           throw new GitHubServiceError(
@@ -589,7 +590,7 @@ class GitHubService {
     const context = createRequestContext();
 
     try {
-      const token = process.env.GITHUB_ACCESS_TOKEN;
+      const token = env.GITHUB_ACCESS_TOKEN;
 
       if (!token) {
         return false;
