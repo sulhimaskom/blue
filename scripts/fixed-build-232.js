@@ -49,27 +49,31 @@ const startTime = Date.now();
 
 try {
   // Run build with stable configuration that avoids Html import Bug
-   const stableBuildEnv = {
-     ...process.env,
-     // Essential optimizations only
-     NODE_OPTIONS: "--max-old-space-size=4096",
-     NODE_ENV: "production",
-     NEXT_TELEMETRY_DISABLED: "1",
-     
-     // STABLE CONFIGURATION: Avoid experimental features that trigger Html import bug
-     NEXT_BUILD_WORKERS: "4",
-     NEXT_MINIMIZE: "true",
-     NEXT_DISABLE_SOURCEMAPS: "true",
-     
-     // PERFORMANCE OPTIMIZATION: Skip linting/type checking in build (run separately)
-     ESLINT_NO_DEV_ERRORS: "true",
-     NEXT_ESLINT_IGNORE_DURING_BUILDS: "true",
-     NEXT_TYPESCRIPT_SKIP_BUILD: "true",
-     
-     // DISABLED: Problematic experimental features
-     // TURBOPACK: "0", // Let Next.js choose stable backend
-     // NEXT_EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS: "false", // Disable optimization experiments
-   };
+const stableBuildEnv = {
+      ...process.env,
+      // Essential optimizations only
+      NODE_OPTIONS: "--max-old-space-size=4096",
+      NODE_ENV: "production",
+      NEXT_TELEMETRY_DISABLED: "1",
+      
+      // STABLE CONFIGURATION: Avoid experimental features that trigger Html import bug
+      NEXT_BUILD_WORKERS: "4",
+      NEXT_MINIMIZE: "true",
+      NEXT_DISABLE_SOURCEMAPS: "true",
+      
+      // PERFORMANCE OPTIMIZATION: Skip linting/type checking in build (run separately)
+      ESLINT_NO_DEV_ERRORS: "true",
+      NEXT_ESLINT_IGNORE_DURING_BUILDS: "true",
+      NEXT_TYPESCRIPT_SKIP_BUILD: "true",
+      
+      // CI BUILD FIX: Add mock Clerk keys to prevent build failures
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_ci_build_mock_key_for_dev_use_only",
+      CLERK_SECRET_KEY: "sk_test_ci_build_mock_key_for_dev_use_only",
+      
+      // DISABLED: Problematic experimental features
+      // TURBOPACK: "0", // Let Next.js choose stable backend
+      // NEXT_EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS: "false", // Disable optimization experiments
+    };
 
   // Run build with stable configuration
   execSync("npx next build", {

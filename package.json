@@ -23,6 +23,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/fixed-build-232.js",
+    "build:ci": "node scripts/ci-build-343.js",
     "build:fast": "NEXT_CONFIG_FILE=next.config.speed.js node scripts/ultra-fast-build-optimizer-v3.js",
     "build:standard": "NEXT_BUILD_WORKERS=4 NODE_OPTIONS='--max-old-space-size=4096' npx next build",
     "build:clean": "rm -rf .next && NODE_OPTIONS='--max-old-space-size=4096' NEXT_BUILD_WORKERS=4 next build",
