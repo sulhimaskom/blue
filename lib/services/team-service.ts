@@ -1,4 +1,4 @@
-import { eq, and, desc, count, ilike, isNull, inArray } from "drizzle-orm";
+import { eq, and, desc, count, ilike, isNull, inArray, sum } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   teams,
@@ -6,6 +6,7 @@ import {
   teamProjects,
   users,
   projects,
+  transactions,
   type Team,
   type TeamMember,
   type TeamProject,
@@ -892,6 +893,105 @@ class TeamService {
       enterprise: -1, // unlimited
     };
     return limits[tier] || 1;
+  }
+
+  /**
+   * Get team usage analytics
+   */
+  async getTeamAnalytics(teamId: string, requestingUserId: number): Promise<{
+    teamId: string;
+    memberCount: number;
+    projectCount: number;
+    totalCreditsConsumed: number;
+    memberCreditUsage: Array<{ userId: number; creditsConsumed: number }>;
+    createdAt: string;
+  }> {
+    const cacheKey = `team:${teamId}:analytics`;
+
+    try {
+      // Check cache first
+      const cached = await teamCache.get(cacheKey);
+      if (cached) {
+        // Verify user has access
+        await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
+        return cached;
+      }
+
+      // Verify user has access to team analytics
+      await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
+
+      const database = db();
+      
+      // Get team member count
+      const [{ memberCount }] = await database
+        .select({ memberCount: count() })
+        .from(teamMembers)
+        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
+
+      // Get team project count
+      const [{ projectCount }] = await database
+        .select({ projectCount: count() })
+        .from(teamMembers)
+        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
+
+      // Get credits consumed by team members
+      const teamMemberIds = await database
+        .select({ userId: teamMembers.userId })
+        .from(teamMembers)
+        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
+      
+      const memberIds = teamMemberIds.map(m => m.userId);
+      
+      const creditUsageResults = memberIds.length > 0 ? await database
+        .select({
+          userId: transactions.userId,
+          credits: sum(transactions.amount),
+        })
+        .from(transactions)
+        .where(inArray(transactions.userId, memberIds))
+        .groupBy(transactions.userId) : [];
+
+      const totalCreditsConsumed = creditUsageResults.reduce(
+        (sum: number, row: any) => sum + (row.credits || 0),
+        0
+      );
+
+      const analytics = {
+        teamId,
+        memberCount,
+        projectCount: projectCount || 0,
+        totalCreditsConsumed,
+        memberCreditUsage: creditUsageResults.map(usage => ({
+          userId: usage.userId,
+          creditsConsumed: Number(usage.credits) || 0,
+        })),
+        createdAt: new Date().toISOString(),
+      };
+
+      // Cache result with shorter TTL for analytics
+      await teamCache.set(cacheKey, analytics, 180); // 3 minutes
+
+      return analytics;
+    } catch (error) {
+      logger.error("Failed to get team analytics", {
+        error: error instanceof Error ? error.message : String(error),
+        teamId,
+        requestingUserId,
+      });
+
+      if (
+        error instanceof ServiceError ||
+        error instanceof ValidationError ||
+        error instanceof AuthenticationError ||
+        error instanceof AuthorizationError ||
+        error instanceof NotFoundError ||
+        error instanceof DatabaseError
+      ) {
+        throw error;
+      }
+
+      throw new DatabaseError("Failed to get team analytics");
+    }
   }
 
   /**

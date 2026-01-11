@@ -1,14 +1,10 @@
 import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { users, transactions } from "@/lib/db/schema";
-import { eq, isNull, and } from "drizzle-orm";
-
 import { logger } from "@/lib/logger";
 import { WebhookService } from "@/lib/services/webhook-service";
 import { SecurityService } from "@/lib/services/security-service";
-import { CREDIT_RULES } from "@/lib/constants";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { formatErrorResponse } from "@/lib/api-utils";
+import { paymentService } from "@/lib/services/payment-service";
 import {
   StripeWebhookEvent,
   isStripePaymentIntentSucceeded,
@@ -37,65 +33,29 @@ export async function POST(req: NextRequest) {
       event: StripeWebhookEvent,
       context: WebhookContext,
     ) => {
-      const database = db();
 
       // Handle payment intent succeeded
       if (isStripePaymentIntentSucceeded(event)) {
         const { metadata } = event.data.object;
 
         if (metadata?.userId && metadata?.creditsAdded) {
-          // Find user by clerk ID
-          const [userRecord] = await database
-            .select()
-            .from(users)
-            .where(
-              and(eq(users.clerkId, metadata.userId), isNull(users.deletedAt)),
-            )
-            .limit(1);
-
-          if (userRecord) {
-            // Add credits to user account with validation
-            const creditsToAdd = parseInt(metadata.creditsAdded, 10);
-            if (isNaN(creditsToAdd) || creditsToAdd <= 0) {
-              logger.error("Invalid credits amount in metadata", {
-                requestId: context.requestId,
-                userId: metadata.userId,
-                creditsToAdd: metadata.creditsAdded,
-                paymentIntent: event.data.object.id,
-              });
-              return; // Skip this webhook processing
-            }
-            
-            await database
-               .update(users)
-               .set({
-                 credits: userRecord.credits + creditsToAdd,
-                 subscriptionTier:
-                   creditsToAdd >= CREDIT_RULES.PRO_THRESHOLD
-                     ? "pro"
-                     : userRecord.subscriptionTier,
-               })
-               .where(and(eq(users.id, userRecord.id), isNull(users.deletedAt)));
-
-            // Create transaction record
-            await database.insert(transactions).values({
-              userId: userRecord.id,
+          const creditsToAdd = parseInt(metadata.creditsAdded, 10);
+          
+          if (!isNaN(creditsToAdd) && creditsToAdd > 0) {
+            await paymentService.processPayment({
+              userId: metadata.userId,
+              paymentIntentId: event.data.object.id,
               amount: event.data.object.amount,
-              creditsAdded: creditsToAdd,
-              stripePaymentId: event.data.object.id,
+              creditsToAdd,
+              requestId: context.requestId,
             });
-
-            logger.userAction(
-              "Payment processed via webhook",
-              metadata.userId,
-              {
-                requestId: context.requestId,
-                paymentIntent: event.data.object.id,
-                amount: event.data.object.amount / 100,
-                creditsAdded: creditsToAdd,
-                eventType: "payment_intent.succeeded",
-              },
-            );
+          } else {
+            logger.error("Invalid credits amount in metadata", {
+              requestId: context.requestId,
+              userId: metadata.userId,
+              creditsToAdd: metadata.creditsAdded,
+              paymentIntent: event.data.object.id,
+            });
           }
         }
       }
