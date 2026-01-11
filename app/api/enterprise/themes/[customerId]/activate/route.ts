@@ -31,15 +31,20 @@ async function POST(req: NextRequest, { params }: RouteParams) {
   const { customerId } = await params;
 
   return APIRouteHandler.createPOSTHandler<ActivateThemeInput>({
-    requireAuth: false,
+    requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
     schema: ActivateThemeSchema,
-    handler: async ({ context, data }) => {
+    handler: async ({ context, data, user }) => {
       const activate = data?.activate ?? false;
       const theme = enterpriseThemeManager.getTheme(customerId);
 
       if (!theme) {
         throw new NotFoundError(`Theme not found for customer: ${customerId}`);
+      }
+
+      // Authorization check: only admins or theme owners can activate themes
+      if (!user?.isAdmin && user?.customerId !== customerId) {
+        throw new ValidationError("You don't have permission to activate this theme");
       }
 
       let success = false;
@@ -52,8 +57,9 @@ async function POST(req: NextRequest, { params }: RouteParams) {
           : "Failed to activate theme";
 
         if (success) {
-          logger.info("Enterprise theme activated", {
+          logger.security("Enterprise theme activated", {
             requestId: context.requestId,
+            userId: user!.id,
             customerId,
             brandName: theme.brandName,
           });
@@ -65,8 +71,9 @@ async function POST(req: NextRequest, { params }: RouteParams) {
           success = true;
           message = "Theme deactivated successfully";
 
-          logger.info("Enterprise theme deactivated", {
+          logger.security("Enterprise theme deactivated", {
             requestId: context.requestId,
+            userId: user!.id,
             customerId,
             brandName: theme.brandName,
           });

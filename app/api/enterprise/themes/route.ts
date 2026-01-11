@@ -58,11 +58,16 @@ export const GET = APIRouteHandler.createGETHandler({
 // POST /api/enterprise/themes - Create new enterprise theme
 export const POST = APIRouteHandler.createPOSTHandler({
   schema: CreateThemeSchema,
-  requireAuth: false,
+  requireAuth: true,
   rateLimiter: (identifier: string) => RateLimiters.themesPost()(identifier),
-  handler: async ({ context, data }) => {
+  handler: async ({ context, data, user }) => {
     const themeData = data!;
     const customerId = themeData.brandName.toLowerCase().replace(/\s+/g, "-");
+
+    // Authorization check: only admins can create themes
+    if (!user?.isAdmin) {
+      throw new ValidationError("Only administrators can create enterprise themes");
+    }
 
     const existingTheme = enterpriseThemeManager.getTheme(customerId);
     if (existingTheme) {
@@ -79,8 +84,9 @@ export const POST = APIRouteHandler.createPOSTHandler({
 
     enterpriseThemeManager.registerTheme(newTheme);
 
-    logger.info("Enterprise theme created", {
+    logger.security("Enterprise theme created", {
       requestId: context.requestId,
+      userId: user!.id,
       customerId,
       brandName: themeData.brandName,
       hasLogo: !!themeData.logoUrl,

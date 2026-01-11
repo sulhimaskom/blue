@@ -15,6 +15,8 @@ export interface AuthenticatedUser {
   credits: number;
   subscriptionTier: string;
   createdAt: Date;
+  isAdmin: boolean;
+  customerId?: string;
 }
 
 export interface RequestContext {
@@ -68,6 +70,9 @@ export class UserService {
         throw new AuthenticationError("User not found");
       }
 
+      const isAdmin = userRecord.subscriptionTier === "enterprise" || userRecord.subscriptionTier === "admin";
+      const customerId = isAdmin ? userRecord.email.split("@")[0] : undefined;
+
       return {
         clerkId: userRecord.clerkId,
         id: userRecord.id,
@@ -75,6 +80,8 @@ export class UserService {
         credits: userRecord.credits,
         subscriptionTier: userRecord.subscriptionTier,
         createdAt: userRecord.createdAt,
+        isAdmin,
+        customerId,
       };
     } catch (error) {
       if (
@@ -152,6 +159,9 @@ export class UserService {
         context,
       );
 
+      const isAdmin = updatedUser.subscriptionTier === "enterprise" || updatedUser.subscriptionTier === "admin";
+      const customerId = isAdmin ? updatedUser.email.split("@")[0] : undefined;
+
       return {
         clerkId: updatedUser.clerkId,
         id: updatedUser.id,
@@ -159,6 +169,8 @@ export class UserService {
         credits: updatedUser.credits,
         subscriptionTier: updatedUser.subscriptionTier,
         createdAt: updatedUser.createdAt,
+        isAdmin,
+        customerId,
       };
     } catch (error) {
       if (error instanceof DatabaseError) {
