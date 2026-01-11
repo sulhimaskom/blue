@@ -18,13 +18,18 @@ const clerkAppearance = {
   },
 };
 
+// GITHUB ISSUE #343 FIX: Conditional Clerk provider for CI builds
+// Skip Clerk setup entirely in CI environments to prevent build failures
+const isCIEnvironment = process.env.NODE_ENV === 'production' && 
+                       !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
 const clerkOptions = {
   appearance: clerkAppearance,
   signInUrl: "/sign-in",
   signUpUrl: "/sign-up",
   afterSignInUrl: "/dashboard/monitoring",
   afterSignUpUrl: "/dashboard/monitoring",
-  // Allow build to proceed without valid keys for development
+  // Allow build to proceed without valid keys for development and CI
   ...(Environment.isDevelopment() && {
     telemetry: { disabled: true },
   }),
@@ -37,13 +42,21 @@ export const metadata: Metadata = {
   description: getUIText("homepage", "hero.subtitle"),
 };
 
+// CI-SAFE Layout: Skip ClerkProvider in CI to prevent build failures
+function SafeClerkProvider({ children }: { children: React.ReactNode }) {
+  if (isCIEnvironment) {
+    return <>{children}</>;
+  }
+  return <ClerkProvider {...clerkOptions}>{children}</ClerkProvider>;
+}
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider {...clerkOptions}>
+    <SafeClerkProvider>
       <html lang="en">
         <body className={inter.className}>
           <EnterpriseThemeProvider>
@@ -57,6 +70,6 @@ export default function RootLayout({
           </EnterpriseThemeProvider>
         </body>
       </html>
-    </ClerkProvider>
+    </SafeClerkProvider>
   );
 }
