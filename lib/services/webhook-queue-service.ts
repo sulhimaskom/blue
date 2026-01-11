@@ -31,7 +31,7 @@ export interface WebhookQueueConfig {
 
 export interface WebhookEvent {
   id: string;
-  serviceName: "Clerk" | "Stripe" | "GitHub";
+  serviceName: "Clerk" | "Stripe" | "GitHub" | "PerformanceMonitor";
   eventType: string;
   payload:
     | ClerkWebhookPayload
@@ -88,7 +88,7 @@ class WebhookQueueService {
    * Returns false if event was already processed (idempotency)
    */
   async enqueueWebhook(
-    serviceName: "Clerk" | "Stripe" | "GitHub",
+    serviceName: "Clerk" | "Stripe" | "GitHub" | "PerformanceMonitor",
     eventType: string,
     payload:
       | ClerkWebhookPayload

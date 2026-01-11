@@ -90,6 +90,15 @@ export const webhookSubscriptionCreateSchema = z.object({
     "credit.usage_spike",
     "credit.renewed",
     "webhook.failed",
+    // Performance events
+    "performance.api_response_slow",
+    "performance.cache_hit_rate_low",
+    "performance.circuit_breaker_tripped",
+    "performance.database_query_slow",
+    "performance.memory_high",
+    "performance.error_rate_high",
+    "performance.cpu_high",
+    "performance.health_score_low",
     // Clerk events
     "user.created",
     "user.updated",
@@ -132,6 +141,15 @@ export const WEBHOOK_EVENT_TYPES_UPDATED = [
   "credit.usage_spike",
   "credit.renewed",
   "webhook.failed",
+  // Performance events
+  "performance.api_response_slow",
+  "performance.cache_hit_rate_low",
+  "performance.circuit_breaker_tripped",
+  "performance.database_query_slow",
+  "performance.memory_high",
+  "performance.error_rate_high",
+  "performance.cpu_high",
+  "performance.health_score_low",
   // Clerk events
   "clerk.user.created",
   "clerk.user.updated",
