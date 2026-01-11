@@ -1,0 +1,77 @@
+name: CI Diagnostics
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+
+jobs:
+  diagnose:
+    name: Diagnose CI Issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Permissions
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Token available: ${{ secrets.GH_TOKEN != '' }}"
+          echo "IFLOW API Key available: ${{ secrets.IFLOW_API_KEY != '' }}"
+
+      - name: Test Basic Operations
+        run: |
+          echo "Testing basic git operations..."
+          git log --oneline -1
+          git status
+          echo "Testing npm operations..."
+          npm --version
+          node --version
+          echo "Testing file access..."
+          ls -la package.json
+          echo "Testing build system..."
+          npm run build --dry-run || echo "Build system needs check"
+
+      - name: Check Workflow Configuration
+        run: |
+          echo "Checking workflow files..."
+          find .github/workflows -name "*.yml" -exec echo "Found: {}" \;
+          echo "Checking syntax..."
+          for file in .github/workflows/*.yml; do
+            echo "Syntax checking $file..."
+            python -c "import yaml; yaml.safe_load(open('$file'))" || echo "Syntax error in $file"
+          done
+
+      - name: Network Connectivity Test
+        run: |
+          echo "Testing network connectivity..."
+          curl -I https://api.github.com || echo "GitHub API unreachable"
+          curl -I https://registry.npmjs.org || echo "npm registry unreachable"
+          ping -c 1 google.com || echo "Internet connectivity issue"
+
+      - name: Create Diagnostic Report
+        run: |
+          echo "# CI Diagnostic Report" > diagnostic-report.md
+          echo "- Timestamp: $(date)" >> diagnostic-report.md
+          echo "- Repository: ${{ github.repository }}" >> diagnostic-report.md
+          echo "- Actor: ${{ github.actor }}" >> diagnostic-report.md
+          echo "- Event: ${{ github.event_name }}" >> diagnostic-report.md
+          echo "- Node Version: $(node --version)" >> diagnostic-report.md
+          echo "- NPM Version: $(npm --version)" >> diagnostic-report.md
+          echo "- Disk Space: $(df -h . | tail -1)" >> diagnostic-report.md
+          echo "- Memory: $(free -h | grep '^Mem:')" >> diagnostic-report.md
+          cat diagnostic-report.md
+
+      - name: Upload Diagnostic Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostic-report
+          path: diagnostic-report.md

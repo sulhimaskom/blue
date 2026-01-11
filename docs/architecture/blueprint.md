@@ -526,7 +526,7 @@ Agens must strictly follow these principles when generating code:
 - **31 Specialized Services**: Each with atomic single responsibility and clean interfaces
 - **Zero Business Logic in UI**: Complete separation achieved across all components
 - **821 Lines Code Deduplication**: Unified cache architecture eliminates redundancy
-- **Performance Optimizations**: 20-35% API improvement through intelligent request deduplication
+- **Performance Optimizations**: 20-35% API improvement through intelligent caching and request deduplication
 - **Enterprise Theme Service**: Advanced theme management with 30s intelligent caching
 - **Service Consolidation**: Streamlined from 36 to 31 services, eliminating demo/redundant code
 
@@ -650,9 +650,9 @@ const { notification, showError, showSuccess } = useNotification();
 - 25-80% response time reduction
 - ETag optimization for conditional requests
 - Circuit breaker patterns preventing cascading failures
-- Request deduplication preventing duplicate API calls (20-35% improvement)
+- Request deduplication preventing duplicate API calls through intelligent caching (20-35% improvement)
 - Intelligent interval management reducing resource utilization by 25-30%
-- Enhanced circuit breaker with adaptive timeouts and exponential backoff
+- Circuit breaker patterns with adaptive timeouts and exponential backoff
 
 ### 10.4 Quality Gates Status ✅
 
