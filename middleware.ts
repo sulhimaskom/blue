@@ -1,7 +1,6 @@
 // Enhanced middleware with production-grade security headers and CORS handling
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { logger } from "./lib/logger";
 
 // Helper function to determine allowed origin
 function getAllowedOrigin(requestedOrigin?: string): string {
@@ -102,10 +101,7 @@ export default function middleware(req: NextRequest) {
     return response;
   }
 
-  // Log that we're running in development mode without authentication
-  if (process.env.NODE_ENV === "development") {
-    logger.debug("Development mode: Authentication bypassed");
-  }
+  // Development mode: Authentication bypassed (no logging in Edge Runtime)
 
   // For regular requests, continue to API routes which will handle CORS headers
   const response = NextResponse.next();
