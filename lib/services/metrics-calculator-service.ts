@@ -7,7 +7,6 @@
 
 import type { RichCacheStatistics } from "./cache/cache-statistics-service";
 import type {
-  MetricDataPoint,
   MetricsCalculationOptions,
   MetricsCalculationResult,
   PerformanceMetrics,
@@ -425,7 +424,7 @@ export class MetricsCalculatorService {
    */
   static analyzePerformanceTrends(
     metrics: PerformanceMetrics[],
-    options: MetricsCalculationOptions = {}
+    _options: MetricsCalculationOptions = {}
   ): {
     trend: 'improving' | 'degrading' | 'stable';
     confidence: number;

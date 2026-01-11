@@ -1,13 +1,7 @@
 import { logger } from "@/lib/logger";
 import type { Blueprint } from "@/lib/db/schema";
 import type { BlueprintData } from "@/lib/services/blueprint-engine";
-import type {
-  BlueprintVersionComparison,
-  BlueprintChange,
-  ComparisonSummary,
-  BlueprintContent,
-  ComparisonOptions
-} from "./types/comparison.types";
+
 
 export interface BlueprintComparisonRequest {
   fromVersion: Blueprint;

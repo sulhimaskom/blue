@@ -1,4 +1,3 @@
-import { NextRequest } from "next/server";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { subscriptionService } from "@/lib/services/subscription-service";
 import { stripePaymentService } from "@/lib/services/stripe-payment-service";
@@ -23,7 +22,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
   requireCredits: 0, // No credits required for upgrade
   rateLimiter: RateLimiters.moderate(),
   schema: upgradeRequestSchema,
-  handler: async ({ context, user, validatedData }) => {
+  handler: async ({ user, validatedData }) => {
     const { tier, billingCycle } = validatedData;
 
     // Get tier information

@@ -1,12 +1,6 @@
 import crypto from "crypto";
 import { NextRequest } from "next/server";
-import type {
-  CacheKeyGenerationOptions,
-  CacheKeyComponents,
-  NormalizedCacheData,
-  ETagGenerationOptions,
-  CacheValidationResult
-} from "../types/cache.types";
+
 
 /**
  * Service for generating cache keys with consistent patterns

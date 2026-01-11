@@ -1,4 +1,3 @@
-import { NextRequest } from "next/server";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { subscriptionService } from "@/lib/services/subscription-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
@@ -13,7 +12,7 @@ import { RateLimiters } from "@/lib/rate-limit-config";
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: false, // Public endpoint for pricing display
   rateLimiter: RateLimiters.standard(),
-  handler: async ({ context }) => {
+  handler: async () => {
     const result = await subscriptionService.getSubscriptionTiers();
     
     if (!result.success) {

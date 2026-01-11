@@ -13,12 +13,10 @@ import {
   users,
   subscriptionPlans,
   subscriptionUsage,
-  type User,
-  type SubscriptionPlan,
   type SubscriptionUsage,
 } from "@/lib/db/schema";
 import { db } from "@/lib/db";
-import { eq, and, desc, gte, lte } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 // =============================================================================
 // TYPE DEFINITIONS
