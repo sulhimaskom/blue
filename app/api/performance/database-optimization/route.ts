@@ -1,133 +1,126 @@
-import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { DatabaseQueryOptimizationService } from "@/lib/services/performance/database-query-optimization-service";
-import { logger } from "@/lib/logger";
+import { RateLimiters } from "@/lib/rate-limit-config";
+import { ValidationError } from "@/lib/api-utils";
+
+// Zod schemas for different POST actions
+const optimizePoolSchema = z.object({
+  action: z.literal("optimize-pool"),
+  config: z.record(z.any()).optional().default({}),
+});
+
+const optimizeQuerySchema = z.object({
+  action: z.literal("optimize-query"),
+  query: z.string().min(1, "Query is required for query optimization"),
+  parameters: z.array(z.any()).optional().default([]),
+  context: z.record(z.any()).optional().default({}),
+});
+
+const recordMetricsSchema = z.object({
+  action: z.literal("record-metrics"),
+  metrics: z.object({
+    query: z.string(),
+    executionTime: z.number(),
+    rowsAffected: z.number(),
+    indexUsed: z.boolean(),
+    fullTableScan: z.boolean(),
+    memoryUsage: z.number(),
+    cacheHit: z.boolean(),
+    timestamp: z.string(),
+    parameters: z.array(z.any()).optional(),
+  }),
+});
+
+// Union schema for all possible actions
+const databaseOptimizationSchema = z.discriminatedUnion("action", [
+  optimizePoolSchema,
+  optimizeQuerySchema,
+  recordMetricsSchema,
+]);
 
 /**
  * GET /api/performance/database-optimization - Get database performance metrics
- * POST /api/performance/database-optimization - Optimize database performance
  */
-export async function GET(request: NextRequest) {
-  try {
-    const url = new URL(request.url);
+export const GET = APIRouteHandler.createGETHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+  handler: async ({ context: _context, user: _user, req }) => {
+    const url = new URL(req.url);
     const analyzeSlow = url.searchParams.get("analyzeSlow");
 
     if (analyzeSlow) {
       const threshold = parseInt(url.searchParams.get("threshold") || "1000");
-      const result =
-        await DatabaseQueryOptimizationService.analyzeSlowQueries(threshold);
+      const result = await DatabaseQueryOptimizationService.analyzeSlowQueries(threshold);
 
       if (!result.success) {
-        return NextResponse.json(
-          {
-            error: result.error?.message || "Failed to analyze slow queries",
-            details: result.error?.context,
-          },
-          { status: 500 },
-        );
+        throw result.error || new Error("Failed to analyze slow queries");
       }
 
-      return NextResponse.json({
-        success: true,
+      return {
         data: result.data,
         metadata: result.metadata,
-      });
+      };
     }
 
-    const result =
-      await DatabaseQueryOptimizationService.getDatabasePerformanceMetrics();
+    const result = await DatabaseQueryOptimizationService.getDatabasePerformanceMetrics();
 
     if (!result.success) {
-      return NextResponse.json(
-        {
-          error: result.error?.message || "Failed to get database metrics",
-          details: result.error?.context,
-        },
-        { status: 500 },
-      );
+      throw result.error || new Error("Failed to get database metrics");
     }
 
-    return NextResponse.json({
-      success: true,
+    return {
       data: result.data,
       metadata: result.metadata,
-    });
-  } catch (error) {
-    logger.error("Database performance API error", { error });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+    };
+  },
+});
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json().catch(() => ({}));
-    const { action, config, query, parameters, context } = body;
+/**
+ * POST /api/performance/database-optimization - Optimize database performance
+ */
+export const POST = APIRouteHandler.createPOSTHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
+  schema: databaseOptimizationSchema,
+  handler: async ({ context: _context, user: _user, data }) => {
+    if (!data) {
+      throw new ValidationError("Request data is required");
+    }
 
     let result;
 
-    switch (action) {
+    switch (data.action) {
       case "optimize-pool":
-        result =
-          await DatabaseQueryOptimizationService.optimizeConnectionPool(config);
+        result = await DatabaseQueryOptimizationService.optimizeConnectionPool(data.config);
         break;
 
       case "optimize-query":
-        if (!query) {
-          return NextResponse.json(
-            { error: "Query is required for query optimization" },
-            { status: 400 },
-          );
-        }
         result = await DatabaseQueryOptimizationService.optimizeQuery(
-          query,
-          parameters,
-          context,
+          data.query,
+          data.parameters,
+          data.context,
         );
         break;
 
       case "record-metrics":
-        if (!body.metrics) {
-          return NextResponse.json(
-            { error: "Metrics are required for recording" },
-            { status: 400 },
-          );
-        }
-        await DatabaseQueryOptimizationService.recordQueryMetrics(body.metrics);
-        result = { success: true, message: "Metrics recorded" };
-        break;
+        await DatabaseQueryOptimizationService.recordQueryMetrics(data.metrics);
+        return { message: "Metrics recorded" };
 
       default:
-        return NextResponse.json(
-          {
-            error:
-              "Invalid action. Supported actions: optimize-pool, optimize-query, record-metrics",
-          },
-          { status: 400 },
+        // This should never happen due to Zod validation, but keeping it for type safety
+        throw new ValidationError(
+          "Invalid action. Supported actions: optimize-pool, optimize-query, record-metrics",
         );
     }
 
-    if (result && !result.success) {
-      return NextResponse.json(
-        {
-          error: result.error?.message || "Failed to optimize database",
-          details: result.error?.context,
-        },
-        { status: 500 },
-      );
+    if (!result.success) {
+      throw result.error || new Error("Failed to optimize database");
     }
 
-    return NextResponse.json({
-      success: true,
-      data: result?.data,
-      metadata: result?.metadata,
-    });
-  } catch (error) {
-    logger.error("Database optimization API error", { error });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+    return {
+      data: result.data,
+      metadata: result.metadata,
+    };
+  },
+});

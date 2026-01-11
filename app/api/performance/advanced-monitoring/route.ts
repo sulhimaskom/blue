@@ -1,86 +1,57 @@
-import { NextResponse } from "next/server";
-import { logger } from "@/lib/logger";
-import { withRateLimiter } from "@/lib/api-utils";
-import { NextRequest } from "next/server";
+import { z } from "zod";
+import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { advancedPerformanceMonitoringService } from "@/lib/services/advanced-performance-monitoring-service";
+import { RateLimiters } from "@/lib/rate-limit-config";
+import { ValidationError } from "@/lib/api-utils";
+
+// Zod schema for POST request body
+const performanceMonitoringSchema = z.object({
+  action: z.enum(["analyze", "optimize"]),
+});
 
 /**
- * Advanced Performance Monitoring API
- *
- * Provides comprehensive performance analysis, optimization recommendations,
- * and real-time monitoring capabilities for production systems.
- *
- * Route handler delegates all business logic to AdvancedPerformanceMonitoringService
- * to maintain perfect Service Layer compliance.
+ * GET /api/performance/advanced-monitoring - Get performance monitoring reports
  */
-
-async function handlePerformanceMonitoring(request: Request) {
-  try {
-    const url = new URL(request.url);
+export const GET = APIRouteHandler.createGETHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+  handler: async ({ context: _context, user: _user, req }) => {
+    const url = new URL(req.url);
     const action = url.searchParams.get("action");
 
     switch (action) {
       case "summary":
-        return NextResponse.json(
-          advancedPerformanceMonitoringService.getPerformanceSummary(),
-        );
+        return advancedPerformanceMonitoringService.getPerformanceSummary();
       case "recommendations":
-        return NextResponse.json(
-          advancedPerformanceMonitoringService.getOptimizationRecommendations(),
-        );
+        return advancedPerformanceMonitoringService.getOptimizationRecommendations();
       case "build-optimizations":
-        return NextResponse.json(
-          advancedPerformanceMonitoringService.getBuildOptimizations(),
-        );
+        return advancedPerformanceMonitoringService.getBuildOptimizations();
       default:
-        return NextResponse.json(
-          advancedPerformanceMonitoringService.getComprehensiveReport(),
-        );
+        return advancedPerformanceMonitoringService.getComprehensiveReport();
     }
-  } catch (error) {
-    logger.error("Performance monitoring error", { error: String(error) });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+  },
+});
 
-// Export with rate limiting
-export const GET = async (request: NextRequest) => {
-  return withRateLimiter(request, "standard", async () => {
-    return handlePerformanceMonitoring(request);
-  });
-};
-
-export const POST = async (request: NextRequest) => {
-  return withRateLimiter(request, "moderate", async () => {
-    try {
-      const body = await request.json();
-      const { action } = body;
-
-      switch (action) {
-        case "analyze":
-          return NextResponse.json(
-            advancedPerformanceMonitoringService.analyzePerformance(),
-          );
-
-        case "optimize":
-          return NextResponse.json(
-            advancedPerformanceMonitoringService.applyOptimizations(),
-          );
-
-        default:
-          return NextResponse.json(
-            { error: "Invalid action" },
-            { status: 400 },
-          );
-      }
-    } catch (error) {
-      return NextResponse.json(
-        { error: "Invalid request body" },
-        { status: 400 },
-      );
+/**
+ * POST /api/performance/advanced-monitoring - Perform performance analysis and optimization
+ */
+export const POST = APIRouteHandler.createPOSTHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
+  schema: performanceMonitoringSchema,
+  handler: async ({ context: _context, user: _user, data }) => {
+    if (!data) {
+      throw new ValidationError("Request data is required");
     }
-  });
-};
+
+    switch (data.action) {
+      case "analyze":
+        return advancedPerformanceMonitoringService.analyzePerformance();
+      case "optimize":
+        return advancedPerformanceMonitoringService.applyOptimizations();
+      default:
+        // This should never happen due to Zod validation, but keeping it for type safety
+        throw new ValidationError("Invalid action. Supported actions: analyze, optimize");
+    }
+  },
+});
