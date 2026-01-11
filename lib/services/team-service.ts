@@ -1,5 +1,6 @@
 import { eq, and, desc, count, ilike, isNull, inArray, sum } from "drizzle-orm";
 import { db } from "@/lib/db";
+import type { PostgresJsTransaction } from "drizzle-orm/postgres-js";
 import {
   teams,
   teamMembers,
@@ -93,7 +94,7 @@ class TeamService {
       }
 
       // Create team and add owner as admin
-      const [team] = await database.transaction(async (tx: any) => {
+      const [team] = await db().transaction(async (tx: any) => {
         const [newTeam] = await tx.insert(teams).values({
           name: request.name.trim(),
           ownerId: request.ownerId,
@@ -737,7 +738,7 @@ class TeamService {
       }
 
       // Check if team has active projects
-      const [{ projectCount }] = await database.select({ projectCount: count() })
+      const [{ projectCount }] = await db().select({ projectCount: count() })
         .from(teamProjects)
         .innerJoin(projects, eq(teamProjects.projectId, projects.id))
         .where(and(eq(teamProjects.teamId, teamId), isNull(projects.deletedAt)));
@@ -747,7 +748,7 @@ class TeamService {
       }
 
       // Soft delete team
-      await database.transaction(async (tx: any) => {
+      await db().transaction(async (tx: any) => {
         await tx.update(teams)
           .set({ deletedAt: new Date(), updatedAt: new Date() })
           .where(eq(teams.id, teamId));

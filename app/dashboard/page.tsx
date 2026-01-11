@@ -60,17 +60,23 @@ export default function DashboardPage() {
       // Load user credits with safe fallback
       try {
         // Check if service method exists before calling
-        if ((DashboardDataService as any).getUserCredits) {
-          (DashboardDataService as any).getUserCredits(user?.id || 'default')
+        const dashboardDataService = DashboardDataService as unknown as Record<string, unknown>;
+        if (typeof dashboardDataService.getUserCredits === 'function') {
+          dashboardDataService.getUserCredits(user?.id || 'default')
             .then(setUserCredits)
-            .catch((error: any) => {
-              logger.error("Failed to load user credits", error);
+            .catch((error: Error) => {
+              logger.error("Failed to load user credits", { 
+                error: error.message,
+                stack: error.stack 
+              });
               // Keep default values on error
             });
         }
       } catch (error) {
         // Service not available, keep defaults
-        logger.warn("DashboardDataService not available", error as Record<string, any>);
+        logger.warn("DashboardDataService not available", { 
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }
   }, [isSignedIn, user]);

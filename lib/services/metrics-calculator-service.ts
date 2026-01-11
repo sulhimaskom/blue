@@ -6,6 +6,13 @@
  */
 
 import type { RichCacheStatistics } from "./cache/cache-statistics-service";
+import type {
+  MetricDataPoint,
+  MetricsCalculationOptions,
+  MetricsCalculationResult,
+  PerformanceMetrics,
+  MetricsInputData
+} from "./types/metrics.types";
 
 interface CachePerformance {
   hitRatePercent: number;
@@ -350,6 +357,129 @@ export class MetricsCalculatorService {
     const dataPercentage = Math.round((dataKeys / total) * 100);
     const responsePercentage = Math.round((responseKeys / total) * 100);
     return `${dataPercentage}% data / ${responsePercentage}% response`;
+  }
+
+  /**
+   * Calculate comprehensive metrics from input data
+   */
+  static calculateComprehensiveMetrics(
+    data: MetricsInputData,
+    options: MetricsCalculationOptions = {}
+  ): MetricsCalculationResult {
+    const { dataPoints } = data;
+    
+    if (dataPoints.length === 0) {
+      return {
+        count: 0,
+        sum: 0,
+        average: 0,
+        min: 0,
+        max: 0,
+      };
+    }
+
+    const values = dataPoints.map(point => point.value);
+    const count = values.length;
+    const sum = values.reduce((acc, val) => acc + val, 0);
+    const average = sum / count;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+
+    const result: MetricsCalculationResult = {
+      count,
+      sum,
+      average,
+      min,
+      max,
+    };
+
+    // Add percentiles if requested
+    if (options.includePercentiles) {
+      const sorted = [...values].sort((a, b) => a - b);
+      result.percentiles = {
+        p50: sorted[Math.floor(count * 0.5)],
+        p90: sorted[Math.floor(count * 0.9)],
+        p95: sorted[Math.floor(count * 0.95)],
+        p99: sorted[Math.floor(count * 0.99)],
+      };
+    }
+
+    // Check thresholds
+    if (options.customThresholds) {
+      result.thresholdsExceeded = [];
+      
+      if (options.customThresholds.errorRate && average > options.customThresholds.errorRate) {
+        result.thresholdsExceeded.push('errorRate');
+      }
+      
+      if (options.customThresholds.latency && average > options.customThresholds.latency) {
+        result.thresholdsExceeded.push('latency');
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Analyze performance metrics for trends and patterns
+   */
+  static analyzePerformanceTrends(
+    metrics: PerformanceMetrics[],
+    options: MetricsCalculationOptions = {}
+  ): {
+    trend: 'improving' | 'degrading' | 'stable';
+    confidence: number;
+    insights: string[];
+  } {
+    if (metrics.length < 2) {
+      return {
+        trend: 'stable',
+        confidence: 0,
+        insights: ['Insufficient data for trend analysis'],
+      };
+    }
+
+    // Calculate trend based on average latencies
+    const latencies = metrics.map(m => m.latency);
+    const firstHalf = latencies.slice(0, Math.floor(latencies.length / 2));
+    const secondHalf = latencies.slice(Math.floor(latencies.length / 2));
+
+    const firstAvg = firstHalf.reduce((sum, val) => sum + val, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, val) => sum + val, 0) / secondHalf.length;
+
+    const change = (secondAvg - firstAvg) / firstAvg;
+    const confidence = Math.min(metrics.length / 10, 1); // More data = higher confidence
+
+    let trend: 'improving' | 'degrading' | 'stable';
+    if (Math.abs(change) < 0.05) {
+      trend = 'stable';
+    } else if (change < 0) {
+      trend = 'improving';
+    } else {
+      trend = 'degrading';
+    }
+
+    const insights: string[] = [];
+    
+    if (trend === 'improving') {
+      insights.push(`Performance improved by ${Math.round(Math.abs(change) * 100)}%`);
+    } else if (trend === 'degrading') {
+      insights.push(`Performance degraded by ${Math.round(change * 100)}%`);
+    }
+
+    // Check error rates
+    const errorRates = metrics.map(m => m.errorRate);
+    const avgErrorRate = errorRates.reduce((sum, val) => sum + val, 0) / errorRates.length;
+    
+    if (avgErrorRate > 0.05) {
+      insights.push('High error rate detected');
+    }
+
+    return {
+      trend,
+      confidence: Math.round(confidence * 100),
+      insights,
+    };
   }
 
   /**
