@@ -1,6 +1,7 @@
 import { logger } from "@/lib/logger";
 import Stripe from "stripe";
 import crypto from "crypto";
+import { env } from "@/lib/env";
 
 /**
  * SecurityService - Centralized security utilities
@@ -16,7 +17,7 @@ export class SecurityService {
    * Production-grade implementation with Svix webhook verification
    */
   static verifyClerkWebhook(body: string, headers: Headers): boolean {
-    const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+    const clerkSecretKey = env.CLERK_SECRET_KEY;
     const svixId = headers.get("svix-id");
     const svixTimestamp = headers.get("svix-timestamp");
     const svixSignature = headers.get("svix-signature");
@@ -37,7 +38,7 @@ export class SecurityService {
 
     try {
       // For Clerk webhook verification, we use a dedicated webhook secret or fallback to secret key
-      const webhookSecret = process.env.CLERK_WEBHOOK_SECRET || clerkSecretKey;
+      const webhookSecret = env.CLERK_WEBHOOK_SECRET || clerkSecretKey;
 
       // Construct the expected signature string
       const timestampedPayload = `${svixId}.${svixTimestamp}.${body}`;
@@ -93,7 +94,7 @@ export class SecurityService {
     const requestId = crypto.randomUUID();
     const { maxAge = 300, enforceTimestamp = true } = options;
 
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    const stripeSecretKey = env.STRIPE_SECRET_KEY;
     const signature = headers.get("stripe-signature");
 
     if (!stripeSecretKey || !signature) {
@@ -291,11 +292,11 @@ export class SecurityService {
    */
   private static getStripeWebhookSecrets(): string[] {
     // Primary webhook secret (from environment)
-    const primarySecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const primarySecret = env.STRIPE_WEBHOOK_SECRET;
 
     // Support for multiple secrets (rotation)
-    const additionalSecrets = process.env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL
-      ? process.env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL.split(",")
+    const additionalSecrets = env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL
+      ? env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL.split(",")
           .map((s: string) => s.trim())
           .filter((s: string) => s.length > 0)
       : [];

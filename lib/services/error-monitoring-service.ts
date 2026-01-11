@@ -15,6 +15,7 @@
 // const Sentry = require("@sentry/node");
 
 import { logger } from "../logger";
+import { env } from "../env";
 
 // Sentry Configuration Type Definitions
 export interface SentryConfig {
@@ -60,10 +61,10 @@ export class ErrorMonitoringService {
   private constructor() {
     this.config = {
       enabled: this.isProductionReady(),
-      environment: process.env.NODE_ENV || "development",
+      environment: env.NODE_ENV,
       profilesSampleRate: 0, // Will be set after initialization
       tracesSampleRate: 0, // Will be set after initialization
-      debug: process.env.NODE_ENV === "development",
+      debug: env.NODE_ENV === "development",
     };
 
     // Set sample rates after initial config is established
@@ -99,7 +100,7 @@ export class ErrorMonitoringService {
 
     try {
       // Validate Sentry configuration
-      const sentryDsn = process.env.SENTRY_DSN;
+      const sentryDsn = env.SENTRY_DSN;
       if (!sentryDsn) {
         logger.warn("Sentry DSN not configured - error monitoring disabled", {
           recommendation:
@@ -517,11 +518,10 @@ export class ErrorMonitoringService {
   }
 
   // Private helper methods
-
+  
   private isProductionReady(): boolean {
     // Enable in production and staging environments
-    const env = process.env.NODE_ENV || "development";
-    return ["production"].includes(env) && !!process.env.SENTRY_DSN;
+    return ["production"].includes(env.NODE_ENV) && !!env.SENTRY_DSN;
   }
 
   private determineAIErrorSeverity(
@@ -650,7 +650,7 @@ export class ErrorMonitoringService {
   private getReleaseVersion(): string {
     // Use build-time version or fallback
     return (
-      process.env.SENTRY_RELEASE || process.env.npm_package_version || "1.0.0"
+      env.SENTRY_RELEASE || env.NPM_PACKAGE_VERSION || "1.0.0"
     );
   }
 

@@ -3,6 +3,7 @@ import { circuitBreakerRegistry } from "@/lib/circuit-breaker";
 import { DatabasePerformanceMonitor } from "@/lib/db/performance-monitor";
 import DatabaseQueryCache from "./database-cache-service";
 import { ServiceError } from "./service-error-handler";
+import { env } from "@/lib/env";
 
 /**
  * Centralized API metrics calculation service
@@ -243,32 +244,32 @@ export class APIMetricsService {
         status: "healthy" as const,
         responseTime: 0,
         metadata: {
-          version: process.env.npm_package_version || "1.0.0",
+          version: env.NPM_PACKAGE_VERSION,
           nodeVersion: process.version,
-          environment: process.env.NODE_ENV || "development",
+          environment: env.NODE_ENV,
         },
       },
 
       auth: {
         service: "auth",
-        status: process.env.CLERK_SECRET_KEY
+        status: env.CLERK_SECRET_KEY
           ? ("healthy" as const)
           : ("degraded" as const),
         responseTime: 0,
         metadata: {
-          configured: !!process.env.CLERK_SECRET_KEY,
+          configured: !!env.CLERK_SECRET_KEY,
           provider: "clerk",
         },
       },
 
       payments: {
         service: "payments",
-        status: process.env.STRIPE_SECRET_KEY
+        status: env.STRIPE_SECRET_KEY
           ? ("healthy" as const)
           : ("degraded" as const),
         responseTime: 0,
         metadata: {
-          configured: !!process.env.STRIPE_SECRET_KEY,
+          configured: !!env.STRIPE_SECRET_KEY,
           provider: "stripe",
         },
       },
