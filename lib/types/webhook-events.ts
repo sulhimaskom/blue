@@ -149,30 +149,58 @@ export interface BlueprintEventData {
   version: number;
   userId: number;
 }
+
+export interface ProjectEventData {
+  projectId: string;
+  projectName: string;
+  projectDescription?: string;
+  userId: number;
+  timestamp: number;
+}
+
+export interface ProjectUpdatedEventData extends ProjectEventData {
+  updatedFields: string[];
+}
+
+export interface ProjectDeletedEventData {
+  projectId: string;
+  projectName: string;
+  userId: number;
+  timestamp: number;
+  deletedAt: string;
+}
+
 export interface PlatformWebhookEvent extends WebhookEventBase {
   type:
     | "blueprint.created"
     | "blueprint.updated"
+    | "project.created"
+    | "project.updated"
+    | "project.deleted"
     | "project.deployed"
     | "credits.consumed"
     | "webhook.failed";
-  data: BlueprintEventData | {
-    projectId: string;
-    projectName: string;
-    deploymentUrl?: string;
-    status: string;
-    userId: number;
-  } | {
-    userId: number;
-    creditsConsumed: number;
-    creditsRemaining: number;
-    threshold: number;
-  } | {
-    webhookConfigurationId: string;
-    eventType: string;
-    errorMessage: string;
-    retryCount: number;
-  };
+  data: BlueprintEventData | 
+    ProjectEventData |
+    ProjectUpdatedEventData |
+    ProjectDeletedEventData |
+    {
+      projectId: string;
+      projectName: string;
+      deploymentUrl?: string;
+      status: string;
+      userId: number;
+    } | {
+      userId: number;
+      creditsConsumed: number;
+      creditsRemaining: number;
+      threshold: number;
+    } | {
+      webhookConfigurationId: string;
+      eventType: string;
+      errorMessage: string;
+      retryCount: number;
+    };
 }
 
 // ========================================
@@ -266,6 +294,30 @@ export function isBlueprintUpdated(
   data: BlueprintEventData;
 } {
   return event.type === "blueprint.updated";
+}
+
+export function isProjectCreated(
+  event: WebhookEvent,
+): event is PlatformWebhookEvent & {
+  data: ProjectEventData;
+} {
+  return event.type === "project.created";
+}
+
+export function isProjectUpdated(
+  event: WebhookEvent,
+): event is PlatformWebhookEvent & {
+  data: ProjectUpdatedEventData;
+} {
+  return event.type === "project.updated";
+}
+
+export function isProjectDeleted(
+  event: WebhookEvent,
+): event is PlatformWebhookEvent & {
+  data: ProjectDeletedEventData;
+} {
+  return event.type === "project.deleted";
 }
 
 export function isProjectDeployed(

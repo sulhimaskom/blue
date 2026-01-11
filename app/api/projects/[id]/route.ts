@@ -49,11 +49,12 @@ export async function PUT(_req: NextRequest, { params }: RouteParams) {
     handler: async ({ context, user, data }) => {
       const { name, description } = data!;
       
-      // Implement actual update logic
+      // Update project with context for webhooks
       const updatedProject = await ProjectDataService.updateProject(
         id,
         user!.clerkId,
-        { name, description }
+        { name, description },
+        context
       );
 
       logger.userAction("Project updated", user!.clerkId, {
@@ -77,10 +78,11 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
     handler: async ({ context, user }) => {
-      // Delete the project
+      // Delete project with context for webhooks
       const deletedProject = await ProjectDataService.deleteProject(
         id,
         user!.clerkId,
+        context
       );
 
       logger.userAction("Project deleted", user!.clerkId, {

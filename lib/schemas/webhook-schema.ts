@@ -82,6 +82,9 @@ export const webhookSubscriptionCreateSchema = z.object({
     // Platform events
     "blueprint.created",
     "blueprint.updated", 
+    "project.created",
+    "project.updated",
+    "project.deleted",
     "project.deployed",
     "credits.consumed",
     "credit.low_balance",
@@ -133,6 +136,9 @@ export const WEBHOOK_EVENT_TYPES_UPDATED = [
   // Platform events
   "blueprint.created",
   "blueprint.updated",
+  "project.created",
+  "project.updated",
+  "project.deleted",
   "project.deployed", 
   "credits.consumed",
   "credit.low_balance",

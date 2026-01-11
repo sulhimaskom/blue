@@ -361,36 +361,121 @@ export class WebhookEventDispatcher {
     );
   }
 
-  /**
-   * Emit project deployed webhook event
-   * Triggered when repository deployment completes
-   */
-  static async emitProjectDeployed(
-    userId: number,
-    clerkId: string,
-    projectId: string,
-    deploymentId: string,
-    deploymentStatus: "success" | "failed",
-    deploymentUrl?: string,
-    context?: RequestContext,
-  ): Promise<void> {
-    const eventData: ProjectDeploymentData = {
-      userId,
-      clerkId,
-      projectId,
-      deploymentId,
-      deploymentStatus,
-      deploymentUrl,
-      timestamp: new Date(),
-    };
+/**
+ * Emit project created webhook event
+ * Triggered when a new project is created
+ */
+static async emitProjectCreated(
+  userId: number,
+  clerkId: string,
+  projectId: string,
+  projectName: string,
+  projectDescription?: string,
+  context?: RequestContext,
+): Promise<void> {
+  const eventData = {
+    projectId,
+    projectName,
+    projectDescription,
+    userId,
+    timestamp: Date.now(),
+  };
 
-    await this.dispatchEventToSubscribers(
-      "project.deployed",
-      eventData,
-      `user-${clerkId}`,
-      context,
-    );
-  }
+  await this.dispatchEventToSubscribers(
+    "project.created",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit project updated webhook event
+ * Triggered when project details are modified
+ */
+static async emitProjectUpdated(
+  userId: number,
+  clerkId: string,
+  projectId: string,
+  projectName: string,
+  projectDescription?: string,
+  updatedFields: string[] = [],
+  context?: RequestContext,
+): Promise<void> {
+  const eventData = {
+    projectId,
+    projectName,
+    projectDescription,
+    userId,
+    timestamp: Date.now(),
+    updatedFields,
+  };
+
+  await this.dispatchEventToSubscribers(
+    "project.updated",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit project deleted webhook event
+ * Triggered when a project is soft-deleted
+ */
+static async emitProjectDeleted(
+  userId: number,
+  clerkId: string,
+  projectId: string,
+  projectName: string,
+  context?: RequestContext,
+): Promise<void> {
+  const eventData = {
+    projectId,
+    projectName,
+    userId,
+    timestamp: Date.now(),
+    deletedAt: new Date().toISOString(),
+  };
+
+  await this.dispatchEventToSubscribers(
+    "project.deleted",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit project deployed webhook event
+ * Triggered when repository deployment completes
+ */
+static async emitProjectDeployed(
+  userId: number,
+  clerkId: string,
+  projectId: string,
+  deploymentId: string,
+  deploymentStatus: "success" | "failed",
+  deploymentUrl?: string,
+  context?: RequestContext,
+): Promise<void> {
+  const eventData: ProjectDeploymentData = {
+    userId,
+    clerkId,
+    projectId,
+    deploymentId,
+    deploymentStatus,
+    deploymentUrl,
+    timestamp: new Date(),
+  };
+
+  await this.dispatchEventToSubscribers(
+    "project.deployed",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
 
   /**
    * Core event dispatch logic - query subscribers and deliver events

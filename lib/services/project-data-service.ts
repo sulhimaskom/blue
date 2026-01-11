@@ -213,33 +213,56 @@ export class ProjectDataService {
     return updatedProject;
   }
 
-  /**
-   * Update project details
-   * Used by: /api/projects/[id] (PUT)
-   */
-  static async updateProject(
-    projectId: string,
-    clerkId: string,
-    updates: { name?: string; description?: string }
-  ) {
-    const database = db();
+/**
+ * Update project details
+ * Used by: /api/projects/[id] (PUT)
+ */
+static async updateProject(
+  projectId: string,
+  clerkId: string,
+  updates: { name?: string; description?: string },
+  context?: RequestContext,
+) {
+  const database = db();
 
-    // Verify project ownership first
-    await this.verifyProjectOwnership(projectId, clerkId);
+  // Verify project ownership first
+  const projectDetails = await this.verifyProjectOwnership(projectId, clerkId);
 
-    const [updatedProject] = await database
-      .update(projects)
-      .set(updates)
-      .where(
-        and(
-          eq(projects.id, projectId),
-          isNull(projects.deletedAt)
-        )
+  const [updatedProject] = await database
+    .update(projects)
+    .set(updates)
+    .where(
+      and(
+        eq(projects.id, projectId),
+        isNull(projects.deletedAt)
       )
-      .returning();
+    )
+    .returning();
 
-    return updatedProject;
+  // Emit project updated webhook event
+  try {
+    const updatedFields = Object.keys(updates);
+    await WebhookEventDispatcher.emitProjectUpdated(
+      projectDetails.user.id,
+      clerkId,
+      updatedProject.id,
+      updatedProject.name,
+      updatedProject.description,
+      updatedFields,
+      context,
+    );
+  } catch (webhookError) {
+    // Log webhook error but don't fail the operation
+    await import("@/lib/logger").then(({ logger }) => 
+      logger.error("Failed to emit project.updated webhook", {
+        projectId: updatedProject.id,
+        error: webhookError instanceof Error ? webhookError.message : String(webhookError),
+      })
+    );
   }
+
+  return updatedProject;
+}
 
   /**
    * Get blueprint by ID with version ordering
@@ -339,65 +362,105 @@ export class ProjectDataService {
     }));
   }
 
-  /**
-   * Create a new project for a user
-   * Used by: /api/projects (POST)
-   */
-  static async createProject(
-    clerkId: string,
-    projectData: {
-      name: string;
-      description: string;
-    },
-  ) {
-    const database = db();
+/**
+ * Create a new project for a user
+ * Used by: /api/projects (POST)
+ */
+static async createProject(
+  clerkId: string,
+  projectData: {
+    name: string;
+    description: string;
+  },
+  context?: RequestContext,
+) {
+  const database = db();
 
-    // Get user ID from clerk ID
-    const [user] = await database
-      .select()
-      .from(users)
-      .where(and(eq(users.clerkId, clerkId), isNull(users.deletedAt)))
-      .limit(1);
+  // Get user ID from clerk ID
+  const [user] = await database
+    .select()
+    .from(users)
+    .where(and(eq(users.clerkId, clerkId), isNull(users.deletedAt)))
+    .limit(1);
 
-    if (!user) {
-      throw new ValidationError("User not found");
-    }
+  if (!user) {
+    throw new ValidationError("User not found");
+  }
 
-    const [newProject] = await database
-      .insert(projects)
-      .values({
-        ownerId: user.id,
-        name: projectData.name,
-        description: projectData.description,
-        status: "draft",
+  const [newProject] = await database
+    .insert(projects)
+    .values({
+      ownerId: user.id,
+      name: projectData.name,
+      description: projectData.description,
+      status: "draft",
+    })
+    .returning();
+
+  // Emit project created webhook event
+  try {
+    await WebhookEventDispatcher.emitProjectCreated(
+      user.id,
+      clerkId,
+      newProject.id,
+      newProject.name,
+      newProject.description,
+      context,
+    );
+  } catch (webhookError) {
+    // Log webhook error but don't fail the operation
+    await import("@/lib/logger").then(({ logger }) => 
+      logger.error("Failed to emit project.created webhook", {
+        projectId: newProject.id,
+        error: webhookError instanceof Error ? webhookError.message : String(webhookError),
       })
-      .returning();
-
-    return newProject;
+    );
   }
 
-  /**
-   * Delete a project (with confirmation)
-   * Used by: Projects management UI
-   */
-  static async deleteProject(projectId: string, clerkId: string) {
-    const database = db();
+  return newProject;
+}
 
-    // Verify project ownership first
-    await this.verifyProjectOwnership(projectId, clerkId);
+/**
+ * Delete a project (with confirmation)
+ * Used by: Projects management UI
+ */
+static async deleteProject(projectId: string, clerkId: string, context?: RequestContext) {
+  const database = db();
 
-    // Soft-delete project (non-destructive, reversible)
-    await softDelete("projects", projectId);
+  // Verify project ownership first
+  const projectDetails = await this.verifyProjectOwnership(projectId, clerkId);
 
-    // Return soft-deleted project for UI feedback
-    const [deletedProject] = await database
-      .select()
-      .from(projects)
-      .where(eq(projects.id, projectId))
-      .limit(1);
+  // Soft-delete project (non-destructive, reversible)
+  await softDelete("projects", projectId);
 
-    return deletedProject;
+  // Return soft-deleted project for UI feedback
+  const [deletedProject] = await database
+    .select()
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  // Emit project deleted webhook event
+  try {
+    await WebhookEventDispatcher.emitProjectDeleted(
+      projectDetails.user.id,
+      clerkId,
+      deletedProject.id,
+      deletedProject.name,
+      context,
+    );
+  } catch (webhookError) {
+    // Log webhook error but don't fail the operation
+    await import("@/lib/logger").then(({ logger }) => 
+      logger.error("Failed to emit project.deleted webhook", {
+        projectId: deletedProject.id,
+        error: webhookError instanceof Error ? webhookError.message : String(webhookError),
+      })
+    );
   }
+
+  return deletedProject;
+}
 
   /**
    * Delete blueprint with ownership verification and soft delete

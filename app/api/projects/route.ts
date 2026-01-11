@@ -41,11 +41,11 @@ export const POST = APIRouteHandler.createPOSTHandler({
   handler: async ({ context, user, data }) => {
     const { name, description } = data!;
 
-    // Create new project
+    // Create new project with context for webhooks
     const newProject = await ProjectDataService.createProject(user!.clerkId, {
       name,
       description: description || "",
-    });
+    }, context);
 
     logger.userAction("Project created", user!.clerkId, {
       requestId: context.requestId,
