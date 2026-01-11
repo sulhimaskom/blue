@@ -11,7 +11,7 @@
 
 // Import Sentry with enhanced webpack configuration for node: protocol support
 // Fixed: Comprehensive node: scheme mapping in next.config.js resolves webpack compatibility
-const Sentry = require("@sentry/node");
+import * as Sentry from "@sentry/node";
 
 import { logger } from "../logger";
 import { env } from "../env";
@@ -320,7 +320,7 @@ export class ErrorMonitoringService {
       return;
     }
 
-// FIXED: Sentry breadcrumbs enabled - enhanced webpack configuration resolves compatibility
+      // FIXED: Sentry breadcrumbs enabled - enhanced webpack configuration resolves compatibility
       try {
         // Add breadcrumb for business context tracking
         Sentry.addBreadcrumb({

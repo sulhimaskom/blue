@@ -63,9 +63,12 @@ const nextConfig = {
         'node:worker_threads': 'worker_threads',
         'node:async_hooks': 'async_hooks',
       },
-      fallback: {
+    };
+
+    // Provide fallbacks for node modules in client build
+    if (!isServer) {
+      config.resolve.fallback = {
         ...config.resolve.fallback,
-        // Provide fallbacks for node modules in client build
         child_process: false,
         fs: false,
         diagnostics_channel: false,
@@ -86,8 +89,8 @@ const nextConfig = {
         dns: false,
         worker_threads: false,
         async_hooks: false,
-      },
-    };
+      };
+    }
 
     // Streamlined module configuration
     config.module = {
