@@ -8,7 +8,7 @@
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { enterpriseThemeManager } from "@/lib/constants/enterprise-themes";
-import { NotFoundError } from "@/lib/api-utils";
+import { NotFoundError, ValidationError } from "@/lib/api-utils";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 
 // Validation schemas
@@ -65,8 +65,8 @@ export const GET = APIRouteHandler.createGETHandler({
 // PUT /api/enterprise/themes/[customerId] - Update theme
 export const PUT = APIRouteHandler.createPUTHandler({
   schema: UpdateThemeSchema,
-  requireAuth: false,
-  handler: async ({ context, data, req }) => {
+  requireAuth: true,
+  handler: async ({ context, data, req, user }) => {
     const urlParts = req.url.split("/");
     const customerId = urlParts[urlParts.length - 1];
 
@@ -74,6 +74,11 @@ export const PUT = APIRouteHandler.createPUTHandler({
 
     if (!existingTheme) {
       throw new NotFoundError(`Theme not found for customer: ${customerId}`);
+    }
+
+    // Authorization check: only admins or theme owners can update
+    if (!user?.isAdmin && user?.customerId !== customerId) {
+      throw new ValidationError("You don't have permission to modify this theme");
     }
 
     const updatedTheme = {
@@ -88,8 +93,9 @@ export const PUT = APIRouteHandler.createPUTHandler({
 
     enterpriseThemeManager.registerTheme(updatedTheme);
 
-    logger.info("Enterprise theme updated", {
+    logger.security("Enterprise theme updated", {
       requestId: context.requestId,
+      userId: user!.id,
       customerId,
       newCustomerId: (updatedTheme as typeof existingTheme & { customerId: string }).customerId,
       brandName: updatedTheme.brandName,
@@ -105,8 +111,8 @@ export const PUT = APIRouteHandler.createPUTHandler({
 
 // DELETE /api/enterprise/themes/[customerId] - Delete theme
 export const DELETE = APIRouteHandler.createDELETEHandler({
-  requireAuth: false,
-  handler: async ({ context, req }) => {
+  requireAuth: true,
+  handler: async ({ context, req, user }) => {
     // Extract customerId from the route parameter
     const urlParts = new URL(req.url).pathname.split("/");
     const customerId = urlParts[urlParts.length - 1];
@@ -117,14 +123,20 @@ export const DELETE = APIRouteHandler.createDELETEHandler({
       throw new NotFoundError(`Theme not found for customer: ${customerId}`);
     }
 
+    // Authorization check: only admins or theme owners can delete
+    if (!user?.isAdmin && user?.customerId !== customerId) {
+      throw new ValidationError("You don't have permission to delete this theme");
+    }
+
     const isActive =
       enterpriseThemeManager.getActiveTheme()?.customerId === customerId;
     if (isActive) {
       enterpriseThemeManager.resetTheme();
     }
 
-    logger.warn("Theme deletion requested", {
+    logger.security("Enterprise theme deleted", {
       requestId: context.requestId,
+      userId: user!.id,
       customerId,
       brandName: existingTheme.brandName,
       wasActive: isActive,
