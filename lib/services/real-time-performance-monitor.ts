@@ -1,6 +1,7 @@
 import { logger } from "../logger";
 import { redisManager } from "../redis";
 import { IntelligentPrefetchService } from "./intelligent-prefetch-service";
+import { performanceWebhookService } from "./performance-webhook-service";
 
 /**
  * Real-time performance monitoring with auto-adjustment capabilities
@@ -387,6 +388,27 @@ export class RealTimePerformanceMonitor {
         return;
       }
 
+      // Emit webhook events for performance alerts
+      if (alerts.length > 0) {
+        const webhookResults = await performanceWebhookService.processPerformanceAlerts(alerts);
+        
+        const successCount = webhookResults.filter(r => r.success).length;
+        if (successCount > 0) {
+          logger.info("Performance webhook events emitted", {
+            totalAlerts: alerts.length,
+            webhooksEmitted: successCount,
+            webhookFailures: webhookResults.length - successCount,
+          });
+        }
+
+        const failures = webhookResults.filter(r => !r.success);
+        if (failures.length > 0) {
+          logger.error("Some performance webhooks failed to emit", {
+            failures: failures.map(f => ({ eventId: f.eventId, errors: f.errors })),
+          });
+        }
+      }
+
       for (const alert of alerts) {
         const adjustments: string[] = [];
 
@@ -476,6 +498,20 @@ export class RealTimePerformanceMonitor {
       const alerts = await this.checkAlerts();
       const healthScore = this.calculateHealthScore(metrics, alerts);
       const recommendations = this.generateRecommendations(alerts, metrics);
+
+      // Emit webhook if health score is low
+      if (healthScore < 70) { // 70 is our health threshold
+        await performanceWebhookService.emitHealthScoreLowAlert(
+          healthScore,
+          70,
+          alerts,
+        ).catch(error => {
+          logger.error("Failed to emit health score webhook", {
+            healthScore,
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        });
+      }
 
       return {
         metrics,

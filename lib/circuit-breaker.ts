@@ -144,9 +144,18 @@ export class CircuitBreaker {
   private openCircuit(): void {
     this.state = CircuitState.OPEN;
     this.nextAttempt = Date.now() + this.circuitBreakerConfig.resetTimeout;
+    
     this.logEvent("circuit_opened", {
       failureCount: this.failureCount,
       nextAttempt: new Date(this.nextAttempt).toISOString(),
+    });
+
+    // Emit webhook for circuit breaker trip
+    this.emitCircuitBreakerWebhook().catch(error => {
+      logger.error("Failed to emit circuit breaker webhook", {
+        circuitBreaker: this.circuitBreakerName,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
     });
   }
 
@@ -239,6 +248,24 @@ export class CircuitBreaker {
   getSuccessRate(): number {
     if (this.totalCalls === 0) return 100;
     return Math.round((this.totalSuccesses / this.totalCalls) * 100);
+  }
+
+  /**
+   * Emit webhook event for circuit breaker trip
+   */
+  private async emitCircuitBreakerWebhook(): Promise<void> {
+    try {
+      // Import dynamically to avoid circular dependencies
+      const { performanceWebhookService } = await import("./services/performance-webhook-service");
+      
+      await performanceWebhookService.emitCircuitBreakerTrippedAlert(
+        this.circuitBreakerName,
+        this.getMetrics(),
+      );
+    } catch (error) {
+      // Error already logged above, but we don't want to throw
+      // from the circuit breaker operation itself
+    }
   }
 
   /**
