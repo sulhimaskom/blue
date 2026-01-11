@@ -34,17 +34,34 @@ const nextConfig = {
 
   // Streamlined webpack for maximum speed
   webpack: (config, { dev, isServer }) => {
-    // Fix for Issue #299: Handle node: scheme imports from Sentry
+    // Fix for Issue #299: Handle node: scheme imports from Sentry (Enhanced)
     config.resolve = {
       ...config.resolve,
       alias: {
         ...config.resolve.alias,
-        // Map node: schemes to regular modules to handle webpack resolution
+        // Comprehensive node: scheme mapping for Sentry and other packages
         'node:child_process': 'child_process',
         'node:fs': 'fs',
         'node:http': 'http',
         'node:https': 'https',
         'node:diagnostics_channel': 'diagnostics_channel',
+        'node:util': 'util',
+        'node:path': 'path',
+        'node:url': 'url',
+        'node:os': 'os',
+        'node:crypto': 'crypto',
+        'node:stream': 'stream',
+        'node:events': 'events',
+        'node:buffer': 'buffer',
+        'node:process': 'process',
+        'node:querystring': 'querystring',
+        'node:string_decoder': 'string_decoder',
+        'node:timers': 'timers',
+        'node:net': 'net',
+        'node:tls': 'tls',
+        'node:dns': 'dns',
+        'node:worker_threads': 'worker_threads',
+        'node:async_hooks': 'async_hooks',
       },
       fallback: {
         ...config.resolve.fallback,
@@ -52,6 +69,23 @@ const nextConfig = {
         child_process: false,
         fs: false,
         diagnostics_channel: false,
+        util: false,
+        path: false,
+        url: false,
+        os: false,
+        crypto: false,
+        stream: false,
+        events: false,
+        buffer: false,
+        process: false,
+        querystring: false,
+        string_decoder: false,
+        timers: false,
+        net: false,
+        tls: false,
+        dns: false,
+        worker_threads: false,
+        async_hooks: false,
       },
     };
 
