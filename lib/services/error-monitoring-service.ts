@@ -649,9 +649,8 @@ export class ErrorMonitoringService {
 
   private getReleaseVersion(): string {
     // Use build-time version or fallback
-    const { env } = require("../env");
     return (
-      env.SENTRY_RELEASE || env.NPM_PACKAGE_VERSION
+      process.env.SENTRY_RELEASE || process.env.npm_package_version || "1.0.0"
     );
   }
 
