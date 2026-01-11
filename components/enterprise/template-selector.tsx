@@ -30,6 +30,7 @@ import {
   getTextColor,
   getAccentColor,
 } from "@/lib/constants/ui-themes";
+import { validateHexColor } from "@/lib/utils/color-validation";
 
 export interface TemplateSelectorProps {
   selectedTemplate: string;
@@ -64,7 +65,9 @@ export function TemplateSelector({
           >
             <div
               className="w-full h-8 rounded mb-2"
-              style={{ backgroundColor: template.primaryColor }}
+              style={{
+                backgroundColor: validateHexColor(template.primaryColor, "#3b82f6")
+              }}
             />
             <div className="text-sm font-medium">{template.brandName}</div>
             <div className={cn("text-xs capitalize", getTextColor("muted"))}>

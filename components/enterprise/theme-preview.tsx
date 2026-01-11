@@ -26,6 +26,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { StatusIndicator } from "@/components/ui/status-indicator";
+import { validateHexColor } from "@/lib/utils/color-validation";
 
 export interface ThemePreviewProps {
   customTheme: {
@@ -72,15 +73,30 @@ export function ThemePreview({ customTheme, visible }: ThemePreviewProps) {
             <div className="space-y-2">
               <div
                 className="w-full h-6 rounded"
-                style={{ backgroundColor: customTheme.primaryColor }}
+                style={{
+                  backgroundColor: validateHexColor(
+                    customTheme.primaryColor,
+                    "#3b82f6"
+                  )
+                }}
               />
               <div
                 className="w-full h-6 rounded"
-                style={{ backgroundColor: customTheme.secondaryColor }}
+                style={{
+                  backgroundColor: validateHexColor(
+                    customTheme.secondaryColor,
+                    "#8b5cf6"
+                  )
+                }}
               />
               <div
                 className="w-full h-6 rounded"
-                style={{ backgroundColor: customTheme.accentColor }}
+                style={{
+                  backgroundColor: validateHexColor(
+                    customTheme.accentColor,
+                    "#10b981"
+                  )
+                }}
               />
             </div>
           </div>
@@ -94,7 +110,9 @@ export function ThemePreview({ customTheme, visible }: ThemePreviewProps) {
           </p>
           <p
             className="font-semibold"
-            style={{ color: customTheme.primaryColor }}
+            style={{
+              color: validateHexColor(customTheme.primaryColor, "#3b82f6")
+            }}
           >
             {customTheme.brandName || "Your Brand"} - Styled with primary color
           </p>

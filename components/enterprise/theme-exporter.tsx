@@ -25,9 +25,10 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { EnterpriseThemeConfig } from "@/lib/constants/enterprise-themes";
 
 export interface ThemeExporterProps {
-  activeTheme: any;
+  activeTheme: EnterpriseThemeConfig | null;
   onExport: () => void;
   onReset: () => void;
 }
