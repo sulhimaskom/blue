@@ -543,8 +543,8 @@ export const AdvancedPerformanceDashboard: React.FC<
 
   if (loading && !metrics) {
     return (
-      <BaseCard className="p-6">
-        <div className="animate-pulse">
+      <BaseCard className="p-6" aria-busy="true" aria-label="Loading performance metrics">
+        <div className="animate-pulse" aria-hidden="true">
           <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
           <div className="space-y-3">
             <div className="h-3 bg-gray-200 rounded"></div>
@@ -552,6 +552,7 @@ export const AdvancedPerformanceDashboard: React.FC<
             <div className="h-3 bg-gray-200 rounded"></div>
           </div>
         </div>
+        <p className="sr-only">Loading performance metrics...</p>
       </BaseCard>
     );
   }
@@ -560,13 +561,13 @@ export const AdvancedPerformanceDashboard: React.FC<
     return (
       <BaseCard className="p-6">
         <div className="text-center">
-          <CpuIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <CpuIcon className="w-12 h-12 text-red-500 mx-auto mb-4" aria-hidden="true" />
           <h3
             className={cn("text-lg font-medium mb-2", getTextColor("heading"))}
           >
             Unable to Load Performance Metrics
           </h3>
-          <Button onClick={fetchAdvancedMetrics} disabled={refreshing}>
+          <Button onClick={fetchAdvancedMetrics} disabled={refreshing} aria-label="Retry loading performance metrics">
             {refreshing ? (
               <CpuIcon className="w-4 h-4 mr-2 animate-spin" />
             ) : null}
@@ -579,9 +580,9 @@ export const AdvancedPerformanceDashboard: React.FC<
 
   return (
     <BaseCard className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <header className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <CpuIcon />
+          <CpuIcon aria-hidden="true" />
           <h2 className={cn("text-xl font-semibold", getTextColor("heading"))}>
             Advanced Performance Analytics
           </h2>
@@ -594,12 +595,15 @@ export const AdvancedPerformanceDashboard: React.FC<
             size="sm"
             onClick={() => setAutoRefresh(!autoRefresh)}
             className={cn(autoRefresh ? "bg-green-50 border-green-300" : "")}
+            aria-pressed={autoRefresh}
+            aria-label={`${autoRefresh ? 'Disable' : 'Enable'} auto-refresh`}
           >
             <CpuIcon
               className={cn(
                 "w-4 h-4 mr-2",
                 autoRefresh || refreshing ? "animate-spin" : "",
               )}
+              aria-hidden="true"
             />
             {autoRefresh ? "Auto-refresh ON" : "Auto-refresh OFF"}
           </Button>
@@ -609,74 +613,96 @@ export const AdvancedPerformanceDashboard: React.FC<
             size="sm"
             onClick={fetchAdvancedMetrics}
             disabled={refreshing}
+            aria-label="Refresh performance metrics now"
           >
             <CpuIcon
               className={cn("w-4 h-4 mr-2", refreshing ? "animate-spin" : "")}
+              aria-hidden="true"
             />
             Refresh Now
           </Button>
         </div>
-      </div>
+      </header>
 
-      <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
+      <div role="tablist" aria-label="Performance analytics tabs" className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
         <button
+          role="tab"
+          aria-selected={activeTab === "overview"}
+          aria-controls="overview-panel"
+          id="overview-tab"
           onClick={() => setActiveTab("overview")}
           className={cn(
-            "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors",
+            "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
             activeTab === "overview"
               ? "bg-white text-gray-900 shadow-sm"
               : "text-gray-600 hover:text-gray-900",
           )}
         >
-          <BarChart3Icon className="w-4 h-4 inline mr-2" />
+          <BarChart3Icon className="w-4 h-4 inline mr-2" aria-hidden="true" />
           Overview
         </button>
         <button
+          role="tab"
+          aria-selected={activeTab === "ai"}
+          aria-controls="ai-panel"
+          id="ai-tab"
           onClick={() => setActiveTab("ai")}
           className={cn(
-            "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors",
+            "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
             activeTab === "ai"
               ? "bg-white text-gray-900 shadow-sm"
               : "text-gray-600 hover:text-gray-900",
           )}
         >
-          <ZapIcon className="w-4 h-4 inline mr-2" />
+          <ZapIcon className="w-4 h-4 inline mr-2" aria-hidden="true" />
           AI Optimization
         </button>
         <button
+          role="tab"
+          aria-selected={activeTab === "predictive"}
+          aria-controls="predictive-panel"
+          id="predictive-tab"
           onClick={() => setActiveTab("predictive")}
           className={cn(
-            "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors",
+            "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
             activeTab === "predictive"
               ? "bg-white text-gray-900 shadow-sm"
               : "text-gray-600 hover:text-gray-900",
           )}
         >
-          <TrendingUpIcon className="w-4 h-4 inline mr-2" />
+          <TrendingUpIcon className="w-4 h-4 inline mr-2" aria-hidden="true" />
           Predictive
         </button>
       </div>
 
-      <div className="min-h-[400px]">
+      <div className="min-h-[400px]" role="tabpanel">
         {activeTab === "overview" && (
-          <PerformanceOverviewTab metrics={metrics} />
+          <div id="overview-panel" role="tabpanel" aria-labelledby="overview-tab" tabIndex={0}>
+            <PerformanceOverviewTab metrics={metrics} />
+          </div>
         )}
 
         {activeTab === "ai" && aiMetrics && (
-          <AIOptimizationTab
-            metrics={aiMetrics}
-            onApplyOptimization={applyOptimization}
-          />
+          <div id="ai-panel" role="tabpanel" aria-labelledby="ai-tab" tabIndex={0}>
+            <AIOptimizationTab
+              metrics={aiMetrics}
+              onApplyOptimization={applyOptimization}
+            />
+          </div>
         )}
 
         {activeTab === "predictive" && predictiveData && (
-          <PredictiveAnalyticsTab metrics={predictiveData} />
+          <div id="predictive-panel" role="tabpanel" aria-labelledby="predictive-tab" tabIndex={0}>
+            <PredictiveAnalyticsTab metrics={predictiveData} />
+          </div>
         )}
       </div>
 
       {lastRefresh && (
         <div
           className={cn("mt-6 pt-4 border-t text-xs", getTextColor("muted"))}
+          role="status"
+          aria-live="polite"
         >
           Last updated: {lastRefresh.toLocaleString()}
           {autoRefresh &&

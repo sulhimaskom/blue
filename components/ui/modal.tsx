@@ -109,7 +109,9 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
         onClick={handleBackdropClick}
         role="dialog"
         aria-modal="true"
-        aria-label={ariaLabel || title}
+        aria-labelledby={ariaLabel ? undefined : "modal-title"}
+        aria-label={ariaLabel}
+        aria-describedby={children ? "modal-description" : undefined}
         ref={ref}
         {...props}
       >
@@ -120,9 +122,10 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
             sizeClasses[size],
             className,
           )}
+          role="document"
         >
-          <div className="flex items-center justify-between px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <header className="flex items-center justify-between px-6 py-4 border-b">
+            <h2 id="modal-title" className="text-lg font-semibold text-gray-900">{title}</h2>
             {showCloseButton && (
               <button
                 ref={closeButtonRef}
@@ -130,17 +133,17 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
                 className="p-1 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                 aria-label={getUIText("common", "close")}
               >
-                <XIcon />
+                <XIcon aria-hidden="true" />
               </button>
             )}
-          </div>
+          </header>
 
-          <div className="p-6">{children}</div>
+          <div id="modal-description" className="p-6">{children}</div>
 
           {footer && (
-            <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t rounded-b-lg">
+            <footer className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t rounded-b-lg">
               {footer}
-            </div>
+            </footer>
           )}
         </div>
       </div>

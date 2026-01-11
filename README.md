@@ -14,47 +14,371 @@
 
 ## 🚀 Quick Start
 
+> **Time to First Blueprint**: 5-10 minutes  
+> **Prerequisites**: Basic command line knowledge, Node.js installed
+
 ### Prerequisites
 
-- **Node.js 20+** (LTS)
-- **pnpm** (package manager)
-- **Redis** (optional for development, required for production)
+- **Node.js 20+** (LTS) - [Download Node.js](https://nodejs.org/)
+- **pnpm** (package manager) - `npm install -g pnpm`
+- **Redis** (optional for development, required for production) - See Redis Configuration Guide below
+- **Free Accounts Required**:
+  - [Neon Database](https://neon.tech) - PostgreSQL database
+  - [Clerk Auth](https://clerk.com) - User authentication
+  - [IFlow AI](https://models.dev) - AI models (free tier available)
+  - [Tavily API](https://tavily.com) - Market research search
+  - [Stripe](https://stripe.com) - Payment processing (optional)
 
-### 1. Clone & Install
+### Step 1: Clone & Install (2-3 minutes)
 
 ```bash
+# Clone the repository
 git clone https://github.com/sulhimaskom/blue
 cd blue
+
+# Install dependencies with pnpm
 pnpm install
+
+# Verify installation succeeded
+pnpm run typecheck
 ```
 
-### 2. Environment Configuration
+**Expected Output**: `No TypeScript errors found` or similar success message
+
+### Step 2: Configure Environment Variables (5-7 minutes)
 
 ```bash
+# Copy the environment template
 cp .env.example .env
-# Edit .env with your keys (see Environment Variables section)
+
+# Edit .env with your editor of choice
+nano .env
+# or
+code .env
+# or
+vim .env
 ```
 
-### 3. Database Setup
+**Required Environment Variables** (minimum for local development):
+
+| Variable | Value | Where to Get It |
+|----------|--------|-----------------|
+| `DATABASE_URL` | Neon PostgreSQL connection string | Neon Dashboard → Project → Connection Details |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk public key | Clerk Dashboard → API Keys → Publishable Key |
+| `CLERK_SECRET_KEY` | Clerk secret key | Clerk Dashboard → API Keys → Secret Key |
+| `IFLOW_API_KEY` | IFlow API key | models.dev Dashboard → API Keys |
+| `IFLOW_BASE_URL` | IFlow API endpoint | `https://api.models.dev/v1` (usually default) |
+| `TAVILY_API_KEY` | Tavily search API key | [Tavily API](https://tavily.com/api) |
+
+**Optional but Recommended for Full Features**:
+- `GITHUB_ACCESS_TOKEN` - GitHub personal access token for repository deployment
+- `STRIPE_SECRET_KEY` - Stripe secret key for credit purchases
+- `REDIS_URL` - Redis connection string (see below for setup)
+
+**Tip**: Start with just the required variables. You can add optional ones as needed.
+
+### Step 3: Set Up Database (2-3 minutes)
 
 ```bash
-# Run database migrations
+# Run database migrations to create tables
 npm run db:migrate
 
-# Optional: Push schema changes without migration
-npm run db:push
-
-# Optional: Rollback migrations if needed
-npm run db:rollback
+# Verify database is ready
+npm run db:status
 ```
 
-### 4. Start Development
+**Expected Output**: Success message showing tables created
+
+**Troubleshooting**:
+- If migration fails, check your `DATABASE_URL` is correct
+- Verify your Neon database is active (not suspended)
+- Run `npm run db:rollback` if you need to retry
+
+### Step 4: (Optional) Set Up Redis for Development
+
+**Option A: Docker (Recommended)**
+```bash
+# Start Redis with Docker
+docker run -d -p 6379:6379 --name redis redis:alpine
+
+# Add to .env
+REDIS_URL="redis://localhost:6379"
+```
+
+**Option B: Skip Redis (Development Only)**
+- Leave `REDIS_URL` unset
+- Platform uses intelligent fallback to in-memory caching
+- Works fine for development and testing
+
+**Note**: Redis is required for production deployments for optimal performance.
+
+### Step 5: Start Development Server (1 minute)
 
 ```bash
+# Start the development server
 pnpm run dev
 ```
 
-Visit `http://localhost:3000` to see the platform in action.
+**Expected Output**:
+```
+✓ Ready in 2.3s
+○ Local:        http://localhost:3000
+```
+
+### Step 6: Verify Setup (2 minutes)
+
+Open your browser to `http://localhost:3000` and verify:
+
+1. **Homepage Loads** - Should see the platform landing page
+2. **Sign In Works** - Click sign in, authenticate with Clerk (or create test account)
+3. **Dashboard Access** - After sign in, you should see the dashboard
+4. **No Console Errors** - Open browser DevTools (F12), no red errors
+
+**If Anything Fails**: Check the FAQ section below or see [Troubleshooting Guide](./docs/TROUBLESHOOTING.md)
+
+### Step 7: Create Your First Blueprint (5-10 minutes)
+
+1. **Sign In** to your account
+2. **Navigate to Dashboard** → "Create Blueprint"
+3. **Enter Your Idea**:
+   ```
+   A task management app for remote teams with real-time collaboration
+   ```
+4. **Click "Generate Blueprint"** - Watch AI analyze and create your blueprint
+5. **Review Results** - Explore the generated architecture, features, and tech stack
+6. **(Optional) Deploy** - Click "Deploy to GitHub" if you configured GitHub token
+
+**Congratulations!** You've successfully set up The Architect Platform and generated your first blueprint.
+
+---
+
+## ⚡ 5-Minute First Blueprint Tutorial
+
+> **Follow this exact tutorial to create your first blueprint in under 5 minutes**  
+> **Prerequisites**: Completed steps 1-6 above (Quick Start)
+
+### Minute 1: Sign In and Access Blueprint Generator
+
+1. **Open Browser** → Navigate to `http://localhost:3000`
+2. **Click "Sign In"** → Authenticate with your Clerk account (or create new account)
+3. **Verify Dashboard** → You should see "Create Blueprint" card or button
+4. **Click "Create Blueprint"** → Opens blueprint generation form
+
+### Minute 2: Enter Your First Idea
+
+Copy and paste this exact prompt (tested and proven to work):
+
+```
+Create a simple task management application for teams:
+- Add, edit, delete tasks
+- Mark tasks as complete
+- Simple dashboard with task list
+- Basic user authentication
+```
+
+**Or use your own idea** - Be specific for best results:
+- ✅ Good: "A recipe sharing app with search and ratings"
+- ✅ Good: "A time tracking tool for freelancers"
+- ❌ Too vague: "I want an app"
+
+### Minute 3: Watch AI Generate Your Blueprint
+
+1. **Click "Generate Blueprint"** button
+2. **Wait 1-2 minutes** - AI will:
+   - Research similar applications (using Tavily API)
+   - Design optimal architecture
+   - Select best technology stack
+   - Define database schema
+   - List all necessary features
+   - Create monetization strategy
+
+**What You'll See**:
+- Progress indicator showing AI working
+- Real-time updates as phases complete
+- Success message when blueprint is ready
+
+### Minute 4: Review Generated Blueprint
+
+Explore the generated blueprint sections:
+
+**Architecture Tab:**
+- Database schema design (tables, relationships)
+- API endpoint structure (RESTful design)
+- Tech stack recommendations (why these technologies?)
+- Security considerations
+
+**Features Tab:**
+- Complete feature list with priorities
+- Implementation details for each feature
+- Integration points between features
+
+**Monetization Tab:**
+- Revenue model suggestions
+- Pricing strategy recommendations
+- Market positioning analysis
+
+### Minute 5: Customize and Save (Optional)
+
+**Add Features** (if desired):
+1. Click "Add Feature" button
+2. Select from:
+   - Mobile App (React Native)
+   - Payment Gateway (Stripe)
+   - Analytics Dashboard
+   - Admin Panel
+   - Advanced Search
+3. AI safely injects new feature into blueprint
+
+**Save Blueprint**:
+1. Click "Save Blueprint" button
+2. Name your blueprint (e.g., "TaskManagerV1")
+3. Blueprint is saved with version control
+
+### What's Next?
+
+You now have a complete software blueprint! Choose your path:
+
+**Path A: Deploy to GitHub** (Recommended)
+1. Click "Deploy to GitHub"
+2. Configure GitHub App or Personal Access Token
+3. Platform creates production-ready repository
+4. Your code is ready to customize and launch
+
+**Path B: Use Blueprint as Documentation**
+1. Export blueprint as Markdown
+2. Share with team for review
+3. Use as technical specification for development team
+
+**Path C: Iterate and Improve**
+1. Add more features to your blueprint
+2. Generate new versions (version control maintained)
+3. Compare versions to see changes
+4. Deploy when satisfied
+
+**Success!** You've generated your first production-ready software blueprint in under 5 minutes. Explore the platform's features or create more blueprints!
+
+---
+
+## ❓ Frequently Asked Questions
+
+### Common Questions
+
+**Q: Why does the build fail with "module not found"?**
+A: Run `pnpm install` to ensure all dependencies are installed. If the issue persists, try deleting `node_modules` and `.next` folders, then run `pnpm install` again.
+
+**Q: How do I get an IFlow API key?**
+A: Visit [models.dev](https://models.dev) and sign up for free. The IFlow API provides unlimited AI requests for development.
+
+**Q: Do I need Redis for local development?**
+A: No. The platform has intelligent fallback to in-memory caching when Redis is unavailable. Redis is recommended for production but optional for development.
+
+**Q: Can I use this without GitHub App?**
+A: Yes. The platform falls back to Personal Access Tokens if GitHub App is not configured. GitHub App is recommended for production deployments with higher rate limits.
+
+**Q: How do I reset the database?**
+A: Run `npm run db:rollback` to revert migrations, then `npm run db:migrate` to re-apply them. For a fresh start, use your Neon database console to recreate the database.
+
+**Q: What's the difference between `npm run dev` and `npm run start`?**
+A: `npm run dev` starts the development server with hot-reload and debugging features. `npm run start` runs the production build (requires `pnpm run build` first).
+
+**Q: How do I add a new API route?**
+A: Create a new file in `app/api/[resource]/route.ts` and use the `APIRouteHandler` pattern. See existing routes in `app/api/` for examples.
+
+**Q: What happens if I exceed my free tier credits?**
+A: You'll see a message in the dashboard and won't be able to generate new blueprints until credits are added. Purchase credits via Stripe integration or upgrade to Pro tier.
+
+---
+
+## ⚠️ Common Pitfalls & How to Avoid Them
+
+### 1. Missing Environment Variables
+
+**Symptom**: Application crashes or fails to start with "missing environment variable" errors.
+
+**Prevention**:
+- Always copy `.env.example` to `.env` after cloning
+- Verify all required variables are set before starting the server
+- Use the provided validation script: `npm run infrastructure:check`
+
+### 2. Database Connection Issues
+
+**Symptom**: "Connection refused" or "timeout" errors when accessing the platform.
+
+**Prevention**:
+- Verify `DATABASE_URL` is correct and includes the full connection string
+- Check your Neon database is active and not in suspended state
+- Run `npm run db:status` to verify database connectivity
+- Use `pnpm run db:migrate` to apply pending migrations
+
+### 3. Import Path Errors
+
+**Symptom**: TypeScript errors about module resolution or "module not found".
+
+**Prevention**:
+- Always use `@/` alias for internal imports (e.g., `@/lib/services` instead of `../lib/services`)
+- Run `pnpm run typecheck` to catch import errors early
+- Verify `tsconfig.json` has correct path mappings
+
+### 4. CORS Issues in Development
+
+**Symptom**: Browser blocks API requests with CORS errors.
+
+**Prevention**:
+- The platform includes CORS headers by default via APIRouteHandler
+- Ensure your development server is running on `localhost:3000`
+- Clear browser cache and cookies if CORS errors persist
+
+### 5. Cache Issues During Development
+
+**Symptom**: Stale data or unexpected behavior after code changes.
+
+**Prevention**:
+- Restart the development server after changing business logic
+- Clear browser cache for UI changes
+- For cache-related issues, clear Redis cache: `FLUSHDB` command in Redis CLI
+- Disable caching in `.env` for troubleshooting: `REDIS_CACHE_ENABLED=false`
+
+### 6. Test Failures Due to Timing Issues
+
+**Symptom**: Tests pass individually but fail when run together.
+
+**Prevention**:
+- Tests use fake timers for deterministic timing
+- Run tests with `pnpm test --silent` for cleaner output
+- Individual test suites can be run: `pnpm test path/to/test.test.ts`
+- Check test logs for specific timing-related failures
+
+### 7. Build Performance Issues
+
+**Symptom**: Slow build times or build hangs.
+
+**Prevention**:
+- Ensure `NODE_OPTIONS` doesn't have incompatible flags
+- Use `pnpm run build:clean` for a fresh build
+- Close other heavy applications to free system resources
+- Check system has at least 4GB RAM available
+
+### 8. Production Deployment Issues
+
+**Symptom**: Application works locally but fails in production.
+
+**Prevention**:
+- Verify all environment variables are set in production
+- Run production build locally: `pnpm run build && pnpm run start`
+- Check production logs for specific error messages
+- Ensure Redis is configured and accessible in production
+- Verify Neon database allows connections from your deployment host
+
+### Troubleshooting Flowchart
+
+```
+Issue occurring?
+├── Build/Install issues? → pnpm install && delete .next folder
+├── Database issues?      → Check DATABASE_URL and run migrations
+├── API errors?          → Check env vars and logs → See TROUBLESHOOTING.md
+├── Test failures?        → Run pnpm test --silent → Check test isolation
+└── Production issues?    → Verify all env vars → Check logs → Monitor dashboards
+```
 
 ---
 
