@@ -2,6 +2,7 @@ import { logger } from "@/lib/logger";
 import { retryService, RETRY_CONFIGS } from "./retry-service";
 import type { RequestContext } from "@/lib/services/user-service";
 import { DatabaseError, ValidationError } from "@/lib/api-utils";
+import Stripe from "stripe";
 
 export interface PaymentIntentRequest {
   amount: number;
@@ -46,7 +47,7 @@ export interface WebhookEvent {
  */
 export class StripePaymentService {
   private static instance: StripePaymentService;
-  private stripe: any;
+  private stripe: Stripe | null = null;
 
   private constructor() {
     // Stripe will be initialized with environment variables
@@ -89,7 +90,10 @@ export class StripePaymentService {
     try {
       const paymentIntent = await retryService.executeWithRetry(
         async () => {
-          const intent = await this.stripe.paymentIntents.create({
+          if (!this.stripe) {
+            throw new DatabaseError("Stripe payment service not configured");
+          }
+          const intent = await this.stripe!.paymentIntents.create({
             amount: request.amount,
             currency: "usd",
             payment_method: request.paymentMethodId,
@@ -137,7 +141,7 @@ export class StripePaymentService {
       });
 
       return {
-        clientSecret: paymentIntent.client_secret,
+        clientSecret: paymentIntent.client_secret!,
         paymentIntentId: paymentIntent.id,
         status: paymentIntent.status,
         amount: paymentIntent.amount,

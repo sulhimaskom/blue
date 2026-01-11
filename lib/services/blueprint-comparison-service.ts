@@ -1,13 +1,20 @@
 import { logger } from "@/lib/logger";
 import type { Blueprint } from "@/lib/db/schema";
 import type { BlueprintData } from "@/lib/services/blueprint-engine";
+import type {
+  BlueprintVersionComparison,
+  BlueprintChange,
+  ComparisonSummary,
+  BlueprintContent,
+  ComparisonOptions
+} from "./types/comparison.types";
 
 export interface BlueprintComparisonRequest {
   fromVersion: Blueprint;
   toVersion: Blueprint;
 }
 
-export interface BlueprintChange {
+export interface LocalBlueprintChange {
   type: string;
   status: string;
   field?: string;
@@ -24,7 +31,7 @@ export interface BlueprintComparisonSummary {
 }
 
 export interface BlueprintComparisonResult {
-  changes: BlueprintChange[];
+  changes: LocalBlueprintChange[];
   summary: BlueprintComparisonSummary;
 }
 
@@ -55,7 +62,7 @@ export class BlueprintComparisonService {
    */
   compareBlueprints(request: BlueprintComparisonRequest): BlueprintComparisonResult {
     const { fromVersion, toVersion } = request;
-    const changes: BlueprintChange[] = [];
+    const changes: LocalBlueprintChange[] = [];
 
     try {
       const fromData = this.parseStructuredData(fromVersion.structuredData as string | Record<string, unknown>);
@@ -95,7 +102,7 @@ export class BlueprintComparisonService {
   private compareProjectInfo(
     fromData: BlueprintData,
     toData: BlueprintData,
-    changes: BlueprintChange[],
+    changes: LocalBlueprintChange[],
   ): void {
     if (fromData.projectName !== toData.projectName) {
       changes.push({
@@ -126,7 +133,7 @@ export class BlueprintComparisonService {
   private compareFeatures(
     fromData: BlueprintData,
     toData: BlueprintData,
-    changes: BlueprintChange[],
+    changes: LocalBlueprintChange[],
   ): void {
     if (fromData.features && toData.features) {
       const fromFeatures = new Set(fromData.features);
@@ -162,7 +169,7 @@ export class BlueprintComparisonService {
   private compareTechStack(
     fromData: BlueprintData,
     toData: BlueprintData,
-    changes: BlueprintChange[],
+    changes: LocalBlueprintChange[],
   ): void {
     if (fromData.techStack && toData.techStack) {
       for (const [key, value] of Object.entries(toData.techStack)) {
@@ -187,7 +194,7 @@ export class BlueprintComparisonService {
   private compareArchitecture(
     fromData: BlueprintData,
     toData: BlueprintData,
-    changes: BlueprintChange[],
+    changes: LocalBlueprintChange[],
   ): void {
     if (fromData.architecture && toData.architecture) {
       if (fromData.architecture.type !== toData.architecture.type) {
@@ -226,7 +233,7 @@ export class BlueprintComparisonService {
   private compareSecurityFeatures(
     fromSecurity: string[],
     toSecurity: string[],
-    changes: BlueprintChange[],
+    changes: LocalBlueprintChange[],
   ): void {
     const fromSecuritySet = new Set(fromSecurity);
     const toSecuritySet = new Set(toSecurity);
@@ -260,7 +267,7 @@ export class BlueprintComparisonService {
   private compareMonetization(
     fromData: BlueprintData,
     toData: BlueprintData,
-    changes: BlueprintChange[],
+    changes: LocalBlueprintChange[],
   ): void {
     if (fromData.monetizationStrategy !== toData.monetizationStrategy) {
       changes.push({
@@ -280,7 +287,7 @@ export class BlueprintComparisonService {
   private fallbackToBasicComparison(
     fromVersion: Blueprint,
     toVersion: Blueprint,
-    changes: BlueprintChange[],
+    changes: LocalBlueprintChange[],
   ): void {
     const contentChanged = fromVersion.contentMarkdown !== toVersion.contentMarkdown;
     if (contentChanged) {
@@ -295,7 +302,7 @@ export class BlueprintComparisonService {
   /**
    * Generate comparison summary statistics
    */
-  private generateComparisonSummary(changes: BlueprintChange[]): BlueprintComparisonSummary {
+  private generateComparisonSummary(changes: LocalBlueprintChange[]): BlueprintComparisonSummary {
     return {
       totalChanges: changes.length,
       changesByType: {
