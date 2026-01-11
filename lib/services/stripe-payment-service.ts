@@ -19,6 +19,19 @@ export interface PaymentIntentResponse {
   currency: string;
 }
 
+export interface CheckoutSessionRequest {
+  userId: number;
+  priceId: string;
+  successUrl: string;
+  cancelUrl: string;
+  metadata?: Record<string, string>;
+}
+
+export interface CheckoutSessionResponse {
+  checkoutUrl: string;
+  sessionId: string;
+}
+
 export interface WebhookEvent {
   type: string;
   data: {
@@ -203,6 +216,18 @@ export class StripePaymentService {
         case "payment_intent.canceled":
           await this.handlePaymentCanceled(event as any, context);
           break;
+        case "checkout.session.completed":
+          await this.handleCheckoutSessionCompleted(event as any, context);
+          break;
+        case "invoice.payment_succeeded":
+          await this.handleInvoicePaymentSucceeded(event as any, context);
+          break;
+        case "invoice.payment_failed":
+          await this.handleInvoicePaymentFailed(event as any, context);
+          break;
+        case "customer.subscription.deleted":
+          await this.handleSubscriptionCancelled(event as any, context);
+          break;
         default:
           logger.systemEvent("Unhandled webhook event type", {
             requestId: context.requestId,
@@ -334,6 +359,174 @@ export class StripePaymentService {
   }
 
   /**
+   * Handle completed checkout sessions (subscription upgrades)
+   */
+  private async handleCheckoutSessionCompleted(
+    event: any,
+    context: RequestContext,
+  ): Promise<void> {
+    const session = event.data.object;
+    const userId = session.metadata?.userId;
+    const upgradeTier = session.metadata?.upgradeTier;
+    const billingCycle = session.metadata?.billingCycle;
+
+    if (!userId || !upgradeTier) {
+      logger.error("Checkout session missing required metadata", {
+        requestId: context.requestId,
+        sessionId: session.id,
+        userId,
+        upgradeTier,
+      });
+      return;
+    }
+
+    try {
+      const { subscriptionService } = await import("@/lib/services/subscription-service");
+      
+      await subscriptionService.upgradeSubscription(
+        parseInt(userId, 10),
+        upgradeTier,
+        session.subscription,
+      );
+
+      logger.systemEvent("Subscription upgrade processed", {
+        requestId: context.requestId,
+        userId,
+        sessionId: session.id,
+        upgradeTier,
+        billingCycle,
+        stripeSubscriptionId: session.subscription,
+      });
+    } catch (error) {
+      logger.error("Failed to process subscription upgrade", {
+        requestId: context.requestId,
+        userId,
+        sessionId: session.id,
+        upgradeTier,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Handle successful invoice payments (recurring subscriptions)
+   */
+  private async handleInvoicePaymentSucceeded(
+    event: any,
+    context: RequestContext,
+  ): Promise<void> {
+    const invoice = event.data.object;
+    const subscriptionId = invoice.subscription;
+
+    logger.systemEvent("Invoice payment succeeded", {
+      requestId: context.requestId,
+      subscriptionId,
+      invoiceId: invoice.id,
+      amount: invoice.amount_paid / 100,
+    });
+
+    // Could add logic here to grant monthly credits or extend subscription
+  }
+
+  /**
+   * Handle failed invoice payments
+   */
+  private async handleInvoicePaymentFailed(
+    event: any,
+    context: RequestContext,
+  ): Promise<void> {
+    const invoice = event.data.object;
+    const subscriptionId = invoice.subscription;
+
+    logger.systemEvent("Invoice payment failed", {
+      requestId: context.requestId,
+      subscriptionId,
+      invoiceId: invoice.id,
+      amount: invoice.amount_due / 100,
+      attemptCount: invoice.attempt_count,
+    });
+
+    // Could add logic here to handle payment failures (notifications, grace period, etc.)
+  }
+
+  /**
+   * Handle subscription cancellations
+   */
+  private async handleSubscriptionCancelled(
+    event: any,
+    context: RequestContext,
+  ): Promise<void> {
+    const subscription = event.data.object;
+    const subscriptionId = subscription.id;
+
+    logger.systemEvent("Subscription cancelled", {
+      requestId: context.requestId,
+      subscriptionId,
+      canceledAt: subscription.canceled_at,
+      endDate: subscription.current_period_end,
+    });
+
+    // Could add logic here to downgrade user to free tier
+    // This would involve finding the user by subscription ID and updating their tier
+  }
+
+  /**
+   * Create a checkout session for subscription upgrades
+   */
+  public async createCheckoutSession(
+    request: CheckoutSessionRequest,
+  ): Promise<CheckoutSessionResponse> {
+    if (!this.stripe) {
+      throw new DatabaseError("Stripe payment service not configured");
+    }
+
+    try {
+      const session = await this.stripe.checkout.sessions.create({
+        customer_email: undefined, // Will be set by Clerk customer ID if available
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price: request.priceId,
+            quantity: 1,
+          },
+        ],
+        mode: "subscription",
+        success_url: request.successUrl,
+        cancel_url: request.cancelUrl,
+        metadata: {
+          userId: request.userId.toString(),
+          ...request.metadata,
+        },
+        allow_promotion_codes: true,
+        billing_address_collection: "auto",
+        customer_creation: "always",
+      });
+
+      logger.systemEvent("Checkout session created", {
+        sessionId: session.id,
+        userId: request.userId,
+        priceId: request.priceId,
+      });
+
+      return {
+        checkoutUrl: session.url!,
+        sessionId: session.id,
+      };
+    } catch (error) {
+      logger.error("Failed to create checkout session", {
+        userId: request.userId,
+        priceId: request.priceId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      throw new DatabaseError(
+        `Failed to create checkout session: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
    * Retrieve payment intent details
    */
   public async retrievePaymentIntent(
@@ -386,3 +579,6 @@ export class StripePaymentService {
     return key;
   }
 }
+
+// Export singleton instance
+export const stripePaymentService = StripePaymentService.getInstance();

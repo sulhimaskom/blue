@@ -189,6 +189,45 @@ export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
 export type WebhookSubscription = typeof webhookSubscriptions.$inferSelect;
 export type NewWebhookSubscription = typeof webhookSubscriptions.$inferInsert;
 
+// Subscription plans table for tier configurations
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: serial("id").primaryKey(),
+  tier: text("tier").unique().notNull(), // free, pro, enterprise
+  maxCredits: integer("max_credits").notNull(), // Maximum credits that can be stored
+  monthlyCreditAllowance: integer("monthly_credit_allowance").notNull(), // Credits granted monthly
+  apiRateLimitMultiplier: integer("api_rate_limit_multiplier").default(1).notNull(), // Multiplier for base rate limits
+  maxProjects: integer("max_projects").notNull(), // Maximum projects allowed (-1 for unlimited)
+  maxTeams: integer("max_teams").notNull(), // Maximum teams allowed (-1 for unlimited)
+  maxWebhooks: integer("max_webhooks").notNull(), // Maximum webhooks allowed (-1 for unlimited)
+  features: jsonb("features").notNull(), // JSON object with feature flags
+  priceMonthly: integer("price_monthly").default(0).notNull(), // Price in cents
+  priceYearly: integer("price_yearly").default(0).notNull(), // Price in cents
+  stripePriceId: text("stripe_price_id"), // Stripe price ID for monthly
+  stripePriceIdYearly: text("stripe_price_id_yearly"), // Stripe price ID for yearly
+  isActive: boolean("is_active").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Subscription usage tracking table
+export const subscriptionUsage = pgTable("subscription_usage", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  period: text("period").notNull(), // YYYY-MM format for monthly tracking
+  creditsUsed: integer("credits_used").default(0).notNull(),
+  creditsGranted: integer("credits_granted").default(0).notNull(),
+  projectsCreated: integer("projects_created").default(0).notNull(),
+  teamsCreated: integer("teams_created").default(0).notNull(),
+  webhooksCreated: integer("webhooks_created").default(0).notNull(),
+  apiRequests: integer("api_requests").default(0).notNull(),
+  lastResetAt: timestamp("last_reset_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Team-related types
 export type Team = typeof teams.$inferSelect;
 export type NewTeam = typeof teams.$inferInsert;
@@ -196,3 +235,9 @@ export type TeamMember = typeof teamMembers.$inferSelect;
 export type NewTeamMember = typeof teamMembers.$inferInsert;
 export type TeamProject = typeof teamProjects.$inferSelect;
 export type NewTeamProject = typeof teamProjects.$inferInsert;
+
+// Subscription-related types
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type NewSubscriptionPlan = typeof subscriptionPlans.$inferInsert;
+export type SubscriptionUsage = typeof subscriptionUsage.$inferSelect;
+export type NewSubscriptionUsage = typeof subscriptionUsage.$inferInsert;

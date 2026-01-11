@@ -1,6 +1,5 @@
 import { eq, and, desc, count, ilike, isNull, inArray, sum } from "drizzle-orm";
 import { db } from "@/lib/db";
-import type { PostgresJsTransaction } from "drizzle-orm/postgres-js";
 import {
   teams,
   teamMembers,

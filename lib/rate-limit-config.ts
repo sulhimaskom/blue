@@ -203,6 +203,10 @@ export const RateLimiters = {
   permissive: () => getRateLimiter("permissive"),
   webhook: () => getRateLimiter("webhook"),
 
+  // Tier-aware rate limiters - accepts subscription tier parameter
+  forTier: (tier: string = "free", category: RateLimitCategory = "standard") => 
+    getRateLimiter(category, tier),
+
   // Endpoint-specific limiters (free tier defaults)
   blueprintsPost: () => getRateLimiter("strict"),
   blueprintsGet: () => getRateLimiter("standard"),
