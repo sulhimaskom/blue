@@ -4,11 +4,46 @@
  * Centralizes all metrics calculations and analytics logic
  * to eliminate code duplication across API endpoints.
  */
+
+import type { RichCacheStatistics } from "./cache/cache-statistics-service";
+
+interface CachePerformance {
+  hitRatePercent: number;
+  expectedSavings: string;
+  performanceImprovement: string;
+  aiCostSavings: string;
+  aiHitRatePercent: number;
+}
+
+interface RedisPerformance {
+  operationsPerSecond: number;
+  avgResponseTime: number;
+  p95ResponseTime: number;
+  p99ResponseTime: number;
+  errorRate: number;
+  connectionUtilization: number;
+}
+
+interface CacheEfficiency {
+  memoryEfficiency: string;
+  keyDistribution: string;
+  tagUtilization: number;
+}
+
+interface RedisHealth {
+  status: "healthy" | "degraded" | "unhealthy";
+}
+
+interface CachePerformanceExtended {
+  redisPerformance: RedisPerformance;
+  cacheEfficiency: CacheEfficiency;
+}
+
 export class MetricsCalculatorService {
   /**
    * Calculate cache performance indicators including cost savings
    */
-  static calculateCachePerformance(cacheStats: any) {
+  static calculateCachePerformance(cacheStats: RichCacheStatistics): CachePerformance {
     return {
       hitRatePercent: Math.round(cacheStats.hitRate * 100),
       expectedSavings: this.formatCostSavings(
@@ -27,7 +62,7 @@ export class MetricsCalculatorService {
   /**
    * Calculate Redis performance metrics with connection analysis
    */
-  static calculateRedisPerformance(redisMetrics: any) {
+  static calculateRedisPerformance(redisMetrics: { operationMetrics: { throughput: number; avgResponseTime: number; p95ResponseTime: number; p99ResponseTime: number; errorRate: number }; connectionMetrics: { utilizationRate: number } }): RedisPerformance {
     return {
       operationsPerSecond: redisMetrics.operationMetrics.throughput,
       avgResponseTime: redisMetrics.operationMetrics.avgResponseTime,
@@ -44,7 +79,7 @@ export class MetricsCalculatorService {
   /**
    * Calculate cache efficiency metrics including memory usage analysis
    */
-  static calculateCacheEfficiency(cacheStats: any) {
+  static calculateCacheEfficiency(cacheStats: RichCacheStatistics): CacheEfficiency {
     return {
       memoryEfficiency: this.calculateMemoryEfficiency(
         cacheStats.memoryUsage,
@@ -62,7 +97,7 @@ export class MetricsCalculatorService {
    * Determine overall system status based on multiple indicators
    */
   static determineOverallStatus(
-    redisHealth: any,
+    redisHealth: RedisHealth,
     hitRate: number,
     errorRate: number,
   ): "excellent" | "good" | "fair" | "poor" {
@@ -94,9 +129,9 @@ export class MetricsCalculatorService {
    * Generate intelligent recommendations based on system metrics
    */
   static generateRecommendations(
-    efficiency: any,
-    performance: any,
-    redisHealth: any,
+    efficiency: { hitRatePercent: number; aiHitRatePercent: number },
+    performance: CachePerformanceExtended,
+    redisHealth: RedisHealth,
   ): string[] {
     const recommendations: string[] = [];
 
@@ -157,9 +192,9 @@ export class MetricsCalculatorService {
    * Calculate AI-specific performance insights with pattern detection
    */
   static calculateAIPerformanceInsights(
-    cacheStats: any,
-    aiAnalytics: any,
-    warmingMetrics: any,
+    cacheStats: RichCacheStatistics,
+    aiAnalytics: { totalRequests: number; patternDistribution: Record<string, number> },
+    warmingMetrics: { warmedEntries: number },
   ): {
     overallStatus: "excellent" | "good" | "fair" | "poor";
     healthGrade: "A+" | "A" | "B" | "C" | "D" | "F";
@@ -205,8 +240,8 @@ export class MetricsCalculatorService {
    * Calculate pattern-specific cache hit rates
    */
   static calculatePatternHitRates(
-    aiAnalytics: any,
-    cacheStats: any,
+    aiAnalytics: { totalRequests: number; patternDistribution: Record<string, number> },
+    cacheStats: RichCacheStatistics,
   ): Record<string, number> {
     const hitRates: Record<string, number> = {};
 
@@ -231,8 +266,8 @@ export class MetricsCalculatorService {
    * Analyze trend data for predictive insights
    */
   static calculateTrends(
-    cacheStats: any,
-    aiAnalytics: any,
+    cacheStats: RichCacheStatistics,
+    aiAnalytics: { totalRequests: number; patternDistribution: Record<string, number> },
   ): {
     hitRateTrend: "improving" | "stable" | "declining";
     costTrend: "increasing" | "stable" | "decreasing";
@@ -256,7 +291,7 @@ export class MetricsCalculatorService {
    * Calculate circuit breaker health score
    */
   static calculateCircuitBreakerHealth(
-    allMetrics: any,
+    allMetrics: Record<string, unknown>,
     openCircuits: string[],
   ): {
     healthScore: number;
@@ -320,7 +355,7 @@ export class MetricsCalculatorService {
   /**
    * Calculate next optimization opportunity based on cache state
    */
-  static calculateNextOptimization(cacheStats: any): string {
+  static calculateNextOptimization(cacheStats: RichCacheStatistics): string {
     const totalKeys = cacheStats.totalKeys;
     const memoryUsage = cacheStats.memoryUsage;
 
@@ -333,7 +368,7 @@ export class MetricsCalculatorService {
   /**
    * Assess warmup readiness based on usage patterns
    */
-  static calculateWarmupReadiness(aiAnalytics: any): "high" | "medium" | "low" {
+  static calculateWarmupReadiness(aiAnalytics: { totalRequests: number; patternDistribution: Record<string, number> }): "high" | "medium" | "low" {
     const totalRequests = aiAnalytics.totalRequests;
     const patternBalance = Object.values(
       aiAnalytics.patternDistribution,
@@ -347,7 +382,7 @@ export class MetricsCalculatorService {
   /**
    * Calculate cache efficiency with performance thresholds
    */
-  static calculateCacheEfficiencyRating(cacheStats: any): string {
+  static calculateCacheEfficiencyRating(cacheStats: { hitRate: number; performance: { avgGetTime: number } }): string {
     const hitRate = cacheStats.hitRate;
     const avgResponseTime = cacheStats.performance.avgGetTime;
 
