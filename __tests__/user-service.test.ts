@@ -92,6 +92,8 @@ describe("UserService - Critical Business Logic", () => {
         credits: mockDbUser.credits,
         subscriptionTier: mockDbUser.subscriptionTier,
         createdAt: mockDbUser.createdAt,
+        customerId: undefined,
+        isAdmin: false,
       });
       expect(setRLSContext).toHaveBeenCalledWith(mockClerkUser.id);
     });
