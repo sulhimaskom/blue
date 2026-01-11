@@ -50,6 +50,8 @@
     "migrate:timestamps:down": "npx tsx migrations/0006_add_updated_at_timestamps.ts down",
     "migrate:check:up": "npx tsx migrations/0007_add_check_constraints.ts up",
     "migrate:check:down": "npx tsx migrations/0007_add_check_constraints.ts down",
+    "migrate:indexes:up": "npx tsx migrations/0008_add_performance_indexes.ts up",
+    "migrate:indexes:down": "npx tsx migrations/0008_add_performance_indexes.ts down",
     "migrate:webhook:up": "npx tsx migrations/webhook-runner.ts",
     "migrate:webhook:down": "npx tsx migrations/webhook-runner.ts down",
     "db:generate": "drizzle-kit generate",
