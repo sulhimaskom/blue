@@ -1,66 +1,53 @@
-import { NextRequest, NextResponse } from "next/server";
-import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { performanceOrchestratorService } from "@/lib/services/performance/performance-orchestrator-service";
+import { RateLimiters } from "@/lib/rate-limit-config";
+
+// Zod schema for POST request body
+const performanceOrchestratorSchema = z.object({
+  action: z.string().min(1, "Action is required"),
+  service: z.string().optional(),
+  config: z.record(z.any()).optional().default({}),
+});
 
 /**
- * Comprehensive performance optimization orchestrator API
- *
  * GET /api/performance/orchestrator - Get current performance status
- * POST /api/performance/orchestrator - Execute optimization workflow
  */
-export async function GET(request: NextRequest) {
-  try {
-    const url = new URL(request.url);
+export const GET = APIRouteHandler.createGETHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+  handler: async ({ context: _context, user: _user, req }) => {
+    const url = new URL(req.url);
     const service = url.searchParams.get("service");
 
-    const result = await performanceOrchestratorService.getOrchestratorStatus(
-      service,
-    );
+    const result = await performanceOrchestratorService.getOrchestratorStatus(service);
 
-    return NextResponse.json({
-      success: true,
+    return {
       data: result.data,
       timestamp: result.timestamp,
       service: result.service,
-    });
-  } catch (error) {
-    logger.error("Performance orchestrator API error", { error });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+    };
+  },
+});
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json().catch(() => ({}));
-    const { action, service, config } = body;
-
-    logger.info("Performance orchestrator request", {
-      action,
-      service,
-      config,
-    });
+/**
+ * POST /api/performance/orchestrator - Execute optimization workflow
+ */
+export const POST = APIRouteHandler.createPOSTHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
+  schema: performanceOrchestratorSchema,
+  handler: async ({ context: _context, user: _user, data }) => {
+    if (!data) {
+      throw new Error("Request data is required");
+    }
 
     const result = await performanceOrchestratorService.executeOptimizationWorkflow(
-      action,
-      service,
-      config,
+      data.action,
+      data.service,
+      data.config,
     );
 
-    return NextResponse.json({
-      success: true,
-      data: result,
-    });
-  } catch (error) {
-    logger.error("Performance orchestrator POST error", { error });
-    return NextResponse.json(
-      {
-        error: "Optimization workflow failed",
-        details: error instanceof Error ? error.message : error,
-      },
-      { status: 500 },
-    );
-  }
-}
+    return { data: result };
+  },
+});

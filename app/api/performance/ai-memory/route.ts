@@ -1,68 +1,54 @@
-import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { AIMemoryOptimizationService } from "@/lib/services/performance/ai-memory-optimization-service";
-import { logger } from "@/lib/logger";
+import { RateLimiters } from "@/lib/rate-limit-config";
+
+// Zod schema for POST request body
+const aiMemoryOptimizationSchema = z.object({
+  config: z.record(z.any()).optional().default({}),
+});
 
 /**
  * GET /api/performance/ai-memory - Get AI memory metrics
- * POST /api/performance/ai-memory - Optimize AI memory
  */
-export async function GET() {
-  try {
+export const GET = APIRouteHandler.createGETHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+  handler: async ({ context: _context, user: _user }) => {
     const result = await AIMemoryOptimizationService.getAIMemoryMetrics();
 
     if (!result.success) {
-      return NextResponse.json(
-        {
-          error: result.error?.message || "Failed to get memory metrics",
-          details: result.error?.context,
-        },
-        { status: 500 },
-      );
+      throw result.error || new Error("Failed to get memory metrics");
     }
 
-    return NextResponse.json({
-      success: true,
+    return {
       data: result.data,
       metadata: result.metadata,
-    });
-  } catch (error) {
-    logger.error("AI memory metrics API error", { error });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+    };
+  },
+});
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json().catch(() => ({}));
-    const config = body.config || {};
+/**
+ * POST /api/performance/ai-memory - Optimize AI memory
+ */
+export const POST = APIRouteHandler.createPOSTHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
+  schema: aiMemoryOptimizationSchema,
+  handler: async ({ context: _context, user: _user, data }) => {
+    if (!data) {
+      throw new Error("Request data is required");
+    }
 
-    logger.info("AI memory optimization request", { config });
-
-    const result = await AIMemoryOptimizationService.optimizeAIMemory(config);
+    const result = await AIMemoryOptimizationService.optimizeAIMemory(data.config);
 
     if (!result.success) {
-      return NextResponse.json(
-        {
-          error: result.error?.message || "Failed to optimize memory",
-          details: result.error?.context,
-        },
-        { status: 500 },
-      );
+      throw result.error || new Error("Failed to optimize memory");
     }
 
-    return NextResponse.json({
-      success: true,
+    return {
       data: result.data,
       metadata: result.metadata,
-    });
-  } catch (error) {
-    logger.error("AI memory optimization API error", { error });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+    };
+  },
+});

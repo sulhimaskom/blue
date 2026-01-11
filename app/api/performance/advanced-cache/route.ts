@@ -1,69 +1,54 @@
-import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { AdvancedCacheStrategiesService } from "@/lib/services/performance/advanced-cache-strategies-service";
-import { logger } from "@/lib/logger";
+import { RateLimiters } from "@/lib/rate-limit-config";
+
+// Zod schema for POST request body
+const advancedCacheOptimizationSchema = z.object({
+  config: z.record(z.any()).optional().default({}),
+});
 
 /**
  * GET /api/performance/advanced-cache - Get cache analytics
- * POST /api/performance/advanced-cache - Optimize cache performance
  */
-export async function GET() {
-  try {
+export const GET = APIRouteHandler.createGETHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+  handler: async ({ context: _context, user: _user }) => {
     const result = await AdvancedCacheStrategiesService.getCacheAnalytics();
 
     if (!result.success) {
-      return NextResponse.json(
-        {
-          error: result.error?.message || "Failed to get cache analytics",
-          details: result.error?.context,
-        },
-        { status: 500 },
-      );
+      throw result.error || new Error("Failed to get cache analytics");
     }
 
-    return NextResponse.json({
-      success: true,
+    return {
       data: result.data,
       metadata: result.metadata,
-    });
-  } catch (error) {
-    logger.error("Cache analytics API error", { error });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+    };
+  },
+});
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json().catch(() => ({}));
-    const config = body.config || {};
+/**
+ * POST /api/performance/advanced-cache - Optimize cache performance
+ */
+export const POST = APIRouteHandler.createPOSTHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
+  schema: advancedCacheOptimizationSchema,
+  handler: async ({ context: _context, user: _user, data }) => {
+    if (!data) {
+      throw new Error("Request data is required");
+    }
 
-    logger.info("Cache optimization request", { config });
-
-    const result =
-      await AdvancedCacheStrategiesService.optimizeCachePerformance(config);
+    const result = await AdvancedCacheStrategiesService.optimizeCachePerformance(data.config);
 
     if (!result.success) {
-      return NextResponse.json(
-        {
-          error: result.error?.message || "Failed to optimize cache",
-          details: result.error?.context,
-        },
-        { status: 500 },
-      );
+      throw result.error || new Error("Failed to optimize cache");
     }
 
-    return NextResponse.json({
-      success: true,
+    return {
       data: result.data,
       metadata: result.metadata,
-    });
-  } catch (error) {
-    logger.error("Cache optimization API error", { error });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+    };
+  },
+});
