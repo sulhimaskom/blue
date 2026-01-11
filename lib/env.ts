@@ -28,15 +28,23 @@ const envSchema = z.object({
     .string()
     .min(1, "Clerk publishable key is required"),
   CLERK_SECRET_KEY: z.string().min(1, "Clerk secret key is required"),
+  CLERK_WEBHOOK_SECRET: z.string().optional(),
 
   // Payments (Stripe)
   STRIPE_SECRET_KEY: z.string().min(1, "Stripe secret key is required"),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z
     .string()
     .min(1, "Stripe publishable key is required"),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_WEBHOOK_SECRETS_ADDITIONAL: z.string().optional(),
+  NPM_PACKAGE_VERSION: z.string().default("1.0.0"),
+  SENTRY_DSN: z.string().optional(),
+  SENTRY_RELEASE: z.string().optional(),
 
   // GitHub
   GITHUB_ACCESS_TOKEN: z.string().min(1, "GitHub access token is required"),
+  GITHUB_APP_ID: z.string().optional(),
+  GITHUB_APP_PRIVATE_KEY: z.string().optional(),
 
   // Redis (Optional - will fall back to in-memory if not provided)
   REDIS_URL: z.string().url().optional(),
@@ -62,6 +70,14 @@ function validateEnv(): Env {
       STRIPE_SECRET_KEY: "placeholder",
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "placeholder",
       GITHUB_ACCESS_TOKEN: "placeholder",
+      GITHUB_APP_ID: "",
+      GITHUB_APP_PRIVATE_KEY: "",
+      CLERK_WEBHOOK_SECRET: "",
+      STRIPE_WEBHOOK_SECRET: "",
+      STRIPE_WEBHOOK_SECRETS_ADDITIONAL: "",
+      NPM_PACKAGE_VERSION: "1.0.0",
+      SENTRY_DSN: "",
+      SENTRY_RELEASE: "",
       NEXT_PUBLIC_APP_URL: "http://localhost:3000",
     } as Env;
   }
@@ -85,6 +101,14 @@ function validateEnv(): Env {
         "test-stripe-publishable",
       GITHUB_ACCESS_TOKEN:
         process.env.GITHUB_ACCESS_TOKEN || "test-github-token",
+      GITHUB_APP_ID: process.env.GITHUB_APP_ID || "",
+      GITHUB_APP_PRIVATE_KEY: process.env.GITHUB_APP_PRIVATE_KEY || "",
+      CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET || "",
+      STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || "",
+      STRIPE_WEBHOOK_SECRETS_ADDITIONAL: process.env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL || "",
+      NPM_PACKAGE_VERSION: process.env.npm_package_version || "1.0.0",
+      SENTRY_DSN: process.env.SENTRY_DSN || "",
+      SENTRY_RELEASE: process.env.SENTRY_RELEASE || "",
       NEXT_PUBLIC_APP_URL:
         process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
     } as Env;

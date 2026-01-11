@@ -296,8 +296,8 @@ export class SecurityService {
     // Support for multiple secrets (rotation)
     const additionalSecrets = process.env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL
       ? process.env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL.split(",")
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0)
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0)
       : [];
 
     // Fallback to secret key only for development (not recommended for production)
