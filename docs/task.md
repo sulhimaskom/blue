@@ -2,6 +2,61 @@
 
 ## Active Tasks 🔄
 
+- [ ] **MEDIUM**: Component Decomposition - Large Component Refactoring for Maintainability
+  - **Location**: components/enterprise/enterprise-theme-customizer.tsx (641 lines)
+  - **Issue**: Single component handling multiple responsibilities (template selection, color customization, preview management, export functionality), exceeding maintainability thresholds
+  - **Suggestion**: Decompose into atomic components:
+    - `TemplateSelector.tsx` - Handle template selection and preview
+    - `ColorCustomizer.tsx` - Handle color input and validation
+    - `ThemePreview.tsx` - Real-time theme preview rendering
+    - `ThemeExporter.tsx` - Export functionality and JSON generation
+  - **Priority**: Medium (Improves maintainability without functional changes)
+  - **Effort**: Medium (4-6 hours for careful extraction with state management)
+
+- [ ] **MEDIUM**: Component Decomposition - Large Monitoring Component Refactoring
+  - **Location**: components/monitoring/advanced-performance-dashboard.tsx (714 lines)
+  - **Issue**: Component combines tab management, data fetching, visualization, and export logic, violating Single Responsibility Principle
+  - **Suggestion**: Extract sub-components:
+    - `DashboardTabs.tsx` - Tab navigation and state management
+    - `PerformanceVisualization.tsx` - Charts and graphs rendering
+    - `MetricsDataFetcher.tsx` - Data fetching and caching logic
+    - `ExportControls.tsx` - Export functionality and report generation
+  - **Priority**: Medium (Enhances testability and maintainability)
+  - **Effort**: Medium (4-6 hours with careful dependency extraction)
+
+- [ ] **LOW**: Type Safety Enhancement - Reduce `any` Type Usage in Services
+  - **Location**: lib/services/ (315 total `any` usages across service files)
+  - **Issue**: Excessive `any` type usage reduces type safety benefits of TypeScript, potential runtime errors
+  - **Suggestion**: Systematic type refactoring:
+    - Identify high-frequency `any` usage patterns
+    - Create proper TypeScript interfaces for loosely-typed data structures
+    - Use generic types where appropriate
+    - Prioritize services with business-critical operations
+  - **Priority**: Low (Technical debt improvement, no functional impact)
+  - **Effort**: Large (8-12 hours for comprehensive type refinement)
+
+- [ ] **LOW**: Service Decomposition - Large Service Refactoring for Blueprint Engine
+  - **Location**: lib/services/blueprint-engine.ts (1209 lines)
+  - **Issue**: Service handles multiple phases (discovery, blueprinting, refinement, fabrication) with 9+ complex methods, approaching size threshold
+  - **Suggestion**: Extract phase-specific services:
+    - `MarketResearchService` - Discovery phase and research coordination
+    - `BlueprintGenerationService` - Core blueprint generation logic
+    - `BlueprintRefinementService` - Iterative improvement and versioning
+    - `BlueprintFabricationService` - Deployment preparation
+  - **Priority**: Low (Technical debt improvement, existing code works well)
+  - **Effort**: Large (10-15 hours for careful service extraction with zero behavior changes)
+
+- [ ] **MEDIUM**: Test Coverage Enhancement - Critical Service Testing
+  - **Location**: lib/services/ (34 services without dedicated test files)
+  - **Issue**: 34 services lack dedicated test files despite containing critical business logic, risking regression issues
+  - **Suggestion**: Prioritized test creation:
+    - Identify top 10 business-critical untested services
+    - Create comprehensive test suites with AAA pattern
+    - Focus on error paths and edge cases
+    - Ensure >80% code coverage for critical paths
+  - **Priority**: Medium (Production reliability enhancement)
+  - **Effort**: Medium (8-12 hours for 10 critical service test suites)
+
 - [x] ✅ **COMPLETED** (2026-01-22): ACCESSIBILITY IMPROVEMENTS - UI/UX Enhancement - Senior UI/UX Engineer execution
   - **Task Selected**: Accessibility Fix - ARIA, keyboard nav, focus (HIGH PRIORITY - WCAG Compliance)
   - **Rationale**: Monitoring dashboard components lacked proper ARIA attributes, semantic HTML, and keyboard navigation support, creating barriers for users using assistive technologies
