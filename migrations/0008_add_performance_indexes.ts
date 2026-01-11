@@ -264,7 +264,9 @@ export async function up() {
     console.log("\n✅ Migration 0008 up completed successfully");
     console.log(`   Total indexes created: ${results.created.length}`);
     console.log(`   Duration: ${duration}ms`);
-    console.log(`   Average time per index: ${(duration / results.created.length).toFixed(2)}ms`);
+    if (results.created.length > 0) {
+      console.log(`   Average time per index: ${(duration / results.created.length).toFixed(2)}ms`);
+    }
 
     return {
       success: true,
