@@ -321,7 +321,7 @@ jobs:
           END OF PROMPT
           PROMPT
           )" \
-            --model iflowcn/glm-4.6 \
+            --model opencode/glm-4.7-free \
             --share false \
 
       - name: Fallback on Failure
