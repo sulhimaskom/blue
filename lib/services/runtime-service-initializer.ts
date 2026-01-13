@@ -1,5 +1,6 @@
 import { automatedCacheWarmingService } from "./automated-cache-warming";
 import { logger } from "../logger";
+import { env } from "../env";
 
 /**
  * Runtime service initializer - Only starts services during actual runtime, not build
@@ -41,7 +42,7 @@ class RuntimeServiceInitializer {
     return (
       // Environment variables set during build
       process.env.NEXT_PHASE === "phase-production-build" ||
-      (process.env.NODE_ENV === "production" &&
+      (env.NODE_ENV === "production" &&
         typeof require !== "undefined" &&
         require.main?.filename?.includes("next")) ||
       // Static generation detection
@@ -49,7 +50,7 @@ class RuntimeServiceInitializer {
       // Build command detection
       process.argv.includes("build") ||
       // Development build safety check
-      (process.env.NODE_ENV === "production" && !this.hasServerRuntime())
+      (env.NODE_ENV === "production" && !this.hasServerRuntime())
     );
   }
 
@@ -68,7 +69,7 @@ class RuntimeServiceInitializer {
         // Ensure we're not in static generation
         !!process.env.PORT) ||
       !!process.env.HOST ||
-      process.env.NODE_ENV === "development"
+      env.NODE_ENV === "development"
     );
   }
 
