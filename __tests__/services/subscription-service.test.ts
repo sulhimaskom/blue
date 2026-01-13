@@ -17,7 +17,6 @@ describe("SubscriptionService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    require("@/lib/services/subscription-service");
     subscriptionService = require("@/lib/services/subscription-service").subscriptionService;
   });
 
@@ -30,14 +29,14 @@ describe("SubscriptionService", () => {
       expect(instance1).toBe(instance2);
     });
 
-    it("should maintain singleton across different require calls", () => {
+    it("should create a new instance after resetting modules", () => {
       const { subscriptionService: service1 } = require("@/lib/services/subscription-service");
       jest.resetModules();
-      require("@/lib/services/subscription-service");
       const { subscriptionService: service2 } = require("@/lib/services/subscription-service");
 
       expect(service1).toBeInstanceOf(Object);
       expect(service2).toBeInstanceOf(Object);
+      expect(service1).not.toBe(service2);
     });
   });
 

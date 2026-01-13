@@ -127,16 +127,22 @@ export function SubscriptionDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div 
+        className="flex items-center justify-center h-64"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        aria-label="Loading subscription data"
+      >
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" aria-hidden="true"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertCircleIcon className="h-4 w-4" />
+      <Alert variant="destructive" role="alert">
+        <AlertCircleIcon className="h-4 w-4" aria-hidden="true" />
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
@@ -144,230 +150,280 @@ export function SubscriptionDashboard() {
 
   if (!subscription) {
     return (
-      <Alert>
-        <AlertCircleIcon className="h-4 w-4" />
+      <Alert role="alert">
+        <AlertCircleIcon className="h-4 w-4" aria-hidden="true" />
         <AlertDescription>Unable to load subscription information</AlertDescription>
       </Alert>
     );
   }
 
-  const { tier, limits, features, pricing, usage } = subscription;
+  const { tier, limits, features, usage } = subscription;
 
   return (
-    <div className="space-y-6">
+    <main className="space-y-6" role="main" aria-label="Subscription Dashboard">
       {/* Current Tier Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {tier === "enterprise" ? <CrownIcon className="h-5 w-5 text-yellow-500" /> :
-             tier === "pro" ? <StarIcon className="h-5 w-5 text-blue-500" /> :
-             <CreditCardIcon className="h-5 w-5 text-gray-500" />}
-            Current Plan: {tier.charAt(0).toUpperCase() + tier.slice(1)}
-            <Badge variant={tier === "free" ? "secondary" : "default"}>
-              {tier === "free" ? "Free" : tier === "pro" ? "Pro" : "Enterprise"}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {usage?.currentUsage.credits || 0}
-              </div>
-              <div className="text-sm text-gray-600">Credits Used</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {usage?.currentUsage.projects || 0}
-              </div>
-              <div className="text-sm text-gray-600">Projects</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {usage?.currentUsage.teams || 0}
-              </div>
-              <div className="text-sm text-gray-600">Teams</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">
-                {usage?.currentUsage.webhooks || 0}
-              </div>
-              <div className="text-sm text-gray-600">Webhooks</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Usage Limits */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUpIcon className="h-5 w-5" />
-            Usage & Limits
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Credits */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="flex items-center gap-2">
-                <ZapIcon className="h-4 w-4" />
-                Credits
-              </span>
-              <span>
-                {usage?.currentUsage.credits || 0} / {limits.maxCredits === -1 ? "∞" : limits.maxCredits}
-              </span>
-            </div>
-            {limits.maxCredits !== -1 && usage && (
-              <Progress value={usage.percentageUsed.credits} className="h-2" />
-            )}
-          </div>
-
-          {/* Projects */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="flex items-center gap-2">
-                <FolderOpenIcon className="h-4 w-4" />
-                Projects
-              </span>
-              <span>
-                {usage?.currentUsage.projects || 0} / {limits.maxProjects === -1 ? "∞" : limits.maxProjects}
-              </span>
-            </div>
-            {limits.maxProjects !== -1 && usage && (
-              <Progress value={usage.percentageUsed.projects} className="h-2" />
-            )}
-          </div>
-
-          {/* Teams */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="flex items-center gap-2">
-                <UsersIcon className="h-4 w-4" />
-                Teams
-              </span>
-              <span>
-                {usage?.currentUsage.teams || 0} / {limits.maxTeams === -1 ? "∞" : limits.maxTeams}
-              </span>
-            </div>
-            {limits.maxTeams !== -1 && usage && (
-              <Progress value={usage.percentageUsed.teams} className="h-2" />
-            )}
-          </div>
-
-          {/* Webhooks */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="flex items-center gap-2">
-                <WebhookIcon className="h-4 w-4" />
-                Webhooks
-              </span>
-              <span>
-                {usage?.currentUsage.webhooks || 0} / {limits.maxWebhooks === -1 ? "∞" : limits.maxWebhooks}
-              </span>
-            </div>
-            {limits.maxWebhooks !== -1 && usage && (
-              <Progress value={usage.percentageUsed.webhooks} className="h-2" />
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Features */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircleIcon className="h-5 w-5" />
-            Features
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {Object.entries(features).map(([key, enabled]) => (
-              <div key={key} className="flex items-center gap-2">
-                {enabled ? (
-                  <CheckCircleIcon className="h-4 w-4 text-green-500" />
-                ) : (
-                  <LockIcon className="h-4 w-4 text-gray-400" />
-                )}
-                <span className={`text-sm ${enabled ? "" : "text-gray-500"}`}>
-                  {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
-                </span>
-                {!enabled && tier !== "enterprise" && (
-                  <Badge variant="outline" className="text-xs">
-                    Upgrade
-                  </Badge>
-                )}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Upgrade Options */}
-      {tier !== "enterprise" && (
+      <section aria-labelledby="current-plan-heading">
         <Card>
           <CardHeader>
-            <CardTitle>Upgrade Your Plan</CardTitle>
+            <CardTitle id="current-plan-heading" className="flex items-center gap-2">
+              {tier === "enterprise" ? <CrownIcon className="h-5 w-5 text-yellow-500" aria-hidden="true" /> :
+               tier === "pro" ? <StarIcon className="h-5 w-5 text-blue-500" aria-hidden="true" /> :
+               <CreditCardIcon className="h-5 w-5 text-gray-500" aria-hidden="true" />}
+              Current Plan: {tier.charAt(0).toUpperCase() + tier.slice(1)}
+              <Badge variant={tier === "free" ? "secondary" : "default"}>
+                {tier === "free" ? "Free" : tier === "pro" ? "Pro" : "Enterprise"}
+              </Badge>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {tier === "free" && (
-                <div className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">Pro</h3>
-                    <Badge>Popular</Badge>
-                  </div>
-                  <div className="text-2xl font-bold">
-                    ${(pricing.monthly / 100)}
-                    <span className="text-sm text-gray-500">/month</span>
-                  </div>
-                  <ul className="text-sm space-y-1">
-                    <li>• 1,000 monthly credits</li>
-                    <li>• 50 projects</li>
-                    <li>• 5 teams</li>
-                    <li>• Advanced analytics</li>
-                    <li>• Priority support</li>
-                  </ul>
-                  <Button 
-                    onClick={() => handleUpgrade("pro")}
-                    className="w-full"
-                  >
-                    Upgrade to Pro
-                  </Button>
+            <div 
+              className="grid grid-cols-2 md:grid-cols-4 gap-4"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600" aria-label="Credits used">
+                  {usage?.currentUsage.credits || 0}
                 </div>
-              )}
-              
-              <div className={`border rounded-lg p-4 space-y-3 ${tier === "free" ? "md:col-span-2 lg:col-span-1" : ""}`}>
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold flex items-center gap-2">
-                  Enterprise
-                  <CrownIcon className="h-4 w-4 text-yellow-500" />
-                </h3>
+                <div className="text-sm text-gray-600">Credits Used</div>
               </div>
-                <div className="text-2xl font-bold">
-                  ${(tier === "free" ? 99 : tier === "pro" ? 99 : 0) / 100}
-                  <span className="text-sm text-gray-500">/month</span>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600" aria-label="Projects count">
+                  {usage?.currentUsage.projects || 0}
                 </div>
-                <ul className="text-sm space-y-1">
-                  <li>• Unlimited everything</li>
-                  <li>• Custom domains</li>
-                  <li>• Priority support</li>
-                  <li>• Advanced deployments</li>
-                  <li>• Custom themes</li>
-                </ul>
-                <Button 
-                  onClick={() => handleUpgrade("enterprise")}
-                  variant="default"
-                  className="w-full"
-                >
-                  Upgrade to Enterprise
-                </Button>
+                <div className="text-sm text-gray-600">Projects</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600" aria-label="Teams count">
+                  {usage?.currentUsage.teams || 0}
+                </div>
+                <div className="text-sm text-gray-600">Teams</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600" aria-label="Webhooks count">
+                  {usage?.currentUsage.webhooks || 0}
+                </div>
+                <div className="text-sm text-gray-600">Webhooks</div>
               </div>
             </div>
           </CardContent>
         </Card>
+      </section>
+
+      {/* Usage Limits */}
+      <section aria-labelledby="usage-limits-heading">
+        <Card>
+          <CardHeader>
+            <CardTitle id="usage-limits-heading" className="flex items-center gap-2">
+              <TrendingUpIcon className="h-5 w-5" aria-hidden="true" />
+              Usage & Limits
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Credits */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <ZapIcon className="h-4 w-4" aria-hidden="true" />
+                  Credits
+                </span>
+                <span aria-live="polite">
+                  {usage?.currentUsage.credits || 0} / {limits.maxCredits === -1 ? "∞" : limits.maxCredits}
+                </span>
+              </div>
+              {limits.maxCredits !== -1 && usage && (
+                <Progress
+                  value={usage.percentageUsed.credits}
+                  className="h-2"
+                  aria-label={`Credits usage: ${usage.percentageUsed.credits.toFixed(0)} percent`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={usage.percentageUsed.credits}
+                />
+              )}
+            </div>
+
+            {/* Projects */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <FolderOpenIcon className="h-4 w-4" aria-hidden="true" />
+                  Projects
+                </span>
+                <span aria-live="polite">
+                  {usage?.currentUsage.projects || 0} / {limits.maxProjects === -1 ? "∞" : limits.maxProjects}
+                </span>
+              </div>
+              {limits.maxProjects !== -1 && usage && (
+                <Progress
+                  value={usage.percentageUsed.projects}
+                  className="h-2"
+                  aria-label={`Projects usage: ${usage.percentageUsed.projects.toFixed(0)} percent`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={usage.percentageUsed.projects}
+                />
+              )}
+            </div>
+
+            {/* Teams */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <UsersIcon className="h-4 w-4" aria-hidden="true" />
+                  Teams
+                </span>
+                <span aria-live="polite">
+                  {usage?.currentUsage.teams || 0} / {limits.maxTeams === -1 ? "∞" : limits.maxTeams}
+                </span>
+              </div>
+              {limits.maxTeams !== -1 && usage && (
+                <Progress
+                  value={usage.percentageUsed.teams}
+                  className="h-2"
+                  aria-label={`Teams usage: ${usage.percentageUsed.teams.toFixed(0)} percent`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={usage.percentageUsed.teams}
+                />
+              )}
+            </div>
+
+            {/* Webhooks */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <WebhookIcon className="h-4 w-4" aria-hidden="true" />
+                  Webhooks
+                </span>
+                <span aria-live="polite">
+                  {usage?.currentUsage.webhooks || 0} / {limits.maxWebhooks === -1 ? "∞" : limits.maxWebhooks}
+                </span>
+              </div>
+              {limits.maxWebhooks !== -1 && usage && (
+                <Progress
+                  value={usage.percentageUsed.webhooks}
+                  className="h-2"
+                  aria-label={`Webhooks usage: ${usage.percentageUsed.webhooks.toFixed(0)} percent`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={usage.percentageUsed.webhooks}
+                />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Features */}
+      <section aria-labelledby="features-heading">
+        <Card>
+          <CardHeader>
+            <CardTitle id="features-heading" className="flex items-center gap-2">
+              <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
+              Features
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
+              role="list"
+              aria-label="Subscription features"
+            >
+              {Object.entries(features).map(([key, enabled]) => (
+                <div key={key} className="flex items-center gap-2" role="listitem">
+                  {enabled ? (
+                    <CheckCircleIcon className="h-4 w-4 text-green-500" aria-hidden="true" />
+                  ) : (
+                    <LockIcon className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                  )}
+                  <span className={`text-sm ${enabled ? "" : "text-gray-500"}`}>
+                    {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+                  </span>
+                  {!enabled && tier !== "enterprise" && (
+                    <Badge variant="outline" className="text-xs">
+                      Upgrade
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Upgrade Options */}
+      {tier !== "enterprise" && (
+        <section aria-labelledby="upgrade-heading">
+          <Card>
+            <CardHeader>
+              <CardTitle id="upgrade-heading">Upgrade Your Plan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                role="list"
+                aria-label="Available upgrade plans"
+              >
+                {tier === "free" && (
+                  <article className="border rounded-lg p-4 space-y-3" role="listitem">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold">Pro</h3>
+                      <Badge>Popular</Badge>
+                    </div>
+                    <div className="text-2xl font-bold" aria-label={`Pro plan: $${(29 / 100).toFixed(2)} per month`}>
+                      ${29 / 100}
+                      <span className="text-sm text-gray-500">/month</span>
+                    </div>
+                    <ul className="text-sm space-y-1" aria-label="Pro plan features">
+                      <li>• 1,000 monthly credits</li>
+                      <li>• 50 projects</li>
+                      <li>• 5 teams</li>
+                      <li>• Advanced analytics</li>
+                      <li>• Priority support</li>
+                    </ul>
+                    <Button
+                      onClick={() => handleUpgrade("pro")}
+                      className="w-full"
+                      aria-label={`Upgrade to Pro plan for $${(29 / 100).toFixed(2)} per month`}
+                    >
+                      Upgrade to Pro
+                    </Button>
+                  </article>
+                )}
+
+                <article className={`border rounded-lg p-4 space-y-3 ${tier === "free" ? "md:col-span-2 lg:col-span-1" : ""}`} role="listitem">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      Enterprise
+                      <CrownIcon className="h-4 w-4 text-yellow-500" aria-hidden="true" />
+                    </h3>
+                  </div>
+                  <div className="text-2xl font-bold" aria-label={`Enterprise plan: $${(99 / 100).toFixed(2)} per month`}>
+                    ${99 / 100}
+                    <span className="text-sm text-gray-500">/month</span>
+                  </div>
+                  <ul className="text-sm space-y-1" aria-label="Enterprise plan features">
+                    <li>• Unlimited everything</li>
+                    <li>• Custom domains</li>
+                    <li>• Priority support</li>
+                    <li>• Advanced deployments</li>
+                    <li>• Custom themes</li>
+                  </ul>
+                  <Button
+                    onClick={() => handleUpgrade("enterprise")}
+                    variant="default"
+                    className="w-full"
+                    aria-label={`Upgrade to Enterprise plan for $${(99 / 100).toFixed(2)} per month`}
+                  >
+                    Upgrade to Enterprise
+                  </Button>
+                </article>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
       )}
-    </div>
+    </main>
   );
 }
