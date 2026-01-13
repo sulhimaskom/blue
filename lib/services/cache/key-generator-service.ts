@@ -1,6 +1,11 @@
 import crypto from "crypto";
 import { NextRequest } from "next/server";
 
+export interface ETagGenerationOptions {
+  algorithm?: 'md5' | 'sha1' | 'sha256' | 'sha512';
+  includeMetadata?: boolean;
+  customSalt?: string;
+}
 
 /**
  * Service for generating cache keys with consistent patterns

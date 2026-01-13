@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
+import { sql } from "drizzle-orm";
 import * as schema from "./schema";
 import { logger } from "../logger";
 import { DatabaseError, DatabaseConnectionError } from "./errors";
@@ -273,3 +274,4 @@ export async function getPoolStats() {
 
 // For backward compatibility during transition
 export const db = getDb;
+export { sql };

@@ -7,7 +7,6 @@
  */
 
 import { ServiceResult } from "./service-types";
-import { ServiceError } from "./service-error-handler";
 import { logger as Logger } from "@/lib/logger";
 import {
   users,
@@ -15,7 +14,7 @@ import {
   subscriptionUsage,
   type SubscriptionUsage,
 } from "@/lib/db/schema";
-import { db } from "@/lib/db";
+import { db, sql } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
 
 // =============================================================================
@@ -119,13 +118,13 @@ export class SubscriptionService {
         return { success: true, data: cached };
       }
 
-      const plans = await db
+      const plans = await db()
         .select()
         .from(subscriptionPlans)
         .where(eq(subscriptionPlans.isActive, true))
         .orderBy(subscriptionPlans.sortOrder);
 
-      const tierInfos: SubscriptionTierInfo[] = plans.map((plan) => ({
+      const tierInfos: SubscriptionTierInfo[] = plans.map((plan: any) => ({
         tier: plan.tier as SubscriptionTier,
         limits: {
           maxCredits: plan.maxCredits,
@@ -166,7 +165,7 @@ export class SubscriptionService {
       Logger.error("Failed to get subscription tiers", { error });
       return {
         success: false,
-        error: new ServiceError("Failed to get subscription tiers", "SubscriptionService", "getSubscriptionTiers"),
+        error: "Failed to get subscription tiers",
       };
     }
   }
@@ -177,8 +176,11 @@ export class SubscriptionService {
   async getSubscriptionTier(tier: SubscriptionTier): Promise<ServiceResult<SubscriptionTierInfo | null>> {
     try {
       const tiersResult = await this.getSubscriptionTiers();
-      if (!tiersResult.success) {
-        return tiersResult;
+      if (!tiersResult.success || !tiersResult.data) {
+        return {
+          success: false,
+          error: tiersResult.error || "Failed to get subscription tiers",
+        };
       }
 
       const tierInfo = tiersResult.data?.find((t) => t.tier === tier) || null;
@@ -187,7 +189,7 @@ export class SubscriptionService {
       Logger.error("Failed to get subscription tier", { tier, error });
       return {
         success: false,
-        error: new ServiceError("Failed to get subscription tier", "SUBSCRIPTION_TIER_ERROR"),
+        error: "Failed to get subscription tier",
       };
     }
   }
@@ -198,7 +200,7 @@ export class SubscriptionService {
   async getCurrentUserSubscription(userId: number): Promise<ServiceResult<SubscriptionTierInfo & { usage: UsageMetrics }>> {
     try {
       // Get user information
-      const userResult = await db
+      const userResult = await db()
         .select()
         .from(users)
         .where(eq(users.id, userId))
@@ -207,7 +209,7 @@ export class SubscriptionService {
       if (userResult.length === 0) {
         return {
           success: false,
-          error: new ServiceError("User not found", "USER_NOT_FOUND"),
+          error: "User not found",
         };
       }
 
@@ -216,14 +218,10 @@ export class SubscriptionService {
 
       // Get tier configuration
       const tierResult = await this.getSubscriptionTier(userTier);
-      if (!tierResult.success) {
-        return tierResult;
-      }
-
-      if (!tierResult.data) {
+      if (!tierResult.success || !tierResult.data) {
         return {
           success: false,
-          error: new ServiceError("Invalid subscription tier", "INVALID_TIER"),
+          error: tierResult.error || "Invalid subscription tier",
         };
       }
 
@@ -231,8 +229,11 @@ export class SubscriptionService {
 
       // Get current usage
       const usageResult = await this.getUserUsage(userId);
-      if (!usageResult.success) {
-        return usageResult;
+      if (!usageResult.success || !usageResult.data) {
+        return {
+          success: false,
+          error: usageResult.error || "Failed to get user usage",
+        };
       }
 
       return {
@@ -246,7 +247,7 @@ export class SubscriptionService {
       Logger.error("Failed to get user subscription", { userId, error });
       return {
         success: false,
-        error: new ServiceError("Failed to get user subscription", "USER_SUBSCRIPTION_ERROR"),
+        error: "Failed to get user subscription",
       };
     }
   }
@@ -261,9 +262,9 @@ export class SubscriptionService {
   async checkFeatureAccess(
     userId: number,
     feature: keyof TierFeatures,
-  ): Promise<ServiceResult<{ hasAccess: boolean; tier: Subscription }>> {
+  ): Promise<ServiceResult<{ hasAccess: boolean; tier: SubscriptionTier }>> {
     try {
-      const userResult = await db
+      const userResult = await db()
         .select()
         .from(users)
         .where(eq(users.id, userId))
@@ -272,7 +273,7 @@ export class SubscriptionService {
       if (userResult.length === 0) {
         return {
           success: false,
-          error: new ServiceError("User not found", "USER_NOT_FOUND"),
+          error: "User not found",
         };
       }
 
@@ -282,13 +283,13 @@ export class SubscriptionService {
       if (!tierResult.success || !tierResult.data) {
         return {
           success: false,
-          error: new ServiceError("Invalid subscription tier", "INVALID_TIER"),
+          error: "Invalid subscription tier",
         };
       }
 
-      const hasAccess = tierResult.data.features[feature];
+      const hasAccess = Boolean(tierResult.data.features[feature]);
 
-      Logger.userAction(`Feature access check`, userId, {
+      Logger.userAction(`Feature access check`, userId.toString(), {
         feature,
         hasAccess,
         tier: user.subscriptionTier,
@@ -298,14 +299,14 @@ export class SubscriptionService {
         success: true,
         data: {
           hasAccess,
-          tier: user,
+          tier: user.subscriptionTier as SubscriptionTier,
         },
       };
     } catch (error) {
       Logger.error("Failed to check feature access", { userId, feature, error });
       return {
         success: false,
-        error: new ServiceError("Failed to check feature access", "FEATURE_ACCESS_ERROR"),
+        error: "Failed to check feature access",
       };
     }
   }
@@ -316,8 +317,11 @@ export class SubscriptionService {
   async canCreateProject(userId: number): Promise<ServiceResult<{ canCreate: boolean; reason?: string }>> {
     try {
       const subscriptionResult = await this.getCurrentUserSubscription(userId);
-      if (!subscriptionResult.success) {
-        return subscriptionResult;
+      if (!subscriptionResult.success || !subscriptionResult.data) {
+        return {
+          success: false,
+          error: subscriptionResult.error || "Failed to get subscription",
+        };
       }
 
       const { usage, limits } = subscriptionResult.data;
@@ -341,7 +345,7 @@ export class SubscriptionService {
       Logger.error("Failed to check project creation permission", { userId, error });
       return {
         success: false,
-        error: new ServiceError("Failed to check project permission", "PROJECT_PERMISSION_ERROR"),
+        error: "Failed to check project permission",
       };
     }
   }
@@ -352,8 +356,11 @@ export class SubscriptionService {
   async canCreateTeam(userId: number): Promise<ServiceResult<{ canCreate: boolean; reason?: string }>> {
     try {
       const subscriptionResult = await this.getCurrentUserSubscription(userId);
-      if (!subscriptionResult.success) {
-        return subscriptionResult;
+      if (!subscriptionResult.success || !subscriptionResult.data) {
+        return {
+          success: false,
+          error: subscriptionResult.error || "Failed to get subscription",
+        };
       }
 
       const { usage, limits } = subscriptionResult.data;
@@ -377,7 +384,7 @@ export class SubscriptionService {
       Logger.error("Failed to check team creation permission", { userId, error });
       return {
         success: false,
-        error: new ServiceError("Failed to check team permission", "TEAM_PERMISSION_ERROR"),
+        error: "Failed to check team permission",
       };
     }
   }
@@ -390,7 +397,7 @@ export class SubscriptionService {
     requiredCredits: number,
   ): Promise<ServiceResult<{ hasCredits: boolean; currentCredits: number }>> {
     try {
-      const userResult = await db
+      const userResult = await db()
         .select()
         .from(users)
         .where(eq(users.id, userId))
@@ -399,7 +406,7 @@ export class SubscriptionService {
       if (userResult.length === 0) {
         return {
           success: false,
-          error: new ServiceError("User not found", "USER_NOT_FOUND"),
+          error: "User not found",
         };
       }
 
@@ -417,7 +424,7 @@ export class SubscriptionService {
       Logger.error("Failed to check credits", { userId, requiredCredits, error });
       return {
         success: false,
-        error: new ServiceError("Failed to check credits", "CREDITS_CHECK_ERROR"),
+        error: "Failed to check credits",
       };
     }
   }
@@ -432,16 +439,19 @@ export class SubscriptionService {
   async getUserUsage(userId: number): Promise<ServiceResult<UsageMetrics>> {
     try {
       const subscriptionResult = await this.getCurrentUserSubscription(userId);
-      if (!subscriptionResult.success) {
-        return subscriptionResult;
+      if (!subscriptionResult.success || !subscriptionResult.data) {
+        return {
+          success: false,
+          error: subscriptionResult.error || "Failed to get subscription",
+        };
       }
 
       const { limits } = subscriptionResult.data;
 
       // Get current period usage
       const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM
-      
-      const usageResult = await db
+
+      const usageResult = await db()
         .select()
         .from(subscriptionUsage)
         .where(
@@ -455,7 +465,7 @@ export class SubscriptionService {
       let usage: SubscriptionUsage;
       if (usageResult.length === 0) {
         // Create usage record for current period
-        const newUsage = await db
+        const newUsage = await db()
           .insert(subscriptionUsage)
           .values({
             userId,
@@ -469,10 +479,11 @@ export class SubscriptionService {
       }
 
       // Get actual counts from database
+      const { projects, teams, webhookConfigurations } = require("@/lib/db/schema");
       const [projectCount, teamCount, webhookCount] = await Promise.all([
-        db.select().from(require("@/lib/db/schema").projects).where(eq(require("@/lib/db/schema").projects.ownerId, userId)),
-        db.select().from(require("@/lib/db/schema").teams).where(eq(require("@/lib/db/schema").teams.ownerId, userId)),
-        db.select().from(require("@/lib/db/schema").webhookConfigurations).where(eq(require("@/lib/db/schema").webhookConfigurations.userId, userId)),
+        db().select().from(projects).where(eq(projects.ownerId, userId)),
+        db().select().from(teams).where(eq(teams.ownerId, userId)),
+        db().select().from(webhookConfigurations).where(eq(webhookConfigurations.userId, userId)),
       ]);
 
       const currentUsage = {
@@ -510,7 +521,7 @@ export class SubscriptionService {
       Logger.error("Failed to get user usage", { userId, error });
       return {
         success: false,
-        error: new ServiceError("Failed to get user usage", "USAGE_ERROR"),
+        error: "Failed to get user usage",
       };
     }
   }
@@ -526,14 +537,14 @@ export class SubscriptionService {
     try {
       const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM
 
-      await db
+      await db()
         .update(subscriptionUsage)
         .set({
           [usageType === "credits" ? "creditsUsed" :
            usageType === "projects" ? "projectsCreated" :
            usageType === "teams" ? "teamsCreated" :
            usageType === "webhooks" ? "webhooksCreated" :
-           "apiRequests"]: db.raw(`${usageType === "api_requests" ? "api_requests" : usageType} + ${amount}`),
+           "apiRequests"]: sql`${usageType === "api_requests" ? "api_requests" : usageType} + ${amount}`,
           updatedAt: new Date(),
         })
         .where(
@@ -543,7 +554,7 @@ export class SubscriptionService {
           ),
         );
 
-      Logger.userAction(`Usage tracked`, userId, {
+      Logger.userAction(`Usage tracked`, userId.toString(), {
         usageType,
         amount,
         period: currentPeriod,
@@ -554,7 +565,7 @@ export class SubscriptionService {
       Logger.error("Failed to track usage", { userId, usageType, amount, error });
       return {
         success: false,
-        error: new ServiceError("Failed to track usage", "USAGE_TRACKING_ERROR"),
+        error: "Failed to track usage",
       };
     }
   }
@@ -577,12 +588,12 @@ export class SubscriptionService {
       if (!tierResult.success || !tierResult.data) {
         return {
           success: false,
-          error: new ServiceError("Invalid subscription tier", "INVALID_TIER"),
+          error: "Invalid subscription tier",
         };
       }
 
       // Update user's subscription tier
-      await db
+      await db()
         .update(users)
         .set({
           subscriptionTier: newTier,
@@ -592,15 +603,15 @@ export class SubscriptionService {
 
       // Add credits for upgrade (one-time grant)
       if (tierResult.data.limits.monthlyCreditAllowance > 0) {
-        await db
+        await db()
           .update(users)
           .set({
-            credits: db.raw(`credits + ${tierResult.data.limits.monthlyCreditAllowance}`),
+            credits: sql`credits + ${tierResult.data.limits.monthlyCreditAllowance}`,
           })
           .where(eq(users.id, userId));
       }
 
-      Logger.userAction(`Subscription upgraded`, userId, {
+      Logger.userAction(`Subscription upgraded`, userId.toString(), {
         newTier,
         stripeSubscriptionId,
         creditsGranted: tierResult.data.limits.monthlyCreditAllowance,
@@ -611,7 +622,7 @@ export class SubscriptionService {
       Logger.error("Failed to upgrade subscription", { userId, newTier, error });
       return {
         success: false,
-        error: new ServiceError("Failed to upgrade subscription", "SUBSCRIPTION_UPGRADE_ERROR"),
+        error: "Failed to upgrade subscription",
       };
     }
   }
