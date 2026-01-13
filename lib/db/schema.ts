@@ -256,6 +256,29 @@ export type NewSubscriptionPlan = typeof subscriptionPlans.$inferInsert;
 export type SubscriptionUsage = typeof subscriptionUsage.$inferSelect;
 export type NewSubscriptionUsage = typeof subscriptionUsage.$inferInsert;
 
+// User settings table for personalization
+export const userSettings = pgTable("user_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull()
+    .unique(),
+  notificationPreferences: jsonb("notification_preferences").notNull(),
+  theme: text("theme").default("system").notNull(),
+  language: text("language").default("en").notNull(),
+  timezone: text("timezone").default("UTC").notNull(),
+  defaultProjectVisibility: text("default_project_visibility").default("private").notNull(),
+  defaultBlueprintPricingPackage: text("default_blueprint_pricing_package").default("standard").notNull(),
+  uiPreferences: jsonb("ui_preferences").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  deletedAt: timestamp("deleted_at"),
+});
+
 // Activity log types
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type NewActivityLog = typeof activityLogs.$inferInsert;
+
+// User settings types
+export type UserSettings = typeof userSettings.$inferSelect;
+export type NewUserSettings = typeof userSettings.$inferInsert;
