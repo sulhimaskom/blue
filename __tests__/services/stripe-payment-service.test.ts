@@ -54,6 +54,9 @@ describe("StripePaymentService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset singleton instance to ensure fresh initialization
+    (StripePaymentService as any).instance = undefined;
+
     // Set required environment variables
     process.env.STRIPE_SECRET_KEY = "sk_test_mock_key";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_mock_secret";
@@ -69,6 +72,8 @@ describe("StripePaymentService", () => {
   });
 
   afterEach(() => {
+    // Reset singleton instance after each test
+    (StripePaymentService as any).instance = undefined;
     // Restore environment variables
     process.env.STRIPE_SECRET_KEY = "sk_test_mock_key";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_mock_secret";
