@@ -392,13 +392,24 @@ export class MonitoringService {
    * ```
    */
   validateMonitoringData(data: MonitoringData): boolean {
-    // Basic validation to ensure data structure integrity
+    const isValid = this._validateMonitoringDataInternal(data);
+
+    if (!isValid) {
+      logger.error("Invalid monitoring data structure", {
+        service: "MonitoringService",
+        context: { data }
+      });
+    }
+
+    return isValid;
+  }
+
+  private _validateMonitoringDataInternal(data: MonitoringData): boolean {
     if (!data.health && !data.metrics) {
       return false;
     }
 
     if (data.health) {
-      // Validate health data structure
       if (
         !data.health.status ||
         !data.health.timestamp ||
@@ -409,7 +420,6 @@ export class MonitoringService {
     }
 
     if (data.metrics) {
-      // Validate metrics data structure
       if (!Array.isArray(data.metrics.metrics) || !data.metrics.summaries) {
         return false;
       }

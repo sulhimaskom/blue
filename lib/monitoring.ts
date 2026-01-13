@@ -325,8 +325,7 @@ class MonitoringService {
     // In production, this would send to Sentry/DataDog/etc.
     if (process.env.NODE_ENV === "production" && severity === "critical") {
       // Future: Send to external monitoring service
-      // eslint-disable-next-line no-console
-      console.error("CRITICAL ERROR:", event);
+      logger.error("CRITICAL ERROR", { event });
     }
   }
 
@@ -355,8 +354,7 @@ class MonitoringService {
     logger.security(event, metadata);
 
     if (severity === "critical") {
-      // eslint-disable-next-line no-console
-      console.error("CRITICAL SECURITY EVENT:", monitoringEvent);
+      logger.error("CRITICAL SECURITY EVENT", { monitoringEvent });
     }
   }
 
