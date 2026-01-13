@@ -17,7 +17,7 @@ export class SecurityService {
    * Production-grade implementation with Svix webhook verification
    */
   static verifyClerkWebhook(body: string, headers: Headers): boolean {
-    const clerkSecretKey = process.env.NODE_ENV === "test" ? process.env.CLERK_SECRET_KEY : env.CLERK_SECRET_KEY;
+    const clerkSecretKey = env.CLERK_SECRET_KEY;
     const svixId = headers.get("svix-id");
     const svixTimestamp = headers.get("svix-timestamp");
     const svixSignature = headers.get("svix-signature");
@@ -38,9 +38,7 @@ export class SecurityService {
 
     try {
       // For Clerk webhook verification, we use a dedicated webhook secret or fallback to secret key
-      const webhookSecret = process.env.NODE_ENV === "test" 
-        ? (process.env.CLERK_WEBHOOK_SECRET || clerkSecretKey)
-        : (env.CLERK_WEBHOOK_SECRET || clerkSecretKey);
+      const webhookSecret = env.CLERK_WEBHOOK_SECRET || clerkSecretKey;
 
       // Construct the expected signature string
       const timestampedPayload = `${svixId}.${svixTimestamp}.${body}`;
@@ -294,27 +292,19 @@ export class SecurityService {
    */
   static getStripeWebhookSecrets(): string[] {
     // Primary webhook secret (from environment)
-    const primarySecret = process.env.NODE_ENV === "test" 
-      ? process.env.STRIPE_WEBHOOK_SECRET 
-      : env.STRIPE_WEBHOOK_SECRET;
+    const primarySecret = env.STRIPE_WEBHOOK_SECRET;
 
     // Support for multiple secrets (rotation)
-    const additionalSecrets = process.env.NODE_ENV === "test"
-      ? (process.env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL
-          ?.split(",")
-          ?.map((s: string) => s.trim())
-          ?.filter((s: string) => s.length > 0) || [])
-      : (env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL
-          ? env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL.split(",")
-              .map((s: string) => s.trim())
-              .filter((s: string) => s.length > 0)
-          : []);
+    const additionalSecrets = env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL
+      ? env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL.split(",")
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0)
+      : [];
 
     // Fallback to secret key only for development (not recommended for production)
-    const fallbackSecret =
-      process.env.NODE_ENV === "development"
-        ? process.env.STRIPE_SECRET_KEY
-        : null;
+    const fallbackSecret = env.NODE_ENV === "development"
+      ? env.STRIPE_SECRET_KEY
+      : null;
 
     const secrets = [];
 
@@ -326,7 +316,7 @@ export class SecurityService {
       this.logSecurityEvent(
         "Stripe webhook configuration error - no valid secrets found",
         {
-          environment: process.env.NODE_ENV,
+          environment: env.NODE_ENV,
           hasPrimarySecret: !!primarySecret,
           hasAdditionalSecrets: additionalSecrets.length > 0,
           hasFallbackSecret: !!fallbackSecret,

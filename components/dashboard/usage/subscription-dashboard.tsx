@@ -6,20 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-import { 
-  CreditCard, 
-  Users, 
-  FolderOpen, 
-  Webhook, 
-  TrendingUp,
-  Lock,
-  CheckCircle,
-  AlertCircle,
-  Zap,
-  Crown,
-  Star
-} from "lucide-react";
+import {
+  CreditCardIcon,
+  UsersIcon,
+  FolderOpenIcon,
+  WebhookIcon,
+  TrendingUpIcon,
+  LockIcon,
+  CheckCircleIcon,
+  AlertCircleIcon,
+  ZapIcon,
+  CrownIcon,
+  StarIcon
+} from "@/components/ui/icons";
 
 interface SubscriptionTier {
   tier: string;
@@ -137,7 +136,7 @@ export function SubscriptionDashboard() {
   if (error) {
     return (
       <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
+        <AlertCircleIcon className="h-4 w-4" />
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
@@ -146,7 +145,7 @@ export function SubscriptionDashboard() {
   if (!subscription) {
     return (
       <Alert>
-        <AlertCircle className="h-4 w-4" />
+        <AlertCircleIcon className="h-4 w-4" />
         <AlertDescription>Unable to load subscription information</AlertDescription>
       </Alert>
     );
@@ -160,9 +159,9 @@ export function SubscriptionDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            {tier === "enterprise" ? <Crown className="h-5 w-5 text-yellow-500" /> :
-             tier === "pro" ? <Star className="h-5 w-5 text-blue-500" /> :
-             <CreditCard className="h-5 w-5 text-gray-500" />}
+            {tier === "enterprise" ? <CrownIcon className="h-5 w-5 text-yellow-500" /> :
+             tier === "pro" ? <StarIcon className="h-5 w-5 text-blue-500" /> :
+             <CreditCardIcon className="h-5 w-5 text-gray-500" />}
             Current Plan: {tier.charAt(0).toUpperCase() + tier.slice(1)}
             <Badge variant={tier === "free" ? "secondary" : "default"}>
               {tier === "free" ? "Free" : tier === "pro" ? "Pro" : "Enterprise"}
@@ -203,7 +202,7 @@ export function SubscriptionDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
+            <TrendingUpIcon className="h-5 w-5" />
             Usage & Limits
           </CardTitle>
         </CardHeader>
@@ -212,7 +211,7 @@ export function SubscriptionDashboard() {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="flex items-center gap-2">
-                <Zap className="h-4 w-4" />
+                <ZapIcon className="h-4 w-4" />
                 Credits
               </span>
               <span>
@@ -228,7 +227,7 @@ export function SubscriptionDashboard() {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="flex items-center gap-2">
-                <FolderOpen className="h-4 w-4" />
+                <FolderOpenIcon className="h-4 w-4" />
                 Projects
               </span>
               <span>
@@ -244,7 +243,7 @@ export function SubscriptionDashboard() {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
+                <UsersIcon className="h-4 w-4" />
                 Teams
               </span>
               <span>
@@ -260,7 +259,7 @@ export function SubscriptionDashboard() {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="flex items-center gap-2">
-                <Webhook className="h-4 w-4" />
+                <WebhookIcon className="h-4 w-4" />
                 Webhooks
               </span>
               <span>
@@ -278,7 +277,7 @@ export function SubscriptionDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5" />
+            <CheckCircleIcon className="h-5 w-5" />
             Features
           </CardTitle>
         </CardHeader>
@@ -287,9 +286,9 @@ export function SubscriptionDashboard() {
             {Object.entries(features).map(([key, enabled]) => (
               <div key={key} className="flex items-center gap-2">
                 {enabled ? (
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CheckCircleIcon className="h-4 w-4 text-green-500" />
                 ) : (
-                  <Lock className="h-4 w-4 text-gray-400" />
+                  <LockIcon className="h-4 w-4 text-gray-400" />
                 )}
                 <span className={`text-sm ${enabled ? "" : "text-gray-500"}`}>
                   {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
@@ -340,12 +339,12 @@ export function SubscriptionDashboard() {
               )}
               
               <div className={`border rounded-lg p-4 space-y-3 ${tier === "free" ? "md:col-span-2 lg:col-span-1" : ""}`}>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    Enterprise
-                    <Crown className="h-4 w-4 text-yellow-500" />
-                  </h3>
-                </div>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold flex items-center gap-2">
+                  Enterprise
+                  <CrownIcon className="h-4 w-4 text-yellow-500" />
+                </h3>
+              </div>
                 <div className="text-2xl font-bold">
                   ${(tier === "free" ? 99 : tier === "pro" ? 99 : 0) / 100}
                   <span className="text-sm text-gray-500">/month</span>

@@ -1,203 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-
-/**
- * Advanced Performance Dashboard Component - Comprehensive System Analytics Hub
- *
- * MISSION STATEMENT:
- * Provides real-time advanced analytics for AI optimization, predictive performance, and system metrics
- * following blueprint.md Service Layer principles with zero business logic in UI components.
- *
- * ARCHITECTURAL PATTERN (MCP-Style Compliance):
- * - Service Layer Isolation: All data processing delegated to monitoringAPI and useInterval hook
- * - Zero Business Logic: Component purely handles state management and UI rendering
- * - Atomic Design: Three specialized tabs with single responsibilities (Overview/AI/Predictive)
- * - Performance Optimization: Memoized callbacks, intelligent caching, and background refetching
- * - Error Resilience: Comprehensive error boundaries with graceful degradation
- *
- * FOUR-PHASE ANALYTICS PIPELINE:
- *
- * Phase 1: Discovery (Data Monitoring)
- * - Parallel data fetching from three distinct API endpoints
- * - Real-time metrics collection with 30-second refresh cycles
- * - Intelligent caching to prevent API overload and reduce costs
- * - Background synchronization without blocking UI interactions
- *
- * Phase 2: Analytics Processing (Performance Intelligence)
- * - Advanced Performance Metrics: System/Application/Database performance tracking
- * - AI Cost Optimization: Intelligent caching patterns with cost reduction quantification
- * - Predictive Analytics: Machine learning-inspired performance predictions and recommendations
- * - Comprehensive data aggregation with statistical analysis and trend identification
- *
- * Phase 3: Interactive Refinement (User-Driven Optimization)
- * - Tab-based navigation for specialized analytics views (Overview/AI/Predictive)
- * - Real-time optimization application with immediate feedback
- * - Manual refresh capabilities with loading state management
- * - Auto-refresh toggle for continuous monitoring vs manual control
- *
- * Phase 4: Production Insights (Actionable Intelligence)
- * - AI Optimization recommendations with confidence scoring and cost impact
- * - Predictive performance issues with severity classification and suggested actions
- * - Health score monitoring with service-level breakdown and uptime tracking
- * - Real-time performance alerting with automatic issue detection and recovery
- *
- * INTEGRATION ARCHITECTURE:
- *
- * External API Dependencies:
- * - monitoringAPI.getAdvancedMonitoring(): System/Application/Database metrics
- * - monitoringAPI.getAICacheOptimization(): AI cost optimization and caching patterns
- * - monitoringAPI.getPredictivePerformance(): ML-inspired predictive analytics
- * - monitoringAPI.getPredictiveOptimization(): Apply optimization recommendations
- *
- * State Management Layer:
- * - metrics: Advanced performance metrics from all three system layers
- * - aiMetrics: AI optimization data with cost savings and confidence scores
- * - predictiveData: Predictive analytics with recommendations and severity levels
- * - loading/refreshing: Loading state machines for better UX
- * - autoRefresh/lastRefresh: Refresh control and timestamp tracking
- * - activeTab: Tab navigation state (overview/ai/predictive)
- *
- * Service Layer Integration:
- * - UnifiedCacheManager: Intelligent caching with 40-60% performance improvements
- * - MonitoringDashboardService: Real-time metrics calculation and aggregation
- * - AIPatternDetector: Industry-specific optimization pattern recognition
- * - DatabaseQueryCache: Query-level performance optimization with predictive caching
- *
- * PERFORMANCE CHARACTERISTICS:
- *
- * Data Processing Timeline: 60-125 seconds for complete analytics refresh
- * - Parallel API calls: Concurrent fetching reduces total request time by 65%
- * - Intelligent Caching: Pattern-aware TTL scaling reduces repeat calls by 40-60%
- * - Background Processing: Non-blocking refresh maintains UI responsiveness
- * - Memory Optimization: Efficient state management prevents memory leaks
- *
- * Optimization Opportunities:
- * - AI Cost Savings: Identifies caching opportunities with 20-80% cost reduction
- * - Performance Improvements: Query optimization with 25-40% response time gains
- * - Predictive Maintenance: Early issue detection with 70-90% accuracy
- * - Resource Optimization: Intelligent resource allocation based on usage patterns
- *
- * ERROR HANDLING STRATEGY:
- *
- * Graceful Degradation:
- * - Network failures: Retries with exponential backoff and circuit breaker protection
- * - API errors: User-friendly error messages without exposing internal details
- * - Loading states: Skeleton loaders prevent layout shifts during data fetch
- * - Empty states: Informative placeholders with retry capabilities
- *
- * Cleanup and Recovery:
- * - Component unmounting: Cleanup of intervals and background processes
- * - Error recovery: Automatic retry mechanisms with user manual override
- * - State reset: Clean error state management for subsequent operations
- * - Performance monitoring: Error tracking with correlation IDs for debugging
- *
- * USAGE EXAMPLES:
- *
- * Basic Implementation:
- * ```tsx
- * <AdvancedPerformanceDashboard
- *   onError={(error) => console.error('Dashboard error:', error)}
- *   onSuccess={(message) => toast.success(message)}
- * />
- * ```
- *
- * Advanced Integration with Error Handling:
- * ```tsx
- * const [dashboardError, setDashboardError] = useState<string | null>(null);
- * const [successMessage, setSuccessMessage] = useState<string | null>(null);
- *
- * const handleError = useCallback((error: string) => {
- *   setDashboardError(error);
- *   errorMonitor.trackError('dashboard', error);
- * }, []);
- *
- * const handleSuccess = useCallback((message: string) => {
- *   setSuccessMessage(message);
- *   toast.success(message);
- * }, []);
- *
- * <AdvancedPerformanceDashboard
- *   onError={handleError}
- *   onSuccess={handleSuccess}
- * />
- * ```
- *
- * FUTURE EXTENSIBILITY:
- *
- * Planned Enhancements:
- * - Real-time WebSocket integration for live metrics streaming
- * - Custom alert configuration with threshold-based notifications
- * - Historical trend analysis with period-over-period comparisons
- * - Export capabilities for analytics data (PDF/CSV/JSON formats)
- * - Custom dashboard widgets with drag-and-drop configuration
- * - Advanced filtering and date range selection capabilities
- *
- * Integration Points:
- * - New analytics APIs can be added to the parallel fetch pattern
- * - Additional tabs can be inserted into the navigation system
- * - Custom optimization types can extend the applyOptimization function
- * - Theme system integration for personalized visualization preferences
- *
- * @component AdvancedPerformanceDashboard
- * @author World-class Software Architect
- * @version 1.0.0
- * @since 2025-01-11
- *
- * @example
- * // Complete setup with error handling and success callbacks
- * import { AdvancedPerformanceDashboard } from '@/components/monitoring/advanced-performance-dashboard';
- *
- * function MonitoringPage() {
- *   const handleError = useCallback((error: string) => {
- *     errorMonitor.trackUserAction('dashboard_error', { error });
- *     toast.error(`Performance dashboard error: ${error}`);
- *   }, []);
- *
- *   const handleSuccess = useCallback((message: string) => {
- *     logger.info('Dashboard operation successful', { message });
- *     toast.success(message);
- *   }, []);
- *
- *   return (
- *     <div className="monitoring-layout">
- *       <AdvancedPerformanceDashboard
- *         onError={handleError}
- *         onSuccess={handleSuccess}
- *       />
- *     </div>
- *   );
- * }
- *
- * @see monitoringAPI - Core analytics API integration
- * @see useInterval - Background refresh management
- * @see PerformanceOverviewTab - System metrics visualization
- * @see AIOptimizationTab - AI optimization interface
- * @see PredictiveAnalyticsTab - Predictive analytics display
- *
- * @returns {JSX.Element} Fully interactive performance analytics dashboard
- */
+import React, { useState, useEffect } from "react";
 import { BaseCard } from "@/components/ui/base-card";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { Button } from "@/components/ui/button";
 import type { StatusType } from "@/lib/services/service-types";
-import {
-  CpuIcon,
-  TrendingUpIcon,
-  BarChart3Icon,
-  ZapIcon,
-} from "@/components/ui/icons";
+import { CpuIcon } from "@/components/ui/icons";
 import { cn, getTextColor } from "@/lib/constants/ui-themes";
 import { useInterval, STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
-import { monitoringAPI } from "@/lib/services/monitoring-api";
-import {
-  AdvancedPerformanceMetrics,
-  AICacheOptimizationMetrics,
-  PredictivePerformanceData,
-} from "./advanced-performance-dashboard.types";
 import { PerformanceOverviewTab } from "./PerformanceOverviewTab";
 import { AIOptimizationTab } from "./AIOptimizationTab";
 import { PredictiveAnalyticsTab } from "./PredictiveAnalyticsTab";
+import { DashboardTabs } from "./dashboard-tabs";
+import { DashboardControls } from "./dashboard-controls";
+import { useAdvancedMetricsData } from "./use-advanced-metrics-data";
+import { useOptimizationHandler } from "./use-optimization-handler";
 
 /**
  * Props interface for AdvancedPerformanceDashboard component.
@@ -458,70 +275,29 @@ export const AdvancedPerformanceDashboard: React.FC<
   onError = (_error: string) => {},
   onSuccess = (_message: string) => {},
 }) => {
-  const [metrics, setMetrics] = useState<AdvancedPerformanceMetrics | null>(
-    null,
-  );
-  const [aiMetrics, setAiMetrics] = useState<AICacheOptimizationMetrics | null>(
-    null,
-  );
-  const [predictiveData, setPredictiveData] =
-    useState<PredictivePerformanceData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "ai" | "predictive">(
     "overview",
   );
 
-  const fetchAdvancedMetrics = useCallback(async () => {
-    try {
-      setRefreshing(true);
-      const [metricsData, aiData, predictiveData] = await Promise.all([
-        monitoringAPI.getAdvancedMonitoring(),
-        monitoringAPI.getAICacheOptimization(),
-        monitoringAPI.getPredictivePerformance(),
-      ]);
+  const {
+    metrics,
+    aiMetrics,
+    predictiveData,
+    loading,
+    refreshing,
+    lastRefresh,
+    fetchAdvancedMetrics,
+  } = useAdvancedMetricsData({
+    onError,
+    onSuccess,
+  });
 
-      setMetrics(metricsData);
-      setAiMetrics(aiData);
-      setPredictiveData(predictiveData);
-      setLastRefresh(new Date());
-      onSuccess?.("Advanced performance metrics updated successfully");
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      onError?.(
-        `Failed to fetch advanced performance metrics: ${errorMessage}`,
-      );
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [onError, onSuccess]);
-
-  const applyOptimization = async (optimizationIndex: number) => {
-    if (!aiMetrics) return;
-
-    try {
-      const optimization = aiMetrics.optimizations[optimizationIndex];
-      await monitoringAPI.getPredictiveOptimization({
-        optimizationType: optimization.type,
-        parameters: {
-          description: optimization.description,
-          estimatedSavings: optimization.estimatedSavings,
-          confidence: optimization.confidence,
-        },
-      });
-
-      onSuccess?.(
-        `Optimization "${optimization.description}" applied successfully`,
-      );
-      await fetchAdvancedMetrics();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      onError?.(`Failed to apply optimization: ${errorMessage}`);
-    }
-  };
+  const { applyOptimization } = useOptimizationHandler({
+    onError,
+    onSuccess,
+    onRefresh: fetchAdvancedMetrics,
+  });
 
   const { stop, restart } = useInterval(fetchAdvancedMetrics, {
     intervalMs: STANDARD_INTERVALS.DEFAULT_MONITORING,
@@ -536,10 +312,6 @@ export const AdvancedPerformanceDashboard: React.FC<
       stop();
     }
   }, [autoRefresh, restart, stop]);
-
-  useEffect(() => {
-    fetchAdvancedMetrics();
-  }, [fetchAdvancedMetrics]);
 
   if (loading && !metrics) {
     return (
@@ -589,91 +361,15 @@ export const AdvancedPerformanceDashboard: React.FC<
           <StatusIndicator status={"success" as StatusType} size="sm" />
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            className={cn(autoRefresh ? "bg-green-50 border-green-300" : "")}
-            aria-pressed={autoRefresh}
-            aria-label={`${autoRefresh ? 'Disable' : 'Enable'} auto-refresh`}
-          >
-            <CpuIcon
-              className={cn(
-                "w-4 h-4 mr-2",
-                autoRefresh || refreshing ? "animate-spin" : "",
-              )}
-              aria-hidden="true"
-            />
-            {autoRefresh ? "Auto-refresh ON" : "Auto-refresh OFF"}
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchAdvancedMetrics}
-            disabled={refreshing}
-            aria-label="Refresh performance metrics now"
-          >
-            <CpuIcon
-              className={cn("w-4 h-4 mr-2", refreshing ? "animate-spin" : "")}
-              aria-hidden="true"
-            />
-            Refresh Now
-          </Button>
-        </div>
+        <DashboardControls
+          autoRefresh={autoRefresh}
+          onAutoRefreshToggle={() => setAutoRefresh(!autoRefresh)}
+          onRefresh={fetchAdvancedMetrics}
+          refreshing={refreshing}
+        />
       </header>
 
-      <div role="tablist" aria-label="Performance analytics tabs" className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
-        <button
-          role="tab"
-          aria-selected={activeTab === "overview"}
-          aria-controls="overview-panel"
-          id="overview-tab"
-          onClick={() => setActiveTab("overview")}
-          className={cn(
-            "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-            activeTab === "overview"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900",
-          )}
-        >
-          <BarChart3Icon className="w-4 h-4 inline mr-2" aria-hidden="true" />
-          Overview
-        </button>
-        <button
-          role="tab"
-          aria-selected={activeTab === "ai"}
-          aria-controls="ai-panel"
-          id="ai-tab"
-          onClick={() => setActiveTab("ai")}
-          className={cn(
-            "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-            activeTab === "ai"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900",
-          )}
-        >
-          <ZapIcon className="w-4 h-4 inline mr-2" aria-hidden="true" />
-          AI Optimization
-        </button>
-        <button
-          role="tab"
-          aria-selected={activeTab === "predictive"}
-          aria-controls="predictive-panel"
-          id="predictive-tab"
-          onClick={() => setActiveTab("predictive")}
-          className={cn(
-            "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-            activeTab === "predictive"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900",
-          )}
-        >
-          <TrendingUpIcon className="w-4 h-4 inline mr-2" aria-hidden="true" />
-          Predictive
-        </button>
-      </div>
+      <DashboardTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="min-h-[400px]" role="tabpanel">
         {activeTab === "overview" && (
@@ -686,7 +382,7 @@ export const AdvancedPerformanceDashboard: React.FC<
           <div id="ai-panel" role="tabpanel" aria-labelledby="ai-tab" tabIndex={0}>
             <AIOptimizationTab
               metrics={aiMetrics}
-              onApplyOptimization={applyOptimization}
+              onApplyOptimization={(index) => applyOptimization(index, aiMetrics)}
             />
           </div>
         )}

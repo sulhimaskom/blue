@@ -176,9 +176,7 @@ class GitHubService {
       return await this.circuitBreaker.execute(async () => {
         // For now, use personal access token as fallback
         // In production, you'd implement proper GitHub App installation flow
-const token = process.env.NODE_ENV === "test" 
-          ? process.env.GITHUB_ACCESS_TOKEN 
-          : env.GITHUB_ACCESS_TOKEN;
+        const token = env.GITHUB_ACCESS_TOKEN;
 
         if (!token) {
           throw new GitHubServiceError(
@@ -592,9 +590,7 @@ const token = process.env.NODE_ENV === "test"
     const context = createRequestContext();
 
     try {
-      const token = process.env.NODE_ENV === "test" 
-          ? process.env.GITHUB_ACCESS_TOKEN 
-          : env.GITHUB_ACCESS_TOKEN;
+      const token = env.GITHUB_ACCESS_TOKEN;
 
       if (!token) {
         return false;
