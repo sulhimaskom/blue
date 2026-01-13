@@ -13,10 +13,14 @@ export const GET = APIRouteHandler.createGETHandler({
   requireAuth: true,
   rateLimiter: RateLimiters.standard(),
   handler: async ({ user }) => {
+    if (!user) {
+      throw new Error("User authentication required");
+    }
+
     const result = await subscriptionService.getCurrentUserSubscription(user.id);
-    
-    if (!result.success) {
-      throw result.error;
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error("Failed to get subscription");
     }
 
     return {

@@ -1,5 +1,5 @@
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
-import { subscriptionService } from "@/lib/services/subscription-service";
+import { subscriptionService, type SubscriptionTier } from "@/lib/services/subscription-service";
 import { stripePaymentService } from "@/lib/services/stripe-payment-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { z } from "zod";
@@ -22,8 +22,17 @@ export const POST = APIRouteHandler.createPOSTHandler({
   requireCredits: 0, // No credits required for upgrade
   rateLimiter: RateLimiters.moderate(),
   schema: upgradeRequestSchema,
-  handler: async ({ user, validatedData }) => {
-    const { tier, billingCycle } = validatedData;
+  handler: async ({ user, data }) => {
+    if (!user) {
+      throw new Error("User authentication required");
+    }
+
+    if (!data) {
+      throw new Error("Invalid request data");
+    }
+
+    const { tier, billingCycle } = data;
+    const resolvedBillingCycle = billingCycle ?? "monthly";
 
     // Get tier information
     const tierResult = await subscriptionService.getSubscriptionTier(tier);
@@ -33,23 +42,23 @@ export const POST = APIRouteHandler.createPOSTHandler({
 
     // Check if user is already on this tier or higher
     const currentSubscriptionResult = await subscriptionService.getCurrentUserSubscription(user.id);
-    if (!currentSubscriptionResult.success) {
-      throw currentSubscriptionResult.error;
+    if (!currentSubscriptionResult.success || !currentSubscriptionResult.data) {
+      throw currentSubscriptionResult.error || new Error("Failed to get current subscription");
     }
 
     const currentTier = currentSubscriptionResult.data.tier;
-    const tierHierarchy = { free: 0, pro: 1, enterprise: 2 };
-    
+    const tierHierarchy: Record<SubscriptionTier, number> = { free: 0, pro: 1, enterprise: 2 };
+
     if (tierHierarchy[tier] <= tierHierarchy[currentTier]) {
       throw new Error("Cannot downgrade to same or lower tier");
     }
 
     // Create Stripe checkout session
-    const price = billingCycle === "yearly" 
-      ? tierResult.data.pricing.yearly 
+    const price = resolvedBillingCycle === "yearly"
+      ? tierResult.data.pricing.yearly
       : tierResult.data.pricing.monthly;
-    
-    const stripePriceId = billingCycle === "yearly"
+
+    const stripePriceId = resolvedBillingCycle === "yearly"
       ? tierResult.data.stripePriceIds.yearly
       : tierResult.data.stripePriceIds.monthly;
 
@@ -57,27 +66,25 @@ export const POST = APIRouteHandler.createPOSTHandler({
       throw new Error("Stripe price ID not configured for this tier");
     }
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
     const checkoutResult = await stripePaymentService.createCheckoutSession({
       userId: user.id,
       priceId: stripePriceId,
-      successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgrade=success`,
-      cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgrade=cancelled`,
+      successUrl: `${appUrl}/dashboard?upgrade=success`,
+      cancelUrl: `${appUrl}/dashboard?upgrade=cancelled`,
       metadata: {
         upgradeTier: tier,
-        billingCycle,
+        billingCycle: resolvedBillingCycle,
       },
     });
 
-    if (!checkoutResult.success) {
-      throw checkoutResult.error;
-    }
-
     return {
-      checkoutUrl: checkoutResult.data.checkoutUrl,
-      sessionId: checkoutResult.data.sessionId,
+      checkoutUrl: checkoutResult.checkoutUrl,
+      sessionId: checkoutResult.sessionId,
       tier,
       price,
-      billingCycle,
+      billingCycle: resolvedBillingCycle,
     };
   },
 });

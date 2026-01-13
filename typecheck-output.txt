@@ -1,0 +1,89 @@
+
+> architect-platform@1.0.0 typecheck
+> tsc --noEmit
+
+app/api/subscription/upgrade/route.ts(31,13): error TS2339: Property 'tier' does not exist on type '{ tier: "free" | "pro" | "enterprise"; billingCycle?: "monthly" | "yearly" | undefined; } | undefined'.
+app/api/subscription/upgrade/route.ts(31,19): error TS2339: Property 'billingCycle' does not exist on type '{ tier: "free" | "pro" | "enterprise"; billingCycle?: "monthly" | "yearly" | undefined; } | undefined'.
+app/api/subscription/upgrade/route.ts(48,9): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ free: number; pro: number; enterprise: number; }'.
+app/api/subscription/upgrade/route.ts(78,25): error TS2339: Property 'success' does not exist on type 'CheckoutSessionResponse'.
+app/api/subscription/upgrade/route.ts(79,28): error TS2339: Property 'error' does not exist on type 'CheckoutSessionResponse'.
+app/api/subscription/upgrade/route.ts(82,25): error TS2339: Property 'data' does not exist on type 'CheckoutSessionResponse'.
+app/api/subscription/upgrade/route.ts(87,35): error TS2339: Property 'data' does not exist on type 'CheckoutSessionResponse'.
+app/api/subscription/upgrade/route.ts(88,33): error TS2339: Property 'data' does not exist on type 'CheckoutSessionResponse'.
+lib/db/index.ts(277,10): error TS2300: Duplicate identifier 'sql'.
+lib/db/index.ts(278,10): error TS2300: Duplicate identifier 'sql'.
+lib/middleware/subscription-middleware.ts(277,18): error TS18048: 'subscriptionResult.data' is possibly 'undefined'.
+lib/services/subscription-service.ts(123,10): error TS2339: Property 'select' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(128,60): error TS7006: Parameter 'plan' implicitly has an 'any' type.
+lib/services/subscription-service.ts(169,9): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(181,9): error TS2322: Type 'ServiceResult<SubscriptionTierInfo[]>' is not assignable to type 'ServiceResult<SubscriptionTierInfo | null>'.
+  Type 'SubscriptionTierInfo[]' is missing the following properties from type 'SubscriptionTierInfo': tier, limits, features, pricing, stripePriceIds
+lib/services/subscription-service.ts(190,9): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(190,16): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(202,10): error TS2339: Property 'select' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(210,11): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(210,18): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(220,9): error TS2322: Type 'ServiceResult<SubscriptionTierInfo | null>' is not assignable to type 'ServiceResult<SubscriptionTierInfo & { usage: UsageMetrics; }>'.
+  Type 'SubscriptionTierInfo | null' is not assignable to type 'SubscriptionTierInfo & { usage: UsageMetrics; }'.
+    Type 'null' is not assignable to type 'SubscriptionTierInfo & { usage: UsageMetrics; }'.
+      Type 'null' is not assignable to type 'SubscriptionTierInfo'.
+lib/services/subscription-service.ts(226,11): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(226,18): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(235,9): error TS2322: Type 'ServiceResult<UsageMetrics>' is not assignable to type 'ServiceResult<SubscriptionTierInfo & { usage: UsageMetrics; }>'.
+  Type 'UsageMetrics' is not assignable to type 'SubscriptionTierInfo & { usage: UsageMetrics; }'.
+    Type 'UsageMetrics' is missing the following properties from type 'SubscriptionTierInfo': tier, features, pricing, stripePriceIds
+lib/services/subscription-service.ts(242,11): error TS2322: Type 'UsageMetrics | undefined' is not assignable to type 'UsageMetrics'.
+  Type 'undefined' is not assignable to type 'UsageMetrics'.
+lib/services/subscription-service.ts(249,9): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(249,16): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(264,56): error TS2552: Cannot find name 'Subscription'. Did you mean 'SubscriptionTier'?
+lib/services/subscription-service.ts(267,10): error TS2339: Property 'select' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(275,11): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(275,18): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(285,11): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(285,18): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(291,49): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+lib/services/subscription-service.ts(300,11): error TS2322: Type 'number | boolean' is not assignable to type 'boolean'.
+  Type 'number' is not assignable to type 'boolean'.
+lib/services/subscription-service.ts(308,9): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(308,16): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(320,9): error TS2322: Type 'ServiceResult<SubscriptionTierInfo & { usage: UsageMetrics; }>' is not assignable to type 'ServiceResult<{ canCreate: boolean; reason?: string | undefined; }>'.
+  Property 'canCreate' is missing in type 'SubscriptionTierInfo & { usage: UsageMetrics; }' but required in type '{ canCreate: boolean; reason?: string | undefined; }'.
+lib/services/subscription-service.ts(323,15): error TS2339: Property 'usage' does not exist on type '(SubscriptionTierInfo & { usage: UsageMetrics; }) | undefined'.
+lib/services/subscription-service.ts(323,22): error TS2339: Property 'limits' does not exist on type '(SubscriptionTierInfo & { usage: UsageMetrics; }) | undefined'.
+lib/services/subscription-service.ts(344,9): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(344,16): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(356,9): error TS2322: Type 'ServiceResult<SubscriptionTierInfo & { usage: UsageMetrics; }>' is not assignable to type 'ServiceResult<{ canCreate: boolean; reason?: string | undefined; }>'.
+  Property 'canCreate' is missing in type 'SubscriptionTierInfo & { usage: UsageMetrics; }' but required in type '{ canCreate: boolean; reason?: string | undefined; }'.
+lib/services/subscription-service.ts(359,15): error TS2339: Property 'usage' does not exist on type '(SubscriptionTierInfo & { usage: UsageMetrics; }) | undefined'.
+lib/services/subscription-service.ts(359,22): error TS2339: Property 'limits' does not exist on type '(SubscriptionTierInfo & { usage: UsageMetrics; }) | undefined'.
+lib/services/subscription-service.ts(380,9): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(380,16): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(394,10): error TS2339: Property 'select' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(402,11): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(402,18): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(420,9): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(420,16): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(436,9): error TS2322: Type 'ServiceResult<SubscriptionTierInfo & { usage: UsageMetrics; }>' is not assignable to type 'ServiceResult<UsageMetrics>'.
+  Type 'SubscriptionTierInfo & { usage: UsageMetrics; }' is missing the following properties from type 'UsageMetrics': currentUsage, remaining, percentageUsed
+lib/services/subscription-service.ts(439,15): error TS2339: Property 'limits' does not exist on type '(SubscriptionTierInfo & { usage: UsageMetrics; }) | undefined'.
+lib/services/subscription-service.ts(445,10): error TS2339: Property 'select' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(459,12): error TS2339: Property 'insert' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(473,12): error TS2339: Property 'select' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(474,12): error TS2339: Property 'select' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(475,12): error TS2339: Property 'select' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(513,9): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(513,16): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(530,10): error TS2339: Property 'update' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(536,31): error TS2339: Property 'raw' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(546,42): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+lib/services/subscription-service.ts(557,9): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(557,16): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(580,11): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(580,18): error TS2554: Expected 3-5 arguments, but got 2.
+lib/services/subscription-service.ts(586,10): error TS2339: Property 'update' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(596,12): error TS2339: Property 'update' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(598,25): error TS2339: Property 'raw' does not exist on type '() => NeonHttpDatabase<Record<string, unknown>>'.
+lib/services/subscription-service.ts(603,50): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+lib/services/subscription-service.ts(614,9): error TS2322: Type 'ServiceError' is not assignable to type 'string'.
+lib/services/subscription-service.ts(614,16): error TS2554: Expected 3-5 arguments, but got 2.
