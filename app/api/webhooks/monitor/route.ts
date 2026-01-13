@@ -1,109 +1,84 @@
-import { NextRequest, NextResponse } from "next/server";
-import {
-  formatSuccessResponse,
-  formatErrorResponse,
-  withRateLimiter,
-} from "@/lib/api-utils";
-import { logger } from "@/lib/logger";
 import { webhookQueueService } from "@/lib/services/webhook-queue-service";
+import { APIRouteHandler } from "@/lib/services/api-route-handler";
+import { RateLimiters } from "@/lib/rate-limit-config";
+import { logger } from "@/lib/logger";
+import { AuthorizationError } from "@/lib/api-utils";
 
 /**
- * API endpoint for webhook queue monitoring and management
- * Provides visibility into webhook processing health
+ * GET /api/webhooks/monitor
+ *
+ * Get webhook queue statistics and dead letter queue events
+ * Public endpoint for monitoring webhook processing health
  */
+export const GET = APIRouteHandler.createGETHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+  handler: async () => {
+    const stats = webhookQueueService.getQueueStats();
+    const deadLetterEvents = webhookQueueService.getDeadLetterEvents();
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
-  return withRateLimiter(req, "standard", async () => {
-    try {
-      // Get queue statistics
-      const stats = webhookQueueService.getQueueStats();
-
-      // Get dead letter queue events
-      const deadLetterEvents = webhookQueueService.getDeadLetterEvents();
-
-      const data = {
-        queue: {
-          size: stats.queueSize,
-          processingStats: {
-            processedEventsCount: stats.processedEventsCount,
-          },
-          deadLetterQueue: {
-            size: stats.deadLetterQueueSize,
-            events: deadLetterEvents.map((event) => ({
-              id: event.id,
-              serviceName: event.serviceName,
-              eventType: event.eventType,
-              attemptCount: event.attemptCount,
-              createdAt: new Date(event.createdAt).toISOString(),
-              processedAt: event.processedAt
-                ? new Date(event.processedAt).toISOString()
-                : null,
-            })),
-          },
+    return {
+      queue: {
+        size: stats.queueSize,
+        processingStats: {
+          processedEventsCount: stats.processedEventsCount,
         },
-      };
-
-      return formatSuccessResponse(data);
-    } catch (error) {
-      logger.apiError(
-        "Webhook queue monitoring failed",
-        "webhook_queue_monitoring",
-        error as Error,
-        {
-          endpoint: "/api/webhooks/monitoring",
+        deadLetterQueue: {
+          size: stats.deadLetterQueueSize,
+          events: deadLetterEvents.map((event) => ({
+            id: event.id,
+            serviceName: event.serviceName,
+            eventType: event.eventType,
+            attemptCount: event.attemptCount,
+            createdAt: new Date(event.createdAt).toISOString(),
+            processedAt: event.processedAt
+              ? new Date(event.processedAt).toISOString()
+              : null,
+          })),
         },
-      );
-
-      return formatErrorResponse(error as Error);
-    }
-  });
-}
+      },
+    };
+  },
+});
 
 /**
- * Retry dead letter queue events (admin operation)
+ * POST /api/webhooks/monitor
+ *
+ * Retry dead letter queue events (admin only)
+ *
+ * SECURITY: Requires authenticated admin user
  */
-export async function POST(req: NextRequest) {
-  return withRateLimiter(req, "moderate", async () => {
-    try {
-      // Verify this is an admin operation (simplified check)
-      // In production, implement proper admin authentication
-      const authHeader = req.headers.get("authorization");
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return formatErrorResponse(new Error("Admin authentication required"));
-      }
-
-      const adminToken = authHeader.split(" ")[1];
-      if (adminToken !== process.env.WEBHOOK_ADMIN_TOKEN) {
-        return formatErrorResponse(new Error("Invalid admin token"));
-      }
-
-      const result = await webhookQueueService.retryDeadLetterEvents();
-
-      logger.systemEvent("Dead letter queue retry completed", {
-        retried: result.retried,
-        failed: result.failed,
+export const POST = APIRouteHandler.createPOSTHandler({
+  requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
+  handler: async ({ user, context }) => {
+    if (!user?.isAdmin) {
+      logger.security("Unauthorized webhook queue retry attempt", {
+        requestId: context.requestId,
+        userId: user?.clerkId,
+        isAdmin: user?.isAdmin,
       });
-
-      return formatSuccessResponse(
-        {
-          retried: result.retried,
-          failed: result.failed,
-        },
-        `Retried ${result.retried} dead letter events`,
-      );
-    } catch (error) {
-      logger.apiError(
-        "Dead letter queue retry failed",
-        "webhook_queue_retry",
-        error as Error,
-        {
-          endpoint: "/api/webhooks/monitoring",
-        },
-      );
-
-      return formatErrorResponse(
-        new Error("Failed to retry dead letter queue"),
+      throw new AuthorizationError(
+        "Admin access required to retry dead letter queue events",
       );
     }
-  });
-}
+
+    logger.userAction("Dead letter queue retry", user.clerkId, {
+      requestId: context.requestId,
+      isAdmin: true,
+    });
+
+    const result = await webhookQueueService.retryDeadLetterEvents();
+
+    logger.systemEvent("Dead letter queue retry completed", {
+      retried: result.retried,
+      failed: result.failed,
+      adminUserId: user.clerkId,
+    });
+
+    return {
+      retried: result.retried,
+      failed: result.failed,
+    };
+  },
+});
