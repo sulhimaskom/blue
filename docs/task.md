@@ -486,6 +486,41 @@
       - Create PaymentService test suite following established patterns once mocking approach is validated
       - Continue with next priority services (SubscriptionService, UserService)
 
+  - [ ] **MEDIUM**: Service Decomposition - AIPatternDetector Service Refactoring
+    - **Location**: lib/services/ai-pattern-detector.ts (1200 lines)
+    - **Issue**: Service combines pattern detection, cache warming rules, usage analytics, and semantic signature extraction, violating Single Responsibility Principle
+    - **Suggestion**: Extract into 4-5 specialized atomic services:
+      - `PatternDetectionService` - Core pattern matching and keyword detection
+      - `CacheWarmingRuleService` - Warming rule configuration and management
+      - `UsageAnalyticsService` - Analytics aggregation and statistics calculation
+      - `SemanticSignatureService` - Semantic signature extraction for pattern recognition
+    - **Priority**: Medium (Technical debt improvement, existing code works well)
+    - **Effort**: Large (10-12 hours for careful service extraction with zero behavior changes)
+
+  - [ ] **MEDIUM**: Service Decomposition - TeamService Refactoring
+    - **Location**: lib/services/team-service.ts (1191 lines)
+    - **Issue**: Service handles team management, member management, project access, analytics, and subscription limits with 12+ complex methods, approaching size threshold
+    - **Suggestion**: Extract into 4-5 specialized atomic services:
+      - `TeamManagementService` - Team CRUD operations and basic team management
+      - `TeamMemberService` - Member invitations, role management, access verification
+      - `TeamProjectService` - Project access control and team-project relationships
+      - `TeamAnalyticsService` - Team analytics, usage statistics, and reporting
+      - `SubscriptionLimitsService` - Subscription tier limits and quota enforcement
+    - **Priority**: Medium (Technical debt improvement, existing code works well)
+    - **Effort**: Large (12-15 hours for careful service extraction with zero behavior changes)
+
+  - [ ] **LOW**: Service Decomposition - WebhookEventDispatcher Refactoring
+    - **Location**: lib/services/webhook-event-dispatcher.ts (929 lines)
+    - **Issue**: Service handles 11 different webhook event types (credit events, blueprint events, deployment events, team events) in a single monolithic class
+    - **Suggestion**: Extract into 4-5 specialized atomic services:
+      - `CreditEventDispatcher` - Credit-related webhooks (low_balance, depleted, purchased, usage_spike, renewed)
+      - `BlueprintEventDispatcher` - Blueprint lifecycle events (created, generating, completed, failed, status_changed)
+      - `DeploymentEventDispatcher` - Project deployment events
+      - `TeamEventDispatcher` - Team collaboration events (created, member_added, member_removed, role_updated)
+      - `WebhookDeliveryService` - Common webhook delivery logic and retry handling
+    - **Priority**: Low (Technical debt improvement, existing code works well)
+    - **Effort**: Medium (8-10 hours for careful service extraction with zero behavior changes)
+
 - [x] ✅ **COMPLETED** (2026-01-22): ACCESSIBILITY IMPROVEMENTS - UI/UX Enhancement - Senior UI/UX Engineer execution
   - **Task Selected**: Accessibility Fix - ARIA, keyboard nav, focus (HIGH PRIORITY - WCAG Compliance)
   - **Rationale**: Monitoring dashboard components lacked proper ARIA attributes, semantic HTML, and keyboard navigation support, creating barriers for users using assistive technologies
