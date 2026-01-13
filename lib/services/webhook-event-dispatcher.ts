@@ -378,7 +378,7 @@ static async emitProjectCreated(
     projectName,
     projectDescription,
     userId,
-    timestamp: Date.now(),
+    timestamp: new Date(),
   };
 
   await this.dispatchEventToSubscribers(
@@ -407,7 +407,7 @@ static async emitProjectUpdated(
     projectName,
     projectDescription,
     userId,
-    timestamp: Date.now(),
+    timestamp: new Date(),
     updatedFields,
   };
 
@@ -434,7 +434,7 @@ static async emitProjectDeleted(
     projectId,
     projectName,
     userId,
-    timestamp: Date.now(),
+    timestamp: new Date(),
     deletedAt: new Date().toISOString(),
   };
 
