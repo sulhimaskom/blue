@@ -15,7 +15,7 @@ const customJestConfig = {
   },
   testEnvironment: "jest-environment-jsdom",
   // Performance optimizations for faster CI/CD
-  maxWorkers: 2, // Reduced parallel workers to prevent timeout issues
+  maxWorkers: "50%", // Use 50% of available CPU cores for parallel execution
   testTimeout: 10000, // 10s timeout per test
   forceExit: true, // Force Jest to exit after all tests complete
   collectCoverageFrom: [
