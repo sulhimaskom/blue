@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -114,6 +115,12 @@ export default function CreditsPage() {
                 <p className="text-xl font-semibold capitalize text-gray-900">
                   {creditsData.subscriptionTier}
                 </p>
+                <Link
+                  href="/dashboard/subscription"
+                  className="inline-flex items-center mt-2 text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Manage Subscription →
+                </Link>
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Credit Value</p>
