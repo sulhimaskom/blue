@@ -6,12 +6,8 @@ import {
   afterEach,
   jest,
 } from "@jest/globals";
-import {
-  githubService,
-  GitHubServiceError,
-} from "@/lib/services/github-service";
 
-// Mock the logger
+// Mock logger
 jest.mock("@/lib/logger", () => ({
   logger: {
     error: jest.fn(),
@@ -32,6 +28,7 @@ describe("GitHubService", () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    jest.resetModules();
     process.env = {
       ...originalEnv,
       GITHUB_APP_ID: "test-app-id",
@@ -40,13 +37,22 @@ describe("GitHubService", () => {
     };
   });
 
+  // Helper to get fresh service instance after module reset
+  function getGitHubService() {
+    return require("@/lib/services/github-service").githubService;
+  }
+
+  function getGitHubServiceError() {
+    return require("@/lib/services/github-service").GitHubServiceError;
+  }
+
   afterEach(() => {
     process.env = originalEnv;
   });
 
   describe("constructor", () => {
     it("should initialize successfully with valid credentials", () => {
-      expect(githubService).toBeDefined();
+      expect(getGitHubService()).toBeDefined();
     });
   });
 
@@ -103,7 +109,7 @@ describe("GitHubService", () => {
         // Mock branch update
         .mockResolvedValueOnce({ ok: true } as Response);
 
-      const result = await githubService.createRepository(mockRepoConfig);
+      const result = await getGitHubService().createRepository(mockRepoConfig);
 
       expect(result).toEqual(mockRepoResponse);
       expect(mockFetch).toHaveBeenCalledWith(
@@ -125,8 +131,8 @@ describe("GitHubService", () => {
       } as Response);
 
       await expect(
-        githubService.createRepository(mockRepoConfig),
-      ).rejects.toThrow(GitHubServiceError);
+        getGitHubService().createRepository(mockRepoConfig),
+      ).rejects.toThrow(getGitHubServiceError());
     });
   });
 
@@ -137,7 +143,7 @@ describe("GitHubService", () => {
         json: async () => ({ id: 12345 }),
       } as Response);
 
-      const result = await githubService.verifyRepository("test-org/test-repo");
+      const result = await getGitHubService().verifyRepository("test-org/test-repo");
 
       expect(result).toBe(true);
     });
@@ -148,7 +154,7 @@ describe("GitHubService", () => {
         status: 404,
       } as Response);
 
-      const result = await githubService.verifyRepository(
+      const result = await getGitHubService().verifyRepository(
         "test-org/nonexistent",
       );
 
@@ -158,18 +164,18 @@ describe("GitHubService", () => {
     it("should return false when token is missing", async () => {
       delete process.env.GITHUB_ACCESS_TOKEN;
 
-      const result = await githubService.verifyRepository("test-org/test-repo");
+      const result = await getGitHubService().verifyRepository("test-org/test-repo");
 
       expect(result).toBe(false);
     });
   });
 
   describe("GitHubServiceError", () => {
-    // Clear the cache to create new instances for proper testing
-    let OriginalGitHubServiceError: typeof GitHubServiceError;
+    // Clear module cache to create new instances for proper testing
+    let OriginalGitHubServiceError: any;
 
     beforeAll(() => {
-      OriginalGitHubServiceError = GitHubServiceError;
+      OriginalGitHubServiceError = require("@/lib/services/github-service").GitHubServiceError;
     });
 
     it("should serialize to JSON correctly", () => {

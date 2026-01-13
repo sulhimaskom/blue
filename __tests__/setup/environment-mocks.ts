@@ -31,20 +31,29 @@ export function setupEnvironmentMocks() {
   }));
 
   // Mock environment validation to bypass test requirements
+  // Dynamic mock that reads from process.env to support test-time environment variable changes
   jest.mock("@/lib/env", () => ({
     env: {
-      NODE_ENV: "test",
-      DATABASE_URL: "postgresql://test:test@localhost/test",
-      IFLOW_API_KEY: "test-iflow-key",
-      TAVILY_API_KEY: "test-tavily-key",
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "test-clerk-publishable",
-      CLERK_SECRET_KEY: "test-clerk-secret",
-      STRIPE_SECRET_KEY: "test-stripe-secret",
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "test-stripe-publishable",
-      GITHUB_ACCESS_TOKEN: "test-github-token",
-      GITHUB_APP_ID: "test-app-id",
-      GITHUB_APP_PRIVATE_KEY: "test-private-key",
-      REDIS_URL: "redis://localhost:6379",
+      get NODE_ENV() { return process.env.NODE_ENV || "test"; },
+      get DATABASE_URL() { return process.env.DATABASE_URL || "postgresql://test:test@localhost/test"; },
+      get IFLOW_API_KEY() { return process.env.IFLOW_API_KEY || "test-iflow-key"; },
+      get TAVILY_API_KEY() { return process.env.TAVILY_API_KEY || "test-tavily-key"; },
+      get NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY() { return process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "test-clerk-publishable"; },
+      get CLERK_SECRET_KEY() { return process.env.CLERK_SECRET_KEY || "test-clerk-secret"; },
+      get CLERK_WEBHOOK_SECRET() { return process.env.CLERK_WEBHOOK_SECRET; },
+      get STRIPE_SECRET_KEY() { return process.env.STRIPE_SECRET_KEY || "test-stripe-secret"; },
+      get NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY() { return process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "test-stripe-publishable"; },
+      get STRIPE_WEBHOOK_SECRET() { return process.env.STRIPE_WEBHOOK_SECRET; },
+      get STRIPE_WEBHOOK_SECRETS_ADDITIONAL() { return process.env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL; },
+      get GITHUB_ACCESS_TOKEN() { return process.env.GITHUB_ACCESS_TOKEN || "test-github-token"; },
+      get GITHUB_APP_ID() { return process.env.GITHUB_APP_ID || "test-app-id"; },
+      get GITHUB_APP_PRIVATE_KEY() { return process.env.GITHUB_APP_PRIVATE_KEY || "test-private-key"; },
+      get REDIS_URL() { return process.env.REDIS_URL || "redis://localhost:6379"; },
+      get REDIS_PASSWORD() { return process.env.REDIS_PASSWORD; },
+      get NPM_PACKAGE_VERSION() { return process.env.NPM_PACKAGE_VERSION || "1.0.0"; },
+      get SENTRY_DSN() { return process.env.SENTRY_DSN; },
+      get SENTRY_RELEASE() { return process.env.SENTRY_RELEASE; },
+      get NEXT_PUBLIC_APP_URL() { return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"; },
     },
   }));
 

@@ -1,4 +1,3 @@
-import { SecurityService } from "@/lib/services/security-service";
 import { describe, test, expect, jest, beforeEach } from "@jest/globals";
 
 // Mock TextDecoder for Node.js environment
@@ -22,6 +21,7 @@ describe("Enhanced Webhook Security Verification", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetModules();
     process.env = { ...originalEnv };
   });
 
@@ -29,7 +29,16 @@ describe("Enhanced Webhook Security Verification", () => {
     process.env = originalEnv;
   });
 
-  describe("SecurityService.verifyStripeWebhook", () => {
+  // Helper to get fresh SecurityService instance after module reset
+  function getSecurityService() {
+    return require("@/lib/services/security-service").SecurityService;
+  }
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
+  describe("getSecurityService().verifyStripeWebhook", () => {
     test("should reject webhook without signature", () => {
       const headers = new Headers();
       const body = '{"type": "payment_intent.succeeded"}';
@@ -37,7 +46,7 @@ describe("Enhanced Webhook Security Verification", () => {
       delete process.env.STRIPE_SECRET_KEY;
       delete process.env.STRIPE_WEBHOOK_SECRET;
 
-      const result = SecurityService.verifyStripeWebhook(body, headers);
+      const result = getSecurityService().verifyStripeWebhook(body, headers);
 
       expect(result).toBe(false);
     });
@@ -50,7 +59,7 @@ describe("Enhanced Webhook Security Verification", () => {
 
       delete process.env.STRIPE_SECRET_KEY;
 
-      const result = SecurityService.verifyStripeWebhook(body, headers);
+      const result = getSecurityService().verifyStripeWebhook(body, headers);
 
       expect(result).toBe(false);
     });
@@ -65,7 +74,7 @@ describe("Enhanced Webhook Security Verification", () => {
 
       // We'll expect this to fail gracefully in test environment due to fetch limitation
       // but we've verified the secret selection logic
-      const result = SecurityService.verifyStripeWebhook(body, headers);
+      const result = getSecurityService().verifyStripeWebhook(body, headers);
 
       // In real environment with proper fetch and Stripe SDK, this would work
       expect(typeof result).toBe("boolean");
@@ -82,7 +91,7 @@ describe("Enhanced Webhook Security Verification", () => {
 
       // We'll expect this to fail gracefully in test environment due to fetch limitation
       // but we've verified the secret selection logic
-      const result = SecurityService.verifyStripeWebhook(body, headers);
+      const result = getSecurityService().verifyStripeWebhook(body, headers);
 
       // In real environment with proper fetch and Stripe SDK, this would work
       expect(typeof result).toBe("boolean");
@@ -96,20 +105,20 @@ describe("Enhanced Webhook Security Verification", () => {
       });
       const body = '{"type": "payment_intent.succeeded"}';
 
-      const result = SecurityService.verifyStripeWebhook(body, headers);
+      const result = getSecurityService().verifyStripeWebhook(body, headers);
 
       expect(result).toBe(false);
     });
   });
 
-  describe("SecurityService.verifyClerkWebhook", () => {
+  describe("getSecurityService().verifyClerkWebhook", () => {
     test("should reject webhook without required headers", () => {
       const headers = new Headers();
       const body = '{"type": "user.created"}';
 
       delete process.env.CLERK_SECRET_KEY;
 
-      const result = SecurityService.verifyClerkWebhook(body, headers);
+      const result = getSecurityService().verifyClerkWebhook(body, headers);
 
       expect(result).toBe(false);
     });
@@ -124,7 +133,7 @@ describe("Enhanced Webhook Security Verification", () => {
 
       delete process.env.CLERK_SECRET_KEY;
 
-      const result = SecurityService.verifyClerkWebhook(body, headers);
+      const result = getSecurityService().verifyClerkWebhook(body, headers);
 
       expect(result).toBe(false);
     });
@@ -153,7 +162,7 @@ describe("Enhanced Webhook Security Verification", () => {
         "svix-signature": `v1,${expectedSignature}`,
       });
 
-      const result = SecurityService.verifyClerkWebhook(body, headers);
+      const result = getSecurityService().verifyClerkWebhook(body, headers);
 
       expect(result).toBe(true);
     });
@@ -168,7 +177,7 @@ describe("Enhanced Webhook Security Verification", () => {
       });
       const body = '{"type": "user.created"}';
 
-      const result = SecurityService.verifyClerkWebhook(body, headers);
+      const result = getSecurityService().verifyClerkWebhook(body, headers);
 
       expect(result).toBe(false);
     });
@@ -183,7 +192,7 @@ describe("Enhanced Webhook Security Verification", () => {
       });
       const body = '{"type": "user.created"}';
 
-      const result = SecurityService.verifyClerkWebhook(body, headers);
+      const result = getSecurityService().verifyClerkWebhook(body, headers);
 
       expect(result).toBe(false);
     });
@@ -199,15 +208,15 @@ describe("Enhanced Webhook Security Verification", () => {
       const body = '{"type": "user.created"}';
 
       // This should not throw an error but return false
-      const result = SecurityService.verifyClerkWebhook(body, headers);
+      const result = getSecurityService().verifyClerkWebhook(body, headers);
 
       expect(result).toBe(false);
     });
   });
 
-  describe("SecurityService.createVerifier", () => {
+  describe("getSecurityService().createVerifier", () => {
     test("should return Stripe verifier for Stripe service", () => {
-      const stripeVerifier = SecurityService.createVerifier("Stripe");
+      const stripeVerifier = getSecurityService().createVerifier("Stripe");
       const headers = new Headers();
       const body = '{"test": "data"}';
 
@@ -220,7 +229,7 @@ describe("Enhanced Webhook Security Verification", () => {
     });
 
     test("should return Clerk verifier for Clerk service", () => {
-      const clerkVerifier = SecurityService.createVerifier("Clerk");
+      const clerkVerifier = getSecurityService().createVerifier("Clerk");
       const headers = new Headers();
       const body = '{"test": "data"}';
 
@@ -232,7 +241,7 @@ describe("Enhanced Webhook Security Verification", () => {
     });
 
     test("should return false for unknown service", () => {
-      const unknownVerifier = SecurityService.createVerifier("Unknown" as any);
+      const unknownVerifier = getSecurityService().createVerifier("Unknown" as any);
       const headers = new Headers();
       const body = '{"test": "data"}';
 

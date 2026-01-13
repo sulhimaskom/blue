@@ -9,14 +9,17 @@
  * - Comprehensive security logging
  */
 
-import { SecurityService } from "@/lib/services/security-service";
-
 // Mock environment for testing
 const mockStripeSecretKey = "sk_test_1234567890";
 const mockWebhookSecret = "whsec_1234567890abcdef";
 const mockAdditionalSecret = "whsec_0987654321fedcba";
 const currentTimestamp = Math.floor(Date.now() / 1000);
 const oldTimestamp = currentTimestamp - 400; // 400 seconds ago (beyond default 300s max age)
+
+// Helper to get fresh SecurityService instance after module reset
+function getSecurityService() {
+  return require("@/lib/services/security-service").SecurityService;
+}
 
 // Generate mock Stripe signature (simplified for testing)
 function generateMockStripeSignature(
@@ -49,21 +52,21 @@ describe("ENH-001: Enhanced Webhook Cryptographic Verification", () => {
     it("should validate correct Stripe signature format", () => {
       const validSignature = `t=${currentTimestamp},v1=abc123def456`;
       expect(
-        (SecurityService as any).isValidStripeSignatureFormat(validSignature),
+        (getSecurityService() as any).isValidStripeSignatureFormat(validSignature),
       ).toBe(true);
     });
 
     it("should reject invalid signature format - missing timestamp", () => {
       const invalidSignature = "v1=abc123def456";
       expect(
-        (SecurityService as any).isValidStripeSignatureFormat(invalidSignature),
+        (getSecurityService() as any).isValidStripeSignatureFormat(invalidSignature),
       ).toBe(false);
     });
 
     it("should accept multiple signature versions", () => {
       const validMultipleSignature = `t=${currentTimestamp},v1=abc123,v2=def456`;
       expect(
-        (SecurityService as any).isValidStripeSignatureFormat(
+        (getSecurityService() as any).isValidStripeSignatureFormat(
           validMultipleSignature,
         ),
       ).toBe(true);
@@ -78,7 +81,7 @@ describe("ENH-001: Enhanced Webhook Cryptographic Verification", () => {
     });
 
     it("should return primary and additional webhook secrets", () => {
-      const secrets = (SecurityService as any).getStripeWebhookSecrets();
+      const secrets = (getSecurityService() as any).getStripeWebhookSecrets();
       expect(secrets).toContain(mockWebhookSecret);
       expect(secrets).toContain(mockAdditionalSecret);
       expect(secrets.length).toBe(2);
@@ -86,7 +89,7 @@ describe("ENH-001: Enhanced Webhook Cryptographic Verification", () => {
 
     it("should handle multiple additional secrets", () => {
       process.env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL = `whsec_thirdsecret,whsec_fourthsecret,whsec_fifthsecret`;
-      const secrets = (SecurityService as any).getStripeWebhookSecrets();
+      const secrets = (getSecurityService() as any).getStripeWebhookSecrets();
       // Should have primary (1) + 3 additional = 4 total
       expect(secrets).toContain(mockWebhookSecret);
       expect(secrets).toContain("whsec_thirdsecret");
@@ -99,7 +102,7 @@ describe("ENH-001: Enhanced Webhook Cryptographic Verification", () => {
   describe("Timestamp Extraction and Validation", () => {
     it("should extract timestamp from Stripe signature", () => {
       const signature = `t=${currentTimestamp},v1=abc123def456`;
-      const extracted = (SecurityService as any).extractTimestampFromSignature(
+      const extracted = (getSecurityService() as any).extractTimestampFromSignature(
         signature,
       );
       expect(extracted).toBe(currentTimestamp);
@@ -107,14 +110,14 @@ describe("ENH-001: Enhanced Webhook Cryptographic Verification", () => {
 
     it("should return null for signature without timestamp", () => {
       const signature = "v1=abc123def456";
-      const extracted = (SecurityService as any).extractTimestampFromSignature(
+      const extracted = (getSecurityService() as any).extractTimestampFromSignature(
         signature,
       );
       expect(extracted).toBeNull();
     });
 
     it("should validate recent timestamp", () => {
-      const isValid = (SecurityService as any).isTimestampValid(
+      const isValid = (getSecurityService() as any).isTimestampValid(
         currentTimestamp,
         300,
       );
@@ -122,7 +125,7 @@ describe("ENH-001: Enhanced Webhook Cryptographic Verification", () => {
     });
 
     it("should reject old timestamp beyond max age", () => {
-      const isValid = (SecurityService as any).isTimestampValid(
+      const isValid = (getSecurityService() as any).isTimestampValid(
         oldTimestamp,
         300,
       );
@@ -137,7 +140,7 @@ describe("ENH-001: Enhanced Webhook Cryptographic Verification", () => {
         message:
           "No signatures found matching the expected signature for payload",
       };
-      const isAttack = (SecurityService as any).isPotentialAttack(
+      const isAttack = (getSecurityService() as any).isPotentialAttack(
         signature,
         error,
       );
@@ -147,7 +150,7 @@ describe("ENH-001: Enhanced Webhook Cryptographic Verification", () => {
     it("should detect timestamp too old attack", () => {
       const signature = `t=${oldTimestamp},v1=abc123`;
       const error = { message: "Timestamp provided is too old" };
-      const isAttack = (SecurityService as any).isPotentialAttack(
+      const isAttack = (getSecurityService() as any).isPotentialAttack(
         signature,
         error,
       );
@@ -157,7 +160,7 @@ describe("ENH-001: Enhanced Webhook Cryptographic Verification", () => {
     it("should not flag legitimate errors as attacks", () => {
       const signature = `t=${currentTimestamp},v1=abc123`;
       const error = { message: "Webhook processing timeout" };
-      const isAttack = (SecurityService as any).isPotentialAttack(
+      const isAttack = (getSecurityService() as any).isPotentialAttack(
         signature,
         error,
       );
@@ -177,7 +180,7 @@ describe("ENH-001: Enhanced Webhook Cryptographic Verification", () => {
     it("should reject webhook with invalid signature format", () => {
       mockHeaders.set("stripe-signature", "invalid_format");
 
-      const result = SecurityService.verifyStripeWebhook(
+      const result = getSecurityService().verifyStripeWebhook(
         mockPayload,
         mockHeaders,
       );
@@ -185,7 +188,7 @@ describe("ENH-001: Enhanced Webhook Cryptographic Verification", () => {
     });
 
     it("should reject webhook with missing signature", () => {
-      const result = SecurityService.verifyStripeWebhook(
+      const result = getSecurityService().verifyStripeWebhook(
         mockPayload,
         new Headers(),
       );
@@ -200,9 +203,9 @@ describe("ENH-001: Enhanced Webhook Cryptographic Verification", () => {
       process.env.STRIPE_WEBHOOK_SECRETS_ADDITIONAL = "";
 
       // Mock the logSecurityEvent method directly
-      const logSpy = jest.spyOn(SecurityService, "logSecurityEvent");
+      const logSpy = jest.spyOn(getSecurityService(), "logSecurityEvent");
 
-      (SecurityService as any).getStripeWebhookSecrets();
+      (getSecurityService() as any).getStripeWebhookSecrets();
 
       expect(logSpy).toHaveBeenCalledWith(
         "Stripe webhook configuration error - no valid secrets found",
