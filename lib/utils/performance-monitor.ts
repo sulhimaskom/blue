@@ -3,6 +3,8 @@
  * Tracks and reports development/build performance metrics
  */
 
+import { logger } from "@/lib/logger";
+
 interface BuildMetrics {
   startTime: number;
   endTime?: number;
@@ -31,8 +33,9 @@ class PerformanceMonitor {
     optimizationGain?: number;
   }): BuildMetrics | undefined {
     if (!this.currentBuild) {
-      // eslint-disable-next-line no-console
-      console.warn("⚠️ Build monitoring not started");
+      logger.warn("Build monitoring not started", {
+        service: "PerformanceMonitor"
+      });
       return undefined;
     }
 
@@ -51,45 +54,15 @@ class PerformanceMonitor {
   }
 
   private reportMetrics(metrics: BuildMetrics): void {
-    // eslint-disable-next-line no-console
-    console.log("\n📊 Build Performance Report:");
-    // eslint-disable-next-line no-console
-    console.log(`   ⏱️  Build Time: ${metrics.duration}ms`);
-    // eslint-disable-next-line no-console
-    console.log(
-      `   📦 Bundle Size: ${(metrics.buildSize / 1024).toFixed(1)} kB`,
-    );
-    // eslint-disable-next-line no-console
-    console.log(`   🧩 Chunks Count: ${metrics.chunksCount}`);
-
-    if (metrics.optimizationGain > 0) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `   ⚡ Optimization Gains: ${metrics.optimizationGain}% faster`,
-      );
-    }
-
-    // Performance benchmarks
-    if (metrics.duration && metrics.duration < 15000) {
-      // eslint-disable-next-line no-console
-      console.log(`   🚀 Excellent build time (<15s)`);
-    } else if (metrics.duration && metrics.duration < 20000) {
-      // eslint-disable-next-line no-console
-      console.log(`   ✅ Good build time (<20s)`);
-    } else {
-      // eslint-disable-next-line no-console
-      console.log(`   ⚠️  Consider optimization for faster builds`);
-    }
-
-    if (metrics.buildSize < 350000) {
-      // eslint-disable-next-line no-console
-      console.log(`   🏆 Excellent bundle size (<350kB)`);
-    } else if (metrics.buildSize < 400000) {
-      // eslint-disable-next-line no-console
-      console.log(`   👍 Good bundle size (<400kB)`);
-    }
-    // eslint-disable-next-line no-console
-    console.log("");
+    logger.info("Build Performance Report", {
+      service: "PerformanceMonitor",
+      buildTime: metrics.duration,
+      bundleSize: `${(metrics.buildSize / 1024).toFixed(1)} kB`,
+      chunksCount: metrics.chunksCount,
+      optimizationGain: metrics.optimizationGain,
+      buildTimeRating: metrics.duration && metrics.duration < 15000 ? "excellent (<15s)" : metrics.duration && metrics.duration < 20000 ? "good (<20s)" : "needs optimization",
+      bundleSizeRating: metrics.buildSize < 350000 ? "excellent (<350kB)" : metrics.buildSize < 400000 ? "good (<400kB)" : "needs optimization"
+    });
   }
 
   getPerformanceTrends(): {
