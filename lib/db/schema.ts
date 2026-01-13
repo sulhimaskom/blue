@@ -236,8 +236,26 @@ export type NewTeamMember = typeof teamMembers.$inferInsert;
 export type TeamProject = typeof teamProjects.$inferSelect;
 export type NewTeamProject = typeof teamProjects.$inferInsert;
 
+// Activity logs table for tracking user and system events
+export const activityLogs = pgTable("activity_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  clerkId: text("clerk_id").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: text("entity_id").notNull(),
+  eventType: text("event_type").notNull(),
+  eventData: jsonb("event_data").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
 // Subscription-related types
 export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
 export type NewSubscriptionPlan = typeof subscriptionPlans.$inferInsert;
 export type SubscriptionUsage = typeof subscriptionUsage.$inferSelect;
 export type NewSubscriptionUsage = typeof subscriptionUsage.$inferInsert;
+
+// Activity log types
+export type ActivityLog = typeof activityLogs.$inferSelect;
+export type NewActivityLog = typeof activityLogs.$inferInsert;
