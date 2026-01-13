@@ -247,7 +247,7 @@ static async updateProject(
       clerkId,
       updatedProject.id,
       updatedProject.name,
-      updatedProject.description,
+      updatedProject.description ?? undefined,
       updatedFields,
       context,
     );
@@ -404,7 +404,7 @@ static async createProject(
       clerkId,
       newProject.id,
       newProject.name,
-      newProject.description,
+      newProject.description ?? undefined,
       context,
     );
   } catch (webhookError) {
