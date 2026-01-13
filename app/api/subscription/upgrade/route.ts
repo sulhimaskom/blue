@@ -3,6 +3,7 @@ import { subscriptionService, type SubscriptionTier } from "@/lib/services/subsc
 import { stripePaymentService } from "@/lib/services/stripe-payment-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { z } from "zod";
+import { AuthenticationError, ValidationError } from "@/lib/api-utils";
 
 const upgradeRequestSchema = z.object({
   tier: z.enum(["free", "pro", "enterprise"]),
@@ -24,11 +25,11 @@ export const POST = APIRouteHandler.createPOSTHandler({
   schema: upgradeRequestSchema,
   handler: async ({ user, data }) => {
     if (!user) {
-      throw new Error("User authentication required");
+      throw new AuthenticationError("User authentication required");
     }
 
     if (!data) {
-      throw new Error("Invalid request data");
+      throw new ValidationError("Invalid request data");
     }
 
     const { tier, billingCycle } = data;
@@ -37,7 +38,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
     // Get tier information
     const tierResult = await subscriptionService.getSubscriptionTier(tier);
     if (!tierResult.success || !tierResult.data) {
-      throw new Error("Invalid subscription tier");
+      throw new ValidationError("Invalid subscription tier");
     }
 
     // Check if user is already on this tier or higher
@@ -50,7 +51,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
     const tierHierarchy: Record<SubscriptionTier, number> = { free: 0, pro: 1, enterprise: 2 };
 
     if (tierHierarchy[tier] <= tierHierarchy[currentTier]) {
-      throw new Error("Cannot downgrade to same or lower tier");
+      throw new ValidationError("Cannot downgrade to same or lower tier");
     }
 
     // Create Stripe checkout session
@@ -63,7 +64,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
       : tierResult.data.stripePriceIds.monthly;
 
     if (!stripePriceId) {
-      throw new Error("Stripe price ID not configured for this tier");
+      throw new ValidationError("Stripe price ID not configured for this tier");
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

@@ -1,6 +1,7 @@
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { subscriptionService } from "@/lib/services/subscription-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { AuthenticationError } from "@/lib/api-utils";
 
 /**
  * GET /api/subscription/current
@@ -14,7 +15,7 @@ export const GET = APIRouteHandler.createGETHandler({
   rateLimiter: RateLimiters.standard(),
   handler: async ({ user }) => {
     if (!user) {
-      throw new Error("User authentication required");
+      throw new AuthenticationError("User authentication required");
     }
 
     const result = await subscriptionService.getCurrentUserSubscription(user.id);

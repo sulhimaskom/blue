@@ -1,6 +1,7 @@
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { subscriptionService } from "@/lib/services/subscription-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { AuthenticationError, NotFoundError } from "@/lib/api-utils";
 
 /**
  * GET /api/subscription/usage
@@ -14,7 +15,7 @@ export const GET = APIRouteHandler.createGETHandler({
   rateLimiter: RateLimiters.standard(),
   handler: async ({ user }) => {
     if (!user) {
-      throw new Error("User authentication required");
+      throw new AuthenticationError("User authentication required");
     }
 
     const result = await subscriptionService.getUserUsage(user.id);
@@ -24,7 +25,7 @@ export const GET = APIRouteHandler.createGETHandler({
     }
 
     if (!result.data) {
-      throw new Error("Usage data not found");
+      throw new NotFoundError("Usage data not found");
     }
 
     return {

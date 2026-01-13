@@ -2,6 +2,7 @@ import { z } from "zod";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { AdvancedCacheStrategiesService } from "@/lib/services/performance/advanced-cache-strategies-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { ValidationError, DatabaseError } from "@/lib/api-utils";
 
 // Zod schema for POST request body
 const advancedCacheOptimizationSchema = z.object({
@@ -18,7 +19,7 @@ export const GET = APIRouteHandler.createGETHandler({
     const result = await AdvancedCacheStrategiesService.getCacheAnalytics();
 
     if (!result.success) {
-      throw result.error || new Error("Failed to get cache analytics");
+      throw result.error || new DatabaseError("Failed to get cache analytics");
     }
 
     return {
@@ -37,13 +38,13 @@ export const POST = APIRouteHandler.createPOSTHandler({
   schema: advancedCacheOptimizationSchema,
   handler: async ({ context: _context, user: _user, data }) => {
     if (!data) {
-      throw new Error("Request data is required");
+      throw new ValidationError("Request data is required");
     }
 
     const result = await AdvancedCacheStrategiesService.optimizeCachePerformance(data.config);
 
     if (!result.success) {
-      throw result.error || new Error("Failed to optimize cache");
+      throw result.error || new DatabaseError("Failed to optimize cache");
     }
 
     return {
