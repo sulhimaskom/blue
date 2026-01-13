@@ -227,7 +227,7 @@ class BlueprintFabricationService {
       const { projects } = await import("../db/schema");
       const { eq } = await import("drizzle-orm");
 
-      const userProjects = await database()
+      const userProjects = await database
         .select({
           id: projects.id,
           status: projects.status,
@@ -238,8 +238,8 @@ class BlueprintFabricationService {
 
       const stats: UserStatsResponse = {
         total: userProjects.length,
-        completed: userProjects.filter((p) => p.status === "completed").length,
-        generating: userProjects.filter((p) => p.status === "generating")
+        completed: userProjects.filter((p: { id: string; status: string; createdAt: Date }) => p.status === "completed").length,
+        generating: userProjects.filter((p: { id: string; status: string; createdAt: Date }) => p.status === "generating")
           .length,
         avgGenerationTime: 0,
       };
