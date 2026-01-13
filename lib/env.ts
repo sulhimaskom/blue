@@ -84,32 +84,6 @@ function validateEnv(): Env {
     } as Env;
   }
 
-  // Strict validation for production - no fallback values allowed
-  if (nodeEnv === "production") {
-    const requiredProductionVars = [
-      "DATABASE_URL",
-      "IFLOW_API_KEY",
-      "TAVILY_API_KEY",
-      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-      "CLERK_SECRET_KEY",
-      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
-      "STRIPE_SECRET_KEY",
-      "GITHUB_ACCESS_TOKEN",
-    ];
-    
-    const missingProductionVars = requiredProductionVars.filter(
-      (varName) => !process.env[varName],
-    );
-    
-    if (missingProductionVars.length > 0) {
-      throw new EnvironmentError(
-        `Production mode requires the following environment variables to be set: ${missingProductionVars.join(
-          ", ",
-        )}\n\nPlease configure these environment variables before deploying to production.\n\nSee .env.example for the required variables.`,
-      );
-    }
-  }
-
   // Test environment allows fallback values for local development without full setup
   if (nodeEnv === "test") {
     return {

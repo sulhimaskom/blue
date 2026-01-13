@@ -69,7 +69,12 @@ export class StripePaymentService {
     this.initialized = false;
   }
 
-  private initialize(): void {
+  /**
+   * Initialize the Stripe payment service
+   * Can be called multiple times, but only initializes once (lazy initialization pattern)
+   * @throws DatabaseError if STRIPE_SECRET_KEY is not configured or Stripe library is unavailable
+   */
+  public initialize(): void {
     if (this.initialized) {
       return;
     }
@@ -584,10 +589,11 @@ export class StripePaymentService {
 
   /**
    * Check if Stripe service is properly configured
+   * Returns true if STRIPE_SECRET_KEY is set, false otherwise
+   * Does not throw exceptions - safe to call for configuration checks
    */
   public isConfigured(): boolean {
-    this.initialize();
-    return !!this.stripe && !!process.env.STRIPE_SECRET_KEY;
+    return !!process.env.STRIPE_SECRET_KEY;
   }
 
   /**

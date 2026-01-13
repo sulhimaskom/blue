@@ -66,10 +66,10 @@ describe("StripePaymentService", () => {
     // Get service instance
     service = StripePaymentService.getInstance();
 
-    // Trigger lazy initialization by calling isConfigured()
-    service.isConfigured();
+    // Trigger initialization to set up Stripe mock
+    service.initialize();
 
-    // Get the actual Stripe instance that the service is using
+    // Get actual Stripe instance that service is using
     // Access private property using type assertion
     mockStripe = (service as any).stripe;
   });
