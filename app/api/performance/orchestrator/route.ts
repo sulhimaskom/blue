@@ -2,6 +2,7 @@ import { z } from "zod";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { performanceOrchestratorService } from "@/lib/services/performance/performance-orchestrator-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { ValidationError } from "@/lib/api-utils";
 
 // Zod schema for POST request body
 const performanceOrchestratorSchema = z.object({
@@ -39,7 +40,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
   schema: performanceOrchestratorSchema,
   handler: async ({ context: _context, user: _user, data }) => {
     if (!data) {
-      throw new Error("Request data is required");
+      throw new ValidationError("Request data is required");
     }
 
     const result = await performanceOrchestratorService.executeOptimizationWorkflow(

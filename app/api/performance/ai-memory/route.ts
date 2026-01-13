@@ -2,6 +2,7 @@ import { z } from "zod";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { AIMemoryOptimizationService } from "@/lib/services/performance/ai-memory-optimization-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { ValidationError, DatabaseError } from "@/lib/api-utils";
 
 // Zod schema for POST request body
 const aiMemoryOptimizationSchema = z.object({
@@ -18,7 +19,7 @@ export const GET = APIRouteHandler.createGETHandler({
     const result = await AIMemoryOptimizationService.getAIMemoryMetrics();
 
     if (!result.success) {
-      throw result.error || new Error("Failed to get memory metrics");
+      throw result.error || new DatabaseError("Failed to get memory metrics");
     }
 
     return {
@@ -37,13 +38,13 @@ export const POST = APIRouteHandler.createPOSTHandler({
   schema: aiMemoryOptimizationSchema,
   handler: async ({ context: _context, user: _user, data }) => {
     if (!data) {
-      throw new Error("Request data is required");
+      throw new ValidationError("Request data is required");
     }
 
     const result = await AIMemoryOptimizationService.optimizeAIMemory(data.config);
 
     if (!result.success) {
-      throw result.error || new Error("Failed to optimize memory");
+      throw result.error || new DatabaseError("Failed to optimize memory");
     }
 
     return {
