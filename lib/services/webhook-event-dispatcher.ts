@@ -41,6 +41,22 @@ export interface ProjectDeploymentData {
   timestamp: Date;
 }
 
+export interface TeamEventData {
+  userId: number;
+  clerkId: string;
+  teamId: string;
+  teamName: string;
+  timestamp: Date;
+}
+
+export interface TeamMemberEventData extends TeamEventData {
+  memberId: string;
+  memberUserId: number;
+  memberClerkId: string;
+  memberEmail?: string;
+  role: string;
+}
+
 /**
  * WebhookEventDispatcher - Centralized event emission for outbound webhooks
  * 
@@ -447,9 +463,9 @@ static async emitProjectDeleted(
 }
 
 /**
- * Emit project deployed webhook event
- * Triggered when repository deployment completes
- */
+  * Emit project deployed webhook event
+  * Triggered when repository deployment completes
+  */
 static async emitProjectDeployed(
   userId: number,
   clerkId: string,
@@ -471,6 +487,203 @@ static async emitProjectDeployed(
 
   await this.dispatchEventToSubscribers(
     "project.deployed",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit team created webhook event
+ * Triggered when a new team is created
+ */
+static async emitTeamCreated(
+  userId: number,
+  clerkId: string,
+  teamId: string,
+  teamName: string,
+  context?: RequestContext,
+): Promise<void> {
+  const eventData: TeamEventData = {
+    userId,
+    clerkId,
+    teamId,
+    teamName,
+    timestamp: new Date(),
+  };
+
+  await this.dispatchEventToSubscribers(
+    "team.created",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit team updated webhook event
+ * Triggered when team details are modified
+ */
+static async emitTeamUpdated(
+  userId: number,
+  clerkId: string,
+  teamId: string,
+  teamName: string,
+  updatedFields: string[] = [],
+  context?: RequestContext,
+): Promise<void> {
+  const eventData = {
+    userId,
+    clerkId,
+    teamId,
+    teamName,
+    timestamp: new Date(),
+    updatedFields,
+  };
+
+  await this.dispatchEventToSubscribers(
+    "team.updated",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit team deleted webhook event
+ * Triggered when a team is soft-deleted
+ */
+static async emitTeamDeleted(
+  userId: number,
+  clerkId: string,
+  teamId: string,
+  teamName: string,
+  context?: RequestContext,
+): Promise<void> {
+  const eventData = {
+    userId,
+    clerkId,
+    teamId,
+    teamName,
+    timestamp: new Date(),
+    deletedAt: new Date().toISOString(),
+  };
+
+  await this.dispatchEventToSubscribers(
+    "team.deleted",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit team member added webhook event
+ * Triggered when a new member is added to a team
+ */
+static async emitTeamMemberAdded(
+  userId: number,
+  clerkId: string,
+  teamId: string,
+  teamName: string,
+  memberId: string,
+  memberUserId: number,
+  memberClerkId: string,
+  memberEmail?: string,
+  role: string = "member",
+  context?: RequestContext,
+): Promise<void> {
+  const eventData: TeamMemberEventData = {
+    userId,
+    clerkId,
+    teamId,
+    teamName,
+    memberId,
+    memberUserId,
+    memberClerkId,
+    memberEmail,
+    role,
+    timestamp: new Date(),
+  };
+
+  await this.dispatchEventToSubscribers(
+    "team.member_added",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit team member removed webhook event
+ * Triggered when a member is removed from a team
+ */
+static async emitTeamMemberRemoved(
+  userId: number,
+  clerkId: string,
+  teamId: string,
+  teamName: string,
+  memberId: string,
+  memberUserId: number,
+  memberClerkId: string,
+  memberEmail?: string,
+  role: string = "member",
+  context?: RequestContext,
+): Promise<void> {
+  const eventData: TeamMemberEventData = {
+    userId,
+    clerkId,
+    teamId,
+    teamName,
+    memberId,
+    memberUserId,
+    memberClerkId,
+    memberEmail,
+    role,
+    timestamp: new Date(),
+  };
+
+  await this.dispatchEventToSubscribers(
+    "team.member_removed",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit team member role changed webhook event
+ * Triggered when a team member's role is updated
+ */
+static async emitTeamMemberRoleChanged(
+  userId: number,
+  clerkId: string,
+  teamId: string,
+  teamName: string,
+  memberId: string,
+  memberUserId: number,
+  memberClerkId: string,
+  memberEmail?: string,
+  previousRole: string = "member",
+  newRole: string = "member",
+  context?: RequestContext,
+): Promise<void> {
+  const eventData = {
+    userId,
+    clerkId,
+    teamId,
+    teamName,
+    memberId,
+    memberUserId,
+    memberClerkId,
+    memberEmail,
+    previousRole,
+    newRole,
+    timestamp: new Date(),
+  };
+
+  await this.dispatchEventToSubscribers(
+    "team.member_role_changed",
     eventData,
     `user-${clerkId}`,
     context,

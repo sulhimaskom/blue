@@ -7,6 +7,7 @@ import { RequestContext } from "@/lib/services/user-service";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
 import { softDelete } from "@/lib/db/soft-delete-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
+import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 
 /**
  * Service for common project and blueprint database operations
@@ -261,6 +262,30 @@ static async updateProject(
     );
   }
 
+  // Record project updated activity
+  try {
+    await ActivityFeedService.recordActivity({
+      userId: projectDetails.user.id,
+      clerkId,
+      entityType: "project",
+      entityId: updatedProject.id,
+      eventType: "project.updated",
+      eventData: {
+        projectName: updatedProject.name,
+        projectDescription: updatedProject.description,
+        updatedFields: Object.keys(updates),
+      },
+    }, context);
+  } catch (activityError) {
+    // Log activity recording error but don't fail the operation
+    await import("@/lib/logger").then(({ logger }) => 
+      logger.error("Failed to record project.updated activity", {
+        projectId: updatedProject.id,
+        error: activityError instanceof Error ? activityError.message : String(activityError),
+      })
+    );
+  }
+
   return updatedProject;
 }
 
@@ -417,6 +442,29 @@ static async createProject(
     );
   }
 
+  // Record project created activity
+  try {
+    await ActivityFeedService.recordActivity({
+      userId: user.id,
+      clerkId,
+      entityType: "project",
+      entityId: newProject.id,
+      eventType: "project.created",
+      eventData: {
+        projectName: newProject.name,
+        projectDescription: newProject.description,
+      },
+    }, context);
+  } catch (activityError) {
+    // Log activity recording error but don't fail the operation
+    await import("@/lib/logger").then(({ logger }) => 
+      logger.error("Failed to record project.created activity", {
+        projectId: newProject.id,
+        error: activityError instanceof Error ? activityError.message : String(activityError),
+      })
+    );
+  }
+
   return newProject;
 }
 
@@ -455,6 +503,29 @@ static async deleteProject(projectId: string, clerkId: string, context?: Request
       logger.error("Failed to emit project.deleted webhook", {
         projectId: deletedProject.id,
         error: webhookError instanceof Error ? webhookError.message : String(webhookError),
+      })
+    );
+  }
+
+  // Record project deleted activity
+  try {
+    await ActivityFeedService.recordActivity({
+      userId: projectDetails.user.id,
+      clerkId,
+      entityType: "project",
+      entityId: deletedProject.id,
+      eventType: "project.deleted",
+      eventData: {
+        projectName: deletedProject.name,
+        deletedAt: new Date().toISOString(),
+      },
+    }, context);
+  } catch (activityError) {
+    // Log activity recording error but don't fail the operation
+    await import("@/lib/logger").then(({ logger }) => 
+      logger.error("Failed to record project.deleted activity", {
+        projectId: deletedProject.id,
+        error: activityError instanceof Error ? activityError.message : String(activityError),
       })
     );
   }

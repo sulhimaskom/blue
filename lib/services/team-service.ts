@@ -25,6 +25,8 @@ import {
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { teamCache } from "@/lib/services/cache-orchestrator";
+import { ActivityFeedService } from "@/lib/services/activity-feed-service";
+import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 
 export type TeamRole = "admin" | "member" | "viewer";
 
@@ -120,6 +122,38 @@ class TeamService {
         teamName: team.name,
         duration: `${duration}ms`,
       });
+
+      try {
+        const database = db();
+        const [user] = await database.select().from(users)
+          .where(eq(users.id, request.ownerId))
+          .limit(1);
+
+        if (user) {
+          await WebhookEventDispatcher.emitTeamCreated(
+            request.ownerId,
+            user.clerkId,
+            team.id,
+            team.name,
+          );
+
+          await ActivityFeedService.recordActivity({
+            userId: request.ownerId,
+            clerkId: user.clerkId,
+            entityType: "team",
+            entityId: team.id,
+            eventType: "team.created",
+            eventData: {
+              teamName: team.name,
+            },
+          });
+        }
+      } catch (activityError) {
+        logger.error("Failed to record team.created activity", {
+          teamId: team.id,
+          error: activityError instanceof Error ? activityError.message : String(activityError),
+        });
+      }
 
       return team;
     } catch (error) {
@@ -387,6 +421,53 @@ class TeamService {
         role: invitation.role,
       });
 
+      try {
+        const [invitingUser] = await database.select().from(users)
+          .where(eq(users.id, invitingUserId))
+          .limit(1);
+
+        if (invitingUser) {
+          const [teamDetails] = await database.select({ name: teams.name }).from(teams)
+            .where(eq(teams.id, teamId))
+            .limit(1);
+
+          if (teamDetails) {
+            await WebhookEventDispatcher.emitTeamMemberAdded(
+              invitingUserId,
+              invitingUser.clerkId,
+              teamId,
+              teamDetails.name,
+              newMember.id,
+              user.id,
+              user.clerkId,
+              user.email,
+              invitation.role as TeamRole,
+            );
+
+            await ActivityFeedService.recordActivity({
+              userId: invitingUserId,
+              clerkId: invitingUser.clerkId,
+              entityType: "team",
+              entityId: teamId,
+              eventType: "team.member_added",
+              eventData: {
+                teamName: teamDetails.name,
+                memberId: newMember.id,
+                memberUserId: user.id,
+                memberClerkId: user.clerkId,
+                memberEmail: user.email,
+                role: invitation.role,
+              },
+            });
+          }
+        }
+      } catch (activityError) {
+        logger.error("Failed to record team.member_added activity", {
+          teamId,
+          error: activityError instanceof Error ? activityError.message : String(activityError),
+        });
+      }
+
       return {
         invitation: newMember,
         user: { email: user.email, clerkId: user.clerkId },
@@ -468,6 +549,58 @@ class TeamService {
         targetUserId,
         newRole,
       });
+
+      try {
+        const [requestingUser] = await database.select().from(users)
+          .where(eq(users.id, requestingUserId))
+          .limit(1);
+
+        const [targetUser] = await database.select().from(users)
+          .where(eq(users.id, targetUserId))
+          .limit(1);
+
+        const [teamDetails] = await database.select({ name: teams.name }).from(teams)
+          .where(eq(teams.id, teamId))
+          .limit(1);
+
+        if (requestingUser && targetUser && teamDetails) {
+          const previousRole = updatedMember.role;
+          await WebhookEventDispatcher.emitTeamMemberRoleChanged(
+            requestingUserId,
+            requestingUser.clerkId,
+            teamId,
+            teamDetails.name,
+            updatedMember.id,
+            targetUserId,
+            targetUser.clerkId,
+            targetUser.email,
+            previousRole,
+            newRole,
+          );
+
+          await ActivityFeedService.recordActivity({
+            userId: requestingUserId,
+            clerkId: requestingUser.clerkId,
+            entityType: "team",
+            entityId: teamId,
+            eventType: "team.member_role_changed",
+            eventData: {
+              teamName: teamDetails.name,
+              memberId: updatedMember.id,
+              memberUserId: targetUserId,
+              memberClerkId: targetUser.clerkId,
+              memberEmail: targetUser.email,
+              previousRole,
+              newRole,
+            },
+          });
+        }
+      } catch (activityError) {
+        logger.error("Failed to record team.member_role_changed activity", {
+          teamId,
+          error: activityError instanceof Error ? activityError.message : String(activityError),
+        });
+      }
 
       return updatedMember;
     } catch (error) {
@@ -555,6 +688,55 @@ class TeamService {
         teamId,
         targetUserId,
       });
+
+      try {
+        const [requestingUser] = await database.select().from(users)
+          .where(eq(users.id, requestingUserId))
+          .limit(1);
+
+        const [targetUser] = await database.select().from(users)
+          .where(eq(users.id, targetUserId))
+          .limit(1);
+
+        const [teamDetails] = await database.select({ name: teams.name }).from(teams)
+          .where(eq(teams.id, teamId))
+          .limit(1);
+
+        if (requestingUser && targetUser && teamDetails) {
+          await WebhookEventDispatcher.emitTeamMemberRemoved(
+            requestingUserId,
+            requestingUser.clerkId,
+            teamId,
+            teamDetails.name,
+            removedMember.id,
+            targetUserId,
+            targetUser.clerkId,
+            targetUser.email,
+            removedMember.role as TeamRole,
+          );
+
+          await ActivityFeedService.recordActivity({
+            userId: requestingUserId,
+            clerkId: requestingUser.clerkId,
+            entityType: "team",
+            entityId: teamId,
+            eventType: "team.member_removed",
+            eventData: {
+              teamName: teamDetails.name,
+              memberId: removedMember.id,
+              memberUserId: targetUserId,
+              memberClerkId: targetUser.clerkId,
+              memberEmail: targetUser.email,
+              role: removedMember.role,
+            },
+          });
+        }
+      } catch (activityError) {
+        logger.error("Failed to record team.member_removed activity", {
+          teamId,
+          error: activityError instanceof Error ? activityError.message : String(activityError),
+        });
+      }
     } catch (error) {
       logger.error("Failed to remove team member", {
         error: error instanceof Error ? error.message : String(error),
