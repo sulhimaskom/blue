@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { monitoringAPI } from "@/lib/services/monitoring-api";
 import type {
   AdvancedPerformanceMetrics,
@@ -63,6 +63,13 @@ export const useAdvancedMetricsData = ({
       setRefreshing(false);
     }
   }, [onError, onSuccess]);
+
+  const fetchAdvancedMetricsRef = useRef(fetchAdvancedMetrics);
+  fetchAdvancedMetricsRef.current = fetchAdvancedMetrics;
+
+  useEffect(() => {
+    fetchAdvancedMetricsRef.current();
+  }, []);
 
   return {
     metrics,
