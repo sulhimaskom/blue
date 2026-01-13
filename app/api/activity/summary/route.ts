@@ -1,4 +1,3 @@
-import { NextRequest } from "next/server";
 import { z } from "zod";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";

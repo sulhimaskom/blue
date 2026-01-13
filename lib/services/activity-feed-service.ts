@@ -1,10 +1,9 @@
 import { db } from "@/lib/db";
-import { activityLogs, users, teams, projects } from "@/lib/db/schema";
-import { eq, desc, and, inArray, isNull, gt, lt } from "drizzle-orm";
-import { CacheOrchestrator } from "./cache-orchestrator";
+import { activityLogs } from "@/lib/db/schema";
+import { eq, desc, and, inArray, gt, lt } from "drizzle-orm";
+import { UnifiedCacheManager } from "./cache-orchestrator";
 import { logger } from "@/lib/logger";
-import { WebhookEventDispatcher } from "./webhook-event-dispatcher";
-import type { RequestContext } from "./service-types";
+import type { RequestContext } from "./user-service";
 
 export interface ActivityEvent {
   userId: number;
@@ -75,7 +74,7 @@ export class ActivityFeedService {
         timestamp: new Date(),
       });
 
-      logger.userAction("activity_recorded", event.userId, {
+      logger.userAction("activity_recorded", String(event.userId), {
         requestId: context?.requestId || "unknown",
         entityType: event.entityType,
         entityId: event.entityId,
@@ -107,13 +106,32 @@ export class ActivityFeedService {
     try {
       const cacheKey = `project-activity:${projectId}:${JSON.stringify(options)}`;
 
-      return await CacheOrchestrator.getOrSet(
-        cacheKey,
-        async () => {
-          const database = db();
-          const { limit = 50, offset = 0, startDate, endDate, eventTypes } = options;
+      const cached = await UnifiedCacheManager.getData<ActivityLogResponse[]>(cacheKey);
+      if (cached !== null) {
+        return cached;
+      }
 
-          let query = database
+      const database = db();
+      const { limit = 50, offset = 0, startDate, endDate, eventTypes } = options;
+
+      const whereConditions = [
+        eq(activityLogs.entityType, "project"),
+        eq(activityLogs.entityId, projectId),
+      ];
+
+      if (startDate) {
+        whereConditions.push(gt(activityLogs.timestamp, startDate));
+      }
+
+      if (endDate) {
+        whereConditions.push(lt(activityLogs.timestamp, endDate));
+      }
+
+      if (eventTypes && eventTypes.length > 0) {
+        whereConditions.push(inArray(activityLogs.eventType, eventTypes));
+      }
+
+          const activities = await database
             .select({
               id: activityLogs.id,
               userId: activityLogs.userId,
@@ -125,51 +143,21 @@ export class ActivityFeedService {
               timestamp: activityLogs.timestamp,
             })
             .from(activityLogs)
-            .where(
-              and(
-                eq(activityLogs.entityType, "project"),
-                eq(activityLogs.entityId, projectId),
-              ),
-            )
+            .where(and(...whereConditions))
             .orderBy(desc(activityLogs.timestamp))
             .limit(limit)
             .offset(offset);
 
-          if (startDate) {
-            query = query.where(and(
-              eq(activityLogs.entityType, "project"),
-              eq(activityLogs.entityId, projectId),
-              gt(activityLogs.timestamp, startDate),
-            ));
-          }
+      logger.apiRequest("GET", `/api/projects/${projectId}/activity`, context?.requestId || "unknown");
 
-          if (endDate) {
-            query = query.where(and(
-              eq(activityLogs.entityType, "project"),
-              eq(activityLogs.entityId, projectId),
-              lt(activityLogs.timestamp, endDate),
-            ));
-          }
+      const typedActivities = activities.map(a => ({
+        ...a,
+        eventData: a.eventData as Record<string, any>,
+      })) as ActivityLogResponse[];
 
-          if (eventTypes && eventTypes.length > 0) {
-            query = query.where(and(
-              eq(activityLogs.entityType, "project"),
-              eq(activityLogs.entityId, projectId),
-              inArray(activityLogs.eventType, eventTypes),
-            ));
-          }
+      await UnifiedCacheManager.setData(cacheKey, typedActivities, { ttl: this.CACHE_TTL });
 
-          const activities = await query;
-
-          logger.apiRequest("GET", `/api/projects/${projectId}/activity`, context?.requestId || "unknown", null, {
-            projectId,
-            activitiesReturned: activities.length,
-          });
-
-          return activities;
-        },
-        { ttl: this.CACHE_TTL },
-      );
+      return typedActivities;
     } catch (error) {
       logger.error("Failed to get project activity", {
         requestId: context?.requestId || "unknown",
@@ -191,69 +179,58 @@ export class ActivityFeedService {
     try {
       const cacheKey = `team-activity:${teamId}:${JSON.stringify(options)}`;
 
-      return await CacheOrchestrator.getOrSet(
-        cacheKey,
-        async () => {
-          const database = db();
-          const { limit = 50, offset = 0, startDate, endDate, eventTypes } = options;
+      const cached = await UnifiedCacheManager.getData<ActivityLogResponse[]>(cacheKey);
+      if (cached !== null) {
+        return cached;
+      }
 
-          let query = database
-            .select({
-              id: activityLogs.id,
-              userId: activityLogs.userId,
-              clerkId: activityLogs.clerkId,
-              entityType: activityLogs.entityType,
-              entityId: activityLogs.entityId,
-              eventType: activityLogs.eventType,
-              eventData: activityLogs.eventData,
-              timestamp: activityLogs.timestamp,
-            })
-            .from(activityLogs)
-            .where(
-              and(
-                eq(activityLogs.entityType, "team"),
-                eq(activityLogs.entityId, teamId),
-              ),
-            )
-            .orderBy(desc(activityLogs.timestamp))
-            .limit(limit)
-            .offset(offset);
+      const database = db();
+      const { limit = 50, offset = 0, startDate, endDate, eventTypes } = options;
 
-          if (startDate) {
-            query = query.where(and(
-              eq(activityLogs.entityType, "team"),
-              eq(activityLogs.entityId, teamId),
-              gt(activityLogs.timestamp, startDate),
-            ));
-          }
+      const whereConditions = [
+        eq(activityLogs.entityType, "team"),
+        eq(activityLogs.entityId, teamId),
+      ];
 
-          if (endDate) {
-            query = query.where(and(
-              eq(activityLogs.entityType, "team"),
-              eq(activityLogs.entityId, teamId),
-              lt(activityLogs.timestamp, endDate),
-            ));
-          }
+      if (startDate) {
+        whereConditions.push(gt(activityLogs.timestamp, startDate));
+      }
 
-          if (eventTypes && eventTypes.length > 0) {
-            query = query.where(and(
-              eq(activityLogs.entityType, "team"),
-              eq(activityLogs.entityId, teamId),
-              inArray(activityLogs.eventType, eventTypes),
-            ));
-          }
+      if (endDate) {
+        whereConditions.push(lt(activityLogs.timestamp, endDate));
+      }
 
-          const activities = await query;
+      if (eventTypes && eventTypes.length > 0) {
+        whereConditions.push(inArray(activityLogs.eventType, eventTypes));
+      }
 
-          logger.apiRequest("GET", `/api/teams/${teamId}/activity`, context?.requestId || "unknown", null, {
-            teamId,
-            activitiesReturned: activities.length,
-          });
+      const activities = await database
+        .select({
+          id: activityLogs.id,
+          userId: activityLogs.userId,
+          clerkId: activityLogs.clerkId,
+          entityType: activityLogs.entityType,
+          entityId: activityLogs.entityId,
+          eventType: activityLogs.eventType,
+          eventData: activityLogs.eventData,
+          timestamp: activityLogs.timestamp,
+        })
+        .from(activityLogs)
+        .where(and(...whereConditions))
+        .orderBy(desc(activityLogs.timestamp))
+        .limit(limit)
+        .offset(offset);
 
-          return activities;
-        },
-        { ttl: this.CACHE_TTL },
-      );
+      logger.apiRequest("GET", `/api/teams/${teamId}/activity`, context?.requestId || "unknown");
+
+      const typedActivities = activities.map(a => ({
+        ...a,
+        eventData: a.eventData as Record<string, any>,
+      })) as ActivityLogResponse[];
+
+      await UnifiedCacheManager.setData(cacheKey, typedActivities, { ttl: this.CACHE_TTL });
+
+      return typedActivities;
     } catch (error) {
       logger.error("Failed to get team activity", {
         requestId: context?.requestId || "unknown",
@@ -275,61 +252,55 @@ export class ActivityFeedService {
     try {
       const cacheKey = `user-activity:${userId}:${JSON.stringify(options)}`;
 
-      return await CacheOrchestrator.getOrSet(
-        cacheKey,
-        async () => {
-          const database = db();
-          const { limit = 50, offset = 0, startDate, endDate, eventTypes } = options;
+      const cached = await UnifiedCacheManager.getData<ActivityLogResponse[]>(cacheKey);
+      if (cached !== null) {
+        return cached;
+      }
 
-          let query = database
-            .select({
-              id: activityLogs.id,
-              userId: activityLogs.userId,
-              clerkId: activityLogs.clerkId,
-              entityType: activityLogs.entityType,
-              entityId: activityLogs.entityId,
-              eventType: activityLogs.eventType,
-              eventData: activityLogs.eventData,
-              timestamp: activityLogs.timestamp,
-            })
-            .from(activityLogs)
-            .where(eq(activityLogs.userId, userId))
-            .orderBy(desc(activityLogs.timestamp))
-            .limit(limit)
-            .offset(offset);
+      const database = db();
+      const { limit = 50, offset = 0, startDate, endDate, eventTypes } = options;
 
-          if (startDate) {
-            query = query.where(and(
-              eq(activityLogs.userId, userId),
-              gt(activityLogs.timestamp, startDate),
-            ));
-          }
+      const whereConditions = [eq(activityLogs.userId, userId)];
 
-          if (endDate) {
-            query = query.where(and(
-              eq(activityLogs.userId, userId),
-              lt(activityLogs.timestamp, endDate),
-            ));
-          }
+      if (startDate) {
+        whereConditions.push(gt(activityLogs.timestamp, startDate));
+      }
 
-          if (eventTypes && eventTypes.length > 0) {
-            query = query.where(and(
-              eq(activityLogs.userId, userId),
-              inArray(activityLogs.eventType, eventTypes),
-            ));
-          }
+      if (endDate) {
+        whereConditions.push(lt(activityLogs.timestamp, endDate));
+      }
 
-          const activities = await query;
+      if (eventTypes && eventTypes.length > 0) {
+        whereConditions.push(inArray(activityLogs.eventType, eventTypes));
+      }
 
-          logger.apiRequest("GET", "/api/activity/feed", context?.requestId || "unknown", userId, {
-            userId,
-            activitiesReturned: activities.length,
-          });
+      const activities = await database
+        .select({
+          id: activityLogs.id,
+          userId: activityLogs.userId,
+          clerkId: activityLogs.clerkId,
+          entityType: activityLogs.entityType,
+          entityId: activityLogs.entityId,
+          eventType: activityLogs.eventType,
+          eventData: activityLogs.eventData,
+          timestamp: activityLogs.timestamp,
+        })
+        .from(activityLogs)
+        .where(and(...whereConditions))
+        .orderBy(desc(activityLogs.timestamp))
+        .limit(limit)
+        .offset(offset);
 
-          return activities;
-        },
-        { ttl: this.CACHE_TTL },
-      );
+      logger.apiRequest("GET", "/api/activity/feed", context?.requestId || "unknown", String(userId));
+
+      const typedActivities = activities.map(a => ({
+        ...a,
+        eventData: a.eventData as Record<string, any>,
+      })) as ActivityLogResponse[];
+
+      await UnifiedCacheManager.setData(cacheKey, typedActivities, { ttl: this.CACHE_TTL });
+
+      return typedActivities;
     } catch (error) {
       logger.error("Failed to get user activity", {
         requestId: context?.requestId || "unknown",
@@ -351,50 +322,51 @@ export class ActivityFeedService {
     try {
       const cacheKey = `activity-summary:${entityType || "all"}:${entityId || "all"}`;
 
-      return await CacheOrchestrator.getOrSet(
-        cacheKey,
-        async () => {
-          const database = db();
+      const cached = await UnifiedCacheManager.getData<ActivitySummary>(cacheKey);
+      if (cached !== null) {
+        return cached;
+      }
 
-          let whereClause: any = {};
-          if (entityType && entityId) {
-            whereClause = and(
-              eq(activityLogs.entityType, entityType),
-              eq(activityLogs.entityId, entityId),
-            );
-          } else if (entityType) {
-            whereClause = eq(activityLogs.entityType, entityType);
-          }
+      const database = db();
 
-          const activities = await database
-            .select()
-            .from(activityLogs)
-            .where(whereClause)
-            .orderBy(desc(activityLogs.timestamp))
-            .limit(1000);
+      let whereClause: any = {};
+      if (entityType && entityId) {
+        whereClause = and(
+          eq(activityLogs.entityType, entityType),
+          eq(activityLogs.entityId, entityId),
+        );
+      } else if (entityType) {
+        whereClause = eq(activityLogs.entityType, entityType);
+      }
 
-          const summary: ActivitySummary = {
-            totalActivities: activities.length,
-            projectActivities: activities.filter(a => a.entityType === "project").length,
-            teamActivities: activities.filter(a => a.entityType === "team").length,
-            userActivities: activities.filter(a => a.entityType === "user").length,
-            blueprintActivities: activities.filter(a => a.entityType === "blueprint").length,
-            deploymentActivities: activities.filter(a => a.entityType === "deployment").length,
-            activitiesByType: {} as Record<string, number>,
-            activitiesByDay: {} as Record<string, number>,
-          };
+      const activities = await database
+        .select()
+        .from(activityLogs)
+        .where(whereClause)
+        .orderBy(desc(activityLogs.timestamp))
+        .limit(1000);
 
-          activities.forEach(activity => {
-            summary.activitiesByType[activity.eventType] = (summary.activitiesByType[activity.eventType] || 0) + 1;
+      const summary: ActivitySummary = {
+        totalActivities: activities.length,
+        projectActivities: activities.filter(a => a.entityType === "project").length,
+        teamActivities: activities.filter(a => a.entityType === "team").length,
+        userActivities: activities.filter(a => a.entityType === "user").length,
+        blueprintActivities: activities.filter(a => a.entityType === "blueprint").length,
+        deploymentActivities: activities.filter(a => a.entityType === "deployment").length,
+        activitiesByType: {} as Record<string, number>,
+        activitiesByDay: {} as Record<string, number>,
+      };
 
-            const dayKey = activity.timestamp.toISOString().split("T")[0];
-            summary.activitiesByDay[dayKey] = (summary.activitiesByDay[dayKey] || 0) + 1;
-          });
+      activities.forEach(activity => {
+        summary.activitiesByType[activity.eventType] = (summary.activitiesByType[activity.eventType] || 0) + 1;
 
-          return summary;
-        },
-        { ttl: this.SUMMARY_CACHE_TTL },
-      );
+        const dayKey = activity.timestamp.toISOString().split("T")[0];
+        summary.activitiesByDay[dayKey] = (summary.activitiesByDay[dayKey] || 0) + 1;
+      });
+
+      await UnifiedCacheManager.setData(cacheKey, summary, { ttl: this.SUMMARY_CACHE_TTL });
+
+      return summary;
     } catch (error) {
       logger.error("Failed to get activity summary", {
         requestId: context?.requestId || "unknown",
@@ -469,17 +441,13 @@ export class ActivityFeedService {
     userId: number,
   ): Promise<void> {
     try {
-      const cacheKeys = [
-        `project-activity:${entityId}:*`,
-        `team-activity:${entityId}:*`,
-        `user-activity:${userId}:*`,
+      await UnifiedCacheManager.invalidateByEvent("activity-recorded", [
+        `project-activity:${entityId}`,
+        `team-activity:${entityId}`,
+        `user-activity:${userId}`,
         `activity-summary:${entityType}:${entityId}`,
         `activity-summary:all:all`,
-      ];
-
-      for (const key of cacheKeys) {
-        await CacheOrchestrator.delete(key);
-      }
+      ]);
     } catch (error) {
       logger.error("Failed to invalidate activity caches", {
         entityType,
