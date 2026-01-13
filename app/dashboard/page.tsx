@@ -159,19 +159,94 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DashboardCard 
-            title="Recent Activity"
-            description="Recent platform activities and events"
-            buttonText="View All"
-            href="/dashboard/activity"
-          />
-          <DashboardCard 
-            title="Quick Actions"
-            description="Common actions and shortcuts"
-            buttonText="Get Started"
-            href="/dashboard/actions"
-          />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Core Features</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <DashboardCard 
+              title="Recent Activity"
+              description="Recent platform activities and events"
+              buttonText="View All"
+              href="/dashboard/activity"
+            />
+            <DashboardCard 
+              title="Blueprints"
+              description="Manage and deploy your software blueprints"
+              buttonText="Manage Blueprints"
+              href="/dashboard/blueprints"
+            />
+            <DashboardCard 
+              title="Projects"
+              description="Track and manage your projects"
+              buttonText="View Projects"
+              href="/dashboard/projects"
+            />
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Teams & Collaboration</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <DashboardCard 
+              title="Teams"
+              description="Manage team members and permissions"
+              buttonText="Manage Teams"
+              href="/dashboard/teams"
+            />
+            <DashboardCard 
+              title="Webhooks"
+              description="Configure webhook integrations"
+              buttonText="Configure Webhooks"
+              href="/dashboard/webhooks"
+            />
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Monitoring & Analytics</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <DashboardCard 
+              title="System Monitoring"
+              description="Real-time system health and performance"
+              buttonText="View Monitoring"
+              href="/dashboard/monitoring"
+            />
+            <DashboardCard 
+              title="Performance Analytics"
+              description="Analyze platform performance metrics"
+              buttonText="View Analytics"
+              href="/dashboard/performance-analytics"
+            />
+            <DashboardCard 
+              title="Circuit Breakers"
+              description="Monitor and manage circuit breaker status"
+              buttonText="View Circuit Breakers"
+              href="/dashboard/circuit-breakers"
+            />
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Billing & Configuration</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <DashboardCard 
+              title="Credits"
+              description="View your credit balance and usage"
+              buttonText="View Credits"
+              href="/dashboard/credits"
+            />
+            <DashboardCard 
+              title="Subscription"
+              description="Manage your subscription and billing"
+              buttonText="Manage Subscription"
+              href="/dashboard/subscription"
+            />
+            <DashboardCard 
+              title="Enterprise Themes"
+              description="Configure enterprise theme settings"
+              buttonText="Configure Themes"
+              href="/dashboard/enterprise/themes"
+            />
+          </div>
         </div>
       </div>
     </DashboardLayout>
