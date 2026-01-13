@@ -54,6 +54,8 @@
     "migrate:indexes:down": "npx tsx migrations/0008_add_performance_indexes.ts down",
     "migrate:webhook:up": "npx tsx migrations/webhook-runner.ts",
     "migrate:webhook:down": "npx tsx migrations/webhook-runner.ts down",
+    "migrate:fk:up": "npx tsx migrations/0009_add_foreign_key_indexes.ts",
+    "migrate:fk:down": "npx tsx migrations/0009_add_foreign_key_indexes.ts down",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node migrations/drizzle-migrate.js",
     "db:rollback": "node migrations/drizzle-rollback.js",
