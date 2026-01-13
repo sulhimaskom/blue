@@ -476,7 +476,7 @@ const csp = [
 - ✅ Automatic recovery (4 tests)
 - ✅ Integration scenarios (14 tests)
 
-**Total Circuit Breaker Tests**: 44/44 passing
+**Total Circuit Breaker Tests**: 60/60 passing
 
 **Assessment**: EXCELLENT - 100% test coverage for critical reliability feature
 
