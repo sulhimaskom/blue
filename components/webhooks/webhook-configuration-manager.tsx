@@ -1,28 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { formatStandardDate, formatDateTime } from "@/lib/utils/time-formatting";
-import {
-  PlusIcon,
-  Edit2Icon,
-  Trash2Icon,
-  TestTubeIcon,
-  RotateCcwIcon,
-  EyeIcon,
-  EyeOffIcon,
-  XIcon,
-} from "@/components/ui/icons";
+import { formatDateTime } from "@/lib/utils/time-formatting";
 import { useNotification } from "@/lib/hooks/use-notification";
-import type {
-  WebhookConfigurationInput,
-  WebhookEventType,
-} from "@/lib/schemas/webhook-schema";
-import { WEBHOOK_EVENT_TYPES } from "@/lib/schemas/webhook-schema";
+import type { WebhookConfigurationInput, WebhookEventType } from "@/lib/schemas/webhook-schema";
 import {
   WebhookManagementService,
   type WebhookConfiguration,
   type WebhookEvent,
 } from "@/lib/services/webhook-management-service";
+import { WebhookForm } from "./webhook-form";
+import { WebhookList } from "./webhook-list";
+import { XIcon } from "@/components/ui/icons";
+import { Button } from "@/components/ui/button";
 
 interface WebhookEventManager {
   webhookId: string;
@@ -154,15 +144,6 @@ export function WebhookConfigurationManager() {
     });
   };
 
-  const toggleEventType = (eventType: WebhookEventType) => {
-    setFormData((prev) => ({
-      ...prev,
-      eventTypes: prev.eventTypes.includes(eventType)
-        ? prev.eventTypes.filter((type) => type !== eventType)
-        : [...prev.eventTypes, eventType],
-    }));
-  };
-
   const toggleSecret = (webhookId: string) => {
     setShowSecrets((prev) => ({
       ...prev,
@@ -171,7 +152,7 @@ export function WebhookConfigurationManager() {
   };
 
   const handleRotateSecret = async (webhookId: string) => {
-    if (!confirm("Are you sure? This will invalidate the current secret."))
+    if (!confirm("Are you sure? This will invalidate current secret."))
       return;
 
     try {
@@ -186,202 +167,39 @@ export function WebhookConfigurationManager() {
     }
   };
 
+  // Show form view
   if (showForm) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {editingWebhook ? "Edit Webhook" : "Create New Webhook"}
-          </h2>
-          <button
-            onClick={() => {
-              setShowForm(false);
-              setEditingWebhook(null);
-              resetForm();
-            }}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <XIcon className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, name: e.target.value }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g., Production Webhook"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                URL *
-              </label>
-              <input
-                type="url"
-                required
-                value={formData.url}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, url: e.target.value }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="https://your-domain.com/webhook"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Secret {!editingWebhook && " *"}
-            </label>
-            <input
-              type="text"
-              required={!editingWebhook}
-              value={formData.secret}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, secret: e.target.value }))
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              placeholder={
-                editingWebhook
-                  ? "Leave empty to keep current secret"
-                  : "At least 32 characters"
-              }
-            />
-            {editingWebhook && (
-              <p className="text-sm text-gray-500 mt-1">
-                Leave empty to keep the current secret, or generate a new one
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Event Types *
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
-              {WEBHOOK_EVENT_TYPES.map((eventType) => (
-                <label
-                  key={eventType}
-                  className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={formData.eventTypes.includes(eventType)}
-                    onChange={() => toggleEventType(eventType)}
-                    className="text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">{eventType}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Retry Count
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="10"
-                value={formData.retryCount}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    retryCount: parseInt(e.target.value) || 0,
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Timeout (seconds)
-              </label>
-              <input
-                type="number"
-                min="5"
-                max="300"
-                value={formData.timeoutSeconds}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    timeoutSeconds: parseInt(e.target.value) || 30,
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="isActive"
-                checked={formData.isActive}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    isActive: e.target.checked,
-                  }))
-                }
-                className="text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label htmlFor="isActive" className="ml-2 text-sm text-gray-700">
-                Active
-              </label>
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={() => {
-                setShowForm(false);
-                setEditingWebhook(null);
-                resetForm();
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              {editingWebhook ? "Update" : "Create"} Webhook
-            </button>
-          </div>
-        </form>
-      </div>
+      <WebhookForm
+        formData={formData}
+        isEditing={!!editingWebhook}
+        onChange={setFormData}
+        onSubmit={handleSubmit}
+        onCancel={() => {
+          setShowForm(false);
+          setEditingWebhook(null);
+          resetForm();
+        }}
+      />
     );
   }
 
+  // Show event history view
   if (selectedWebhook) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
             Event History: {selectedWebhook.webhookName}
           </h2>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setSelectedWebhook(null)}
-            className="text-gray-400 hover:text-gray-600"
+            aria-label="Close event history"
           >
             <XIcon className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
         <WebhookEventHistory webhookId={selectedWebhook.webhookId} />
@@ -389,161 +207,21 @@ export function WebhookConfigurationManager() {
     );
   }
 
+  // Show list view
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">
-          Webhook Configurations
-        </h2>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
-          <PlusIcon className="h-4 w-4" />
-          Add Webhook
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="text-gray-500">Loading webhooks...</div>
-        </div>
-      ) : webhooks.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-          <div className="text-gray-500 mb-4">No webhooks configured yet</div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Create Your First Webhook
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {webhooks.map((webhook) => (
-            <div
-              key={webhook.id}
-              className="bg-white rounded-lg border border-gray-200 p-6"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-medium text-gray-900">
-                      {webhook.name}
-                    </h3>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        webhook.isActive
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {webhook.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <div>URL: {webhook.url}</div>
-                    <div>
-                      Events:{" "}
-                      {webhook.eventTypes.length === WEBHOOK_EVENT_TYPES.length
-                        ? "All events"
-                        : webhook.eventTypes.join(", ")}
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span>Retry: {webhook.retryCount}x</span>
-                      <span>Timeout: {webhook.timeoutSeconds}s</span>
-                      <span>
-                        Created:{" "}
-                        {formatStandardDate(new Date(webhook.createdAt))}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2 ml-4">
-                  <button
-                    onClick={() => handleTest(webhook.id)}
-                    disabled={testingWebhook === webhook.id}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded disabled:opacity-50"
-                    title="Test webhook"
-                  >
-                    {testingWebhook === webhook.id ? (
-                      <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
-                    ) : (
-                      <TestTubeIcon className="h-4 w-4" />
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      setSelectedWebhook({
-                        webhookId: webhook.id,
-                        webhookName: webhook.name,
-                      })
-                    }
-                    className="p-2 text-green-600 hover:bg-green-50 rounded"
-                    title="View event history"
-                  >
-                    <EyeIcon className="h-4 w-4" />
-                  </button>
-
-                  <button
-                    onClick={() => toggleSecret(webhook.id)}
-                    className="p-2 text-gray-600 hover:bg-gray-50 rounded"
-                    title="Show/Hide secret"
-                  >
-                    {showSecrets[webhook.id] ? (
-                      <EyeOffIcon className="h-4 w-4" />
-                    ) : (
-                      <EyeIcon className="h-4 w-4" />
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => handleRotateSecret(webhook.id)}
-                    className="p-2 text-orange-600 hover:bg-orange-50 rounded"
-                    title="Rotate secret"
-                  >
-                    <RotateCcwIcon className="h-4 w-4" />
-                  </button>
-
-                  <button
-                    onClick={() => handleEdit(webhook)}
-                    className="p-2 text-gray-600 hover:bg-gray-50 rounded"
-                    title="Edit webhook"
-                  >
-                    <Edit2Icon className="h-4 w-4" />
-                  </button>
-
-                  <button
-                    onClick={() => handleDelete(webhook.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded"
-                    title="Delete webhook"
-                  >
-                    <Trash2Icon className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              {showSecrets[webhook.id] && (
-                <div className="mt-4 p-3 bg-gray-50 rounded">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Secret (Current)
-                  </label>
-                  <div className="font-mono text-sm text-gray-600 break-all">
-                    [Secret is hidden for security]
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    For security reasons, the actual secret is not displayed.
-                    Use the rotate button to generate a new secret if needed.
-                  </p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <WebhookList
+      webhooks={webhooks}
+      loading={loading}
+      testingWebhookId={testingWebhook}
+      showSecrets={showSecrets}
+      onTest={handleTest}
+      onViewHistory={(id, name) => setSelectedWebhook({ webhookId: id, webhookName: name })}
+      onToggleSecret={toggleSecret}
+      onRotateSecret={handleRotateSecret}
+      onEdit={handleEdit}
+      onDelete={handleDelete}
+      onAddWebhook={() => setShowForm(true)}
+    />
   );
 }
 
@@ -615,22 +293,22 @@ function WebhookEventHistory({ webhookId }: { webhookId: string }) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Event Type
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Response
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Attempts
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -638,26 +316,26 @@ function WebhookEventHistory({ webhookId }: { webhookId: string }) {
           <tbody className="bg-white divide-y divide-gray-200">
             {events.map((event) => (
               <tr key={event.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {event.eventType}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(event.status)}`}
                   >
                     {event.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {event.responseStatus ? `${event.responseStatus}` : "-"}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {event.attemptCount}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatDateTime(new Date(event.createdAt))}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                   {event.status === "failed" && (
                     <button
                       onClick={() => handleRetry(event.id)}
