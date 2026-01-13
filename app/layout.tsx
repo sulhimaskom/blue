@@ -21,8 +21,9 @@ const clerkAppearance = {
 
 // GITHUB ISSUE #343 FIX: Conditional Clerk provider for CI builds
 // Skip Clerk setup entirely in CI environments to prevent build failures
-const isCIEnvironment = env.NODE_ENV === 'production' && 
-                       !env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const isCIEnvironment = (env.NODE_ENV === 'production' && 
+                       !env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) ||
+                       env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY === 'placeholder';
 
 const clerkOptions = {
   appearance: clerkAppearance,

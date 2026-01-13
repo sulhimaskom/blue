@@ -54,6 +54,7 @@ const stableBuildEnv = {
       // Essential optimizations only
       NODE_OPTIONS: "--max-old-space-size=4096",
       NODE_ENV: "production",
+      NEXT_PHASE: "phase-production-build",
       NEXT_TELEMETRY_DISABLED: "1",
       
       // STABLE CONFIGURATION: Avoid experimental features that trigger Html import bug
@@ -66,8 +67,8 @@ const stableBuildEnv = {
       NEXT_ESLINT_IGNORE_DURING_BUILDS: "true",
       NEXT_TYPESCRIPT_SKIP_BUILD: "true",
       
-      // CI BUILD FIX: Do NOT set Clerk keys to trigger SafeClerkProvider in layout.tsx
-      // This prevents Clerk validation errors during build prerendering
+      // CI BUILD FIX: Set NEXT_PHASE to trigger env.ts placeholder values
+      // This allows SafeClerkProvider to detect build environment and skip Clerk
       
       // DISABLED: Problematic experimental features
       // TURBOPACK: "0", // Let Next.js choose stable backend
@@ -97,6 +98,7 @@ const stableBuildEnv = {
         ...process.env,
         NODE_OPTIONS: "--max-old-space-size=4096",
         NEXT_TELEMETRY_DISABLED: "1",
+        NEXT_PHASE: "phase-production-build",
       },
     });
     
