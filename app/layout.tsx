@@ -7,6 +7,7 @@ import { NavigationBar } from "@/components/layout/navigation-bar";
 import { SkipLink } from "@/components/ui/skip-link";
 import { getUIText } from "@/lib/constants/ui-text";
 import { Environment } from "@/lib/utils/environment";
+import { env } from "@/lib/env";
 // Sentry initialization temporarily disabled due to Next.js 15 webpack issue
 // TODO: Re-enable once proper webpack node: protocol handling is implemented
 // import "@/lib/sentry"; // Initialize error monitoring
@@ -20,8 +21,8 @@ const clerkAppearance = {
 
 // GITHUB ISSUE #343 FIX: Conditional Clerk provider for CI builds
 // Skip Clerk setup entirely in CI environments to prevent build failures
-const isCIEnvironment = process.env.NODE_ENV === 'production' && 
-                       !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const isCIEnvironment = env.NODE_ENV === 'production' && 
+                       !env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 const clerkOptions = {
   appearance: clerkAppearance,

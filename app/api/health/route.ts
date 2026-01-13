@@ -5,6 +5,7 @@ import { APIMetricsService } from "@/lib/services/api-metrics-service";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
 import { logger } from "@/lib/logger";
 import { withRateLimiter } from "@/lib/api-utils";
+import { env } from "@/lib/env";
 
 export async function GET(req: NextRequest) {
   return withRateLimiter(req, "permissive", async () => {
@@ -101,8 +102,8 @@ export async function GET(req: NextRequest) {
             status: overallStatus,
             timestamp: new Date().toISOString(),
             uptime: systemHealth?.uptime || 0,
-            version: process.env.npm_package_version || "1.0.0",
-            environment: process.env.NODE_ENV || "development",
+            version: env.NPM_PACKAGE_VERSION,
+            environment: env.NODE_ENV,
             checks: detailed
               ? allEnhancedChecks
               : allEnhancedChecks.map(({ service, status, ...rest }) => ({
@@ -127,8 +128,8 @@ export async function GET(req: NextRequest) {
             status: "degraded",
             timestamp: new Date().toISOString(),
             uptime: 0,
-            version: process.env.npm_package_version || "1.0.0",
-            environment: process.env.NODE_ENV || "development",
+            version: env.NPM_PACKAGE_VERSION,
+            environment: env.NODE_ENV,
             checks: [
               {
                 service: "health-endpoint",

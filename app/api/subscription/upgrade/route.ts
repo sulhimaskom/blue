@@ -4,6 +4,7 @@ import { stripePaymentService } from "@/lib/services/stripe-payment-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { z } from "zod";
 import { AuthenticationError, ValidationError } from "@/lib/api-utils";
+import { env } from "@/lib/env";
 
 const upgradeRequestSchema = z.object({
   tier: z.enum(["free", "pro", "enterprise"]),
@@ -67,7 +68,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
       throw new ValidationError("Stripe price ID not configured for this tier");
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const appUrl = env.NEXT_PUBLIC_APP_URL;
 
     const checkoutResult = await stripePaymentService.createCheckoutSession({
       userId: user.id,
