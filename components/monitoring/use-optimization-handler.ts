@@ -22,6 +22,16 @@ export const useOptimizationHandler = ({
   const applyOptimization = useCallback(
     async (optimizationIndex: number, aiMetrics: AICacheOptimizationMetrics) => {
       try {
+        if (
+          optimizationIndex < 0 ||
+          optimizationIndex >= aiMetrics.optimizations.length
+        ) {
+          onError?.(
+            `Invalid optimization index: ${optimizationIndex}. Valid range: 0-${aiMetrics.optimizations.length - 1}`,
+          );
+          return;
+        }
+
         const optimization = aiMetrics.optimizations[optimizationIndex];
         await monitoringAPI.getPredictiveOptimization({
           optimizationType: optimization.type,
