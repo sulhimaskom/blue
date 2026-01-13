@@ -157,7 +157,7 @@ export function SubscriptionDashboard() {
     );
   }
 
-  const { tier, limits, features, pricing, usage } = subscription;
+  const { tier, limits, features, usage } = subscription;
 
   return (
     <main className="space-y-6" role="main" aria-label="Subscription Dashboard">
