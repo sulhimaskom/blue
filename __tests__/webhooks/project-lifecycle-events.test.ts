@@ -40,7 +40,7 @@ describe("WebhookEventDispatcher - Project Lifecycle Events", () => {
           projectName: mockProjectName,
           projectDescription: mockProjectDescription,
           userId: mockUserId,
-          timestamp: expect.any(Number),
+          timestamp: expect.any(Date),
         },
         `user-${mockClerkId}`,
         mockContext
@@ -64,7 +64,7 @@ describe("WebhookEventDispatcher - Project Lifecycle Events", () => {
           projectName: mockProjectName,
           projectDescription: undefined,
           userId: mockUserId,
-          timestamp: expect.any(Number),
+          timestamp: expect.any(Date),
         },
         `user-${mockClerkId}`,
         mockContext
@@ -109,7 +109,7 @@ describe("WebhookEventDispatcher - Project Lifecycle Events", () => {
           projectName: mockProjectName,
           projectDescription: mockProjectDescription,
           userId: mockUserId,
-          timestamp: expect.any(Number),
+          timestamp: expect.any(Date),
           updatedFields: mockUpdatedFields,
         },
         `user-${mockClerkId}`,
@@ -152,7 +152,7 @@ describe("WebhookEventDispatcher - Project Lifecycle Events", () => {
           projectId: mockProjectId,
           projectName: mockProjectName,
           userId: mockUserId,
-          timestamp: expect.any(Number),
+          timestamp: expect.any(Date),
           deletedAt: expect.any(String),
         },
         `user-${mockClerkId}`,
@@ -244,7 +244,7 @@ describe("WebhookEventDispatcher - Project Lifecycle Events", () => {
       expect(eventData).toHaveProperty("projectDescription", mockProjectDescription);
       expect(eventData).toHaveProperty("userId", mockUserId);
       expect(eventData).toHaveProperty("timestamp");
-      expect(typeof eventData.timestamp).toBe("number");
+      expect(typeof eventData.timestamp).toBe("object");
     });
 
     it("should include additional fields in project.updated event", async () => {
