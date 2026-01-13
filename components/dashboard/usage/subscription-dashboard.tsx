@@ -371,8 +371,8 @@ export function SubscriptionDashboard() {
                       <h3 className="font-semibold">Pro</h3>
                       <Badge>Popular</Badge>
                     </div>
-                    <div className="text-2xl font-bold" aria-label={`Pro plan: $${(pricing.monthly / 100).toFixed(2)} per month`}>
-                      ${(pricing.monthly / 100)}
+                    <div className="text-2xl font-bold" aria-label={`Pro plan: $${(29 / 100).toFixed(2)} per month`}>
+                      ${29 / 100}
                       <span className="text-sm text-gray-500">/month</span>
                     </div>
                     <ul className="text-sm space-y-1" aria-label="Pro plan features">
@@ -385,7 +385,7 @@ export function SubscriptionDashboard() {
                     <Button
                       onClick={() => handleUpgrade("pro")}
                       className="w-full"
-                      aria-label="Upgrade to Pro plan for $${(pricing.monthly / 100).toFixed(2)} per month"
+                      aria-label={`Upgrade to Pro plan for $${(29 / 100).toFixed(2)} per month`}
                     >
                       Upgrade to Pro
                     </Button>
@@ -399,8 +399,8 @@ export function SubscriptionDashboard() {
                       <CrownIcon className="h-4 w-4 text-yellow-500" aria-hidden="true" />
                     </h3>
                   </div>
-                  <div className="text-2xl font-bold" aria-label={`Enterprise plan: $${((tier === "free" ? 99 : tier === "pro" ? 99 : 0) / 100).toFixed(2)} per month`}>
-                    ${(tier === "free" ? 99 : tier === "pro" ? 99 : 0) / 100}
+                  <div className="text-2xl font-bold" aria-label={`Enterprise plan: $${(99 / 100).toFixed(2)} per month`}>
+                    ${99 / 100}
                     <span className="text-sm text-gray-500">/month</span>
                   </div>
                   <ul className="text-sm space-y-1" aria-label="Enterprise plan features">
@@ -414,7 +414,7 @@ export function SubscriptionDashboard() {
                     onClick={() => handleUpgrade("enterprise")}
                     variant="default"
                     className="w-full"
-                    aria-label={`Upgrade to Enterprise plan for $${((tier === "free" ? 99 : tier === "pro" ? 99 : 0) / 100).toFixed(2)} per month`}
+                    aria-label={`Upgrade to Enterprise plan for $${(99 / 100).toFixed(2)} per month`}
                   >
                     Upgrade to Enterprise
                   </Button>
