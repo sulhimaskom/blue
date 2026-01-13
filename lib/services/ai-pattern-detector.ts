@@ -655,6 +655,9 @@ class AIPatternDetector {
     matchedKeywords: string[];
     industryContext?: string;
   } {
+    if (!input) {
+      return { pattern: null, confidence: 0, matchedKeywords: [] };
+    }
     const normalizedInput = input.toLowerCase();
     let bestMatch: {
       pattern: AIPattern["type"];
@@ -888,6 +891,9 @@ class AIPatternDetector {
    * Normalize input for better cache hit rates
    */
   static normalizeInputForCaching(input: string): string {
+    if (!input) {
+      return "";
+    }
     return input
       .toLowerCase()
       .replace(
@@ -1166,6 +1172,9 @@ class AIPatternDetector {
    * NEW: Extract semantic signature for better pattern matching
    */
   private static extractSemanticSignature(input: string): string {
+    if (!input) {
+      return "";
+    }
     const semanticKeywords = {
       marketplace: ["vendor", "seller", "buyer", "listing"],
       ecommerce: ["cart", "checkout", "product", "inventory"],
