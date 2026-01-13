@@ -50,15 +50,6 @@ export function WebhookQueueMonitor({
 
   useInterval(fetchWebhookStats, intervalConfig);
 
-  const handleRetryDeadLetter = async () => {
-    try {
-      await monitoringAPI.retryDeadLetterEvents();
-      fetchWebhookStats();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to retry events");
-    }
-  };
-
   return (
     <div
       className={`bg-white p-6 rounded-lg shadow-sm border border-gray-200 ${className}`}
@@ -137,16 +128,13 @@ export function WebhookQueueMonitor({
           {/* Dead Letter Queue Details */}
           {stats.queue.deadLetterQueue.size > 0 && (
             <div className="border border-red-200 rounded-lg p-4 bg-red-50">
-              <div className="flex justify-between items-center mb-4">
+              <div className="mb-4">
                 <h4 className="text-sm font-semibold text-red-900">
                   Dead Letter Queue Events
                 </h4>
-                <button
-                  onClick={handleRetryDeadLetter}
-                  className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                >
-                  Retry All
-                </button>
+                <p className="text-xs text-red-700 mt-1">
+                  Admin access required to retry failed events
+                </p>
               </div>
 
               <div className="space-y-3 max-h-64 overflow-y-auto">

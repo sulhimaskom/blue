@@ -52,29 +52,6 @@ class MonitoringAPI {
     throw new DatabaseError(data.error || "Failed to fetch webhook stats");
   }
 
-  async retryDeadLetterEvents(): Promise<void> {
-    const adminToken =
-      process.env.NEXT_PUBLIC_WEBHOOK_ADMIN_TOKEN || "admin-debug-token";
-
-    const response = await fetch(`${this.apiBase}/webhooks/monitor`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${adminToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new DatabaseError(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new DatabaseError(data.error || "Failed to retry dead letter events");
-    }
-  }
-
   async resetCircuitBreakers(): Promise<CircuitBreakerResetResult> {
     const response = await fetch(`${this.apiBase}/circuit-breakers/reset`, {
       method: "POST",
