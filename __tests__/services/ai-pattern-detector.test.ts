@@ -262,6 +262,20 @@ describe("AIPatternDetector", () => {
       expect(normalized).toBe("");
     });
 
+    it("should handle null input gracefully", () => {
+      const normalized = AIPatternDetector.normalizeInputForCaching(null as any);
+
+      expect(normalized).toBeDefined();
+      expect(normalized).toBe("");
+    });
+
+    it("should handle undefined input gracefully", () => {
+      const normalized = AIPatternDetector.normalizeInputForCaching(undefined as any);
+
+      expect(normalized).toBeDefined();
+      expect(normalized).toBe("");
+    });
+
     it("should preserve meaningful words", () => {
       const input = "shopping cart with checkout system";
       const normalized = AIPatternDetector.normalizeInputForCaching(input);
@@ -490,18 +504,20 @@ describe("AIPatternDetector", () => {
   });
 
   describe("Edge Cases", () => {
-    it.skip("should handle null input gracefully - BUG: Crashes with TypeError", () => {
+    it("should handle null input gracefully", () => {
       const result = AIPatternDetector.detectPattern(null as any);
 
       expect(result.pattern).toBeNull();
-      expect(result.confidence).toBeLessThanOrEqual(0.1);
+      expect(result.confidence).toBe(0);
+      expect(result.matchedKeywords).toEqual([]);
     });
 
-    it.skip("should handle undefined input gracefully - BUG: Crashes with TypeError", () => {
+    it("should handle undefined input gracefully", () => {
       const result = AIPatternDetector.detectPattern(undefined as any);
 
       expect(result.pattern).toBeNull();
-      expect(result.confidence).toBeLessThanOrEqual(0.1);
+      expect(result.confidence).toBe(0);
+      expect(result.matchedKeywords).toEqual([]);
     });
 
     it("should handle very long input strings", () => {
