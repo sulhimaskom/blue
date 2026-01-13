@@ -28,46 +28,44 @@ export async function POST(req: NextRequest) {
     verifySignature: SecurityService.verifyClerkWebhook,
     useQueue: true, // Enable reliable queue-based processing
     processEvent: async (event: ClerkWebhookEvent, context: WebhookContext) => {
-      // Handle user creation
-      if (event.type === "user.created") {
-        const { id, email_addresses } = event.data;
-        const primaryEmail = email_addresses?.[0]?.email_address;
+      switch (event.type) {
+        case "user.created":
+          const { id: createdId, email_addresses: createdEmails } = event.data;
+          const primaryEmail = createdEmails?.[0]?.email_address;
 
-        if (!primaryEmail) {
-          logger.error("No email found for user creation", {
-            requestId: context.requestId,
-            clerkId: id,
-            eventType: "user.created",
-          });
-          throw new DatabaseError("No email provided");
-        }
+          if (!primaryEmail) {
+            logger.error("No email found for user creation", {
+              requestId: context.requestId,
+              clerkId: createdId,
+              eventType: "user.created",
+            });
+            throw new DatabaseError("No email provided");
+          }
 
-        await UserService.createWebhookUser({
-          clerkId: id,
-          email: primaryEmail,
-          requestId: context.requestId,
-        });
-      }
-
-      // Handle user deletion
-      else if (event.type === "user.deleted") {
-        const { id } = event.data;
-
-        await UserService.deleteWebhookUser(id, context.requestId);
-      }
-
-      // Handle user email update
-      else if (event.type === "user.updated") {
-        const { id, email_addresses } = event.data;
-        const primaryEmail = email_addresses?.[0]?.email_address;
-
-        if (primaryEmail) {
-          await UserService.updateWebhookUser({
-            clerkId: id,
+          await UserService.createWebhookUser({
+            clerkId: createdId,
             email: primaryEmail,
             requestId: context.requestId,
           });
-        }
+          break;
+
+        case "user.deleted":
+          const { id: deletedId } = event.data;
+          await UserService.deleteWebhookUser(deletedId, context.requestId);
+          break;
+
+        case "user.updated":
+          const { id: updatedId, email_addresses: updatedEmails } = event.data;
+          const updatedEmail = updatedEmails?.[0]?.email_address;
+
+          if (updatedEmail) {
+            await UserService.updateWebhookUser({
+              clerkId: updatedId,
+              email: updatedEmail,
+              requestId: context.requestId,
+            });
+          }
+          break;
       }
     },
   });
