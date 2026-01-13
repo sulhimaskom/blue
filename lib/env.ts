@@ -57,6 +57,8 @@ const envSchema = z.object({
 type Env = z.infer<typeof envSchema>;
 
 function validateEnv(): Env {
+  const nodeEnv = process.env.NODE_ENV || "development";
+  
   // Skip validation during build time - Next.js will handle runtime validation
   if (process.env.NEXT_PHASE === "phase-production-build") {
     return {
@@ -82,8 +84,8 @@ function validateEnv(): Env {
     } as Env;
   }
 
-  // Skip validation during test environment - Jest mocks handle this
-  if (process.env.NODE_ENV === "test") {
+  // Test environment allows fallback values for local development without full setup
+  if (nodeEnv === "test") {
     return {
       NODE_ENV: "test",
       DATABASE_URL:
@@ -114,14 +116,18 @@ function validateEnv(): Env {
     } as Env;
   }
 
+  // Development and production environments use strict Zod validation
   try {
-    return envSchema.parse(process.env);
+    const parsed = envSchema.parse(process.env);
+    return parsed;
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingVars = error.errors
         .map((err) => `${err.path.join(".")}: ${err.message}`)
         .join("\n");
-      throw new EnvironmentError(`Environment validation failed:\n${missingVars}`);
+      throw new EnvironmentError(
+        `Environment validation failed:\n${missingVars}\n\nPlease check your .env configuration and ensure all required environment variables are set.\n\nSee .env.example for the required variables.`,
+      );
     }
     throw error;
   }

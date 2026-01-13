@@ -61,23 +61,41 @@ export interface WebhookEvent {
 export class StripePaymentService {
   private static instance: StripePaymentService;
   private stripe: Stripe | null = null;
+  private initialized: boolean = false;
 
   private constructor() {
-    // Stripe will be initialized with environment variables
-    if (process.env.STRIPE_SECRET_KEY) {
-      try {
-        this.stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-      } catch (error) {
-        logger.error("Failed to initialize Stripe", {
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-        throw new DatabaseError(
-          "Stripe library not available or invalid configuration",
-        );
-      }
-    } else {
-      logger.warn(
-        "STRIPE_SECRET_KEY not configured - payment service disabled",
+    // Lazy initialization - don't throw in constructor
+    this.stripe = null;
+    this.initialized = false;
+  }
+
+  /**
+   * Initialize the Stripe payment service
+   * Can be called multiple times, but only initializes once (lazy initialization pattern)
+   * @throws DatabaseError if STRIPE_SECRET_KEY is not configured or Stripe library is unavailable
+   */
+  public initialize(): void {
+    if (this.initialized) {
+      return;
+    }
+
+    // Stripe initialization with strict validation
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new DatabaseError(
+        "STRIPE_SECRET_KEY is not configured. Please set this environment variable to enable payment processing.",
+      );
+    }
+
+    try {
+      this.stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+      this.initialized = true;
+      logger.info("Stripe payment service initialized successfully");
+    } catch (error) {
+      logger.error("Failed to initialize Stripe", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw new DatabaseError(
+        "Stripe library not available or invalid configuration. Please ensure Stripe is properly installed and STRIPE_SECRET_KEY is valid.",
       );
     }
   }
@@ -96,6 +114,8 @@ export class StripePaymentService {
     request: PaymentIntentRequest,
     context: RequestContext,
   ): Promise<PaymentIntentResponse> {
+    this.initialize();
+    
     if (!this.stripe) {
       throw new DatabaseError("Stripe payment service not configured");
     }
@@ -182,6 +202,8 @@ export class StripePaymentService {
     signature: string,
     context: RequestContext,
   ): Promise<{ processed: boolean; type: string }> {
+    this.initialize();
+    
     if (!this.stripe) {
       throw new DatabaseError("Stripe payment service not configured");
     }
@@ -477,6 +499,8 @@ export class StripePaymentService {
   public async createCheckoutSession(
     request: CheckoutSessionRequest,
   ): Promise<CheckoutSessionResponse> {
+    this.initialize();
+    
     if (!this.stripe) {
       throw new DatabaseError("Stripe payment service not configured");
     }
@@ -533,6 +557,8 @@ export class StripePaymentService {
     paymentIntentId: string,
     context: RequestContext,
   ): Promise<any> {
+    this.initialize();
+    
     if (!this.stripe) {
       throw new DatabaseError("Stripe payment service not configured");
     }
@@ -563,9 +589,11 @@ export class StripePaymentService {
 
   /**
    * Check if Stripe service is properly configured
+   * Returns true if STRIPE_SECRET_KEY is set, false otherwise
+   * Does not throw exceptions - safe to call for configuration checks
    */
   public isConfigured(): boolean {
-    return !!this.stripe && !!process.env.STRIPE_SECRET_KEY;
+    return !!process.env.STRIPE_SECRET_KEY;
   }
 
   /**

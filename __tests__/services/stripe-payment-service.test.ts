@@ -63,10 +63,13 @@ describe("StripePaymentService", () => {
     process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = "pk_test_mock_key";
 
-    // Get service instance first (this triggers Stripe initialization)
+    // Get service instance
     service = StripePaymentService.getInstance();
 
-    // Get the actual Stripe instance that the service is using
+    // Trigger initialization to set up Stripe mock
+    service.initialize();
+
+    // Get actual Stripe instance that service is using
     // Access private property using type assertion
     mockStripe = (service as any).stripe;
   });
@@ -156,19 +159,24 @@ describe("StripePaymentService", () => {
     });
 
     test("should throw error when Stripe not configured", async () => {
-      // Create a test with unconfigured service by temporarily setting stripe to undefined
-      const originalStripe = (service as any).stripe;
-      (service as any).stripe = undefined;
+      // Reset singleton instance and remove STRIPE_SECRET_KEY
+      const originalStripeSecretKey = process.env.STRIPE_SECRET_KEY;
+      (StripePaymentService as any).instance = undefined;
+      delete process.env.STRIPE_SECRET_KEY;
+
+      // Create a new service instance
+      const unconfiguredService = StripePaymentService.getInstance();
 
       await expect(
-        service.createPaymentIntent(
+        unconfiguredService.createPaymentIntent(
           { amount: 1000, paymentMethodId: "pm_test", userId: "123" },
           mockRequestContext,
         ),
-      ).rejects.toThrow("Stripe payment service not configured");
+      ).rejects.toThrow("STRIPE_SECRET_KEY is not configured");
 
-      // Restore original stripe instance
-      (service as any).stripe = originalStripe;
+      // Restore environment variable
+      process.env.STRIPE_SECRET_KEY = originalStripeSecretKey;
+      (StripePaymentService as any).instance = undefined;
     });
 
     test("should handle payment intent creation failure", async () => {
@@ -448,18 +456,22 @@ describe("StripePaymentService", () => {
     });
 
     test("should throw error when Stripe not configured", async () => {
-      const originalStripe = (service as any).stripe;
-      (service as any).stripe = undefined;
+      const originalStripeSecretKey = process.env.STRIPE_SECRET_KEY;
+      (StripePaymentService as any).instance = undefined;
+      delete process.env.STRIPE_SECRET_KEY;
+
+      const unconfiguredService = StripePaymentService.getInstance();
 
       await expect(
-        service.processWebhookEvent(
+        unconfiguredService.processWebhookEvent(
           "{}",
           "signature",
           mockRequestContext,
         ),
-      ).rejects.toThrow("Stripe payment service not configured");
+      ).rejects.toThrow("STRIPE_SECRET_KEY is not configured");
 
-      (service as any).stripe = originalStripe;
+      process.env.STRIPE_SECRET_KEY = originalStripeSecretKey;
+      (StripePaymentService as any).instance = undefined;
     });
 
     test("should throw error when webhook secret not configured", async () => {
@@ -575,14 +587,18 @@ describe("StripePaymentService", () => {
     });
 
     test("should throw error when Stripe not configured", async () => {
-      const originalStripe = (service as any).stripe;
-      (service as any).stripe = undefined;
+      const originalStripeSecretKey = process.env.STRIPE_SECRET_KEY;
+      (StripePaymentService as any).instance = undefined;
+      delete process.env.STRIPE_SECRET_KEY;
+
+      const unconfiguredService = StripePaymentService.getInstance();
 
       await expect(
-        service.retrievePaymentIntent("pi_test", mockRequestContext),
-      ).rejects.toThrow("Stripe payment service not configured");
+        unconfiguredService.retrievePaymentIntent("pi_test", mockRequestContext),
+      ).rejects.toThrow("STRIPE_SECRET_KEY is not configured");
 
-      (service as any).stripe = originalStripe;
+      process.env.STRIPE_SECRET_KEY = originalStripeSecretKey;
+      (StripePaymentService as any).instance = undefined;
     });
 
     test("should handle payment intent retrieval failure", async () => {
