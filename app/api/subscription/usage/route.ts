@@ -13,10 +13,18 @@ export const GET = APIRouteHandler.createGETHandler({
   requireAuth: true,
   rateLimiter: RateLimiters.standard(),
   handler: async ({ user }) => {
+    if (!user) {
+      throw new Error("User authentication required");
+    }
+
     const result = await subscriptionService.getUserUsage(user.id);
-    
+
     if (!result.success) {
       throw result.error;
+    }
+
+    if (!result.data) {
+      throw new Error("Usage data not found");
     }
 
     return {

@@ -28,13 +28,21 @@ export async function requireCredits(
     if (!userId) {
       return {
         success: false,
-        error: new ServiceError("Authentication required", "AUTHENTICATION_REQUIRED"),
+        error: new ServiceError("Authentication required", "SubscriptionMiddleware", "requireCredits"),
       };
     }
 
     const creditsResult = await subscriptionService.hasSufficientCredits(userId, requiredCredits);
     if (!creditsResult.success) {
       return creditsResult;
+    }
+
+    if (!creditsResult.data) {
+      Logger.security(`Credits result not found`, { userId });
+      return {
+        success: false,
+        error: new ServiceError("Credits result not found", "SubscriptionMiddleware", "requireCredits"),
+      };
     }
 
     if (!creditsResult.data.hasCredits) {
@@ -48,7 +56,8 @@ export async function requireCredits(
         success: false,
         error: new ServiceError(
           `Insufficient credits. Required: ${requiredCredits}, Available: ${creditsResult.data.currentCredits}`,
-          "INSUFFICIENT_CREDITS",
+          "SubscriptionMiddleware",
+          "requireCredits",
         ),
       };
     }
@@ -61,7 +70,7 @@ export async function requireCredits(
     Logger.error("Credit check middleware failed", { error });
     return {
       success: false,
-      error: new ServiceError("Credit check failed", "CREDIT_CHECK_ERROR"),
+      error: new ServiceError("Credit check failed", "SubscriptionMiddleware", "requireCredits", error as Error),
     };
   }
 }
@@ -77,13 +86,21 @@ export async function requireProjectCreationAccess(
     if (!userId) {
       return {
         success: false,
-        error: new ServiceError("Authentication required", "AUTHENTICATION_REQUIRED"),
+        error: new ServiceError("Authentication required", "SubscriptionMiddleware", "requireProjectCreationAccess"),
       };
     }
 
     const canCreateResult = await subscriptionService.canCreateProject(userId);
     if (!canCreateResult.success) {
       return canCreateResult;
+    }
+
+    if (!canCreateResult.data) {
+      Logger.security(`Project creation result data not found`, { userId });
+      return {
+        success: false,
+        error: new ServiceError("Project creation result not found", "SubscriptionMiddleware", "requireProjectCreationAccess"),
+      };
     }
 
     if (!canCreateResult.data.canCreate) {
@@ -96,7 +113,8 @@ export async function requireProjectCreationAccess(
         success: false,
         error: new ServiceError(
           canCreateResult.data.reason || "Project creation limit exceeded",
-          "PROJECT_LIMIT_EXCEEDED",
+          "SubscriptionMiddleware",
+          "requireProjectCreationAccess",
         ),
       };
     }
@@ -109,7 +127,7 @@ export async function requireProjectCreationAccess(
     Logger.error("Project creation check middleware failed", { error });
     return {
       success: false,
-      error: new ServiceError("Project creation check failed", "PROJECT_CHECK_ERROR"),
+      error: new ServiceError("Project creation check failed", "SubscriptionMiddleware", "requireProjectCreationAccess", error as Error),
     };
   }
 }
@@ -125,13 +143,21 @@ export async function requireTeamCreationAccess(
     if (!userId) {
       return {
         success: false,
-        error: new ServiceError("Authentication required", "AUTHENTICATION_REQUIRED"),
+        error: new ServiceError("Authentication required", "SubscriptionMiddleware", "requireTeamCreationAccess"),
       };
     }
 
     const canCreateResult = await subscriptionService.canCreateTeam(userId);
     if (!canCreateResult.success) {
       return canCreateResult;
+    }
+
+    if (!canCreateResult.data) {
+      Logger.security(`Team creation result data not found`, { userId });
+      return {
+        success: false,
+        error: new ServiceError("Team creation result not found", "SubscriptionMiddleware", "requireTeamCreationAccess"),
+      };
     }
 
     if (!canCreateResult.data.canCreate) {
@@ -144,7 +170,8 @@ export async function requireTeamCreationAccess(
         success: false,
         error: new ServiceError(
           canCreateResult.data.reason || "Team creation limit exceeded",
-          "TEAM_LIMIT_EXCEEDED",
+          "SubscriptionMiddleware",
+          "requireTeamCreationAccess",
         ),
       };
     }
@@ -157,7 +184,7 @@ export async function requireTeamCreationAccess(
     Logger.error("Team creation check middleware failed", { error });
     return {
       success: false,
-      error: new ServiceError("Team creation check failed", "TEAM_CHECK_ERROR"),
+      error: new ServiceError("Team creation check failed", "SubscriptionMiddleware", "requireTeamCreationAccess", error as Error),
     };
   }
 }
@@ -174,7 +201,7 @@ export async function requireFeatureAccess(
     if (!userId) {
       return {
         success: false,
-        error: new ServiceError("Authentication required", "AUTHENTICATION_REQUIRED"),
+        error: new ServiceError("Authentication required", "SubscriptionMiddleware", "requireFeatureAccess"),
       };
     }
 
@@ -186,18 +213,27 @@ export async function requireFeatureAccess(
       return featureResult;
     }
 
+    if (!featureResult.data) {
+      Logger.security(`Feature access result data not found`, { userId, feature });
+      return {
+        success: false,
+        error: new ServiceError("Feature access result not found", "SubscriptionMiddleware", "requireFeatureAccess"),
+      };
+    }
+
     if (!featureResult.data.hasAccess) {
       Logger.security(`Feature access denied`, {
         userId,
         feature,
-        tier: featureResult.data.tier.subscriptionTier,
+        tier: (featureResult.data.tier as any)?.subscriptionTier,
       });
 
       return {
         success: false,
         error: new ServiceError(
           `Feature "${feature}" requires a higher subscription tier`,
-          "FEATURE_ACCESS_DENIED",
+          "SubscriptionMiddleware",
+          "requireFeatureAccess",
         ),
       };
     }
@@ -211,7 +247,7 @@ export async function requireFeatureAccess(
     Logger.error("Feature access check middleware failed", { feature, error });
     return {
       success: false,
-      error: new ServiceError("Feature access check failed", "FEATURE_CHECK_ERROR"),
+      error: new ServiceError("Feature access check failed", "SubscriptionMiddleware", "requireFeatureAccess", error as Error),
     };
   }
 }
@@ -238,10 +274,10 @@ export async function getTierAwareRateLimiter(
       return { limiter: RateLimiters.standard() };
     }
 
-    const tier = subscriptionResult.data.tier;
+    const tier = subscriptionResult.data?.tier;
     const { RateLimiters } = await import("@/lib/rate-limit-config");
-    
-    return { 
+
+    return {
       limiter: RateLimiters.forTier(tier, category as any),
       userId,
     };
@@ -287,13 +323,14 @@ export function createMiddlewareError(error: ServiceError) {
     {
       success: false,
       error: error.message,
-      details: error.code,
+      details: error.operation,
     },
-    { 
-      status: error.code === "AUTHENTICATION_REQUIRED" ? 401 :
-             error.code === "INSUFFICIENT_CREDITS" ? 402 :
-             error.code.includes("LIMIT_EXCEEDED") ? 403 :
-             error.code === "FEATURE_ACCESS_DENIED" ? 403 : 500
+    {
+      status: error.operation === "requireCredits" && error.message.includes("Insufficient") ? 402 :
+             error.operation === "requireCredits" ? 401 :
+             error.operation === "requireProjectCreationAccess" ? 403 :
+             error.operation === "requireTeamCreationAccess" ? 403 :
+             error.operation === "requireFeatureAccess" ? 403 : 500
     }
   );
 }

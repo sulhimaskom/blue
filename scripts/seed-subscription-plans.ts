@@ -100,10 +100,11 @@ export async function seedSubscriptionPlans() {
     console.log("Starting subscription plans seeding...");
 
     // Clear existing plans (be careful in production!)
-    await db.delete(subscriptionPlans);
+    const database = db();
+    await database.delete(subscriptionPlans);
 
     // Insert default plans
-    await db.insert(subscriptionPlans).values(DEFAULT_PLANS);
+    await database.insert(subscriptionPlans).values(DEFAULT_PLANS);
 
     console.log(`✅ Successfully seeded ${DEFAULT_PLANS.length} subscription plans`);
     
