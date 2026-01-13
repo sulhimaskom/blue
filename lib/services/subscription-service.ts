@@ -7,7 +7,6 @@
  */
 
 import { ServiceResult } from "./service-types";
-import { ServiceError } from "./service-error-handler";
 import { logger as Logger } from "@/lib/logger";
 import {
   users,
