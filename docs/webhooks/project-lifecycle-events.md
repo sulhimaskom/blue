@@ -266,7 +266,6 @@ Project webhook events are subject to standard rate limits:
 
 ## Related Documentation
 
-- [Webhook Infrastructure Overview](webhook-infrastructure.md)
-- [Event Subscription API](event-subscription-api.md)
-- [Filter Expression Syntax](filter-expressions.md)
-- [Webhook Monitoring and Debugging](webhook-monitoring.md)
+- [Webhook Events and Configuration API](./webhook-events-and-configuration-api.md) - Complete webhook infrastructure, subscriptions, and monitoring
+- [Filter Expression Syntax](./webhook-events-and-configuration-api.md#filter-expressions) - Webhook event filtering syntax
+- [Webhook Monitoring and Debugging](./webhook-events-and-configuration-api.md#monitoring-and-debugging) - Webhook monitoring tools and debugging tips

@@ -7,7 +7,7 @@ import {
   FormProgress,
 } from "@/components/ui/validation-feedback";
 
-type FormSubmitHandler = (e: React.FormEvent) => Promise<void>;
+type FormSubmitHandler = (_e: React.FormEvent) => Promise<void>;
 
 export interface BlueprintCreateModalProps {
   isOpen: boolean;
