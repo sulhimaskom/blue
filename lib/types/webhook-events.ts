@@ -241,29 +241,7 @@ export function isStripeInvoicePaymentSucceeded(
   return event.type === "invoice.payment_succeeded";
 }
 
-export function isClerkUserCreated(
-  event: WebhookEvent,
-): event is ClerkWebhookEvent & {
-  data: { id: string; email_addresses: ClerkEmail[] };
-} {
-  return event.type === "user.created";
-}
 
-export function isClerkUserDeleted(
-  event: WebhookEvent,
-): event is ClerkWebhookEvent & {
-  data: { id: string };
-} {
-  return event.type === "user.deleted";
-}
-
-export function isClerkUserUpdated(
-  event: WebhookEvent,
-): event is ClerkWebhookEvent & {
-  data: { id: string; email_addresses: ClerkEmail[] };
-} {
-  return event.type === "user.updated";
-}
 
 // ========================================
 // Platform Event Type Guards  
