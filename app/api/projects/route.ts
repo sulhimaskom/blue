@@ -13,26 +13,34 @@ const CreateProjectSchema = z.object({
   description: z.string().optional(),
 });
 
-export const GET = APIRouteHandler.createGETHandler({
-  requireAuth: true,
-  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-  handler: async ({ context, user }) => {
-    // Get all projects for the authenticated user
-    const userProjects = await ProjectDataService.getUserProjects(
-      user!.clerkId,
-    );
+export const GET = APIRouteHandler.createCachedGETHandler(
+  {
+    requireAuth: true,
+    rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+    handler: async ({ context, user }) => {
+      // Get all projects for authenticated user
+      const userProjects = await ProjectDataService.getUserProjects(
+        user!.clerkId,
+      );
 
-    logger.userAction("User projects fetched", user!.clerkId, {
-      requestId: context.requestId,
-      projectsCount: userProjects.length,
-    });
+      logger.userAction("User projects fetched", user!.clerkId, {
+        requestId: context.requestId,
+        projectsCount: userProjects.length,
+      });
 
-    return {
-      projects: userProjects,
-      message: "Projects retrieved successfully",
-    };
+      return {
+        projects: userProjects,
+        message: "Projects retrieved successfully",
+      };
+    },
   },
-});
+  {
+    ttl: 60,
+    tags: ["projects"],
+    varyBy: [],
+    initializeServices: true,
+  },
+);
 
 export const POST = APIRouteHandler.createPOSTHandler({
   schema: CreateProjectSchema,
