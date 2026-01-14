@@ -6,7 +6,6 @@ import { DashboardCard } from "@/components/ui/dashboard-card";
 import { StatsCard } from "@/components/ui/stats-card";
 import { DashboardDataService } from "@/lib/services/dashboard-data-service";
 import { logger } from "@/lib/logger";
-import { env } from "@/lib/env";
 
 interface UserCredits {
   credits: number;
@@ -15,9 +14,9 @@ interface UserCredits {
 
 // GITHUB ISSUE #343 FIX: Custom hook with safe CI fallback
 function useUserSafe() {
-  const isBuildEnv = (typeof window === 'undefined' && 
-                     typeof process !== 'undefined' && 
-                     env.NODE_ENV === 'production' && 
+  const isBuildEnv = (typeof window === 'undefined' &&
+                     typeof process !== 'undefined' &&
+                     process.env.NODE_ENV === 'production' &&
                      process.env.CI === 'true');
   
   // In CI environment, return hardcoded values without using Clerk hooks
