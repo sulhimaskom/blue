@@ -1,9 +1,13 @@
 import { db } from "@/lib/db";
 import { projects, blueprints, users } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
+import { InferSelectModel } from "drizzle-orm";
 import { ValidationError, DatabaseError } from "@/lib/api-utils";
 import { RequestContext } from "@/lib/services/user-service";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
+
+type Project = InferSelectModel<typeof projects>;
+type Blueprint = InferSelectModel<typeof blueprints>;
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 import { ProjectDataService } from "@/lib/services/project-data-service";
@@ -15,8 +19,8 @@ export interface CloneProjectOptions {
 }
 
 export interface ProjectCloneResult {
-  clonedProject: any;
-  clonedBlueprints: any[];
+  clonedProject: Project;
+  clonedBlueprints: Blueprint[];
   originalProjectId: string;
 }
 
@@ -93,7 +97,7 @@ export class ProjectCloneService {
     }
 
     // Clone all blueprints to the new project
-    const clonedBlueprints: any[] = [];
+    const clonedBlueprints: Blueprint[] = [];
     for (const originalBlueprint of originalBlueprints) {
       const [clonedBlueprint] = await database
         .insert(blueprints)
@@ -232,7 +236,7 @@ export class ProjectCloneService {
     }
 
     // Create template blueprints
-    const createdBlueprints: any[] = [];
+    const createdBlueprints: Blueprint[] = [];
     for (const blueprint of template.blueprints) {
       const [createdBlueprint] = await database
         .insert(blueprints)
