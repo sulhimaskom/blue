@@ -279,13 +279,16 @@ static async updateProject(
     }, context);
   } catch (activityError) {
     // Log activity recording error but don't fail the operation
-    await import("@/lib/logger").then(({ logger }) => 
+    await import("@/lib/logger").then(({ logger }) =>
       logger.error("Failed to record project.updated activity", {
         projectId: updatedProject.id,
         error: activityError instanceof Error ? activityError.message : String(activityError),
       })
     );
   }
+
+  // Invalidate projects cache after updating a project
+  await UnifiedCacheManager.invalidateByTag("projects");
 
   return updatedProject;
 }
@@ -526,13 +529,16 @@ static async deleteProject(projectId: string, clerkId: string, context?: Request
     }, context);
   } catch (activityError) {
     // Log activity recording error but don't fail the operation
-    await import("@/lib/logger").then(({ logger }) => 
+    await import("@/lib/logger").then(({ logger }) =>
       logger.error("Failed to record project.deleted activity", {
         projectId: deletedProject.id,
         error: activityError instanceof Error ? activityError.message : String(activityError),
       })
     );
   }
+
+  // Invalidate projects cache after deleting a project
+  await UnifiedCacheManager.invalidateByTag("projects");
 
   return deletedProject;
 }

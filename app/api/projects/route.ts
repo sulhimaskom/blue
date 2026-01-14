@@ -31,7 +31,6 @@ export const GET = APIRouteHandler.createCachedGETHandler(
       return {
         projects: userProjects,
         message: "Projects retrieved successfully",
-        userId: user!.clerkId,
       };
     },
   },

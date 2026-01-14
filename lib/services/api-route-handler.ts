@@ -445,6 +445,31 @@ let authenticatedUser:
                   await UserService.getAuthenticatedUser(context);
               }
 
+              // Rate limiting if configured
+              if (config.rateLimiter) {
+                const _clientIp =
+                  req.headers.get("x-forwarded-for") ||
+                  req.headers.get("x-real-ip") ||
+                  "unknown";
+                const identifier = authenticatedUser
+                  ? `user:${authenticatedUser.clerkId}:${_clientIp}`
+                  : `ip:${_clientIp}`;
+
+                const rateLimitCheck = await config.rateLimiter(identifier);
+                if (!rateLimitCheck.allowed) {
+                  logger.security("API rate limit exceeded", {
+                    requestId: context.requestId,
+                    userId: authenticatedUser?.clerkId,
+                    clientIp: _clientIp,
+                    resetTime: rateLimitCheck.resetTime,
+                  });
+                  throw new RateLimitError(
+                    `Rate limit exceeded. Try again in ${Math.ceil((rateLimitCheck.resetTime! - Timing.now()) / 1000)} seconds.`,
+                    rateLimitCheck.resetTime,
+                  );
+                }
+              }
+
               // Execute the main handler
               const result = await config.handler({
                 req,
