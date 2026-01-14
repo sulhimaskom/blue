@@ -27,6 +27,7 @@ import { logger } from "@/lib/logger";
 import { teamCache } from "@/lib/services/cache-orchestrator";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
+import { NotificationService } from "@/lib/services/notification-service";
 
 export type TeamRole = "admin" | "member" | "viewer";
 
@@ -460,6 +461,18 @@ class TeamService {
               },
             });
           }
+
+          await NotificationService.dispatch(
+            user.clerkId,
+            "team_invitation",
+            `You've been invited to join a team`,
+            `${invitingUser?.email || "A team member"} has invited you to join the team "${teamDetails?.name || "Unknown Team"}" as ${invitation.role}.`,
+            {
+              teamId,
+              inviterName: invitingUser?.email || "A team member",
+            },
+            `/teams/${teamId}`,
+          );
         }
       } catch (activityError) {
         logger.error("Failed to record team.member_added activity", {
