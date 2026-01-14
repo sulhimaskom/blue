@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { TeamDetails } from "@/components/dashboard/team-details";
 import { TeamMemberList } from "@/components/dashboard/team-member-list";
-import type { Team } from "@/lib/hooks/use-teams-data";
+import type { Team, TeamMember } from "@/lib/hooks/use-teams-data";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -16,7 +16,7 @@ export default function TeamDetailsPage({ params }: RouteParams) {
   const router = useRouter();
   const [teamId, setTeamId] = useState<string | null>(null);
   const [team, setTeam] = useState<Team | null>(null);
-  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -123,7 +123,7 @@ export default function TeamDetailsPage({ params }: RouteParams) {
       if (!result.success) {
         throw new Error(result.error || "Failed to remove team member");
       }
-      setTeamMembers(teamMembers.filter((m: any) => m.userId !== userId));
+      setTeamMembers(teamMembers.filter((m: TeamMember) => m.userId !== userId));
     } catch (err) {
       throw err;
     }
