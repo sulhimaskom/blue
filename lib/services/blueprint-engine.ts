@@ -699,6 +699,10 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
         })
         .returning();
 
+      if (!project || project.length === 0) {
+        throw new DatabaseError("Failed to create project record during blueprint generation");
+      }
+
       projectId = project[0].id;
 
       logger.info("Project record created", { projectId });
@@ -768,6 +772,10 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
           research,
         ),
       ]);
+
+      if (!blueprint || blueprint.length === 0) {
+        throw new DatabaseError("Failed to create blueprint record during generation");
+      }
 
       // Invalidate user cache when new blueprint is created
       await DatabaseQueryCache.invalidateUserCache(request.userId);
