@@ -50,8 +50,13 @@ const envSchema = z.object({
   REDIS_URL: z.string().url().optional(),
   REDIS_PASSWORD: z.string().optional(),
 
+  // Email Service (Optional - Resend for transactional emails)
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().optional(),
+
   // Application Configuration
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  NEXT_PUBLIC_APP_NAME: z.string().default("Architect Platform"),
 });
 
 type Env = z.infer<typeof envSchema>;

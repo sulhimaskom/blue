@@ -11,6 +11,7 @@ const notificationPreferencesSchema = z.object({
   credits: z.boolean().optional(),
   teamInvites: z.boolean().optional(),
   projectShares: z.boolean().optional(),
+  blueprintShares: z.boolean().optional(),
   marketing: z.boolean().optional(),
 });
 
@@ -55,6 +56,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   credits: true,
   teamInvites: true,
   projectShares: true,
+  blueprintShares: true,
   marketing: false,
 };
 
