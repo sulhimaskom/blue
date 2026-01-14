@@ -4,6 +4,8 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { useProjectsData } from "@/lib/hooks/use-dashboard-data";
+import CloneProjectModal from "@/components/dashboard/clone-project-modal";
+import TemplateSelectionModal from "@/components/dashboard/template-selection-modal";
 
 interface DeploymentForm {
   githubOrg: string;
@@ -24,6 +26,9 @@ export default function ProjectsPage() {
     repoName: "",
     isPrivate: false,
   });
+  const [showCloneModal, setShowCloneModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [projectToClone, setProjectToClone] = useState<any>(null);
 
   const {
     projects,
@@ -45,8 +50,44 @@ export default function ProjectsPage() {
       await deployToRepository(deployId, deploymentForm);
       setShowDeployModal(false);
     } catch (err) {
-      // Error is handled by the hook
+      // Error is handled by hook
     }
+  };
+
+  const handleCloneProject = async (name: string, description: string) => {
+    if (!projectToClone) return;
+
+    const response = await fetch(`/api/projects/${projectToClone.id}/clone`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, description }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to clone project");
+    }
+
+    window.location.reload();
+  };
+
+  const handleCreateFromTemplate = async (
+    templateId: string,
+    name: string,
+    description: string,
+  ) => {
+    const response = await fetch("/api/projects/templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ templateId, name, description }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to create project from template");
+    }
+
+    window.location.reload();
   };
 
   if (loading) {
@@ -102,9 +143,18 @@ export default function ProjectsPage() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg border border-gray-200">
               <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Projects
-                </h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Projects
+                  </h2>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowTemplateModal(true)}
+                    className="text-xs"
+                  >
+                    + New from Template
+                  </Button>
+                </div>
               </div>
               <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
                 {projects.length === 0 ? (
@@ -112,16 +162,18 @@ export default function ProjectsPage() {
                     <p className="text-gray-500">No projects found</p>
                   </div>
                 ) : (
-                  projects.map((project) => (
+                   projects.map((project) => (
                     <div
                       key={project.id}
-                      className={`p-4 cursor-pointer hover:bg-gray-50 ${
+                      className={`p-4 hover:bg-gray-50 ${
                         selectedProject?.id === project.id ? "bg-blue-50" : ""
                       }`}
-                      onClick={() => handleProjectSelect(project)}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div
+                          className="flex-1 cursor-pointer"
+                          onClick={() => handleProjectSelect(project)}
+                        >
                           <h3 className="font-medium text-gray-900">
                             {project.name}
                           </h3>
@@ -139,6 +191,17 @@ export default function ProjectsPage() {
                             )}
                           </div>
                         </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setProjectToClone(project);
+                            setShowCloneModal(true);
+                          }}
+                        >
+                          Clone
+                        </Button>
                       </div>
                     </div>
                   ))
@@ -471,6 +534,28 @@ export default function ProjectsPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Clone Project Modal */}
+        {showCloneModal && projectToClone && (
+          <CloneProjectModal
+            isOpen={showCloneModal}
+            onClose={() => {
+              setShowCloneModal(false);
+              setProjectToClone(null);
+            }}
+            projectName={projectToClone.name}
+            onClone={handleCloneProject}
+          />
+        )}
+
+        {/* Template Selection Modal */}
+        {showTemplateModal && (
+          <TemplateSelectionModal
+            isOpen={showTemplateModal}
+            onClose={() => setShowTemplateModal(false)}
+            onCreateFromTemplate={handleCreateFromTemplate}
+          />
         )}
       </div>
     </DashboardLayout>
