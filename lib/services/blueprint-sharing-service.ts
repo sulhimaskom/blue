@@ -1,8 +1,10 @@
 import { db } from "@/lib/db";
-import { blueprintShares, blueprints, users, teams, teamMembers, projects } from "@/lib/db/schema";
+import { blueprintShares, blueprints, users, teams, teamMembers, projects, userSettings } from "@/lib/db/schema";
 import { eq, and, desc, isNull, count } from "drizzle-orm";
 import { ValidationError, DatabaseError, NotFoundError, AuthorizationError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+import { emailService } from "@/lib/services/email-service";
+import { env } from "@/lib/env";
 
 export type BlueprintPermission = "read_only" | "edit";
 
@@ -213,7 +215,14 @@ export class BlueprintSharingService {
         expiresAt: expirationDate,
       });
 
-      // TODO: Send email notifications to recipients
+      // Send email notifications to recipients
+      await this.sendEmailNotifications({
+        blueprintId: input.blueprintId,
+        sharer,
+        shares,
+        permission: input.permission,
+        expirationDate,
+      });
 
       // Fetch created shares with details
       const sharedBlueprints = await this.getSharesByBlueprintId(input.blueprintId);
@@ -598,6 +607,164 @@ export class BlueprintSharingService {
         error: error instanceof Error ? error.message : String(error),
       });
       throw new DatabaseError("Failed to get blueprint shares");
+    }
+  }
+
+  /**
+   * Send email notifications to blueprint share recipients
+   * @param params Email notification parameters
+   */
+  private static async sendEmailNotifications(params: {
+    blueprintId: string;
+    sharer: typeof users.$inferSelect;
+    shares: typeof blueprintShares.$inferInsert[];
+    permission: BlueprintPermission;
+    expirationDate: Date | null;
+  }): Promise<void> {
+    try {
+      const database = db();
+
+      if (!emailService.isConfigured()) {
+        logger.info("Email service not configured, skipping email notifications");
+        return;
+      }
+
+      const [blueprint] = await database
+        .select({
+          id: blueprints.id,
+          projectName: projects.name,
+          projectDescription: projects.description,
+        })
+        .from(blueprints)
+        .leftJoin(projects, eq(blueprints.projectId, projects.id))
+        .where(eq(blueprints.id, params.blueprintId))
+        .limit(1);
+
+      if (!blueprint) {
+        logger.warn("Blueprint not found for email notification", {
+          blueprintId: params.blueprintId,
+        });
+        return;
+      }
+
+      const blueprintName = blueprint.projectName ?? "Untitled Blueprint";
+      const blueprintDescription = blueprint.projectDescription;
+
+      const recipientEmails: Array<{ email: string; recipientName?: string }> = [];
+      const teamMemberEmails: Array<{ email: string; recipientName?: string }> = [];
+
+      for (const share of params.shares) {
+        if (share.sharedWithUser) {
+          const [user] = await database
+            .select({
+              email: users.email,
+              id: users.id,
+            })
+            .from(users)
+            .where(and(eq(users.id, share.sharedWithUser), isNull(users.deletedAt)))
+            .limit(1);
+
+          if (user) {
+            const [settings] = await database
+              .select({
+                notificationPreferences: userSettings.notificationPreferences,
+              })
+              .from(userSettings)
+              .where(and(eq(userSettings.userId, user.id), isNull(userSettings.deletedAt)))
+              .limit(1);
+
+            const prefs = settings?.notificationPreferences as { projectShares?: boolean } | undefined;
+            if (prefs?.projectShares !== false) {
+              recipientEmails.push({
+                email: user.email,
+                recipientName: undefined,
+              });
+            }
+          }
+        } else if (share.sharedWithTeam) {
+          const [team] = await database
+            .select({
+              name: teams.name,
+            })
+            .from(teams)
+            .where(and(eq(teams.id, share.sharedWithTeam), isNull(teams.deletedAt)))
+            .limit(1);
+
+          if (team) {
+            const members = await database
+              .select({
+                email: users.email,
+                userId: users.id,
+              })
+              .from(teamMembers)
+              .leftJoin(users, eq(teamMembers.userId, users.id))
+              .where(and(eq(teamMembers.teamId, share.sharedWithTeam), isNull(teamMembers.deletedAt)));
+
+            for (const member of members) {
+              if (member.email) {
+                const [settings] = await database
+                  .select({
+                    notificationPreferences: userSettings.notificationPreferences,
+                  })
+                  .from(userSettings)
+                  .where(and(eq(userSettings.userId, member.userId!), isNull(userSettings.deletedAt)))
+                  .limit(1);
+
+                const prefs = settings?.notificationPreferences as { projectShares?: boolean } | undefined;
+                if (prefs?.projectShares !== false) {
+                  teamMemberEmails.push({
+                    email: member.email,
+                    recipientName: undefined,
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      const allRecipients = [...recipientEmails, ...teamMemberEmails];
+      const uniqueRecipients = Array.from(new Map(allRecipients.map(r => [r.email, r])).values());
+
+      if (uniqueRecipients.length === 0) {
+        logger.info("No email recipients found or all opted out", {
+          blueprintId: params.blueprintId,
+        });
+        return;
+      }
+
+      const blueprintUrl = `${env.NEXT_PUBLIC_APP_URL}/blueprints/${params.blueprintId}`;
+      const expirationText = params.expirationDate
+        ? params.expirationDate.toLocaleDateString()
+        : undefined;
+
+      const result = await emailService.sendBatchEmails({
+        emails: uniqueRecipients.map(recipient => ({
+          to: recipient.email,
+          subject: `${params.sharer.email} shared a blueprint with you`,
+          html: emailService.renderBlueprintSharedTemplate({
+            appName: env.NEXT_PUBLIC_APP_NAME || "Architect Platform",
+            recipientName: recipient.recipientName,
+            sharerName: params.sharer.email,
+            blueprintName: blueprintName,
+            blueprintDescription: blueprintDescription ?? undefined,
+            permission: params.permission,
+            blueprintLink: blueprintUrl,
+            expirationDate: expirationText,
+          }),
+        })),
+      });
+
+      logger.info("Email notifications sent", {
+        blueprintId: params.blueprintId,
+        sentCount: result.sentCount,
+        failedCount: result.failedCount,
+      });
+    } catch (error) {
+      logger.error("Failed to send email notifications", {
+        blueprintId: params.blueprintId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }
