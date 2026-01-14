@@ -593,15 +593,18 @@ class RedisManager {
 // Singleton instance
 const redisManager = new RedisManager();
 
-// Graceful shutdown
-process.on("SIGINT", async () => {
-  await redisManager.disconnect();
-  process.exit(0);
-});
+// Graceful shutdown - only register in production/development, skip in tests
+// to avoid MaxListenersExceededWarning during Jest test execution
+if (process.env.NODE_ENV !== "test") {
+  process.on("SIGINT", async () => {
+    await redisManager.disconnect();
+    process.exit(0);
+  });
 
-process.on("SIGTERM", async () => {
-  await redisManager.disconnect();
-  process.exit(0);
-});
+  process.on("SIGTERM", async () => {
+    await redisManager.disconnect();
+    process.exit(0);
+  });
+}
 
 export { redisManager };
