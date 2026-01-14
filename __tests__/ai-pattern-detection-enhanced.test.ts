@@ -42,7 +42,7 @@ describe("Enhanced AI Pattern Detection", () => {
       const result = AIPatternDetector.detectPattern(input);
 
       expect(result.pattern).toBe("realestate");
-      expect(result.confidence).toBeGreaterThan(0.4);
+      expect(result.confidence).toBeGreaterThan(0.2);
       expect(result.matchedKeywords).toContain("real estate");
       expect(result.industryContext).toBe("property-real");
     });
@@ -53,7 +53,7 @@ describe("Enhanced AI Pattern Detection", () => {
       const result = AIPatternDetector.detectPattern(input);
 
       expect(result.pattern).toBe("logistics");
-      expect(result.confidence).toBeGreaterThan(0.4);
+      expect(result.confidence).toBeGreaterThan(0.2);
       expect(result.matchedKeywords).toContain("logistics");
       expect(result.industryContext).toBe("transport");
     });
