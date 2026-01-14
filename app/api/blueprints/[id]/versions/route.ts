@@ -77,5 +77,3 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     },
   })(req);
 }
-
-/* eslint-disable no-unused-vars */
