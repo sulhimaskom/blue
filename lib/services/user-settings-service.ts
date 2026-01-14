@@ -21,7 +21,7 @@ const uiPreferencesSchema = z.object({
   showMetrics: z.boolean().optional(),
 });
 
-const updateSettingsSchema = z.object({
+export const updateSettingsSchema = z.object({
   notificationPreferences: notificationPreferencesSchema.optional(),
   theme: z.enum(["light", "dark", "system"]).optional(),
   language: z.string().length(2).optional(),
@@ -31,8 +31,9 @@ const updateSettingsSchema = z.object({
   uiPreferences: uiPreferencesSchema.optional(),
 });
 
-type NotificationPreferences = z.infer<typeof notificationPreferencesSchema>;
-type UIPreferences = z.infer<typeof uiPreferencesSchema>;
+export type NotificationPreferences = z.infer<typeof notificationPreferencesSchema>;
+export type UIPreferences = z.infer<typeof uiPreferencesSchema>;
+export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
 
 interface UserSettingsResponse {
   id: string;
@@ -166,7 +167,7 @@ export class UserSettingsService {
 
   static async updateUserSettings(
     userId: number,
-    updates: any,
+    updates: UpdateSettingsInput,
     clerkId?: string,
   ): Promise<UserSettingsResponse> {
     try {
