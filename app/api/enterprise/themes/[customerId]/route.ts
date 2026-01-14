@@ -10,6 +10,7 @@ import { logger } from "@/lib/logger";
 import { enterpriseThemeManager } from "@/lib/constants/enterprise-themes";
 import { NotFoundError, ValidationError } from "@/lib/api-utils";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
 // Validation schemas
 const UpdateThemeSchema = z.object({
@@ -35,6 +36,7 @@ const UpdateThemeSchema = z.object({
 // GET /api/enterprise/themes/[customerId] - Get specific theme
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: false,
+  rateLimiter: (identifier: string) => RateLimiters.permissive()(identifier),
   handler: async ({ context, req }) => {
     const urlParts = req.url.split("/");
     const customerId = urlParts[urlParts.length - 1];
@@ -66,6 +68,7 @@ export const GET = APIRouteHandler.createGETHandler({
 export const PUT = APIRouteHandler.createPUTHandler({
   schema: UpdateThemeSchema,
   requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
   handler: async ({ context, data, req, user }) => {
     const urlParts = req.url.split("/");
     const customerId = urlParts[urlParts.length - 1];
@@ -112,6 +115,7 @@ export const PUT = APIRouteHandler.createPUTHandler({
 // DELETE /api/enterprise/themes/[customerId] - Delete theme
 export const DELETE = APIRouteHandler.createDELETEHandler({
   requireAuth: true,
+  rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
   handler: async ({ context, req, user }) => {
     // Extract customerId from the route parameter
     const urlParts = new URL(req.url).pathname.split("/");
