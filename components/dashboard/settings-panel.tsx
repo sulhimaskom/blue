@@ -16,7 +16,17 @@ export interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ tabs, defaultTab, className }: SettingsPanelProps) {
-  const [activeTab, setActiveTab] = React.useState(defaultTab || tabs[0]?.id);
+  const [activeTab, setActiveTab] = React.useState(defaultTab || (tabs.length > 0 ? tabs[0]?.id : undefined));
+
+  if (!tabs || tabs.length === 0) {
+    return (
+      <div className={cn("w-full", className)}>
+        <div className="text-center py-8 text-gray-500">
+          No settings available
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("w-full", className)}>

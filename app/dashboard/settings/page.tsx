@@ -72,12 +72,12 @@ export default function SettingsPage() {
       }
 
       const data = await response.json();
-      if (data.success && data.data) {
-        setSettings((prev) => ({
-          ...prev!,
-          notificationPreferences: data.data.notificationPreferences,
-        }));
-      }
+        if (data.success && data.data) {
+          setSettings((prev) => prev ? {
+            ...prev,
+            notificationPreferences: data.data.notificationPreferences,
+          } : prev);
+        }
     } catch (err) {
       logger.error("Failed to update notification preferences", { error: err });
       throw err;
@@ -100,12 +100,12 @@ export default function SettingsPage() {
       }
 
       const data = await response.json();
-      if (data.success && data.data) {
-        setSettings((prev) => ({
-          ...prev!,
-          theme: data.data.settings.theme,
-        }));
-      }
+        if (data.success && data.data) {
+          setSettings((prev) => prev ? {
+            ...prev,
+            theme: data.data.settings.theme,
+          } : prev);
+        }
     } catch (err) {
       logger.error("Failed to update theme preference", { error: err });
       throw err;
@@ -128,12 +128,12 @@ export default function SettingsPage() {
       }
 
       const data = await response.json();
-      if (data.success && data.data) {
-        setSettings((prev) => ({
-          ...prev!,
-          language: data.data.settings.language,
-        }));
-      }
+        if (data.success && data.data) {
+          setSettings((prev) => prev ? {
+            ...prev,
+            language: data.data.settings.language,
+          } : prev);
+        }
     } catch (err) {
       logger.error("Failed to update language preference", { error: err });
       throw err;
@@ -156,12 +156,12 @@ export default function SettingsPage() {
       }
 
       const data = await response.json();
-      if (data.success && data.data) {
-        setSettings((prev) => ({
-          ...prev!,
-          timezone: data.data.settings.timezone,
-        }));
-      }
+        if (data.success && data.data) {
+          setSettings((prev) => prev ? {
+            ...prev,
+            timezone: data.data.settings.timezone,
+          } : prev);
+        }
     } catch (err) {
       logger.error("Failed to update timezone preference", { error: err });
       throw err;

@@ -26,8 +26,8 @@ const commonTimezones = [
   { value: "Australia/Sydney", label: "Australia/Sydney (Australian Eastern Time)" },
 ];
 
-export function TimezoneSelector({ initialTimezone = "UTC", onSave, disabled = false }: TimezoneSelectorProps) {
-  const [selectedTimezone, setSelectedTimezone] = useState(initialTimezone);
+export function TimezoneSelector({ initialTimezone, onSave, disabled = false }: TimezoneSelectorProps) {
+  const [selectedTimezone, setSelectedTimezone] = useState(initialTimezone || "UTC");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
