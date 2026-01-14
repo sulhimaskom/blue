@@ -19,20 +19,27 @@ interface RouteParams {
 
 /**
  * Get team details
+ * Cache: 120 seconds (2 minutes) - team details change moderately
+ * Cache Invalidation: Tag-based for team updates
  */
 export async function GET(req: NextRequest, { params }: RouteParams) {
-  return APIRouteHandler.createGETHandler({
+  const { id: teamId } = await params;
+
+  return APIRouteHandler.createCachedGETHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
     handler: async ({ user }) => {
-      const { id } = await params;
-      const team = await teamService.getTeamById(id, user!.id);
+      const team = await teamService.getTeamById(teamId, user!.id);
 
       return {
         data: team,
         message: "Team details retrieved successfully",
       };
     },
+  }, {
+    ttl: 120,
+    tags: ["team-details", "teams"],
+    varyBy: ["userId", "teamId"],
   })(req);
 }
 

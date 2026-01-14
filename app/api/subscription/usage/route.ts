@@ -5,12 +5,14 @@ import { AuthenticationError, NotFoundError } from "@/lib/api-utils";
 
 /**
  * GET /api/subscription/usage
- * 
+ *
  * Get current user's usage metrics and remaining limits
- * 
+ *
  * Rate Limit: 30 requests/minute (standard)
+ * Cache: 60 seconds (1 minute) - usage metrics change moderately
+ * Cache Invalidation: Tag-based for subscription updates
  */
-export const GET = APIRouteHandler.createGETHandler({
+export const GET = APIRouteHandler.createCachedGETHandler({
   requireAuth: true,
   rateLimiter: RateLimiters.standard(),
   handler: async ({ user }) => {
@@ -32,4 +34,8 @@ export const GET = APIRouteHandler.createGETHandler({
       usage: result.data,
     };
   },
+}, {
+  ttl: 60,
+  tags: ["subscription-usage", "subscription"],
+  varyBy: ["userId"],
 });

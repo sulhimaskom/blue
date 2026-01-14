@@ -4,7 +4,7 @@ import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { UserSettingsService, updateSettingsSchema, type UpdateSettingsInput } from "@/lib/services/user-settings-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 
-export const GET = APIRouteHandler.createGETHandler({
+export const GET = APIRouteHandler.createCachedGETHandler({
   requireAuth: true,
   rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
   handler: async ({ context, user }) => {
@@ -20,6 +20,10 @@ export const GET = APIRouteHandler.createGETHandler({
       message: "Settings retrieved successfully",
     };
   },
+}, {
+  ttl: 600,
+  tags: ["user-settings"],
+  varyBy: ["userId"],
 });
 
 export const PUT = APIRouteHandler.createPOSTHandler<UpdateSettingsInput>({
