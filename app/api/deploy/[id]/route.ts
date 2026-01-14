@@ -10,6 +10,7 @@ import { ValidationError } from "@/lib/api-utils";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { DeploymentService } from "@/lib/services/deployment-service";
+import { NotificationService } from "@/lib/services/notification-service";
 
 const deployRepoSchema = z.object({
   githubOrg: z
@@ -75,20 +76,21 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
         : undefined;
 
-      logger.info("Starting environment deployment", {
-        requestId: context.requestId,
-        userId: user!.clerkId,
-        projectId: id,
-        githubOrg,
-        repoName: environmentRepoName,
-        environment,
-        blueprintVersion,
-        expiresAt,
-      });
+        logger.info("Starting environment deployment", {
+          requestId: context.requestId,
+          userId: user!.clerkId,
+          projectId: id,
+          githubOrg,
+          repoName: environmentRepoName,
+          environment,
+          blueprintVersion,
+          expiresAt,
+        });
 
 try {
         // Create deployment record
-        const deploymentId = await DeploymentService.createDeploymentRecord({
+        let deploymentId: string;
+        deploymentId = await DeploymentService.createDeploymentRecord({
           projectId: id,
           environment: environment!,
           githubOrg,
@@ -112,6 +114,20 @@ try {
           githubRepoUrl: repo.html_url,
           status: "deployed",
         });
+
+        await NotificationService.dispatch(
+          user!.clerkId,
+          "deployment_status",
+          "Deployment Successful",
+          `Your ${environment} deployment for project "${project.name}" was successful.`,
+          {
+            deploymentId,
+            projectId: id,
+            environment,
+            status: "deployed",
+          },
+          `/projects/${id}/deploy/${deploymentId}`,
+        );
 
         // Update project status if this is production deployment
         if (environment === "production") {
@@ -151,6 +167,19 @@ try {
       } catch (error) {
         // Reset project status on failure
         await ProjectDataService.updateProjectStatus(id, "completed");
+
+        await NotificationService.dispatch(
+          user!.clerkId,
+          "deployment_status",
+          "Deployment Failed",
+          `Your ${environment} deployment for project "${project.name}" failed.`,
+          {
+            projectId: id,
+            environment,
+            status: "failed",
+          },
+          `/projects/${id}/deploy/${deploymentId}`,
+        );
 
         if (error instanceof GitHubServiceError) {
           logger.error("GitHub service error during deployment", {

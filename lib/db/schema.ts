@@ -279,6 +279,25 @@ export const userSettings = pgTable("user_settings", {
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type NewActivityLog = typeof activityLogs.$inferInsert;
 
+// Notifications table for in-app notification system
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  type: text("type").notNull(), // blueprint_complete, team_invitation, deployment_status, credit_warning, blueprint_shared
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  metadata: jsonb("metadata"), // Additional data specific to notification type
+  link: text("link"), // URL to navigate when clicked
+  readAt: timestamp("read_at"), // Null if unread
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Notification types
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;
+
 // User settings types
 export type UserSettings = typeof userSettings.$inferSelect;
 export type NewUserSettings = typeof userSettings.$inferInsert;

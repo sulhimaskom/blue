@@ -7,6 +7,7 @@ import { AuthenticationError, DatabaseError, ValidationError } from "@/lib/api-u
 import { setRLSContext } from "@/lib/db/rls-policies";
 import { WebhookEventDispatcher } from "./webhook-event-dispatcher";
 import { CREDIT_RULES } from "@/lib/constants";
+import { NotificationService } from "./notification-service";
 
 // Legacy type for backward compatibility - can be deprecated
 export interface AuthenticatedUser {
@@ -171,6 +172,22 @@ export class UserService {
         updatedUser.credits,
         context,
       );
+
+      const maxCredits = updatedUser.subscriptionTier === "pro" ? 500 : 100;
+      const creditPercentage = (updatedUser.credits / maxCredits) * 100;
+
+      if (creditPercentage <= 20 && previousBalance > updatedUser.credits) {
+        await NotificationService.dispatch(
+          updatedUser.clerkId,
+          "credit_warning",
+          "Low Credits Warning",
+          `You're running low on credits (${updatedUser.credits} remaining). Consider purchasing more to continue using the platform.`,
+          {
+            remainingCredits: updatedUser.credits,
+          },
+          "/credits",
+        );
+      }
 
       const isAdmin = updatedUser.subscriptionTier === "enterprise" || updatedUser.subscriptionTier === "admin";
       const customerId = isAdmin ? updatedUser.email.split("@")[0] : undefined;

@@ -8,6 +8,7 @@ import { AIPatternDetector, type AIPattern } from "./ai-pattern-detector";
 import DatabaseQueryCache from "./database-cache-service";
 import { ValidationError, DatabaseError } from "./service-error-handler";
 import { WebhookEventDispatcher } from "./webhook-event-dispatcher";
+import { NotificationService } from "./notification-service";
 
 export interface BlueprintGenerationRequest {
   userId: number;
@@ -866,8 +867,21 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
           userId: request.userId,
           error: webhookError instanceof Error ? webhookError.message : String(webhookError),
         });
-        // Don't fail the blueprint generation if webhook fails
+        // Don't fail blueprint generation if webhook fails
       }
+
+      await NotificationService.dispatch(
+        userRecord?.clerkId || "",
+        "blueprint_complete",
+        "Blueprint Generation Complete",
+        `Your blueprint "${blueprintData.projectName}" has been successfully generated in ${(duration / 1000).toFixed(1)}s.`,
+        {
+          blueprintId: blueprintId.toString(),
+          projectId: projectId.toString(),
+          duration: duration,
+        },
+        `/projects/${projectId}/blueprints/${blueprintId}`,
+      );
 
       return {
         projectId: projectId.toString(),
