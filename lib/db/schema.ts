@@ -112,6 +112,28 @@ export const blueprints = pgTable("blueprints", {
   deletedAt: timestamp("deleted_at"),
 });
 
+// Blueprint shares table for sharing blueprints with users and teams
+// Note: At least one of sharedWithUser or sharedWithTeam must be non-null (enforced by service layer)
+export const blueprintShares = pgTable("blueprint_shares", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  blueprintId: uuid("blueprint_id")
+    .references(() => blueprints.id, { onDelete: "cascade" })
+    .notNull(),
+  sharedBy: integer("shared_by")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  sharedWithUser: integer("shared_with_user")
+    .references(() => users.id, { onDelete: "cascade" }),
+  sharedWithTeam: uuid("shared_with_team")
+    .references(() => teams.id, { onDelete: "cascade" }),
+  permission: text("permission").notNull(), // read_only, edit
+  expiresAt: timestamp("expires_at"),
+  viewCount: integer("view_count").default(0).notNull(),
+  lastViewedAt: timestamp("last_viewed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const transactions = pgTable("transactions", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: integer("user_id")
@@ -180,6 +202,8 @@ export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
 export type Blueprint = typeof blueprints.$inferSelect;
 export type NewBlueprint = typeof blueprints.$inferInsert;
+export type BlueprintShare = typeof blueprintShares.$inferSelect;
+export type NewBlueprintShare = typeof blueprintShares.$inferInsert;
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
 export type WebhookConfiguration = typeof webhookConfigurations.$inferSelect;
