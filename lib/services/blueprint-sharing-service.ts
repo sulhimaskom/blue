@@ -4,6 +4,7 @@ import { eq, and, desc, isNull, count } from "drizzle-orm";
 import { ValidationError, DatabaseError, NotFoundError, AuthorizationError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { emailService } from "@/lib/services/email-service";
+import { NotificationService } from "@/lib/services/notification-service";
 import { env } from "@/lib/env";
 
 export type BlueprintPermission = "read_only" | "edit";
@@ -217,6 +218,15 @@ export class BlueprintSharingService {
 
       // Send email notifications to recipients
       await this.sendEmailNotifications({
+        blueprintId: input.blueprintId,
+        sharer,
+        shares,
+        permission: input.permission,
+        expirationDate,
+      });
+
+      // Create in-app notifications for recipients
+      await this.createInAppNotifications({
         blueprintId: input.blueprintId,
         sharer,
         shares,
@@ -762,6 +772,110 @@ export class BlueprintSharingService {
       });
     } catch (error) {
       logger.error("Failed to send email notifications", {
+        blueprintId: params.blueprintId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Create in-app notifications for blueprint share recipients
+   * @param params In-app notification parameters
+   */
+  private static async createInAppNotifications(params: {
+    blueprintId: string;
+    sharer: typeof users.$inferSelect;
+    shares: typeof blueprintShares.$inferInsert[];
+    permission: BlueprintPermission;
+    expirationDate: Date | null;
+  }): Promise<void> {
+    try {
+      const database = db();
+
+      const [blueprint] = await database
+        .select({
+          id: blueprints.id,
+          projectName: projects.name,
+        })
+        .from(blueprints)
+        .leftJoin(projects, eq(blueprints.projectId, projects.id))
+        .where(eq(blueprints.id, params.blueprintId))
+        .limit(1);
+
+      if (!blueprint) {
+        logger.warn("Blueprint not found for in-app notification", {
+          blueprintId: params.blueprintId,
+        });
+        return;
+      }
+
+      const blueprintName = blueprint.projectName ?? "Untitled Blueprint";
+      const blueprintUrl = `${env.NEXT_PUBLIC_APP_URL}/blueprints/${params.blueprintId}`;
+
+      const uniqueRecipientClerkIds = new Set<string>();
+
+      for (const share of params.shares) {
+        if (share.sharedWithUser) {
+          const [user] = await database
+            .select({ clerkId: users.clerkId })
+            .from(users)
+            .where(and(eq(users.id, share.sharedWithUser), isNull(users.deletedAt)))
+            .limit(1);
+
+          if (user) {
+            uniqueRecipientClerkIds.add(user.clerkId);
+          }
+        } else if (share.sharedWithTeam) {
+          const teamMembersList = await database
+            .select({ clerkId: users.clerkId })
+            .from(teamMembers)
+            .leftJoin(users, eq(teamMembers.userId, users.id))
+            .where(and(eq(teamMembers.teamId, share.sharedWithTeam), isNull(teamMembers.deletedAt)));
+
+          for (const member of teamMembersList) {
+            if (member.clerkId) {
+              uniqueRecipientClerkIds.add(member.clerkId);
+            }
+          }
+        }
+      }
+
+      if (uniqueRecipientClerkIds.size === 0) {
+        logger.info("No in-app notification recipients found", {
+          blueprintId: params.blueprintId,
+        });
+        return;
+      }
+
+      const expirationText = params.expirationDate
+        ? params.expirationDate.toLocaleDateString()
+        : undefined;
+
+      for (const clerkId of uniqueRecipientClerkIds) {
+        let message = `${params.sharer.email} shared "${blueprintName}" with you. You have ${params.permission} access.`;
+        if (expirationText) {
+          message += ` This share expires on ${expirationText}.`;
+        }
+
+        await NotificationService.dispatch(
+          clerkId,
+          "blueprint_shared",
+          `${params.sharer.email} shared a blueprint with you`,
+          message,
+          {
+            blueprintId: params.blueprintId,
+            sharerName: params.sharer.email,
+          },
+          blueprintUrl,
+        );
+      }
+
+      logger.info("In-app notifications created", {
+        blueprintId: params.blueprintId,
+        notificationCount: uniqueRecipientClerkIds.size,
+      });
+    } catch (error) {
+      logger.error("Failed to create in-app notifications", {
         blueprintId: params.blueprintId,
         error: error instanceof Error ? error.message : String(error),
       });
