@@ -10,24 +10,30 @@
 import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { aiCacheOptimizationService } from "@/lib/services/ai-cache-optimization-service";
+import { RateLimiters } from "@/lib/rate-limit-config";
 
-export const GET = APIRouteHandler.createSimpleCachedGETHandler(
-  async () => {
-    logger.info("AI cache optimization metrics requested", {
-      timestamp: new Date().toISOString(),
-    });
+export const GET = APIRouteHandler.createCachedGETHandler(
+  {
+    requireAuth: false,
+    rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+    handler: async () => {
+      logger.info("AI cache optimization metrics requested", {
+        timestamp: new Date().toISOString(),
+      });
 
-    const optimizationMetrics = await aiCacheOptimizationService.getOptimizationMetrics();
-    const cacheHitRate = await aiCacheOptimizationService.getOverallCacheHitRate();
+      const optimizationMetrics = await aiCacheOptimizationService.getOptimizationMetrics();
+      const cacheHitRate = await aiCacheOptimizationService.getOverallCacheHitRate();
 
-    return {
-      ...optimizationMetrics,
-      cacheHitRate: `${cacheHitRate}%`,
-    };
+      return {
+        ...optimizationMetrics,
+        cacheHitRate: `${cacheHitRate}%`,
+      };
+    },
   },
   {
     ttl: 60,
     tags: ["ai-cache-optimization"],
     varyBy: [],
+    initializeServices: false,
   },
 );
