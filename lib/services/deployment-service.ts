@@ -3,6 +3,7 @@ import { deployments as deploymentsTable, projects, users } from "@/lib/db/schem
 import { eq, and, isNull } from "drizzle-orm";
 import { NotificationService, NotificationType } from "@/lib/services/notification-service";
 import { logger } from "@/lib/logger";
+import { DatabaseError } from "@/lib/api-utils";
 
 export interface DeploymentRecord {
   id: string;
@@ -81,6 +82,11 @@ export class DeploymentService {
         expiresAt: record.expiresAt,
       })
       .returning({ id: deploymentsTable.id });
+
+    if (!result || result.length === 0) {
+      throw new DatabaseError("Failed to create deployment record");
+    }
+
     return result[0].id;
   }
 

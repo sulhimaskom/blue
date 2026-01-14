@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { deployments as deploymentsTable } from "@/lib/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { NotFoundError, ValidationError } from "@/lib/api-utils";
+import { NotFoundError, ValidationError, DatabaseError } from "@/lib/api-utils";
 
 export interface DeploymentLogs {
   rollback?: boolean;
@@ -211,6 +211,10 @@ export class DeploymentHistoryService {
         },
       })
       .returning({ id: deploymentsTable.id });
+
+    if (!result || result.length === 0) {
+      throw new DatabaseError("Failed to create rollback deployment record");
+    }
 
     return result[0].id;
   }
