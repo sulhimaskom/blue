@@ -2,6 +2,21 @@ import { db } from "@/lib/db";
 import { deployments as deploymentsTable } from "@/lib/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 
+export interface DeploymentLogs {
+  rollback?: boolean;
+  rollbackFrom?: string;
+  rollbackReason?: string;
+  rollbackTimestamp?: string;
+  steps?: Array<{
+    step: string;
+    status: string;
+    timestamp: string;
+    output?: string;
+  }>;
+  error?: string;
+  output?: string;
+}
+
 export interface DeploymentHistoryRecord {
   id: string;
   projectId: string;
@@ -12,7 +27,7 @@ export interface DeploymentHistoryRecord {
   githubRepoUrl?: string;
   blueprintVersion: number;
   status: "pending" | "deployed" | "failed" | "deleted";
-  deploymentLogs?: any;
+  deploymentLogs?: DeploymentLogs;
   expiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -149,11 +164,15 @@ export class DeploymentHistoryService {
   /**
    * Validate rollback target deployment
    */
-  static async validateRollbackTarget(deploymentId: string): Promise<DeploymentHistoryRecord> {
+  static async validateRollbackTarget(deploymentId: string, projectId: string): Promise<DeploymentHistoryRecord> {
     const deployment = await this.getDeploymentById(deploymentId);
 
     if (!deployment) {
       throw new Error("Deployment not found");
+    }
+
+    if (deployment.projectId !== projectId) {
+      throw new Error("Deployment does not belong to this project");
     }
 
     if (deployment.status !== "deployed") {
@@ -168,11 +187,10 @@ export class DeploymentHistoryService {
    */
   static async createRollbackDeployment(
     projectId: string,
-    environment: "production" | "staging" | "preview",
     targetDeploymentId: string,
     rollbackReason: string
   ): Promise<string> {
-    const targetDeployment = await this.validateRollbackTarget(targetDeploymentId);
+    const targetDeployment = await this.validateRollbackTarget(targetDeploymentId, projectId);
 
     const database = db();
     const result = await database

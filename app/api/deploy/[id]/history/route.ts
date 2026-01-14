@@ -2,6 +2,14 @@ import { NextRequest } from "next/server";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { DeploymentHistoryService } from "@/lib/services/deployment-history-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { z } from "zod";
+
+const historyQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(20),
+  status: z.enum(["pending", "deployed", "failed", "deleted"]).optional(),
+  environment: z.enum(["production", "staging", "preview"]).optional(),
+});
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -14,17 +22,18 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
     handler: async ({ req }) => {
-      const searchParams = Object.fromEntries(req.nextUrl.searchParams.entries());
-      const page = parseInt(searchParams.page || "1", 10);
-      const pageSize = parseInt(searchParams.pageSize || "20", 10);
-      const status = searchParams.status as "pending" | "deployed" | "failed" | "deleted" | undefined;
-      const environment = searchParams.environment as "production" | "staging" | "preview" | undefined;
+      const validatedQuery = historyQuerySchema.parse(
+        Object.fromEntries(req.nextUrl.searchParams.entries())
+      );
 
       const result = await DeploymentHistoryService.getDeploymentHistory(
         id,
-        page,
-        pageSize,
-        { status, environment }
+        validatedQuery.page,
+        validatedQuery.pageSize,
+        {
+          status: validatedQuery.status,
+          environment: validatedQuery.environment,
+        }
       );
 
       return {

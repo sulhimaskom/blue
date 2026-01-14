@@ -25,7 +25,6 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     handler: async ({ data }) => {
       const rollbackDeploymentId = await DeploymentHistoryService.createRollbackDeployment(
         id,
-        "production",
         data!.deploymentId,
         data!.reason
       );
