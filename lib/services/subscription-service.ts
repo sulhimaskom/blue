@@ -537,16 +537,29 @@ export class SubscriptionService {
     try {
       const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM
 
+      const updates: Record<string, unknown> = { updatedAt: new Date() };
+
+      switch (usageType) {
+        case "credits":
+          updates.creditsUsed = sql`creditsUsed + ${amount}`;
+          break;
+        case "projects":
+          updates.projectsCreated = sql`projectsCreated + ${amount}`;
+          break;
+        case "teams":
+          updates.teamsCreated = sql`teamsCreated + ${amount}`;
+          break;
+        case "webhooks":
+          updates.webhooksCreated = sql`webhooksCreated + ${amount}`;
+          break;
+        case "api_requests":
+          updates.apiRequests = sql`apiRequests + ${amount}`;
+          break;
+      }
+
       await db()
         .update(subscriptionUsage)
-        .set({
-          [usageType === "credits" ? "creditsUsed" :
-           usageType === "projects" ? "projectsCreated" :
-           usageType === "teams" ? "teamsCreated" :
-           usageType === "webhooks" ? "webhooksCreated" :
-           "apiRequests"]: sql`${usageType === "api_requests" ? "api_requests" : usageType} + ${amount}`,
-          updatedAt: new Date(),
-        })
+        .set(updates)
         .where(
           and(
             eq(subscriptionUsage.userId, userId),
