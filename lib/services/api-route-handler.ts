@@ -5,8 +5,10 @@ import {
   formatSuccessResponse,
   formatErrorResponse,
   ValidationError,
-  DatabaseError,
+  AuthenticationError,
+  AuthorizationError,
   NotFoundError,
+  DatabaseError,
   RateLimitError,
 } from "@/lib/api-utils";
 import { logger, createRequestContext } from "@/lib/logger";
@@ -191,6 +193,9 @@ class APIRouteHandler {
 
         if (
           error instanceof ValidationError ||
+          error instanceof AuthenticationError ||
+          error instanceof AuthorizationError ||
+          error instanceof NotFoundError ||
           error instanceof DatabaseError ||
           error instanceof RateLimitError
         ) {
@@ -311,6 +316,9 @@ class APIRouteHandler {
 
         if (
           error instanceof ValidationError ||
+          error instanceof AuthenticationError ||
+          error instanceof AuthorizationError ||
+          error instanceof NotFoundError ||
           error instanceof DatabaseError ||
           error instanceof RateLimitError
         ) {
@@ -392,7 +400,14 @@ class APIRouteHandler {
           authenticatedUser?.clerkId,
         );
 
-        if (error instanceof DatabaseError || error instanceof NotFoundError) {
+        if (
+          error instanceof ValidationError ||
+          error instanceof AuthenticationError ||
+          error instanceof AuthorizationError ||
+          error instanceof NotFoundError ||
+          error instanceof DatabaseError ||
+          error instanceof RateLimitError
+        ) {
           return formatErrorResponse(error);
         }
 
@@ -526,8 +541,12 @@ let authenticatedUser:
               );
 
               if (
+                error instanceof ValidationError ||
+                error instanceof AuthenticationError ||
+                error instanceof AuthorizationError ||
+                error instanceof NotFoundError ||
                 error instanceof DatabaseError ||
-                error instanceof NotFoundError
+                error instanceof RateLimitError
               ) {
                 throw error;
               }
@@ -649,6 +668,32 @@ let authenticatedUser:
           return NextResponse.json(
             formatErrorResponse(error),
             { status: 400 }
+          );
+        }
+
+        if (error instanceof AuthenticationError) {
+          logger.apiError(
+            "Authentication error in DELETE",
+            context.requestId,
+            error,
+            { url: url.pathname, userId: authenticatedUser?.clerkId }
+          );
+          return NextResponse.json(
+            formatErrorResponse(error),
+            { status: 401 }
+          );
+        }
+
+        if (error instanceof AuthorizationError) {
+          logger.apiError(
+            "Authorization error in DELETE",
+            context.requestId,
+            error,
+            { url: url.pathname, userId: authenticatedUser?.clerkId }
+          );
+          return NextResponse.json(
+            formatErrorResponse(error),
+            { status: 403 }
           );
         }
 
