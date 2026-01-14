@@ -5,6 +5,7 @@ import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { teamService } from "@/lib/services/team-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { logger } from "@/lib/logger";
+import type { ActivityFilterOptions } from "@/lib/services/activity-feed-service";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
       const team = await teamService.getTeamById(id, user!.id);
 
-      const options: any = {
+      const options: ActivityFilterOptions = {
         limit: validatedQuery.limit,
         offset: validatedQuery.offset,
       };
