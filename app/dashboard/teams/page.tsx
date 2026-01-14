@@ -56,7 +56,7 @@ export default function TeamsPage() {
       if (!result.success) {
         throw new Error(result.error || "Failed to update team");
       }
-      await handleTeamSelect((selectedTeam as any)!);
+      await handleTeamSelect(selectedTeam!);
     } catch (err) {
       throw err;
     }
