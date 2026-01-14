@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
-import { deployments as deploymentsTable } from "@/lib/db/schema";
+import { deployments as deploymentsTable, projects, users } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
+import { NotificationService, NotificationType } from "@/lib/services/notification-service";
+import { logger } from "@/lib/logger";
 
 export interface DeploymentRecord {
   id: string;
@@ -122,6 +124,17 @@ updates: Partial<Pick<DeploymentRecord, 'githubRepoId' | 'githubRepoUrl' | 'stat
    */
   static async deleteDeployment(deploymentId: string): Promise<void> {
     const database = db();
+
+    const [deployment] = await database
+      .select()
+      .from(deploymentsTable)
+      .where(eq(deploymentsTable.id, deploymentId))
+      .limit(1);
+
+    if (!deployment) {
+      return;
+    }
+
     await database
       .update(deploymentsTable)
       .set({
@@ -130,5 +143,92 @@ updates: Partial<Pick<DeploymentRecord, 'githubRepoId' | 'githubRepoUrl' | 'stat
         updatedAt: new Date(),
       })
       .where(eq(deploymentsTable.id, deploymentId));
+
+    await this.notifyDeploymentStatus(deploymentId, "deleted", { operation: "delete" });
+  }
+
+  /**
+   * Dispatch deployment status notification to user
+   * @param deploymentId Deployment ID to notify about
+   * @param status Deployment status (deployed, failed, deleted)
+   * @param context Additional context for the notification
+   */
+  static async notifyDeploymentStatus(
+    deploymentId: string,
+    status: "deployed" | "failed" | "deleted",
+    context?: {
+      operation?: "create" | "promote" | "rollback" | "delete";
+      fromEnvironment?: string;
+    }
+  ): Promise<void> {
+    try {
+      const database = db();
+      const [deployment] = await database
+        .select()
+        .from(deploymentsTable)
+        .where(eq(deploymentsTable.id, deploymentId))
+        .limit(1);
+
+      if (!deployment) {
+        return;
+      }
+
+      const [project] = await database
+        .select()
+        .from(projects)
+        .where(eq(projects.id, deployment.projectId))
+        .limit(1);
+
+      if (!project) {
+        return;
+      }
+
+      const [user] = await database
+        .select()
+        .from(users)
+        .where(eq(users.id, project.ownerId))
+        .limit(1);
+
+      if (!user) {
+        return;
+      }
+
+      let title: string;
+      let message: string;
+      const projectName = project.name || deployment.projectId;
+
+      if (status === "deployed") {
+        title = "Deployment Successful";
+        if (context?.operation === "promote") {
+          message = `Project "${projectName}" has been successfully promoted from ${context.fromEnvironment} to ${deployment.environment}.`;
+        } else if (context?.operation === "rollback") {
+          message = `Project "${projectName}" has been successfully rolled back in ${deployment.environment}.`;
+        } else {
+          message = `Project "${projectName}" has been successfully deployed to ${deployment.environment}.`;
+        }
+      } else if (status === "failed") {
+        title = "Deployment Failed";
+        message = `Deployment of project "${projectName}" to ${deployment.environment} failed. Please check the deployment logs for details.`;
+      } else {
+        title = "Deployment Deleted";
+        message = `Deployment of project "${projectName}" in ${deployment.environment} has been deleted.`;
+      }
+
+      await NotificationService.dispatch(
+        user.clerkId,
+        "deployment_status" as NotificationType,
+        title,
+        message,
+        {
+          deploymentId,
+          projectId: deployment.projectId,
+          environment: deployment.environment,
+          status,
+        },
+        `/projects/${deployment.projectId}/deploy/${deploymentId}`
+      );
+    } catch (error) {
+      logger.error("Failed to send deployment notification", { deploymentId, status, error });
+    }
   }
 }
