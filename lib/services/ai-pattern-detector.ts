@@ -66,6 +66,9 @@ export class AIPatternDetector {
    * Normalize input for better cache hit rates
    */
   static normalizeInputForCaching(input: string): string {
+    if (!input) {
+      return "";
+    }
     const normalizedInput = input.toLowerCase().replace(/[^\w\s]/g, " ").trim();
     return normalizedInput
       .replace(
