@@ -241,10 +241,10 @@ export default function DashboardPage() {
               href="/dashboard/subscription"
             />
             <DashboardCard 
-              title="Enterprise Themes"
-              description="Configure enterprise theme settings"
-              buttonText="Configure Themes"
-              href="/dashboard/enterprise/themes"
+              title="Settings"
+              description="Configure your account preferences and settings"
+              buttonText="Manage Settings"
+              href="/dashboard/settings"
             />
           </div>
         </div>
