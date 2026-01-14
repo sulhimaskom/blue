@@ -89,14 +89,17 @@ When rate limits are enforced, responses include:
 |                     | `PUT /enterprise/themes/[id]`              | ❌ Optional | -       | Moderate   | Update theme             |
 |                     | `DELETE /enterprise/themes/[id]`           | ❌ Optional | -       | Moderate   | Delete theme             |
 |                     | `POST /enterprise/themes/[id]/activate`    | ❌ Optional | -       | Moderate   | Activate theme           |
-| **Performance**     | `GET /performance`                         | ❌ Optional | -       | Standard   | Performance report       |
-|                     | `GET /performance/advanced-monitoring`     | ❌ Optional | -       | Standard   | Advanced monitoring      |
-|                     | `POST /performance/advanced-monitoring`    | ❌ Optional | -       | Moderate   | Trigger optimization     |
-|                     | `GET /performance/ai-cache-optimization`   | ❌ Optional | -       | Standard   | AI cache metrics         |
-|                     | `GET /performance/optimization`            | ❌ Optional | -       | Standard   | Optimization data        |
-|                     | `GET /performance/predictive-optimization` | ❌ Optional | -       | Standard   | Predictive optimization  |
-|                     | `GET /performance/predictive`              | ❌ Optional | -       | Standard   | Predictive analysis      |
-| **Projects**        | `GET /projects`                            | ✅ Required | -       | Standard   | List all projects        |
+ | **Performance**     | `GET /performance`                         | ❌ Optional | -       | Standard   | Performance report       |
+                     | `GET /performance/advanced-monitoring`     | ❌ Optional | -       | Standard   | Advanced monitoring      |
+                     | `POST /performance/advanced-monitoring`    | ❌ Optional | -       | Moderate   | Trigger optimization     |
+                     | `GET /performance/ai-cache-optimization`   | ❌ Optional | -       | Standard   | AI cache metrics         |
+                     | `GET /performance/optimization`            | ❌ Optional | -       | Standard   | Optimization data        |
+                     | `GET /performance/predictive-optimization` | ❌ Optional | -       | Standard   | Predictive optimization  |
+                     | `GET /performance/predictive`              | ❌ Optional | -       | Standard   | Predictive analysis      |
+ | **Notifications**   | `GET /notifications`                       | ✅ Required | -       | Standard   | List user notifications  |
+                     | `POST /notifications/[id]/read`            | ✅ Required | -       | Standard   | Mark notification read   |
+                     | `POST /notifications/read-all`            | ✅ Required | -       | Standard   | Mark all read           |
+ | **Projects**        | `GET /projects`                            | ✅ Required | -       | Standard   | List all projects        |
 |                     | `POST /projects`                           | ✅ Required | -       | Moderate   | Create project           |
 |                     | `GET /projects/[id]`                       | ✅ Required | -       | Standard   | Get specific project     |
 |                     | `PUT /projects/[id]`                       | ✅ Required | -       | Moderate   | Update project           |
@@ -1935,6 +1938,207 @@ Authorization: Bearer <token>
     "total": 1
   }
 }
+```
+
+---
+
+## 🔔 Notifications
+
+### GET /notifications
+
+List notifications for the authenticated user with pagination and filtering.
+
+**Request:**
+
+```http
+GET /api/notifications?page=1&limit=20&unreadOnly=false&type=blueprint_complete
+Authorization: Bearer <token>
+```
+
+**Query Parameters:**
+
+- `page` (integer, optional) - Page number (default: 1)
+- `limit` (integer, optional) - Items per page (default: 20)
+- `unreadOnly` (boolean, optional) - Filter to only unread notifications (default: false)
+- `type` (string, optional) - Filter by notification type:
+  - `blueprint_complete` - Blueprint generation finished
+  - `team_invitation` - Team member invited
+  - `deployment_status` - Deployment succeeded/failed
+  - `credit_warning` - Low credits warning
+  - `blueprint_shared` - Blueprint shared
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "notifications": [
+      {
+        "id": "uuid",
+        "type": "blueprint_complete",
+        "title": "Blueprint Generation Complete",
+        "message": "Your blueprint \"Project X\" has been generated.",
+        "metadata": {
+          "blueprintId": "blueprint_uuid",
+          "projectId": "project_uuid",
+          "duration": 45
+        },
+        "link": "/projects/123/blueprints/456",
+        "readAt": null,
+        "createdAt": "2026-01-14T16:00:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 50,
+      "page": 1,
+      "limit": 20,
+      "totalPages": 3,
+      "unreadCount": 12
+    },
+    "message": "Notifications retrieved successfully"
+  }
+}
+```
+
+**Rate Limiting:** 30 requests/minute (Standard)
+
+---
+
+### POST /notifications/[id]/read
+
+Mark a specific notification as read.
+
+**Request:**
+
+```http
+POST /api/notifications/uuid/read
+Authorization: Bearer <token>
+```
+
+**Path Parameters:**
+
+- `id` (string, required) - Notification ID to mark as read
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "notification": {
+      "id": "uuid",
+      "type": "blueprint_complete",
+      "title": "Blueprint Generation Complete",
+      "message": "Your blueprint \"Project X\" has been generated.",
+      "metadata": {
+        "blueprintId": "blueprint_uuid",
+        "projectId": "project_uuid"
+      },
+      "link": "/projects/123/blueprints/456",
+      "readAt": "2026-01-14T16:05:00Z",
+      "createdAt": "2026-01-14T16:00:00Z"
+    },
+    "unreadCount": 11,
+    "message": "Notification marked as read successfully"
+  }
+}
+```
+
+**Rate Limiting:** 30 requests/minute (Standard)
+
+**Error Responses:**
+
+- `400 Bad Request` - Invalid notification ID
+- `401 Unauthorized` - Invalid authentication
+- `404 Not Found` - Notification not found or access denied
+- `500 Internal Server Error` - Database error
+
+---
+
+### POST /notifications/read-all
+
+Mark all notifications as read for the authenticated user.
+
+**Request:**
+
+```http
+POST /api/notifications/read-all
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "markedCount": 12,
+    "message": "All notifications marked as read successfully"
+  }
+}
+```
+
+**Rate Limiting:** 30 requests/minute (Standard)
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid authentication
+- `500 Internal Server Error` - Database error
+
+---
+
+## Notification Types
+
+The system supports the following notification types:
+
+| Type                  | Description                                | Metadata Fields                    |
+| --------------------- | ----------------------------------------- | --------------------------------- |
+| `blueprint_complete`  | Blueprint generation finished              | blueprintId, projectId, duration    |
+| `team_invitation`     | Team member invited                        | teamId, inviterName               |
+| `deployment_status`   | Deployment succeeded/failed                 | deploymentId, environment, status  |
+| `credit_warning`      | Low credits warning                        | remainingCredits                  |
+| `blueprint_shared`    | Blueprint shared                           | blueprintId, sharerName           |
+
+---
+
+## Usage Examples
+
+### Fetch Unread Notifications
+
+```typescript
+const response = await fetch('/api/notifications?unreadOnly=true', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+const { success, data } = await response.json();
+console.log(`Unread notifications: ${data.pagination.unreadCount}`);
+```
+
+### Mark All as Read
+
+```typescript
+const response = await fetch('/api/notifications/read-all', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+const { success, data } = await response.json();
+console.log(`Marked ${data.markedCount} notifications as read`);
+```
+
+### Filter by Type
+
+```typescript
+const response = await fetch('/api/notifications?type=blueprint_complete', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+const { success, data } = await response.json();
+console.log(`Blueprint notifications: ${data.notifications.length}`);
 ```
 
 ---
