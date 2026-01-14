@@ -699,7 +699,7 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
         })
         .returning();
 
-      if (!project || project.length === 0) {
+      if (!project?.length) {
         throw new DatabaseError("Failed to create project record during blueprint generation");
       }
 
@@ -773,7 +773,7 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
         ),
       ]);
 
-      if (!blueprint || blueprint.length === 0) {
+      if (!blueprint?.length) {
         throw new DatabaseError("Failed to create blueprint record during generation");
       }
 
