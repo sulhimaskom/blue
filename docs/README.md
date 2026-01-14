@@ -130,6 +130,12 @@
 
 ---
 
+## 🗃️ Archived Historical Reports
+
+Historical task reports and temporary documentation have been archived to improve documentation organization.
+
+- **[reports/archive/README.md](./reports/archive/README.md)** - Index of archived historical reports
+
 ## 🔗 Related Files
 
 - [AGENTS.md](../AGENTS.md) - AI agent development rules
