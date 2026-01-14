@@ -4,8 +4,11 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { DashboardCard } from "@/components/ui/dashboard-card";
 import { StatsCard } from "@/components/ui/stats-card";
+import { MiniActivityFeed } from "@/components/activity/mini-activity-feed";
+import { useActivityData } from "@/lib/hooks/use-activity-data";
 import { DashboardDataService } from "@/lib/services/dashboard-data-service";
 import { logger } from "@/lib/logger";
+import { useRouter } from "next/navigation";
 
 interface UserCredits {
   credits: number;
@@ -48,11 +51,13 @@ function useUserSafe() {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { isSignedIn, user } = useUserSafe();
   const [userCredits, setUserCredits] = useState<UserCredits>({
     credits: 0,
     subscriptionTier: "free",
   });
+  const { activities } = useActivityData({ limit: 10 });
 
   useEffect(() => {
     if (isSignedIn) {
@@ -156,6 +161,16 @@ export default function DashboardPage() {
               trend={stat.trend}
             />
           ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <MiniActivityFeed
+              activities={activities}
+              limit={10}
+              onViewAll={() => router.push("/dashboard/activity")}
+            />
+          </div>
         </div>
 
         <div>
