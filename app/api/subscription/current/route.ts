@@ -5,12 +5,14 @@ import { AuthenticationError } from "@/lib/api-utils";
 
 /**
  * GET /api/subscription/current
- * 
+ *
  * Get current user's subscription tier, limits, and usage
- * 
+ *
  * Rate Limit: 30 requests/minute (standard)
+ * Cache: 300 seconds (5 minutes) - subscription data changes infrequently
+ * Cache Invalidation: Tag-based for subscription updates
  */
-export const GET = APIRouteHandler.createGETHandler({
+export const GET = APIRouteHandler.createCachedGETHandler({
   requireAuth: true,
   rateLimiter: RateLimiters.standard(),
   handler: async ({ user }) => {
@@ -34,4 +36,8 @@ export const GET = APIRouteHandler.createGETHandler({
       },
     };
   },
+}, {
+  ttl: 300,
+  tags: ["subscription-current", "subscription"],
+  varyBy: ["userId"],
 });
