@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { deployments as deploymentsTable } from "@/lib/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { NotFoundError, ValidationError } from "@/lib/api-utils";
 
 export interface DeploymentLogs {
   rollback?: boolean;
@@ -168,15 +169,15 @@ export class DeploymentHistoryService {
     const deployment = await this.getDeploymentById(deploymentId);
 
     if (!deployment) {
-      throw new Error("Deployment not found");
+      throw new NotFoundError("Deployment not found");
     }
 
     if (deployment.projectId !== projectId) {
-      throw new Error("Deployment does not belong to this project");
+      throw new ValidationError("Deployment does not belong to this project");
     }
 
     if (deployment.status !== "deployed") {
-      throw new Error("Cannot rollback to a deployment that was not successful");
+      throw new ValidationError("Cannot rollback to a deployment that was not successful");
     }
 
     return deployment;
