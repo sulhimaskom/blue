@@ -87,9 +87,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           expiresAt,
         });
 
-try {
         // Create deployment record
-        let deploymentId: string;
+        let deploymentId: string | undefined;
+        try {
         deploymentId = await DeploymentService.createDeploymentRecord({
           projectId: id,
           environment: environment!,
@@ -178,7 +178,7 @@ try {
             environment,
             status: "failed",
           },
-          `/projects/${id}/deploy/${deploymentId}`,
+          deploymentId ? `/projects/${id}/deploy/${deploymentId}` : `/projects/${id}`,
         );
 
         if (error instanceof GitHubServiceError) {

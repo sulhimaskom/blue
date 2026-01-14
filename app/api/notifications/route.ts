@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
@@ -15,7 +16,7 @@ interface RouteParams {
   params: Promise<{}>;
 }
 
-export async function GET(req: Request, { params }: RouteParams) {
+export async function GET(req: NextRequest, { params: _ }: RouteParams) {
   const url = new URL(req.url);
   const query = Object.fromEntries(url.searchParams);
 

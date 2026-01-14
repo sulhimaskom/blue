@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { NotificationService } from "@/lib/services/notification-service";
@@ -7,7 +8,7 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function POST(req: Request, { params }: RouteParams) {
+export async function POST(req: NextRequest, { params }: RouteParams) {
   const { id } = await params;
 
   return APIRouteHandler.createPOSTHandler({
