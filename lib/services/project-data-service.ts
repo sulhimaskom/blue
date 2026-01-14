@@ -8,6 +8,7 @@ import DatabaseQueryCache from "@/lib/services/database-cache-service";
 import { softDelete } from "@/lib/db/soft-delete-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
+import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 
 /**
  * Service for common project and blueprint database operations
@@ -464,6 +465,9 @@ static async createProject(
       })
     );
   }
+
+  // Invalidate projects cache after creating a project
+  await UnifiedCacheManager.invalidateByTag("projects");
 
   return newProject;
 }
