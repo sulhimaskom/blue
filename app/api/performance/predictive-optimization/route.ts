@@ -75,9 +75,10 @@ export const GET = APIRouteHandler.createSimpleCachedGETHandler(
 
 /**
  * Trigger on-demand cache warming for specific patterns
+ * Requires authentication to prevent resource abuse
  */
 export const POST = APIRouteHandler.createPOSTHandler({
-  requireAuth: false,
+  requireAuth: true,
   rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
   schema: CacheWarmingSchema,
   handler: async ({ data }) => {
