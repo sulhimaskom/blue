@@ -4,6 +4,7 @@ jest.mock("@/lib/logger", () => ({
   logger: {
     userAction: jest.fn(),
     error: jest.fn(),
+    info: jest.fn(),
   },
 }));
 
@@ -167,14 +168,6 @@ describe("ProjectCloneService - Core Functionality Tests", () => {
   });
 
   describe("Type Safety", () => {
-    it("should export correct types", () => {
-      const { CloneProjectOptions, ProjectCloneResult, ProjectTemplate } = require("@/lib/services/project-clone-service");
-
-      expect(typeof CloneProjectOptions).toBe("object");
-      expect(typeof ProjectCloneResult).toBe("object");
-      expect(typeof ProjectTemplate).toBe("object");
-    });
-
     it("should have correct method signatures", () => {
       expect(typeof ProjectCloneService.cloneProject).toBe("function");
       expect(typeof ProjectCloneService.getProjectTemplates).toBe("function");
