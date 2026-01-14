@@ -1,20 +1,31 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, ReactNode } from "react";
 import Link from "next/link";
 import { useAuthSafe } from "@/lib/hooks/use-auth";
+import { useUnreadCount } from "@/lib/hooks/use-unread-count";
 import { Button } from "@/components/ui/button";
 import { getNavigationUI } from "@/lib/constants/navigation-ui";
 import { cn, getButtonTheme } from "@/lib/constants/ui-themes";
 import { Gradients } from "@/lib/constants/gradients";
+import { UnreadCountBadge } from "@/components/notifications/unread-count-badge";
 
 interface NavigationProps {
   variant?: "header" | "sidebar";
   className?: string;
 }
 
+type NavigationItem = {
+  href: string;
+  label: string | ReactNode;
+  active?: boolean;
+  requiresAuth?: boolean;
+  plainText?: string;
+};
+
 export function Navigation({ variant = "header", className }: NavigationProps) {
   const { isSignedIn, isLoaded } = useAuthSafe();
+  const { unreadCount } = useUnreadCount();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
@@ -62,7 +73,7 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
     }
   }, [isMobileMenuOpen, closeMobileMenu]);
 
-  const navigationItems = [
+  const navigationItems: NavigationItem[] = [
     {
       href: "/",
       label: getNavigationUI("navigation", "home"),
@@ -72,6 +83,17 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
       href: "/dashboard",
       label: getNavigationUI("navigation", "dashboard"),
       requiresAuth: true,
+    },
+    {
+      href: "/dashboard/notifications",
+      label: (
+        <div className="relative inline-flex items-center">
+          Notifications
+          <UnreadCountBadge count={unreadCount} />
+        </div>
+      ),
+      requiresAuth: true,
+      plainText: "Notifications",
     },
     {
       href: "/dashboard/subscription",
@@ -133,7 +155,8 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
                 )}
                 aria-current={item.active ? "page" : undefined}
               >
-                {item.label}
+                {typeof item.label === "string" ? item.label : item.plainText || "Notifications"}
+                {typeof item.label !== "string" && <UnreadCountBadge count={unreadCount} className="ml-2" />}
               </Link>
             ))}
           </div>
@@ -180,7 +203,7 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
                 )}
                 aria-current={item.active ? "page" : undefined}
               >
-                {item.label}
+                {typeof item.label === "string" ? item.label : <>{item.label}</>}
               </Link>
             ))}
           </div>
@@ -273,7 +296,8 @@ export function Navigation({ variant = "header", className }: NavigationProps) {
                   aria-current={item.active ? "page" : undefined}
                   tabIndex={index === 0 ? 0 : -1}
                 >
-                  {item.label}
+                  {typeof item.label === "string" ? item.label : item.plainText || "Notifications"}
+                  {typeof item.label !== "string" && <UnreadCountBadge count={unreadCount} className="ml-2" />}
                 </Link>
               ))}
             </div>
