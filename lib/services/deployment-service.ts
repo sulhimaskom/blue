@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { deployments as deploymentsTable, projects, users } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { NotificationService, NotificationType } from "@/lib/services/notification-service";
+import { logger } from "@/lib/logger";
 
 export interface DeploymentRecord {
   id: string;
@@ -227,7 +228,7 @@ updates: Partial<Pick<DeploymentRecord, 'githubRepoId' | 'githubRepoUrl' | 'stat
         `/projects/${deployment.projectId}/deploy/${deploymentId}`
       );
     } catch (error) {
-      console.error("Failed to send deployment notification:", error);
+      logger.error("Failed to send deployment notification", { deploymentId, status, error });
     }
   }
 }
