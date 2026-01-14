@@ -1,0 +1,160 @@
+export const ACTIVITY_TYPES = {
+  PROJECT: {
+    CREATED: "project_created",
+    UPDATED: "project_updated",
+    DELETED: "project_deleted",
+  },
+  BLUEPRINT: {
+    CREATED: "blueprint_created",
+    UPDATED: "blueprint_updated",
+    DELETED: "blueprint_deleted",
+    GENERATED: "blueprint_generated",
+    SHARED: "blueprint_shared",
+  },
+  DEPLOYMENT: {
+    CREATED: "deployment_created",
+    UPDATED: "deployment_updated",
+    DELETED: "deployment_deleted",
+    STARTED: "deployment_started",
+    SUCCESS: "deployment_success",
+    FAILED: "deployment_failed",
+    ROLLED_BACK: "deployment_rolled_back",
+  },
+  TEAM: {
+    CREATED: "team_created",
+    UPDATED: "team_updated",
+    MEMBER_ADDED: "team_member_added",
+    MEMBER_REMOVED: "team_member_removed",
+  },
+  USER: {
+    SIGNUP: "user_signup",
+    LOGIN: "user_login",
+  },
+  CREDIT: {
+    PURCHASED: "credit_purchased",
+    USED: "credit_used",
+    WARNING: "credit_warning",
+  },
+} as const;
+
+export const ACTIVITY_ICONS: Record<string, string> = {
+  [ACTIVITY_TYPES.PROJECT.CREATED]: "🎯",
+  [ACTIVITY_TYPES.PROJECT.UPDATED]: "✏️",
+  [ACTIVITY_TYPES.PROJECT.DELETED]: "🗑️",
+  
+  [ACTIVITY_TYPES.BLUEPRINT.CREATED]: "📝",
+  [ACTIVITY_TYPES.BLUEPRINT.UPDATED]: "📄",
+  [ACTIVITY_TYPES.BLUEPRINT.DELETED]: "📋",
+  [ACTIVITY_TYPES.BLUEPRINT.GENERATED]: "⚡",
+  [ACTIVITY_TYPES.BLUEPRINT.SHARED]: "🔗",
+  
+  [ACTIVITY_TYPES.DEPLOYMENT.CREATED]: "🚀",
+  [ACTIVITY_TYPES.DEPLOYMENT.UPDATED]: "🔄",
+  [ACTIVITY_TYPES.DEPLOYMENT.DELETED]: "⏹️",
+  [ACTIVITY_TYPES.DEPLOYMENT.STARTED]: "🚀",
+  [ACTIVITY_TYPES.DEPLOYMENT.SUCCESS]: "✅",
+  [ACTIVITY_TYPES.DEPLOYMENT.FAILED]: "❌",
+  [ACTIVITY_TYPES.DEPLOYMENT.ROLLED_BACK]: "↩️",
+  
+  [ACTIVITY_TYPES.TEAM.CREATED]: "👥",
+  [ACTIVITY_TYPES.TEAM.UPDATED]: "👤",
+  [ACTIVITY_TYPES.TEAM.MEMBER_ADDED]: "➕",
+  [ACTIVITY_TYPES.TEAM.MEMBER_REMOVED]: "➖",
+  
+  [ACTIVITY_TYPES.USER.SIGNUP]: "🎉",
+  [ACTIVITY_TYPES.USER.LOGIN]: "🔐",
+  
+  [ACTIVITY_TYPES.CREDIT.PURCHASED]: "💳",
+  [ACTIVITY_TYPES.CREDIT.USED]: "💰",
+  [ACTIVITY_TYPES.CREDIT.WARNING]: "⚠️",
+};
+
+export const ACTIVITY_LABELS: Record<string, string> = {
+  [ACTIVITY_TYPES.PROJECT.CREATED]: "Project Created",
+  [ACTIVITY_TYPES.PROJECT.UPDATED]: "Project Updated",
+  [ACTIVITY_TYPES.PROJECT.DELETED]: "Project Deleted",
+  
+  [ACTIVITY_TYPES.BLUEPRINT.CREATED]: "Blueprint Created",
+  [ACTIVITY_TYPES.BLUEPRINT.UPDATED]: "Blueprint Updated",
+  [ACTIVITY_TYPES.BLUEPRINT.DELETED]: "Blueprint Deleted",
+  [ACTIVITY_TYPES.BLUEPRINT.GENERATED]: "Blueprint Generated",
+  [ACTIVITY_TYPES.BLUEPRINT.SHARED]: "Blueprint Shared",
+  
+  [ACTIVITY_TYPES.DEPLOYMENT.CREATED]: "Deployment Created",
+  [ACTIVITY_TYPES.DEPLOYMENT.UPDATED]: "Deployment Updated",
+  [ACTIVITY_TYPES.DEPLOYMENT.DELETED]: "Deployment Deleted",
+  [ACTIVITY_TYPES.DEPLOYMENT.STARTED]: "Deployment Started",
+  [ACTIVITY_TYPES.DEPLOYMENT.SUCCESS]: "Deployment Success",
+  [ACTIVITY_TYPES.DEPLOYMENT.FAILED]: "Deployment Failed",
+  [ACTIVITY_TYPES.DEPLOYMENT.ROLLED_BACK]: "Deployment Rolled Back",
+  
+  [ACTIVITY_TYPES.TEAM.CREATED]: "Team Created",
+  [ACTIVITY_TYPES.TEAM.UPDATED]: "Team Updated",
+  [ACTIVITY_TYPES.TEAM.MEMBER_ADDED]: "Member Added",
+  [ACTIVITY_TYPES.TEAM.MEMBER_REMOVED]: "Member Removed",
+  
+  [ACTIVITY_TYPES.USER.SIGNUP]: "User Signup",
+  [ACTIVITY_TYPES.USER.LOGIN]: "User Login",
+  
+  [ACTIVITY_TYPES.CREDIT.PURCHASED]: "Credits Purchased",
+  [ACTIVITY_TYPES.CREDIT.USED]: "Credits Used",
+  [ACTIVITY_TYPES.CREDIT.WARNING]: "Credit Warning",
+};
+
+export const ACTIVITY_TYPE_GROUPS = [
+  {
+    label: "Projects",
+    types: [
+      ACTIVITY_TYPES.PROJECT.CREATED,
+      ACTIVITY_TYPES.PROJECT.UPDATED,
+      ACTIVITY_TYPES.PROJECT.DELETED,
+    ],
+  },
+  {
+    label: "Blueprints",
+    types: [
+      ACTIVITY_TYPES.BLUEPRINT.CREATED,
+      ACTIVITY_TYPES.BLUEPRINT.UPDATED,
+      ACTIVITY_TYPES.BLUEPRINT.DELETED,
+      ACTIVITY_TYPES.BLUEPRINT.GENERATED,
+      ACTIVITY_TYPES.BLUEPRINT.SHARED,
+    ],
+  },
+  {
+    label: "Deployments",
+    types: [
+      ACTIVITY_TYPES.DEPLOYMENT.CREATED,
+      ACTIVITY_TYPES.DEPLOYMENT.UPDATED,
+      ACTIVITY_TYPES.DEPLOYMENT.DELETED,
+      ACTIVITY_TYPES.DEPLOYMENT.STARTED,
+      ACTIVITY_TYPES.DEPLOYMENT.SUCCESS,
+      ACTIVITY_TYPES.DEPLOYMENT.FAILED,
+      ACTIVITY_TYPES.DEPLOYMENT.ROLLED_BACK,
+    ],
+  },
+  {
+    label: "Teams",
+    types: [
+      ACTIVITY_TYPES.TEAM.CREATED,
+      ACTIVITY_TYPES.TEAM.UPDATED,
+      ACTIVITY_TYPES.TEAM.MEMBER_ADDED,
+      ACTIVITY_TYPES.TEAM.MEMBER_REMOVED,
+    ],
+  },
+  {
+    label: "Credits",
+    types: [
+      ACTIVITY_TYPES.CREDIT.PURCHASED,
+      ACTIVITY_TYPES.CREDIT.USED,
+      ACTIVITY_TYPES.CREDIT.WARNING,
+    ],
+  },
+] as const;
+
+export const MAJOR_ACTIVITY_TYPES = [
+  ACTIVITY_TYPES.PROJECT.CREATED,
+  ACTIVITY_TYPES.BLUEPRINT.GENERATED,
+  ACTIVITY_TYPES.DEPLOYMENT.SUCCESS,
+  ACTIVITY_TYPES.DEPLOYMENT.FAILED,
+  ACTIVITY_TYPES.TEAM.MEMBER_ADDED,
+] as const;
