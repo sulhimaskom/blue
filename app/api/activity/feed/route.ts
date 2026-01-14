@@ -3,6 +3,7 @@ import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { logger } from "@/lib/logger";
+import type { ActivityFilterOptions } from "@/lib/services/activity-feed-service";
 
 const ActivityQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(100).optional().default(50),
@@ -19,7 +20,7 @@ export const GET = APIRouteHandler.createGETHandler({
     const queryParams = Object.fromEntries(req.nextUrl.searchParams);
     const validatedQuery = ActivityQuerySchema.parse(queryParams);
 
-    const options: any = {
+    const options: ActivityFilterOptions = {
       limit: validatedQuery.limit,
       offset: validatedQuery.offset,
     };
