@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { BlueprintSharingService } from "@/lib/services/blueprint-sharing-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { ValidationError } from "@/lib/api-utils";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -26,14 +27,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
       const validationResult = GetBlueprintSharesSchema.safeParse(query);
       if (!validationResult.success) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Invalid query parameters",
-            details: validationResult.error.errors,
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+        throw new ValidationError("Invalid query parameters");
       }
 
       const { page, limit } = validationResult.data;

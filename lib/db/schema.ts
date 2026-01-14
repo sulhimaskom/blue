@@ -113,6 +113,7 @@ export const blueprints = pgTable("blueprints", {
 });
 
 // Blueprint shares table for sharing blueprints with users and teams
+// Note: At least one of sharedWithUser or sharedWithTeam must be non-null (enforced by service layer)
 export const blueprintShares = pgTable("blueprint_shares", {
   id: uuid("id").primaryKey().defaultRandom(),
   blueprintId: uuid("blueprint_id")

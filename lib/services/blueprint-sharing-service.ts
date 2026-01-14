@@ -178,7 +178,12 @@ export class BlueprintSharingService {
           const [team] = await database
             .select()
             .from(teams)
-            .where(isNull(teams.deletedAt))
+            .where(
+              and(
+                eq(teams.id, teamId),
+                isNull(teams.deletedAt),
+              ),
+            )
             .limit(1);
 
           if (!team) {
