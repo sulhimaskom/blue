@@ -35,7 +35,11 @@ jest.mock("../lib/logger", () => ({
 describe("RetryService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useRealTimers();
+    jest.spyOn(RetryService as any, 'sleep').mockImplementation(() => Promise.resolve());
+  });
+
+  afterEach(() => {
+    (RetryService as any).sleep.mockRestore();
   });
 
   describe("RETRY_CONFIGS Presets", () => {
@@ -135,7 +139,7 @@ describe("RetryService", () => {
         "Retry operation succeeded",
         expect.any(Object),
       );
-    }, 3000);
+    });
   });
 
   describe("Retry Logic", () => {
@@ -159,7 +163,7 @@ describe("RetryService", () => {
         "Retrying operation after failure",
         expect.objectContaining({ attempt: 1, delayMs: expect.any(Number) }),
       );
-    }, 3000);
+    });
 
     test("should retry on 500 server error", async () => {
       // Arrange
@@ -177,7 +181,7 @@ describe("RetryService", () => {
       // Assert
       expect(result).toBe("success");
       expect(operation).toHaveBeenCalledTimes(2);
-    }, 3000);
+    });
 
     test("should retry on 429 rate limit error", async () => {
       // Arrange
@@ -195,7 +199,7 @@ describe("RetryService", () => {
       // Assert
       expect(result).toBe("success");
       expect(operation).toHaveBeenCalledTimes(2);
-    }, 3000);
+    });
 
     test("should retry up to maxAttempts", async () => {
       // Arrange
@@ -208,7 +212,7 @@ describe("RetryService", () => {
         RetryService.executeWithRetry(operation, options),
       ).rejects.toThrow("ECONNRESET");
       expect(operation).toHaveBeenCalledTimes(maxAttempts);
-    }, 3000);
+    });
 
     test("should use exponential backoff delay calculation", async () => {
       // Arrange
@@ -226,7 +230,7 @@ describe("RetryService", () => {
         RetryService.executeWithRetry(operation, options),
       ).rejects.toThrow("ECONNRESET");
       expect(operation).toHaveBeenCalledTimes(3);
-    }, 3000);
+    });
 
     test("should cap delay at maxDelayMs", async () => {
       // Arrange
@@ -243,7 +247,7 @@ describe("RetryService", () => {
         RetryService.executeWithRetry(operation, options),
       ).rejects.toThrow("ECONNRESET");
       expect(operation).toHaveBeenCalledTimes(3);
-    }, 3000);
+    });
   });
 
   describe("Non-Retryable Errors", () => {
@@ -498,7 +502,7 @@ describe("RetryService", () => {
       ).rejects.toThrow("RetryThis error");
       expect(customFilter).toHaveBeenCalledTimes(3);
       expect(operation).toHaveBeenCalledTimes(3);
-    }, 3000);
+    });
   });
 
   describe("executeWithRetrySafe", () => {
@@ -552,7 +556,7 @@ describe("RetryService", () => {
       expect(result.attempts).toBe(RETRY_CONFIGS.FAST.maxAttempts);
       expect(result.error).toBeDefined();
       expect(result.error?.message).toBe("ECONNRESET");
-    }, 3000);
+    });
 
     test("should return success result after successful retry", async () => {
       // Arrange
@@ -571,7 +575,7 @@ describe("RetryService", () => {
       expect(result.success).toBe(true);
       expect(result.data).toBe("success");
       expect(result.error).toBeUndefined();
-    }, 3000);
+    });
   });
 
   describe("Logging & Context", () => {
@@ -595,7 +599,7 @@ describe("RetryService", () => {
           operation: "completion",
         }),
       );
-    }, 3000);
+    });
 
     test("should log final failure with context", async () => {
       // Arrange
@@ -617,7 +621,7 @@ describe("RetryService", () => {
           operation: "query",
         }),
       );
-    }, 3000);
+    });
 
     test("should not log success on first attempt", async () => {
       // Arrange
@@ -688,7 +692,7 @@ describe("RetryService", () => {
         RetryService.executeWithRetry(operation, options),
       ).rejects.toThrow("ECONNRESET");
       expect(operation).toHaveBeenCalledTimes(3);
-    }, 3000);
+    });
 
     test("should handle non-Error throwables", async () => {
       // Arrange
@@ -749,7 +753,7 @@ describe("RetryService", () => {
       // Assert
       expect(result).toBe("success");
       expect(operation).toHaveBeenCalledTimes(2);
-    }, 3000);
+    });
   });
 
   describe("Integration Scenarios", () => {
@@ -781,7 +785,7 @@ describe("RetryService", () => {
         "Retry operation succeeded",
         expect.any(Object),
       );
-    }, 3000);
+    });
 
     test("should handle complete lifecycle: failure after max attempts", async () => {
       // Arrange
@@ -798,7 +802,7 @@ describe("RetryService", () => {
         "Retry operation failed - giving up",
         expect.any(Object),
       );
-    }, 3000);
+    });
 
     test("should handle rapid state changes: alternating success/failure", async () => {
       // Arrange
@@ -820,6 +824,6 @@ describe("RetryService", () => {
       // Assert
       expect(result).toBe("success-attempt-2");
       expect(attemptCount).toBe(2);
-    }, 3000);
+    });
   });
 });
