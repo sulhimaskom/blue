@@ -36,7 +36,7 @@ export interface ProjectDeploymentData {
   clerkId: string;
   projectId: string;
   deploymentId: string;
-  deploymentStatus: "success" | "failed";
+  deploymentStatus: "success" | "failed" | "promoted" | "rolled_back";
   deploymentUrl?: string;
   timestamp: Date;
 }
@@ -546,14 +546,14 @@ static async emitProjectDeleted(
 
 /**
   * Emit project deployed webhook event
-  * Triggered when repository deployment completes
+  * Triggered when repository deployment completes, is promoted, or rolled back
   */
 static async emitProjectDeployed(
   userId: number,
   clerkId: string,
   projectId: string,
   deploymentId: string,
-  deploymentStatus: "success" | "failed",
+  deploymentStatus: "success" | "failed" | "promoted" | "rolled_back",
   deploymentUrl?: string,
   context?: RequestContext,
 ): Promise<void> {
