@@ -12,6 +12,7 @@ export type NotificationType =
   | "blueprint_shared"
   | "team_member_role_changed"
   | "team_member_removed"
+  | "team_updated"
   | "project_created"
   | "project_updated"
   | "project_deleted"
@@ -39,6 +40,8 @@ export interface NotificationMetadata {
   projectDescription?: string;
   updatedFields?: string[];
   description?: string;
+  oldName?: string;
+  newName?: string;
 }
 
 export interface CreateNotificationInput {

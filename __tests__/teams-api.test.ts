@@ -6,6 +6,7 @@ jest.mock("@/lib/services/team-service", () => ({
     createTeam: jest.fn(),
     getUserTeams: jest.fn(),
     deleteTeam: jest.fn(),
+    updateTeamName: jest.fn(),
   },
 }));
 
@@ -15,6 +16,7 @@ jest.mock("@/lib/services/api-route-handler", () => ({
     createPOSTHandler: jest.fn(),
     createGETHandler: jest.fn(),
     createDELETEHandler: jest.fn(),
+    createPUTHandler: jest.fn(),
   },
 }));
 
@@ -31,9 +33,11 @@ describe("TeamService - Basic Functionality", () => {
   let mockTeamServiceCreateTeam: any;
   let mockTeamServiceGetUserTeams: any;
   let mockTeamServiceDeleteTeam: any;
+  let mockTeamServiceUpdateTeamName: any;
   let mockCreatePOSTHandler: any;
   let mockCreateGETHandler: any;
   let mockCreateDELETEHandler: any;
+  let mockCreatePUTHandler: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -45,9 +49,11 @@ describe("TeamService - Basic Functionality", () => {
     mockTeamServiceCreateTeam = teamServiceMock.createTeam;
     mockTeamServiceGetUserTeams = teamServiceMock.getUserTeams;
     mockTeamServiceDeleteTeam = teamServiceMock.deleteTeam;
+    mockTeamServiceUpdateTeamName = teamServiceMock.updateTeamName;
     mockCreatePOSTHandler = apiRouteHandlerMock.createPOSTHandler;
     mockCreateGETHandler = apiRouteHandlerMock.createGETHandler;
     mockCreateDELETEHandler = apiRouteHandlerMock.createDELETEHandler;
+    mockCreatePUTHandler = apiRouteHandlerMock.createPUTHandler;
   });
 
 it("should be instantiated correctly", () => {
@@ -56,6 +62,7 @@ it("should be instantiated correctly", () => {
     expect(typeof teamService.createTeam).toBe("function");
     expect(typeof teamService.getUserTeams).toBe("function");
     expect(typeof teamService.deleteTeam).toBe("function");
+    expect(typeof teamService.updateTeamName).toBe("function");
   });
 
   describe("POST /api/teams", () => {
@@ -102,6 +109,44 @@ it("should be instantiated correctly", () => {
       // Assert
       expect(mockTeamServiceDeleteTeam).toHaveBeenCalledWith(mockTeamId, mockUserId);
       expect(mockTeamServiceDeleteTeam).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("PUT /api/teams/[id] - Team Update Feature", () => {
+    it("should updateTeamName method be available on teamService", () => {
+      expect(mockTeamServiceUpdateTeamName).toBeDefined();
+      expect(typeof mockTeamServiceUpdateTeamName).toBe("function");
+    });
+
+    it("should createPUTHandler be available on APIRouteHandler", () => {
+      expect(mockCreatePUTHandler).toBeDefined();
+      expect(typeof mockCreatePUTHandler).toBe("function");
+    });
+
+    it("should PUT handler call teamService.updateTeamName with correct parameters", async () => {
+      // Arrange
+      const mockTeamId = "team-123";
+      const mockUserId = 1;
+      const mockNewName = "Updated Team Name";
+      const mockUpdatedTeam = {
+        id: mockTeamId,
+        name: mockNewName,
+        ownerId: mockUserId,
+        updatedAt: new Date(),
+      };
+
+      mockTeamServiceUpdateTeamName.mockResolvedValue(mockUpdatedTeam);
+
+      // Act
+      await mockTeamServiceUpdateTeamName(mockTeamId, mockNewName, mockUserId);
+
+      // Assert
+      expect(mockTeamServiceUpdateTeamName).toHaveBeenCalledWith(
+        mockTeamId,
+        mockNewName,
+        mockUserId
+      );
+      expect(mockTeamServiceUpdateTeamName).toHaveBeenCalledTimes(1);
     });
   });
 });

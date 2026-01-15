@@ -3,7 +3,6 @@ import { RateLimiters } from "@/lib/rate-limit-config";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { teamService } from "@/lib/services/team-service";
-import { ServiceError } from '@/lib/services/service-error-handler';
 
 // Validation schemas
 const updateTeamSchema = z.object({
@@ -46,15 +45,26 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 /**
  * Update team settings
  */
-export async function PUT(req: NextRequest, { params: _ }: RouteParams) {
+export async function PUT(req: NextRequest, { params }: RouteParams) {
+  const { id: teamId } = await params;
+
   return APIRouteHandler.createPUTHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
     schema: updateTeamSchema,
-    handler: async () => {
-      // Note: Team name update would need to be implemented in TeamService
-      // For now, this is a placeholder that would update team name
-      throw new ServiceError("Team update functionality not yet implemented", "TeamService", "update");
+    handler: async ({ user, data }) => {
+      const { name } = data!;
+
+      const updatedTeam = await teamService.updateTeamName(
+        teamId,
+        name,
+        user!.id
+      );
+
+      return {
+        data: updatedTeam,
+        message: "Team updated successfully",
+      };
     },
   })(req);
 }
