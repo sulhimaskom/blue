@@ -1040,46 +1040,48 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
 
       // Emit webhook and record activity for blueprint refinement
       try {
-        // Get project owner for webhook and activity
-        const [project] = await database
-          .select({ ownerId: projects.ownerId })
+        // Get project owner and user record with JOIN query
+        const [result] = await database
+          .select({
+            ownerId: projects.ownerId,
+            userRecord: users,
+          })
           .from(projects)
+          .innerJoin(users, eq(projects.ownerId, users.id))
           .where(eq(projects.id, current.projectId))
           .limit(1);
 
-        const [userRecord] = await database
-          .select()
-          .from(users)
-          .where(eq(users.id, project?.ownerId))
-          .limit(1);
+        if (result) {
+          const { ownerId } = result;
+          const userRecord = result.userRecord;
 
-        if (userRecord && project) {
-          await WebhookEventDispatcher.emitBlueprintRefined(
-            project.ownerId,
-            userRecord.clerkId,
-            current.projectId,
-            request.blueprintId,
-            newVersion,
-            currentData.projectName,
-            request.updateType,
-            current.version,
-            { requestId: `blueprint-refine-${request.blueprintId}` },
-          );
-
-          await ActivityFeedService.recordActivity({
-            userId: project.ownerId,
-            clerkId: userRecord.clerkId,
-            entityType: "blueprint",
-            entityId: request.blueprintId,
-            eventType: "blueprint.refined",
-            eventData: {
-              projectId: current.projectId,
-              projectName: currentData.projectName,
-              previousVersion: current.version,
+          await Promise.all([
+            WebhookEventDispatcher.emitBlueprintRefined(
+              ownerId,
+              userRecord.clerkId,
+              current.projectId,
+              request.blueprintId,
               newVersion,
-              updateType: request.updateType,
-            },
-          }, { requestId: `blueprint-refine-${request.blueprintId}` });
+              currentData.projectName,
+              request.updateType,
+              current.version,
+              { requestId: `blueprint-refine-${request.blueprintId}` },
+            ),
+            ActivityFeedService.recordActivity({
+              userId: ownerId,
+              clerkId: userRecord.clerkId,
+              entityType: "blueprint",
+              entityId: request.blueprintId,
+              eventType: "blueprint.refined",
+              eventData: {
+                projectId: current.projectId,
+                projectName: currentData.projectName,
+                previousVersion: current.version,
+                newVersion,
+                updateType: request.updateType,
+              },
+            }, { requestId: `blueprint-refine-${request.blueprintId}` })
+          ]);
         }
       } catch (webhookError) {
         logger.error("Failed to emit blueprint refined webhook or record activity", {
