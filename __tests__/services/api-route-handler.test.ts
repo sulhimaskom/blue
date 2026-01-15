@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 jest.mock("next/server", () => ({
-  NextRequest: jest.fn().mockImplementation((url) => {
+  NextRequest: jest.fn().mockImplementation((url, init) => {
     const headersMap = new Map();
     headersMap.set("x-forwarded-for", "192.168.1.1");
     headersMap.set("x-real-ip", "192.168.1.1");
     return {
       url,
-      method: "GET",
+      method: init?.method || "GET",
       headers: {
         get: (name: string) => headersMap.get(name),
         set: (name: string, value: string) => headersMap.set(name, value),
@@ -18,13 +18,18 @@ jest.mock("next/server", () => ({
       text: jest.fn().mockResolvedValue(""),
     };
   }),
-  NextResponse: {
-    json: jest.fn().mockImplementation((data, init) => ({
-      ...data,
-      status: init?.status || 200,
-      headers: new Map(Object.entries(init?.headers || {})),
-    })),
-  },
+  NextResponse: Object.assign(jest.fn(), {
+    json: jest.fn().mockImplementation((data, init) => {
+      const response = Object.create(NextResponse.prototype);
+      Object.assign(response, {
+        ...data,
+        status: init?.status || 200,
+        headers: new Map(Object.entries(init?.headers || {})),
+        json: jest.fn().mockResolvedValue(data),
+      });
+      return response;
+    }),
+  }),
 }));
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import {
@@ -49,7 +54,12 @@ import { withCompression } from "@/lib/middleware/compression-wrapper";
 import { Timing } from "@/lib/utils/time-measurement";
 
 jest.mock("@/lib/api-utils", () => ({
-  validateRequest: jest.fn(),
+  validateRequest: jest.fn().mockImplementation(() => {
+    return jest.fn().mockResolvedValue({
+      success: true,
+      data: {},
+    });
+  }),
   formatSuccessResponse: jest.fn(),
   formatErrorResponse: jest.fn(),
   ValidationError: class ValidationError extends Error {
@@ -169,6 +179,13 @@ describe("APIRouteHandler", () => {
     mockRequest.headers.set("x-forwarded-for", "192.168.1.1");
     mockRequest.headers.set("x-real-ip", "192.168.1.1");
 
+    (validateRequest as jest.Mock).mockImplementation(() => {
+      return jest.fn().mockResolvedValue({
+        success: true,
+        data: {},
+      });
+    });
+
     (formatSuccessResponse as jest.Mock).mockReturnValue({
       success: true,
       data: { result: "test" },
@@ -206,15 +223,17 @@ describe("APIRouteHandler", () => {
       (UserService.getAuthenticatedUser as jest.Mock).mockResolvedValue(
         mockUser,
       );
-      (validateRequest as jest.Mock).mockResolvedValue({
+      const validationFunctionMock = jest.fn().mockResolvedValue({
         success: true,
         data: { name: "test" },
       });
+      (validateRequest as jest.Mock).mockReturnValue(validationFunctionMock);
 
       const response = await handler(mockRequest);
 
       expect(UserService.getAuthenticatedUser).toHaveBeenCalled();
       expect(rateLimiter).toHaveBeenCalledWith(`user:clerk-123:192.168.1.1`);
+      expect(validationFunctionMock).toHaveBeenCalledWith(mockRequest);
       expect(mockHandler).toHaveBeenCalledWith(
         expect.objectContaining({
           user: mockUser,
@@ -284,9 +303,11 @@ describe("APIRouteHandler", () => {
       (UserService.getAuthenticatedUser as jest.Mock).mockResolvedValue(
         mockUser,
       );
-      (validateRequest as jest.Mock).mockResolvedValue({
-        success: false,
-        error: new Error("Validation failed"),
+      (validateRequest as jest.Mock).mockImplementation(() => {
+        return jest.fn().mockResolvedValue({
+          success: false,
+          error: "Validation failed: name is required",
+        });
       });
 
       const response = await handler(mockRequest);
@@ -413,9 +434,11 @@ describe("APIRouteHandler", () => {
       (UserService.getAuthenticatedUser as jest.Mock).mockResolvedValue(
         mockUser,
       );
-      (validateRequest as jest.Mock).mockResolvedValue({
-        success: true,
-        data: { name: "test" },
+      (validateRequest as jest.Mock).mockImplementation(() => {
+        return jest.fn().mockResolvedValue({
+          success: true,
+          data: { name: "test" },
+        });
       });
 
       const response = await handler(mockRequest);
@@ -969,9 +992,11 @@ describe("APIRouteHandler", () => {
         mockUser,
       );
       (UserService.hasSufficientCredits as jest.Mock).mockReturnValue(true);
-      (validateRequest as jest.Mock).mockResolvedValue({
-        success: true,
-        data: { name: "Test User", email: "test@example.com" },
+      (validateRequest as jest.Mock).mockImplementation(() => {
+        return jest.fn().mockResolvedValue({
+          success: true,
+          data: { name: "Test User", email: "test@example.com" },
+        });
       });
 
       const response = await handler(mockRequest);
