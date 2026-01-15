@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { activityLogs } from "@/lib/db/schema";
-import { eq, desc, and, inArray, gt, lt } from "drizzle-orm";
+import { eq, desc, and, inArray, gt, lt, type SQL } from "drizzle-orm";
 import { UnifiedCacheManager } from "./cache-orchestrator";
 import { logger } from "@/lib/logger";
 import type { RequestContext } from "./user-service";
@@ -329,7 +329,7 @@ export class ActivityFeedService {
 
       const database = db();
 
-      let whereClause: any = {};
+      let whereClause: SQL<unknown> | undefined = undefined;
       if (entityType && entityId) {
         whereClause = and(
           eq(activityLogs.entityType, entityType),
