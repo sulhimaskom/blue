@@ -10,6 +10,7 @@ import { AuthenticationError, DatabaseError } from "@/lib/api-utils";
 import { githubService } from "@/lib/services/github-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
+import { performanceMonitorService } from "@/lib/services/performance-monitor-service";
 
 const promoteEnvironmentSchema = z.object({
   targetEnvironment: z.enum(["production"]),
@@ -29,6 +30,8 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     rateLimiter: (identifier: string) => RateLimiters.strict()(identifier),
     handler: async ({ context, user, data }) => {
       const { validationRequired } = data!;
+
+      const promotionStartTime = Date.now();
 
       const projectDetails = await ProjectDataService.verifyProjectOwnership(
         id,
@@ -76,6 +79,26 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
           githubRepoId: repo.id,
           githubRepoUrl: repo.html_url,
           status: "deployed",
+        });
+
+        const promotionEndTime = Date.now();
+        const promotionTime = promotionEndTime - promotionStartTime;
+
+        performanceMonitorService.recordDeploymentMetric({
+          deploymentId: productionDeploymentId,
+          projectId: id,
+          environment: "production",
+          status: "promoted",
+          timestamp: new Date(),
+          deploymentTime: promotionTime,
+          metadata: {
+            blueprintVersion: stagingDeployment.blueprintVersion,
+            repoUrl: repo.html_url,
+            githubOrg: stagingDeployment.githubOrg,
+            githubRepoName: productionRepoName,
+            fromEnvironment: "staging",
+            toEnvironment: "production",
+          },
         });
 
         await DeploymentService.notifyDeploymentStatus(
