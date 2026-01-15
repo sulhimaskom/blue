@@ -422,12 +422,23 @@ export class BlueprintSharingService {
         throw new AuthorizationError("You don't have permission to revoke this share");
       }
 
+      // Get user details for activity feed
+      const [user] = await database
+        .select()
+        .from(users)
+        .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+        .limit(1);
+
+      if (!user) {
+        throw new ValidationError("User not found");
+      }
+
       // Delete share
       await database
         .delete(blueprintShares)
         .where(eq(blueprintShares.id, shareId));
 
-      logger.userAction("Blueprint share revoked", String(userId), {
+      logger.userAction("Blueprint share revoked", user.clerkId, {
         shareId,
         blueprintId: share.blueprintId,
       });
@@ -436,7 +447,7 @@ export class BlueprintSharingService {
       try {
         await ActivityFeedService.recordActivity({
           userId,
-          clerkId: String(userId),
+          clerkId: user.clerkId,
           entityType: "blueprint",
           entityId: share.blueprintId,
           eventType: "blueprint.share_revoked",
