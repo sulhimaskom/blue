@@ -591,6 +591,29 @@ class TeamService {
             newRole,
           );
 
+          try {
+            await NotificationService.dispatch(
+              targetUser.clerkId,
+              "team_member_role_changed" as const,
+              "Team Role Updated",
+              `Your role in team "${teamDetails.name}" has been changed from ${previousRole} to ${newRole}.`,
+              {
+                teamId,
+                teamName: teamDetails.name,
+                previousRole,
+                newRole,
+                updatedBy: requestingUser.email,
+              },
+              `/teams/${teamId}`,
+            );
+          } catch (notificationError) {
+            logger.error("Failed to send team member role change notification", {
+              teamId,
+              targetUserId: targetUser.id,
+              error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+            });
+          }
+
           await ActivityFeedService.recordActivity({
             userId: requestingUserId,
             clerkId: requestingUser.clerkId,
@@ -727,6 +750,28 @@ class TeamService {
             targetUser.email,
             removedMember.role as TeamRole,
           );
+
+          try {
+            await NotificationService.dispatch(
+              targetUser.clerkId,
+              "team_member_removed" as const,
+              "Removed from Team",
+              `You have been removed from team "${teamDetails.name}".`,
+              {
+                teamId,
+                teamName: teamDetails.name,
+                role: removedMember.role,
+                removedBy: requestingUser.email,
+              },
+              undefined,
+            );
+          } catch (notificationError) {
+            logger.error("Failed to send team member removal notification", {
+              teamId,
+              targetUserId: targetUser.id,
+              error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+            });
+          }
 
           await ActivityFeedService.recordActivity({
             userId: requestingUserId,

@@ -9,7 +9,12 @@ export type NotificationType =
   | "team_invitation"
   | "deployment_status"
   | "credit_warning"
-  | "blueprint_shared";
+  | "blueprint_shared"
+  | "team_member_role_changed"
+  | "team_member_removed"
+  | "project_created"
+  | "project_updated"
+  | "project_deleted";
 
 export interface NotificationMetadata {
   blueprintId?: string;
@@ -22,6 +27,16 @@ export interface NotificationMetadata {
   remainingCredits?: number;
   sharerName?: string;
   inviterName?: string;
+  teamName?: string;
+  previousRole?: string;
+  newRole?: string;
+  role?: string;
+  updatedBy?: string;
+  removedBy?: string;
+  projectName?: string;
+  projectDescription?: string;
+  updatedFields?: string[];
+  description?: string;
 }
 
 export interface CreateNotificationInput {

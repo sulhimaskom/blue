@@ -11,6 +11,8 @@ import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { DeploymentService } from "@/lib/services/deployment-service";
 import { NotificationService } from "@/lib/services/notification-service";
+import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
+import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 
 const deployRepoSchema = z.object({
   githubOrg: z
@@ -115,19 +117,44 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           status: "deployed",
         });
 
-        await NotificationService.dispatch(
-          user!.clerkId,
-          "deployment_status",
-          "Deployment Successful",
-          `Your ${environment} deployment for project "${project.name}" was successful.`,
-          {
-            deploymentId,
-            projectId: id,
-            environment,
-            status: "deployed",
-          },
-          `/projects/${id}/deploy/${deploymentId}`,
-        );
+        await Promise.all([
+          NotificationService.dispatch(
+            user!.clerkId,
+            "deployment_status",
+            "Deployment Successful",
+            `Your ${environment} deployment for project "${project.name}" was successful.`,
+            {
+              deploymentId,
+              projectId: id,
+              environment,
+              status: "deployed",
+            },
+            `/projects/${id}/deploy/${deploymentId}`,
+          ),
+          WebhookEventDispatcher.emitProjectDeployed(
+            user!.id,
+            user!.clerkId,
+            id,
+            deploymentId!,
+            "success",
+            repo.html_url,
+            context,
+          ),
+          ActivityFeedService.recordActivity({
+            userId: user!.id,
+            clerkId: user!.clerkId,
+            entityType: "deployment",
+            entityId: deploymentId!,
+            eventType: "deployment.success",
+            eventData: {
+              projectId: id,
+              projectName: project.name,
+              environment,
+              status: "deployed",
+              repoUrl: repo.html_url,
+            },
+          }, context)
+        ]);
 
         // Update project status if this is production deployment
         if (environment === "production") {
@@ -180,6 +207,33 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           },
           deploymentId ? `/projects/${id}/deploy/${deploymentId}` : `/projects/${id}`,
         );
+
+        if (deploymentId) {
+          await Promise.all([
+            WebhookEventDispatcher.emitProjectDeployed(
+              user!.id,
+              user!.clerkId,
+              id,
+              deploymentId,
+              "failed",
+              undefined,
+              context,
+            ),
+            ActivityFeedService.recordActivity({
+              userId: user!.id,
+              clerkId: user!.clerkId,
+              entityType: "deployment",
+              entityId: deploymentId,
+              eventType: "deployment.failed",
+              eventData: {
+                projectId: id,
+                projectName: project.name,
+                environment,
+                status: "failed",
+              },
+            }, context)
+          ]);
+        }
 
         if (error instanceof GitHubServiceError) {
           logger.error("GitHub service error during deployment", {
