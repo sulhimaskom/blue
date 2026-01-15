@@ -191,9 +191,17 @@ const nextConfig = {
       };
     }
 
-    // Mark Redis as external for client builds to prevent bundling Node.js modules
+    // Mark server-only packages as external for client builds to prevent bundling Node.js modules
     if (!isServer) {
-      config.externals = [...(config.externals || []), 'redis', '@redis/client', '@redis/client/dist/lib/client/enterprise-maintenance-manager.js'];
+      config.externals = [
+        ...(config.externals || []),
+        'redis',
+        '@redis/client',
+        '@redis/client/dist/lib/client/enterprise-maintenance-manager.js',
+        '@neondatabase/serverless',
+        'drizzle-orm',
+        'stripe',
+      ];
     }
 
     return config;
