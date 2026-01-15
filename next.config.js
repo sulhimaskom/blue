@@ -47,9 +47,6 @@ const nextConfig = {
     // Fix for Issue #299: Handle node: scheme imports from Sentry (Enhanced)
     config.resolve = {
       ...config.resolve,
-      // Module resolution caching for faster builds
-      symlinks: false,
-      cacheWithContext: true,
       alias: {
         ...config.resolve.alias,
         // Comprehensive node: scheme mapping for Sentry and other packages
@@ -128,7 +125,7 @@ const nextConfig = {
         // Balanced chunk splitting for performance and bundle size
         splitChunks: {
           chunks: "all",
-          maxSize: 180000, // 180KB chunks (reduced from 200KB for better caching)
+          maxSize: 200000, // 200KB chunks for aggressive bundle size reduction
           minSize: 30000, // 30KB minimum
           maxInitialRequests: 6,
           maxAsyncRequests: 8,
