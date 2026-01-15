@@ -10,13 +10,15 @@ import { NotificationService } from "@/lib/services/notification-service";
 // Mock dependencies
 jest.mock("@/lib/db", () => ({
   db: {
-    select: jest.fn().mockReturnValue({
-      where: jest.fn().mockReturnValue({
-        limit: jest.fn().mockReturnValue({}),
+    select: jest.fn().mockResolvedValue([]),
+    insert: jest.fn(),
+    update: jest.fn().mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        where: jest.fn().mockReturnValue({
+          returning: jest.fn(),
+        }),
       }),
     }),
-    insert: jest.fn(),
-    update: jest.fn(),
     transaction: jest.fn(),
   },
 }));
@@ -39,6 +41,7 @@ jest.mock("@/lib/logger", () => ({
 jest.mock("@/lib/services/webhook-event-dispatcher", () => ({
   WebhookEventDispatcher: {
     emitTeamDeleted: jest.fn().mockResolvedValue(undefined),
+    emitTeamUpdated: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -216,6 +219,20 @@ describe("error handling", () => {
       expect(WebhookEventDispatcher).toBeDefined();
       expect(ActivityFeedService).toBeDefined();
       expect(NotificationService).toBeDefined();
+    });
+  });
+
+  describe("updateTeamName", () => {
+    it("should throw ValidationError for empty name", async () => {
+      await expect(
+        teamService.updateTeamName("team-1", "", 1)
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it("should throw ValidationError for name too long", async () => {
+      await expect(
+        teamService.updateTeamName("team-1", "a".repeat(101), 1)
+      ).rejects.toThrow(ValidationError);
     });
   });
 });

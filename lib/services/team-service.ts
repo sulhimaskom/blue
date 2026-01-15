@@ -27,7 +27,7 @@ import { logger } from "@/lib/logger";
 import { teamCache } from "@/lib/services/cache-orchestrator";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
-import { NotificationService } from "@/lib/services/notification-service";
+import { NotificationService, type NotificationMetadata } from "@/lib/services/notification-service";
 
 export type TeamRole = "admin" | "member" | "viewer";
 
@@ -1315,6 +1315,159 @@ class TeamService {
       }
 
       throw new DatabaseError("Failed to get team analytics");
+    }
+  }
+
+  /**
+   * Update team name
+   */
+  async updateTeamName(
+    teamId: string,
+    newName: string,
+    requestingUserId: number
+  ): Promise<Team> {
+    const startTime = Date.now();
+
+    try {
+      // Validate input
+      if (!newName?.trim()) {
+        throw new ValidationError("Team name is required");
+      }
+
+      if (newName.length > 100) {
+        throw new ValidationError("Team name must be 100 characters or less");
+      }
+
+      const trimmedName = newName.trim();
+
+      // Get current team details
+      const database = db();
+      const [team] = await database.select().from(teams)
+        .where(and(eq(teams.id, teamId), isNull(teams.deletedAt)))
+        .limit(1);
+
+      if (!team) {
+        throw new NotFoundError("Team not found");
+      }
+
+      // Verify requesting user is team admin
+      await this.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
+
+      // Check if name actually changed
+      if (team.name === trimmedName) {
+        return team;
+      }
+
+      // Update team name
+      const [updatedTeam] = await database.update(teams)
+        .set({ name: trimmedName, updatedAt: new Date() })
+        .where(eq(teams.id, teamId))
+        .returning();
+
+      // Clear cache
+      await teamCache.invalidate(`team:${teamId}:details`);
+
+      const duration = Date.now() - startTime;
+      logger.userAction("team_name_updated", requestingUserId.toString(), {
+        teamId,
+        oldName: team.name,
+        newName: trimmedName,
+        duration: `${duration}ms`,
+      });
+
+      try {
+        const [requestingUser] = await database.select().from(users)
+          .where(eq(users.id, requestingUserId))
+          .limit(1);
+
+        if (requestingUser) {
+          await WebhookEventDispatcher.emitTeamUpdated(
+            requestingUserId,
+            requestingUser.clerkId,
+            teamId,
+            trimmedName,
+            ["name"],
+          );
+
+          await ActivityFeedService.recordActivity({
+            userId: requestingUserId,
+            clerkId: requestingUser.clerkId,
+            entityType: "team",
+            entityId: teamId,
+            eventType: "team.updated",
+            eventData: {
+              oldName: team.name,
+              newName: trimmedName,
+            },
+          });
+
+          // Send notification to all team members
+          const teamMembersList = await database
+            .select({
+              userId: users.id,
+              clerkId: users.clerkId,
+              email: users.email,
+            })
+            .from(teamMembers)
+            .innerJoin(users, eq(teamMembers.userId, users.id))
+            .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
+
+          for (const member of teamMembersList) {
+            if (member.clerkId !== requestingUser.clerkId) {
+              try {
+                const notificationMetadata: NotificationMetadata = {
+                  teamId,
+                  oldName: team.name,
+                  newName: trimmedName,
+                  updatedBy: requestingUser.email,
+                };
+
+                await NotificationService.dispatch(
+                  member.clerkId,
+                  "team_updated",
+                  "Team Name Updated",
+                  `Team name has been changed from "${team.name}" to "${trimmedName}"`,
+                  notificationMetadata,
+                  `/teams/${teamId}`,
+                );
+              } catch (notificationError) {
+                logger.error("Failed to send team update notification", {
+                  teamId,
+                  targetClerkId: member.clerkId,
+                  error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+                });
+              }
+            }
+          }
+        }
+      } catch (activityError) {
+        logger.error("Failed to record team.updated activity", {
+          teamId,
+          error: activityError instanceof Error ? activityError.message : String(activityError),
+        });
+      }
+
+      return updatedTeam;
+    } catch (error) {
+      logger.error("Failed to update team name", {
+        error: error instanceof Error ? error.message : String(error),
+        teamId,
+        newName,
+        requestingUserId,
+      });
+
+      if (
+        error instanceof ServiceError ||
+        error instanceof ValidationError ||
+        error instanceof AuthenticationError ||
+        error instanceof AuthorizationError ||
+        error instanceof NotFoundError ||
+        error instanceof DatabaseError
+      ) {
+        throw error;
+      }
+
+      throw new DatabaseError("Failed to update team name");
     }
   }
 
