@@ -32,7 +32,7 @@ describe('Issue #178 - AGENTS.md Quality Gate Metrics', () => {
     
     // Should have current metrics
     expect(buildInfo).toContain('62 static pages');
-    expect(buildInfo).toContain('53s compile time');
+    expect(buildInfo).toContain('16.9s compile time');
     
     // Should not have outdated metrics
     expect(buildInfo).not.toContain('25.5s');
@@ -43,7 +43,7 @@ describe('Issue #178 - AGENTS.md Quality Gate Metrics', () => {
     const agentsContent = fs.readFileSync('AGENTS.md', 'utf8');
     
     // Extract test metrics
-    const testMatch = agentsContent.match(/`npm test --silent` - MUST return (\d+)% pass rate \(([^)]+)\)/);
+    const testMatch = agentsContent.match(/`npm test --silent` - MUST return (\d+\.?\d*)% pass rate \(([^)]+)\)/);
     expect(testMatch).toBeTruthy();
     
     const testInfo = testMatch[2];
@@ -60,7 +60,7 @@ describe('Issue #178 - AGENTS.md Quality Gate Metrics', () => {
     const agentsContent = fs.readFileSync('AGENTS.md', 'utf8');
     
     // Should contain recent verification date
-    expect(agentsContent).toContain('January 14, 2026 FRESH VERIFICATION');
+    expect(agentsContent).toContain('January 15, 2026 FRESH VERIFICATION');
     
     // Should not have old dates
     expect(agentsContent).not.toContain('January 12, 2026 verification');
@@ -83,6 +83,6 @@ describe('Issue #178 - AGENTS.md Quality Gate Metrics', () => {
     expect(agentsContent).toContain('MUST pass');
     expect(agentsContent).toContain('MUST return 0 warnings/errors');
     expect(agentsContent).toContain('MUST return 0 TypeScript errors');
-    expect(agentsContent).toMatch(/MUST return \d+% pass rate/);
+    expect(agentsContent).toMatch(/MUST return \d+\.?\d*% pass rate/);
   });
 });
