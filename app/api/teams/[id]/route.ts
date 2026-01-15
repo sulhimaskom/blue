@@ -63,12 +63,13 @@ export async function PUT(req: NextRequest, { params: _ }: RouteParams) {
  * Delete team
  */
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
-  return APIRouteHandler.createPOSTHandler({
+  const { id: teamId } = await params;
+
+  return APIRouteHandler.createDELETEHandler({
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
     handler: async ({ user }) => {
-      const { id } = await params;
-      await teamService.deleteTeam(id, user!.id);
+      await teamService.deleteTeam(teamId, user!.id);
 
       return {
         data: null,
