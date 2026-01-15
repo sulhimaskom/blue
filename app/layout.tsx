@@ -8,9 +8,7 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { getUIText } from "@/lib/constants/ui-text";
 import { Environment } from "@/lib/utils/environment";
 import { env } from "@/lib/env";
-// Sentry initialization temporarily disabled due to Next.js 15 webpack issue
-// TODO: Re-enable once proper webpack node: protocol handling is implemented
-// import "@/lib/sentry"; // Initialize error monitoring
+import "@/lib/sentry"; // Initialize error monitoring
 import "./globals.css";
 
 const clerkAppearance = {
