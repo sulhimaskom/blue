@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { useProjectsData } from "@/lib/hooks/use-dashboard-data";
-import CloneProjectModal from "@/components/dashboard/clone-project-modal";
-import TemplateSelectionModal from "@/components/dashboard/template-selection-modal";
+
+const CloneProjectModal = lazy(() => import("@/components/dashboard/clone-project-modal"));
+const TemplateSelectionModal = lazy(() => import("@/components/dashboard/template-selection-modal"));
 
 interface DeploymentForm {
   githubOrg: string;
@@ -538,24 +539,44 @@ export default function ProjectsPage() {
 
         {/* Clone Project Modal */}
         {showCloneModal && projectToClone && (
-          <CloneProjectModal
-            isOpen={showCloneModal}
-            onClose={() => {
-              setShowCloneModal(false);
-              setProjectToClone(null);
-            }}
-            projectName={projectToClone.name}
-            onClone={handleCloneProject}
-          />
+          <Suspense fallback={
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg max-w-md w-full p-6">
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+              </div>
+            </div>
+          }>
+            <CloneProjectModal
+              isOpen={showCloneModal}
+              onClose={() => {
+                setShowCloneModal(false);
+                setProjectToClone(null);
+              }}
+              projectName={projectToClone.name}
+              onClone={handleCloneProject}
+            />
+          </Suspense>
         )}
 
         {/* Template Selection Modal */}
         {showTemplateModal && (
-          <TemplateSelectionModal
-            isOpen={showTemplateModal}
-            onClose={() => setShowTemplateModal(false)}
-            onCreateFromTemplate={handleCreateFromTemplate}
-          />
+          <Suspense fallback={
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg max-w-md w-full p-6">
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+              </div>
+            </div>
+          }>
+            <TemplateSelectionModal
+              isOpen={showTemplateModal}
+              onClose={() => setShowTemplateModal(false)}
+              onCreateFromTemplate={handleCreateFromTemplate}
+            />
+          </Suspense>
         )}
       </div>
     </DashboardLayout>
