@@ -7,6 +7,7 @@ import {
 import type {
   BlueprintData,
 } from "./blueprint-generation-service";
+import type { ResearchResult } from "./service-types";
 import DatabaseQueryCache from "./database-cache-service";
 import { UnifiedCacheManager } from "./cache-orchestrator";
 
@@ -18,7 +19,7 @@ export interface BlueprintRefinementRequest {
 
 export interface BlueprintRefinementContext {
   currentBlueprint: BlueprintData;
-  marketResearch: any;
+  marketResearch?: ResearchResult;
   version: number;
 }
 
