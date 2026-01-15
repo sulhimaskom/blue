@@ -25,7 +25,7 @@ jobs:
     name: Monitor CI Health
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
-    if: github.event.workflow_run.event == 'workflow_run'
+    if: github.event_name == 'workflow_run'
     
     outputs:
       workflow_status: ${{ steps.monitor.outputs.status }}
@@ -175,7 +175,7 @@ jobs:
           echo "test_status=${TEST_STATUS}" >> $GITHUB_OUTPUT
 
           # Create metrics summary
-          cat > metrics-summary.md << 'EOF'
+          cat > metrics-summary.md << EOF
           # CI/CD Metrics Summary
           
           | Stage | Status | Duration |
@@ -289,21 +289,21 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const title = `🚨 Performance Degradation - ${new Date().toISOString().split('T')[0]}`;
-            const body = `## CI/CD Performance Alert
-            
-            **Workflow Run**: #${{ github.run_id }}
-            **Branch**: ${{ github.ref_name }}
-            **Commit**: ${{ github.sha }}
-            **Timestamp**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-            
-            ### Metrics
-            - **Dependencies**: ${{ steps.metrics.outputs.dependencies_duration }}s
-            - **Typecheck**: ${{ steps.metrics.outputs.typecheck_duration }}s (${{ steps.metrics.outputs.typecheck_status }})
-            - **Lint**: ${{ steps.metrics.outputs.lint_duration }}s (${{ steps.metrics.outputs.lint_status }})
-            - **Build**: ${{ steps.metrics.outputs.build_duration }}s (${{ steps.metrics.outputs.build_status }})
-            - **Test**: ${{ steps.metrics.outputs.test_duration }}s (${{ steps.metrics.outputs.test_status }})
-            - **Overall**: ${{ steps.metrics.outputs.overall_duration }}s
+             const title = `🚨 Performance Degradation - ${new Date().toISOString().split('T')[0]}`;
+             const body = `## CI/CD Performance Alert
+             
+             **Workflow Run**: #${{ github.run_id }}
+             **Branch**: ${{ github.ref_name }}
+             **Commit**: ${{ github.sha }}
+             **Timestamp**: ${new Date().toISOString()}
+             
+             ### Metrics
+             - **Dependencies**: ${{ steps.metrics.outputs.dependencies_duration }}s
+             - **Typecheck**: ${{ steps.metrics.outputs.typecheck_duration }}s (${{ steps.metrics.outputs.typecheck_status }})
+             - **Lint**: ${{ steps.metrics.outputs.lint_duration }}s (${{ steps.metrics.outputs.lint_status }})
+             - **Build**: ${{ steps.metrics.outputs.build_duration }}s (${{ steps.metrics.outputs.build_status }})
+             - **Test**: ${{ steps.metrics.outputs.test_duration }}s (${{ steps.metrics.outputs.test_status }})
+             - **Overall**: ${{ steps.metrics.outputs.overall_duration }}s
             
             ### Performance Thresholds Exceeded: ${{ steps.thresholds.outputs.thresholds_exceeded }}
             
@@ -375,13 +375,17 @@ jobs:
               avgDuration = Math.round(avgDuration / ciRuns);
             }
 
+            const successRate = ciRuns > 0 ? Math.round(((ciRuns - failedRuns) / ciRuns) * 100) : 100;
+
             console.log(`CI Runs: ${ciRuns}`);
             console.log(`Failed: ${failedRuns}`);
             console.log(`Avg Duration: ${avgDuration}s`);
+            console.log(`Success Rate: ${successRate}%`);
 
             core.setOutput('ci_runs', ciRuns.toString());
             core.setOutput('failed_runs', failedRuns.toString());
             core.setOutput('avg_duration', avgDuration.toString());
+            core.setOutput('success_rate', successRate.toString());
 
       - name: Generate Report
         run: |
@@ -394,7 +398,7 @@ jobs:
           ## Summary
           - **Total CI Runs**: ${{ steps.runs.outputs.ci_runs }}
           - **Failed Runs**: ${{ steps.runs.outputs.failed_runs }}
-          - **Success Rate**: $((( ${{ steps.runs.outputs.ci_runs }} - ${{ steps.runs.outputs.failed_runs }} ) * 100 / ${{ steps.runs.outputs.ci_runs }} ))%
+          - **Success Rate**: ${{ steps.runs.outputs.success_rate }}%
           - **Average Duration**: ${{ steps.runs.outputs.avg_duration }}s
           
           ## Status
