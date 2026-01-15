@@ -46,6 +46,7 @@ export interface TeamEventData {
   clerkId: string;
   teamId: string;
   teamName: string;
+  memberCount?: number;
   timestamp: Date;
 }
 
@@ -640,6 +641,7 @@ static async emitTeamDeleted(
   clerkId: string,
   teamId: string,
   teamName: string,
+  memberCount: number,
   context?: RequestContext,
 ): Promise<void> {
   const eventData = {
@@ -647,6 +649,7 @@ static async emitTeamDeleted(
     clerkId,
     teamId,
     teamName,
+    memberCount,
     timestamp: new Date(),
     deletedAt: new Date().toISOString(),
   };

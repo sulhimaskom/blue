@@ -963,8 +963,19 @@ class TeamService {
     try {
       const database = db();
       
+      // Get requesting user
+      const [requestingUser] = await database
+        .select({ id: users.id, clerkId: users.clerkId, email: users.email })
+        .from(users)
+        .where(and(eq(users.id, requestingUserId), isNull(users.deletedAt)))
+        .limit(1);
+
+      if (!requestingUser) {
+        throw new NotFoundError("User not found");
+      }
+
       // Get team and verify ownership
-      const [team] = await database.select({ ownerId: teams.ownerId }).from(teams)
+      const [team] = await database.select({ id: teams.id, ownerId: teams.ownerId, name: teams.name }).from(teams)
         .where(and(eq(teams.id, teamId), isNull(teams.deletedAt)))
         .limit(1);
 
@@ -976,8 +987,26 @@ class TeamService {
         throw new AuthorizationError("Only team owners can delete teams");
       }
 
+      // Get team member count before deletion
+      const [{ memberCount }] = await database
+        .select({ memberCount: count() })
+        .from(teamMembers)
+        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
+
+      // Get all team members for notifications
+      const teamMembersList = await database
+        .select({
+          userId: users.id,
+          clerkId: users.clerkId,
+          email: users.email,
+          role: teamMembers.role,
+        })
+        .from(teamMembers)
+        .innerJoin(users, eq(teamMembers.userId, users.id))
+        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
+
       // Check if team has active projects
-      const [{ projectCount }] = await db().select({ projectCount: count() })
+      const [{ projectCount }] = await database.select({ projectCount: count() })
         .from(teamProjects)
         .innerJoin(projects, eq(teamProjects.projectId, projects.id))
         .where(and(eq(teamProjects.teamId, teamId), isNull(projects.deletedAt)));
@@ -987,7 +1016,7 @@ class TeamService {
       }
 
       // Soft delete team
-      await db().transaction(async (tx: any) => {
+      await database.transaction(async (tx: any) => {
         await tx.update(teams)
           .set({ deletedAt: new Date(), updatedAt: new Date() })
           .where(eq(teams.id, teamId));
@@ -1009,6 +1038,54 @@ class TeamService {
       logger.userAction("team_deleted", requestingUserId.toString(), {
         teamId,
       });
+
+      // Emit webhook event
+      await WebhookEventDispatcher.emitTeamDeleted(
+        requestingUserId,
+        requestingUser.clerkId,
+        teamId,
+        team.name,
+        memberCount,
+      );
+
+      // Record activity feed event
+      await ActivityFeedService.recordActivity({
+        userId: requestingUserId,
+        clerkId: requestingUser.clerkId,
+        entityType: "team",
+        entityId: teamId,
+        eventType: "team.deleted",
+        eventData: {
+          teamName: team.name,
+          memberCount,
+        },
+      });
+
+      // Send notifications to all team members (except deleter)
+      for (const member of teamMembersList) {
+        if (member.clerkId !== requestingUser.clerkId) {
+          try {
+            await NotificationService.dispatch(
+              member.clerkId,
+              "team_deleted",
+              "Team Deleted",
+              `Team "${team.name}" has been deleted by ${requestingUser.email}`,
+              {
+                teamId,
+                teamName: team.name,
+                deletedBy: requestingUser.email,
+              },
+              undefined,
+            );
+          } catch (notificationError) {
+            logger.error("Failed to send team deletion notification", {
+              teamId,
+              targetClerkId: member.clerkId,
+              error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+            });
+          }
+        }
+      }
     } catch (error) {
       logger.error("Failed to delete team", {
         error: error instanceof Error ? error.message : String(error),
