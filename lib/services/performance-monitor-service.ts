@@ -33,9 +33,17 @@ class CircularBuffer<T> {
     ];
   }
 
-  getLatest(n: number): T[] {
+  getLatest(n: number, sortByTimestamp?: boolean): T[] {
     const all = this.getAll();
-    return all.slice(-Math.min(n, all.length));
+    const sliced = all.slice(-Math.min(n, all.length));
+    
+    if (sortByTimestamp && all.length > 0 && typeof all[0] === 'object' && all[0] !== null && 'timestamp' in all[0]) {
+      return sliced.sort((a, b) => 
+        (b as any).timestamp - (a as any).timestamp
+      );
+    }
+    
+    return sliced;
   }
 
   clear(): void {
@@ -436,7 +444,7 @@ export class PerformanceMonitorService {
       preview: allMetrics.filter((m) => m.environment === "preview").length,
     };
 
-    const recentDeployments = this.deploymentMetrics.getLatest(10);
+    const recentDeployments = this.deploymentMetrics.getLatest(10, true) as DeploymentMetric[];
 
     return {
       totalDeployments,
@@ -509,6 +517,7 @@ export class PerformanceMonitorService {
     this.alerts = [];
     this.apiResponseTimes.clear();
     this.componentMetrics.clear();
+    this.deploymentMetrics.clear();
   }
 
   stopMonitoring(): void {

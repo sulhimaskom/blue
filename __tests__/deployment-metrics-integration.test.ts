@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 
 describe("Deployment Metrics Integration", () => {
   beforeEach(() => {
+    const { performanceMonitorService } = require("@/lib/services/performance-monitor-service");
+    performanceMonitorService.reset();
     jest.clearAllMocks();
     jest.useFakeTimers();
   });

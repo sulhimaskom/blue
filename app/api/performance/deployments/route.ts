@@ -1,4 +1,3 @@
-import { NextRequest } from "next/server";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { performanceMonitorService } from "@/lib/services/performance-monitor-service";
