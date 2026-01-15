@@ -29,6 +29,7 @@ import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 import { NotificationService, type NotificationMetadata } from "@/lib/services/notification-service";
 import { subscriptionLimitsService } from "@/lib/services/subscription-limits-service";
+import { teamMemberAccessService } from "@/lib/services/team-member-access-service";
 
 export type TeamRole = "admin" | "member" | "viewer";
 
@@ -87,7 +88,7 @@ class TeamService {
       }
 
       // Check user's team limits based on subscription
-      const userTeamsCount = await this.getUserActiveTeamCount(request.ownerId);
+      const userTeamsCount = await teamMemberAccessService.getUserActiveTeamCount(request.ownerId);
       const subscriptionTier = user[0].subscriptionTier || "free";
 
       if (!subscriptionLimitsService.canCreateTeam(userTeamsCount, subscriptionTier)) {
@@ -260,7 +261,7 @@ class TeamService {
       const cached = await teamCache.get(cacheKey);
       if (cached) {
         // Verify user has access
-        await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
+        await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
         return cached;
       }
 
@@ -276,7 +277,7 @@ class TeamService {
       }
 
       // Verify user access
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
 
       // Get team members with user details
       const members = await database.select({
@@ -356,7 +357,7 @@ class TeamService {
       }
 
       // Verify inviting user is team admin
-      await this.verifyTeamAccess(teamId, invitingUserId, ["admin"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, invitingUserId, ["admin"]);
 
       // Get team and check member limits
       const database = db();
@@ -371,7 +372,7 @@ class TeamService {
         throw new NotFoundError("Team not found");
       }
 
-      const memberCount = await this.getTeamMemberCount(teamId);
+      const memberCount = await teamMemberAccessService.getTeamMemberCount(teamId);
       const subscriptionTier = team.subscriptionTier || "free";
 
       if (!subscriptionLimitsService.canAddMember(memberCount, subscriptionTier)) {
@@ -521,7 +522,7 @@ class TeamService {
       }
 
       // Verify requesting user is team admin
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
 
       // Cannot remove owner's admin role
       const database = db();
@@ -670,7 +671,7 @@ class TeamService {
   ): Promise<void> {
     try {
       // Verify requesting user is team admin
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
 
       // Cannot remove team owner
       const database = db();
@@ -826,7 +827,7 @@ class TeamService {
   ): Promise<TeamProject> {
     try {
       // Verify requesting user has admin or member access to team
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
 
       // Verify user is project owner
       const database = db();
@@ -903,7 +904,7 @@ class TeamService {
 
     try {
       // Verify user has access to team
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
 
       // Get team projects
       const database = db();
@@ -1113,97 +1114,6 @@ class TeamService {
   }
 
   /**
-   * Private helper methods
-   */
-
-  /**
-   * Get user's active team count
-   */
-  private async getUserActiveTeamCount(userId: number): Promise<number> {
-    try {
-      const database = db();
-      const [{ count: teamCount }] = await database.select({ count: count() })
-        .from(teamMembers)
-        .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-        .where(and(
-          eq(teamMembers.userId, userId),
-          isNull(teamMembers.deletedAt),
-          isNull(teams.deletedAt)
-        ));
-
-      return teamCount;
-    } catch (error) {
-      logger.error("Failed to get user team count", {
-        error: error instanceof Error ? error.message : String(error),
-        userId,
-      });
-      return 0;
-    }
-  }
-
-  /**
-   * Get team member count
-   */
-  private async getTeamMemberCount(teamId: string): Promise<number> {
-    try {
-      const database = db();
-      const [{ count: memberCount }] = await database.select({ count: count() })
-        .from(teamMembers)
-        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
-
-      return memberCount;
-    } catch (error) {
-      logger.error("Failed to get team member count", {
-        error: error instanceof Error ? error.message : String(error),
-        teamId,
-      });
-      return 0;
-    }
-  }
-
-  /**
-   * Verify user has team access with specified roles
-   */
-  private async verifyTeamAccess(
-    teamId: string,
-    userId: number,
-    allowedRoles: TeamRole[]
-  ): Promise<TeamMember> {
-    try {
-      const database = db();
-      const [member] = await database.select().from(teamMembers)
-        .where(and(
-          eq(teamMembers.teamId, teamId),
-          eq(teamMembers.userId, userId),
-          isNull(teamMembers.deletedAt)
-        ))
-        .limit(1);
-
-      if (!member) {
-        throw new AuthorizationError("You are not a member of this team");
-      }
-
-      if (!allowedRoles.includes(member.role as TeamRole)) {
-        throw new AuthorizationError("Insufficient permissions for this action");
-      }
-
-      return member;
-    } catch (error) {
-      if (
-        error instanceof ServiceError ||
-        error instanceof ValidationError ||
-        error instanceof AuthenticationError ||
-        error instanceof AuthorizationError ||
-        error instanceof NotFoundError ||
-        error instanceof DatabaseError
-      ) {
-        throw error;
-      }
-
-      throw new DatabaseError("Failed to verify team access");
-    }
-  }
-
   /**
    * Get team usage analytics
    */
@@ -1222,12 +1132,12 @@ class TeamService {
       const cached = await teamCache.get(cacheKey);
       if (cached) {
         // Verify user has access
-        await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
+        await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
         return cached;
       }
 
       // Verify user has access to team analytics
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
 
       const database = db();
       
@@ -1336,7 +1246,7 @@ class TeamService {
       }
 
       // Verify requesting user is team admin
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
 
       // Check if name actually changed
       if (team.name === trimmedName) {
