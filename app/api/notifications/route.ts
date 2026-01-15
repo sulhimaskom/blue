@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
+import { ValidationError } from "@/lib/api-utils";
 import { NotificationService } from "@/lib/services/notification-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 
@@ -22,14 +23,7 @@ export async function GET(req: NextRequest, { params: _ }: RouteParams) {
 
   const validationResult = GetNotificationsQuerySchema.safeParse(query);
   if (!validationResult.success) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: "Invalid query parameters",
-        details: validationResult.error.errors,
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
+    throw new ValidationError("Invalid query parameters");
   }
 
   return APIRouteHandler.createGETHandler({
