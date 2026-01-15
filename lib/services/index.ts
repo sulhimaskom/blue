@@ -17,3 +17,12 @@ export type { UserService } from "./user-service";
 export type { MonitoringService } from "./monitoring-service";
 export type { SecurityService } from "./security-service";
 export type { EnterpriseThemeService } from "./enterprise-theme-service";
+
+// Team Service Type Exports
+export type {
+  TeamRole,
+  TeamCreationRequest,
+  TeamMemberInvitationRequest,
+  TeamWithMembers,
+  ProjectTeamAccess,
+} from "./team-service";
