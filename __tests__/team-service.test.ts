@@ -6,6 +6,7 @@ import { ValidationError, AuthorizationError, NotFoundError, DatabaseError } fro
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { NotificationService } from "@/lib/services/notification-service";
+import { subscriptionLimitsService } from "@/lib/services/subscription-limits-service";
 
 // Mock dependencies
 jest.mock("@/lib/db", () => ({
@@ -107,20 +108,18 @@ describe("TeamService", () => {
   });
 
   describe("subscription limits", () => {
-    const service = teamService as any;
-
     it("should return correct team limits", () => {
-      expect(service.getMaxTeamsForSubscription("free")).toBe(1);
-      expect(service.getMaxTeamsForSubscription("pro")).toBe(5);
-      expect(service.getMaxTeamsForSubscription("enterprise")).toBe(-1); // unlimited
-      expect(service.getMaxTeamsForSubscription("unknown")).toBe(1); // default
+      expect(subscriptionLimitsService.getMaxTeamsForSubscription("free")).toBe(1);
+      expect(subscriptionLimitsService.getMaxTeamsForSubscription("pro")).toBe(5);
+      expect(subscriptionLimitsService.getMaxTeamsForSubscription("enterprise")).toBe(-1); // unlimited
+      expect(subscriptionLimitsService.getMaxTeamsForSubscription("unknown")).toBe(1); // default
     });
 
     it("should return correct member limits", () => {
-      expect(service.getMaxMembersForSubscription("free")).toBe(2);
-      expect(service.getMaxMembersForSubscription("pro")).toBe(10);
-      expect(service.getMaxMembersForSubscription("enterprise")).toBe(-1); // unlimited
-      expect(service.getMaxMembersForSubscription("unknown")).toBe(2); // default
+      expect(subscriptionLimitsService.getMaxMembersForSubscription("free")).toBe(2);
+      expect(subscriptionLimitsService.getMaxMembersForSubscription("pro")).toBe(10);
+      expect(subscriptionLimitsService.getMaxMembersForSubscription("enterprise")).toBe(-1); // unlimited
+      expect(subscriptionLimitsService.getMaxMembersForSubscription("unknown")).toBe(2); // default
     });
   });
 
@@ -188,29 +187,25 @@ describe("error handling", () => {
 
   describe("team limits validation", () => {
     it("should enforce team limits for different subscription tiers", () => {
-      const service = teamService as any;
-
       // Free tier: 1 team max
-      expect(service.getMaxTeamsForSubscription("free")).toBe(1);
+      expect(subscriptionLimitsService.getMaxTeamsForSubscription("free")).toBe(1);
       
       // Pro tier: 5 teams max
-      expect(service.getMaxTeamsForSubscription("pro")).toBe(5);
+      expect(subscriptionLimitsService.getMaxTeamsForSubscription("pro")).toBe(5);
       
       // Enterprise tier: unlimited teams
-      expect(service.getMaxTeamsForSubscription("enterprise")).toBe(-1);
+      expect(subscriptionLimitsService.getMaxTeamsForSubscription("enterprise")).toBe(-1);
     });
 
     it("should enforce member limits for different subscription tiers", () => {
-      const service = teamService as any;
-
       // Free tier: 2 members max
-      expect(service.getMaxMembersForSubscription("free")).toBe(2);
+      expect(subscriptionLimitsService.getMaxMembersForSubscription("free")).toBe(2);
       
       // Pro tier: 10 members max
-      expect(service.getMaxMembersForSubscription("pro")).toBe(10);
+      expect(subscriptionLimitsService.getMaxMembersForSubscription("pro")).toBe(10);
       
       // Enterprise tier: unlimited members
-      expect(service.getMaxMembersForSubscription("enterprise")).toBe(-1);
+      expect(subscriptionLimitsService.getMaxMembersForSubscription("enterprise")).toBe(-1);
     });
   });
 

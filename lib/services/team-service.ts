@@ -28,6 +28,7 @@ import { teamCache } from "@/lib/services/cache-orchestrator";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 import { NotificationService, type NotificationMetadata } from "@/lib/services/notification-service";
+import { subscriptionLimitsService } from "@/lib/services/subscription-limits-service";
 
 export type TeamRole = "admin" | "member" | "viewer";
 
@@ -87,12 +88,10 @@ class TeamService {
 
       // Check user's team limits based on subscription
       const userTeamsCount = await this.getUserActiveTeamCount(request.ownerId);
-      const maxTeams = this.getMaxTeamsForSubscription(user[0].subscriptionTier || "free");
+      const subscriptionTier = user[0].subscriptionTier || "free";
 
-      if (userTeamsCount >= maxTeams) {
-        throw new ValidationError(
-          `Maximum ${maxTeams} teams allowed for ${user[0].subscriptionTier} subscription`
-        );
+      if (!subscriptionLimitsService.canCreateTeam(userTeamsCount, subscriptionTier)) {
+        throw new ValidationError(subscriptionLimitsService.getTeamLimitError(subscriptionTier));
       }
 
       // Create team and add owner as admin
@@ -373,12 +372,10 @@ class TeamService {
       }
 
       const memberCount = await this.getTeamMemberCount(teamId);
-      const maxMembers = this.getMaxMembersForSubscription(team.subscriptionTier);
+      const subscriptionTier = team.subscriptionTier || "free";
 
-      if (memberCount >= maxMembers) {
-        throw new ValidationError(
-          `Maximum ${maxMembers} members allowed for ${team.subscriptionTier} subscription`
-        );
+      if (!subscriptionLimitsService.canAddMember(memberCount, subscriptionTier)) {
+        throw new ValidationError(subscriptionLimitsService.getMemberLimitError(subscriptionTier));
       }
 
       // Find user by email
@@ -1208,18 +1205,6 @@ class TeamService {
   }
 
   /**
-   * Get maximum teams allowed for subscription tier
-   */
-  private getMaxTeamsForSubscription(tier: string): number {
-    const limits: Record<string, number> = {
-      free: 1,
-      pro: 5,
-      enterprise: -1, // unlimited
-    };
-    return limits[tier] || 1;
-  }
-
-  /**
    * Get team usage analytics
    */
   async getTeamAnalytics(teamId: string, requestingUserId: number): Promise<{
@@ -1471,17 +1456,6 @@ class TeamService {
     }
   }
 
-  /**
-   * Get maximum members allowed for subscription tier
-   */
-  private getMaxMembersForSubscription(tier: string): number {
-    const limits: Record<string, number> = {
-      free: 2,
-      pro: 10,
-      enterprise: -1, // unlimited
-    };
-    return limits[tier] || 2;
-  }
 }
 
 export const teamService = new TeamService();
