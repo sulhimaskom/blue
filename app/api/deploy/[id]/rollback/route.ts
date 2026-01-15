@@ -5,6 +5,8 @@ import { DeploymentService } from "@/lib/services/deployment-service";
 import { GitHubServiceError, githubService } from "@/lib/services/github-service";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
+import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 
@@ -66,11 +68,51 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           status: "deployed",
         });
 
-        await DeploymentService.notifyDeploymentStatus(
-          rollbackDeploymentId,
-          "deployed",
-          { operation: "rollback" }
-        );
+        const results = await Promise.allSettled([
+          DeploymentService.notifyDeploymentStatus(
+            rollbackDeploymentId,
+            "deployed",
+            { operation: "rollback" }
+          ),
+          WebhookEventDispatcher.emitProjectDeployed(
+            user!.id,
+            user!.clerkId,
+            id,
+            rollbackDeploymentId,
+            "rolled_back",
+            repo.html_url,
+            context,
+          ),
+          ActivityFeedService.recordActivity({
+            userId: user!.id,
+            clerkId: user!.clerkId,
+            entityType: "deployment",
+            entityId: rollbackDeploymentId,
+            eventType: "deployment.rolled_back",
+            eventData: {
+              projectId: id,
+              projectName: project.name,
+              environment: targetDeployment.environment,
+              status: "rolled_back",
+              reason: data!.reason,
+              targetDeploymentId: data!.deploymentId,
+            },
+          }, context),
+        ]);
+
+        results.forEach((result, index) => {
+          if (result.status === "rejected") {
+            const taskName = [
+              "DeploymentService.notifyDeploymentStatus",
+              "WebhookEventDispatcher.emitProjectDeployed",
+              "ActivityFeedService.recordActivity",
+            ][index];
+            logger.error(`Post-rollback task '${taskName}' failed`, {
+              requestId: context.requestId,
+              error: result.reason,
+            });
+          }
+        });
 
         logger.userAction("Rollback successful", user!.clerkId, {
           requestId: context.requestId,
