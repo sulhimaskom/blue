@@ -3,6 +3,8 @@ import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ProjectDataService } from "@/lib/services/project-data-service";
+import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
+import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { ValidationError, NotFoundError } from '@/lib/api-utils';
 
@@ -87,6 +89,38 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         targetVersion.structuredData,
         targetVersion.marketResearch,
       );
+
+      // Emit webhook event for blueprint rollback
+      await WebhookEventDispatcher.emitBlueprintRolledBack(
+        user!.id,
+        user!.clerkId,
+        project.id,
+        id,
+        newVersion,
+        blueprint.version,
+        reason,
+        project.name,
+        { createBranch },
+        context,
+      );
+
+      // Record activity feed event
+      await ActivityFeedService.recordActivity({
+        userId: user!.id,
+        clerkId: user!.clerkId,
+        entityType: "blueprint",
+        entityId: id,
+        eventType: "blueprint.rollback",
+        eventData: {
+          projectId: project.id,
+          projectName: project.name,
+          currentVersion: blueprint.version,
+          targetVersion: targetVersion.version,
+          newVersion: newVersion,
+          reason,
+          createBranch: !!branchInfo,
+        },
+      }, context);
 
       logger.userAction("Blueprint rollback completed", user!.clerkId, {
         requestId: context.requestId,

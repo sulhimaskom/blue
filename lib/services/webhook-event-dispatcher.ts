@@ -393,7 +393,7 @@ export class WebhookEventDispatcher {
     metadata?: Record<string, any>,
     context?: RequestContext,
   ): Promise<void> {
-    const eventData: BlueprintLifecycleEventData & { 
+    const eventData: BlueprintLifecycleEventData & {
       updateType?: string;
       previousVersion?: number;
     } = {
@@ -412,6 +412,47 @@ export class WebhookEventDispatcher {
 
     await this.dispatchEventToSubscribers(
       "blueprint.refined",
+      eventData,
+      `user-${clerkId}`,
+      context,
+    );
+  }
+
+  /**
+   * Emit blueprint rolled back webhook event
+   * Triggered when a blueprint is rolled back to a previous version
+   */
+  static async emitBlueprintRolledBack(
+    userId: number,
+    clerkId: string,
+    projectId: string,
+    blueprintId: string,
+    blueprintVersion: number,
+    previousVersion: number,
+    reason: string,
+    blueprintName?: string,
+    metadata?: Record<string, any>,
+    context?: RequestContext,
+  ): Promise<void> {
+    const eventData: BlueprintLifecycleEventData & {
+      previousVersion: number;
+      reason: string;
+    } = {
+      userId,
+      clerkId,
+      projectId,
+      blueprintId,
+      blueprintVersion,
+      blueprintName,
+      blueprintStatus: "completed",
+      previousVersion,
+      reason,
+      metadata,
+      timestamp: new Date(),
+    };
+
+    await this.dispatchEventToSubscribers(
+      "blueprint.rolled_back",
       eventData,
       `user-${clerkId}`,
       context,
