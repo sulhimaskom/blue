@@ -7,6 +7,8 @@ import { ValidationError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { DeploymentService } from "@/lib/services/deployment-service";
 import { GitHubServiceError, githubService } from "@/lib/services/github-service";
+import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
+import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 
 const promoteEnvironmentSchema = z.object({
   targetEnvironment: z.enum(["production"]),
@@ -80,6 +82,31 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
           "deployed",
           { operation: "promote", fromEnvironment: "staging" }
         );
+
+        await WebhookEventDispatcher.emitProjectDeployed(
+          user!.id,
+          user!.clerkId,
+          id,
+          productionDeploymentId,
+          "promoted",
+          repo.html_url,
+          context,
+        );
+
+        await ActivityFeedService.recordActivity({
+          userId: user!.id,
+          clerkId: user!.clerkId,
+          entityType: "deployment",
+          entityId: productionDeploymentId,
+          eventType: "deployment.promoted",
+          eventData: {
+            projectId: id,
+            projectName: project.name,
+            fromEnvironment: "staging",
+            toEnvironment: "production",
+            status: "promoted",
+          },
+        }, context);
 
         await ProjectDataService.updateProjectDeployment(id, repo.html_url);
 
