@@ -169,6 +169,20 @@ describe("WebhookEventDispatcher Integration", () => {
         ),
       ).resolves.toBeUndefined();
     });
+
+    it("should handle project rolled back emission without errors", async () => {
+      await expect(
+        WebhookEventDispatcher.emitProjectDeployed(
+          123,
+          "clerk-123",
+          "proj-123",
+          "deploy-rollback-123",
+          "rolled_back",
+          "https://example.com/rollback",
+          mockContext,
+        ),
+      ).resolves.toBeUndefined();
+    });
   });
 
   describe("Credit threshold monitoring", () => {
