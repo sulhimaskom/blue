@@ -1,16 +1,10 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
-import { githubService } from "@/lib/services/github-service";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
-import { AuthenticationError, DatabaseError, ValidationError } from "@/lib/api-utils";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { DeploymentService } from "@/lib/services/deployment-service";
-import { NotificationService } from "@/lib/services/notification-service";
-import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
-import { ActivityFeedService } from "@/lib/services/activity-feed-service";
-import { performanceMonitorService } from "@/lib/services/performance-monitor-service";
 
 const deployRepoSchema = z.object({
   githubOrg: z
@@ -38,237 +32,18 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     handler: async ({ context, user, data }) => {
       const { githubOrg, repoName, isPrivate, environment } = data!;
 
-      const deploymentStartTime = Date.now();
+      const result = await DeploymentService.deployEnvironment({
+        projectId: id,
+        userId: user!.id,
+        userClerkId: user!.clerkId,
+        githubOrg,
+        repoName,
+        isPrivate: isPrivate || false,
+        environment: environment || "production",
+        context,
+      });
 
-      // Verify user owns the project
-      const projectDetails = await ProjectDataService.verifyProjectOwnership(
-        id,
-        user!.clerkId,
-      );
-      const { project } = projectDetails;
-
-// Check if deployment already exists for this environment
-      const existingDeployment = await DeploymentService.checkExistingDeployment(id, environment!);
-      if (existingDeployment) {
-        throw new ValidationError(`Project already has a ${environment} deployment`);
-      }
-
-      // For production deployment, validate staging exists
-      if (environment === "production") {
-        const stagingDeployment = await DeploymentService.checkExistingDeployment(id, "staging");
-        if (!stagingDeployment || stagingDeployment.status !== "deployed") {
-          throw new ValidationError("Staging deployment required before production");
-        }
-      }
-
-      // Get the latest blueprint content
-      const latestBlueprint = await ProjectDataService.getLatestBlueprint(id);
-      
-      // Ensure blueprint version is available (required field)
-      const blueprintVersion = latestBlueprint.version || 1;
-
-      // Update project status to generating
-      await ProjectDataService.updateProjectStatus(id, "generating");
-
-      // Generate environment-specific repository name
-      const environmentRepoName = DeploymentService.generateEnvironmentRepoName(repoName!, environment!);
-
-      // Calculate expiration for preview environments
-      const expiresAt = environment === "preview" 
-        ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
-        : undefined;
-
-        logger.info("Starting environment deployment", {
-          requestId: context.requestId,
-          userId: user!.clerkId,
-          projectId: id,
-          githubOrg,
-          repoName: environmentRepoName,
-          environment,
-          blueprintVersion,
-          expiresAt,
-        });
-
-        // Create deployment record
-        let deploymentId: string | undefined;
-        try {
-        deploymentId = await DeploymentService.createDeploymentRecord({
-          projectId: id,
-          environment: environment!,
-          githubOrg,
-          githubRepoName: environmentRepoName,
-          blueprintVersion,
-          expiresAt,
-        });
-
-        // Create GitHub repository with blueprint
-        const repo = await githubService.createRepository({
-          org: githubOrg,
-          name: environmentRepoName,
-          description: `${project.description || "AI-generated software project"} (${environment})`,
-          isPrivate: isPrivate || false,
-          blueprintContent: latestBlueprint.contentMarkdown,
-        });
-
-        // Update deployment record with GitHub details
-        await DeploymentService.updateDeploymentRecord(deploymentId, {
-          githubRepoId: repo.id,
-          githubRepoUrl: repo.html_url,
-          status: "deployed",
-        });
-
-        const deploymentEndTime = Date.now();
-        const deploymentTime = deploymentEndTime - deploymentStartTime;
-
-        performanceMonitorService.recordDeploymentMetric({
-          deploymentId: deploymentId!,
-          projectId: id,
-          environment: environment! as "production" | "staging" | "preview",
-          status: "deployed",
-          timestamp: new Date(),
-          deploymentTime,
-          metadata: {
-            blueprintVersion,
-            repoUrl: repo.html_url,
-            githubOrg,
-            githubRepoName: environmentRepoName,
-          },
-        });
-
-        await Promise.all([
-          NotificationService.dispatch(
-            user!.clerkId,
-            "deployment_status",
-            "Deployment Successful",
-            `Your ${environment} deployment for project "${project.name}" was successful.`,
-            {
-              deploymentId,
-              projectId: id,
-              environment,
-              status: "deployed",
-            },
-            `/projects/${id}/deploy/${deploymentId}`,
-          ),
-          WebhookEventDispatcher.emitProjectDeployed(
-            user!.id,
-            user!.clerkId,
-            id,
-            deploymentId!,
-            "success",
-            repo.html_url,
-            context,
-          ),
-          ActivityFeedService.recordActivity({
-            userId: user!.id,
-            clerkId: user!.clerkId,
-            entityType: "deployment",
-            entityId: deploymentId!,
-            eventType: "deployment.success",
-            eventData: {
-              projectId: id,
-              projectName: project.name,
-              environment,
-              status: "deployed",
-              repoUrl: repo.html_url,
-            },
-          }, context)
-        ]);
-
-        // Update project status if this is production deployment
-        if (environment === "production") {
-          await ProjectDataService.updateProjectDeployment(id, repo.html_url);
-        }
-
-        logger.userAction("Environment deployment successful", user!.clerkId, {
-          requestId: context.requestId,
-          projectId: id,
-          deploymentId,
-          environment,
-          repoUrl: repo.html_url,
-          githubOrg,
-          repoName: environmentRepoName,
-        });
-
-        return {
-          projectId: project.id,
-          deploymentId,
-          environment,
-          repoUrl: repo.html_url,
-          repoName: environmentRepoName,
-          status: "deployed",
-          message: `${environment} deployment successful`,
-          deploymentDetails: {
-            repositoryId: repo.id,
-            fullName: repo.full_name,
-            cloneUrl: repo.clone_url,
-            organization: githubOrg,
-            repository: environmentRepoName,
-            visibility: isPrivate ? "private" : "public",
-            createdAt: repo.created_at,
-            blueprintVersion,
-            expiresAt,
-          },
-        };
-      } catch (error) {
-        // Reset project status on failure
-        await ProjectDataService.updateProjectStatus(id, "completed");
-
-        await NotificationService.dispatch(
-          user!.clerkId,
-          "deployment_status",
-          "Deployment Failed",
-          `Your ${environment} deployment for project "${project.name}" failed.`,
-          {
-            projectId: id,
-            environment,
-            status: "failed",
-          },
-          deploymentId ? `/projects/${id}/deploy/${deploymentId}` : `/projects/${id}`,
-        );
-
-        if (deploymentId) {
-          await Promise.all([
-            WebhookEventDispatcher.emitProjectDeployed(
-              user!.id,
-              user!.clerkId,
-              id,
-              deploymentId,
-              "failed",
-              undefined,
-              context,
-            ),
-            ActivityFeedService.recordActivity({
-              userId: user!.id,
-              clerkId: user!.clerkId,
-              entityType: "deployment",
-              entityId: deploymentId,
-              eventType: "deployment.failed",
-              eventData: {
-                projectId: id,
-                projectName: project.name,
-                environment,
-                status: "failed",
-              },
-            }, context)
-          ]);
-        }
-
-        if (error instanceof AuthenticationError || error instanceof DatabaseError) {
-          logger.error("GitHub service error during deployment", {
-            requestId: context.requestId,
-            userId: user!.clerkId,
-            projectId: id,
-            environment,
-            errorType: error.name,
-            message: error.message,
-          });
-          throw new ValidationError(
-            `GitHub deployment failed: ${error.message}`,
-          );
-        }
-
-        throw error;
-      }
+      return result;
     },
   })(req);
 }

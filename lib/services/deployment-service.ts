@@ -3,7 +3,12 @@ import { deployments as deploymentsTable, projects, users } from "@/lib/db/schem
 import { eq, and, isNull } from "drizzle-orm";
 import { NotificationService, NotificationType } from "@/lib/services/notification-service";
 import { logger } from "@/lib/logger";
-import { DatabaseError } from "@/lib/api-utils";
+import { DatabaseError, ValidationError } from "@/lib/api-utils";
+import { githubService } from "@/lib/services/github-service";
+import { ProjectDataService } from "@/lib/services/project-data-service";
+import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
+import { ActivityFeedService } from "@/lib/services/activity-feed-service";
+import { performanceMonitorService } from "@/lib/services/performance-monitor-service";
 
 export interface DeploymentRecord {
   id: string;
@@ -20,6 +25,31 @@ export interface DeploymentRecord {
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
+}
+
+export interface DeployEnvironmentResult {
+  projectId: string;
+  deploymentId: string;
+  environment: string;
+  repoUrl: string;
+  repoName: string;
+  status: string;
+  message: string;
+  deploymentDetails: {
+    repositoryId: number;
+    fullName: string;
+    cloneUrl: string;
+    organization: string;
+    repository: string;
+    visibility: string;
+    createdAt: string;
+    blueprintVersion: number;
+    expiresAt?: Date;
+  };
+}
+
+export interface RequestContext {
+  requestId: string;
 }
 
 
@@ -220,7 +250,7 @@ updates: Partial<Pick<DeploymentRecord, 'githubRepoId' | 'githubRepoUrl' | 'stat
         message = `Deployment of project "${projectName}" in ${deployment.environment} has been deleted.`;
       }
 
-      await NotificationService.dispatch(
+      await       NotificationService.dispatch(
         user.clerkId,
         "deployment_status" as NotificationType,
         title,
@@ -235,6 +265,237 @@ updates: Partial<Pick<DeploymentRecord, 'githubRepoId' | 'githubRepoUrl' | 'stat
       );
     } catch (error) {
       logger.error("Failed to send deployment notification", { deploymentId, status, error });
+    }
+  }
+
+  /**
+   * Deploy environment to GitHub with full orchestration
+   * @param params Deployment parameters including project details and environment configuration
+   * @returns Deployment result with repository details
+   */
+  static async deployEnvironment(params: {
+    projectId: string;
+    userId: number;
+    userClerkId: string;
+    githubOrg: string;
+    repoName: string;
+    isPrivate: boolean;
+    environment: "production" | "staging" | "preview";
+    context: RequestContext;
+  }): Promise<DeployEnvironmentResult> {
+    const {
+      projectId,
+      userId,
+      userClerkId,
+      githubOrg,
+      repoName,
+      isPrivate,
+      environment,
+      context,
+    } = params;
+
+    const deploymentStartTime = Date.now();
+
+    const projectDetails = await ProjectDataService.verifyProjectOwnership(
+      projectId,
+      userClerkId,
+    );
+    const { project } = projectDetails;
+
+    const existingDeployment = await DeploymentService.checkExistingDeployment(projectId, environment);
+    if (existingDeployment) {
+      throw new ValidationError(`Project already has a ${environment} deployment`);
+    }
+
+    if (environment === "production") {
+      const stagingDeployment = await DeploymentService.checkExistingDeployment(projectId, "staging");
+      if (!stagingDeployment || stagingDeployment.status !== "deployed") {
+        throw new ValidationError("Staging deployment required before production");
+      }
+    }
+
+    const latestBlueprint = await ProjectDataService.getLatestBlueprint(projectId);
+    const blueprintVersion = latestBlueprint.version || 1;
+
+    await ProjectDataService.updateProjectStatus(projectId, "generating");
+
+    const environmentRepoName = DeploymentService.generateEnvironmentRepoName(repoName, environment);
+
+    const expiresAt = environment === "preview"
+      ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      : undefined;
+
+    logger.info("Starting environment deployment", {
+      requestId: context.requestId,
+      userId: userClerkId,
+      projectId,
+      githubOrg,
+      repoName: environmentRepoName,
+      environment,
+      blueprintVersion,
+      expiresAt,
+    });
+
+    let deploymentId: string | undefined;
+    try {
+      deploymentId = await DeploymentService.createDeploymentRecord({
+        projectId,
+        environment,
+        githubOrg,
+        githubRepoName: environmentRepoName,
+        blueprintVersion,
+        expiresAt,
+      });
+
+      const repo = await githubService.createRepository({
+        org: githubOrg,
+        name: environmentRepoName,
+        description: `${project.description || "AI-generated software project"} (${environment})`,
+        isPrivate: isPrivate || false,
+        blueprintContent: latestBlueprint.contentMarkdown,
+      });
+
+      await DeploymentService.updateDeploymentRecord(deploymentId, {
+        githubRepoId: repo.id,
+        githubRepoUrl: repo.html_url,
+        status: "deployed",
+      });
+
+      const deploymentEndTime = Date.now();
+      const deploymentTime = deploymentEndTime - deploymentStartTime;
+
+      performanceMonitorService.recordDeploymentMetric({
+        deploymentId: deploymentId!,
+        projectId,
+        environment,
+        status: "deployed",
+        timestamp: new Date(),
+        deploymentTime,
+        metadata: {
+          blueprintVersion,
+          repoUrl: repo.html_url,
+          githubOrg,
+          githubRepoName: environmentRepoName,
+        },
+      });
+
+      await Promise.all([
+        NotificationService.dispatch(
+          userClerkId,
+          "deployment_status",
+          "Deployment Successful",
+          `Your ${environment} deployment for project "${project.name}" was successful.`,
+          {
+            deploymentId,
+            projectId,
+            environment,
+            status: "deployed",
+          },
+          `/projects/${projectId}/deploy/${deploymentId}`,
+        ),
+        WebhookEventDispatcher.emitProjectDeployed(
+          userId,
+          userClerkId,
+          projectId,
+          deploymentId!,
+          "success",
+          repo.html_url,
+          context,
+        ),
+        ActivityFeedService.recordActivity({
+          userId,
+          clerkId: userClerkId,
+          entityType: "deployment",
+          entityId: deploymentId!,
+          eventType: "deployment.success",
+          eventData: {
+            projectId,
+            projectName: project.name,
+            environment,
+            status: "deployed",
+            repoUrl: repo.html_url,
+          },
+        }, context)
+      ]);
+
+      if (environment === "production") {
+        await ProjectDataService.updateProjectDeployment(projectId, repo.html_url);
+      }
+
+      logger.userAction("Environment deployment successful", userClerkId, {
+        requestId: context.requestId,
+        projectId,
+        deploymentId,
+        environment,
+        repoUrl: repo.html_url,
+        githubOrg,
+        repoName: environmentRepoName,
+      });
+
+      return {
+        projectId: project.id,
+        deploymentId: deploymentId!,
+        environment,
+        repoUrl: repo.html_url,
+        repoName: environmentRepoName,
+        status: "deployed",
+        message: `${environment} deployment successful`,
+        deploymentDetails: {
+          repositoryId: repo.id,
+          fullName: repo.full_name,
+          cloneUrl: repo.clone_url,
+          organization: githubOrg,
+          repository: environmentRepoName,
+          visibility: isPrivate ? "private" : "public",
+          createdAt: repo.created_at,
+          blueprintVersion,
+          expiresAt,
+        },
+      };
+    } catch (error) {
+      await ProjectDataService.updateProjectStatus(projectId, "completed");
+
+      await NotificationService.dispatch(
+        userClerkId,
+        "deployment_status",
+        "Deployment Failed",
+        `Your ${environment} deployment for project "${project.name}" failed.`,
+        {
+          projectId,
+          environment,
+          status: "failed",
+        },
+        deploymentId ? `/projects/${projectId}/deploy/${deploymentId}` : `/projects/${projectId}`,
+      );
+
+      if (deploymentId) {
+        await Promise.all([
+          WebhookEventDispatcher.emitProjectDeployed(
+            userId,
+            userClerkId,
+            projectId,
+            deploymentId,
+            "failed",
+            undefined,
+            context,
+          ),
+          ActivityFeedService.recordActivity({
+            userId,
+            clerkId: userClerkId,
+            entityType: "deployment",
+            entityId: deploymentId,
+            eventType: "deployment.failed",
+            eventData: {
+              projectId,
+              projectName: project.name,
+              environment,
+              status: "failed",
+            },
+          }, context)
+        ]);
+      }
+
+      throw error;
     }
   }
 }
