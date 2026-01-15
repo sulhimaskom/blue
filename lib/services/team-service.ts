@@ -1039,52 +1039,59 @@ class TeamService {
         teamId,
       });
 
-      // Emit webhook event
-      await WebhookEventDispatcher.emitTeamDeleted(
-        requestingUserId,
-        requestingUser.clerkId,
-        teamId,
-        team.name,
-        memberCount,
-      );
-
-      // Record activity feed event
-      await ActivityFeedService.recordActivity({
-        userId: requestingUserId,
-        clerkId: requestingUser.clerkId,
-        entityType: "team",
-        entityId: teamId,
-        eventType: "team.deleted",
-        eventData: {
-          teamName: team.name,
+      try {
+        // Emit webhook event
+        await WebhookEventDispatcher.emitTeamDeleted(
+          requestingUserId,
+          requestingUser.clerkId,
+          teamId,
+          team.name,
           memberCount,
-        },
-      });
+        );
 
-      // Send notifications to all team members (except deleter)
-      for (const member of teamMembersList) {
-        if (member.clerkId !== requestingUser.clerkId) {
-          try {
-            await NotificationService.dispatch(
-              member.clerkId,
-              "team_deleted",
-              "Team Deleted",
-              `Team "${team.name}" has been deleted by ${requestingUser.email}`,
-              {
+        // Record activity feed event
+        await ActivityFeedService.recordActivity({
+          userId: requestingUserId,
+          clerkId: requestingUser.clerkId,
+          entityType: "team",
+          entityId: teamId,
+          eventType: "team.deleted",
+          eventData: {
+            teamName: team.name,
+            memberCount,
+          },
+        });
+
+        // Send notifications to all team members (except deleter)
+        for (const member of teamMembersList) {
+          if (member.clerkId !== requestingUser.clerkId) {
+            try {
+              await NotificationService.dispatch(
+                member.clerkId,
+                "team_deleted",
+                "Team Deleted",
+                `Team "${team.name}" has been deleted by ${requestingUser.email}`,
+                {
+                  teamId,
+                  teamName: team.name,
+                  deletedBy: requestingUser.email,
+                },
+                undefined,
+              );
+            } catch (notificationError) {
+              logger.error("Failed to send team deletion notification", {
                 teamId,
-                teamName: team.name,
-                deletedBy: requestingUser.email,
-              },
-              undefined,
-            );
-          } catch (notificationError) {
-            logger.error("Failed to send team deletion notification", {
-              teamId,
-              targetClerkId: member.clerkId,
-              error: notificationError instanceof Error ? notificationError.message : String(notificationError),
-            });
+                targetClerkId: member.clerkId,
+                error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+              });
+            }
           }
         }
+      } catch (activityError) {
+        logger.error("Failed to record team.deleted activity", {
+          teamId,
+          error: activityError instanceof Error ? activityError.message : String(activityError),
+        });
       }
     } catch (error) {
       logger.error("Failed to delete team", {
