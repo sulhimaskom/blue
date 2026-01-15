@@ -10,6 +10,7 @@ import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher"
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { performanceMonitorService } from "@/lib/services/performance-monitor-service";
 
 const rollbackSchema = z.object({
   deploymentId: z.string().uuid("Invalid deployment ID"),
@@ -34,6 +35,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         data!.deploymentId,
         id
       );
+
+      const rollbackStartTime = Date.now();
 
       const projectDetails = await ProjectDataService.verifyProjectOwnership(
         id,
@@ -67,6 +70,25 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           githubRepoId: repo.id,
           githubRepoUrl: repo.html_url,
           status: "deployed",
+        });
+
+        const rollbackEndTime = Date.now();
+        const rollbackTime = rollbackEndTime - rollbackStartTime;
+
+        performanceMonitorService.recordDeploymentMetric({
+          deploymentId: rollbackDeploymentId,
+          projectId: id,
+          environment: targetDeployment.environment as "production" | "staging" | "preview",
+          status: "rolled_back",
+          timestamp: new Date(),
+          deploymentTime: rollbackTime,
+          metadata: {
+            repoUrl: repo.html_url,
+            githubOrg: targetDeployment.githubOrg,
+            githubRepoName: environmentRepoName,
+            reason: data!.reason,
+            targetDeploymentId: data!.deploymentId,
+          },
         });
 
         const results = await Promise.allSettled([

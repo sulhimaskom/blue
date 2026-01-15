@@ -10,6 +10,7 @@ import { DeploymentService } from "@/lib/services/deployment-service";
 import { NotificationService } from "@/lib/services/notification-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
+import { performanceMonitorService } from "@/lib/services/performance-monitor-service";
 
 const deployRepoSchema = z.object({
   githubOrg: z
@@ -36,6 +37,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
     handler: async ({ context, user, data }) => {
       const { githubOrg, repoName, isPrivate, environment } = data!;
+
+      const deploymentStartTime = Date.now();
 
       // Verify user owns the project
       const projectDetails = await ProjectDataService.verifyProjectOwnership(
@@ -112,6 +115,24 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           githubRepoId: repo.id,
           githubRepoUrl: repo.html_url,
           status: "deployed",
+        });
+
+        const deploymentEndTime = Date.now();
+        const deploymentTime = deploymentEndTime - deploymentStartTime;
+
+        performanceMonitorService.recordDeploymentMetric({
+          deploymentId: deploymentId!,
+          projectId: id,
+          environment: environment! as "production" | "staging" | "preview",
+          status: "deployed",
+          timestamp: new Date(),
+          deploymentTime,
+          metadata: {
+            blueprintVersion,
+            repoUrl: repo.html_url,
+            githubOrg,
+            githubRepoName: environmentRepoName,
+          },
         });
 
         await Promise.all([

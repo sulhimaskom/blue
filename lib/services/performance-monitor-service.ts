@@ -87,6 +87,38 @@ interface BundleAnalysis {
   optimizationSuggestions: string[];
 }
 
+interface DeploymentMetric {
+  deploymentId: string;
+  projectId: string;
+  environment: "production" | "staging" | "preview";
+  status: "deployed" | "promoted" | "rolled_back" | "failed";
+  timestamp: Date;
+  deploymentTime?: number;
+  metadata: {
+    blueprintVersion?: number;
+    repoUrl?: string;
+    githubOrg?: string;
+    githubRepoName?: string;
+    fromEnvironment?: string;
+    toEnvironment?: string;
+    reason?: string;
+    targetDeploymentId?: string;
+  };
+}
+
+interface DeploymentMetricsSummary {
+  totalDeployments: number;
+  successfulDeployments: number;
+  failedDeployments: number;
+  avgDeploymentTime: number;
+  deploymentsByEnvironment: {
+    production: number;
+    staging: number;
+    preview: number;
+  };
+  recentDeployments: DeploymentMetric[];
+}
+
 export class PerformanceMonitorService {
   private static instance: PerformanceMonitorService;
   private metrics: Partial<PerformanceMetrics> = {};
@@ -101,6 +133,7 @@ export class PerformanceMonitorService {
     string,
     { renderTime: number; reRenderCount: number }
   >();
+  private deploymentMetrics = new CircularBuffer<DeploymentMetric>(200); // Keep last 200 deployment metrics
   private memoryCheckInterval?: NodeJS.Timeout;
   private eventLoopCheckTimeout?: NodeJS.Timeout;
   private cpuCheckInterval?: NodeJS.Timeout;
@@ -362,6 +395,61 @@ export class PerformanceMonitorService {
       })),
       optimizationSuggestions: suggestions,
     };
+  }
+
+  recordDeploymentMetric(metric: DeploymentMetric): void {
+    this.deploymentMetrics.push(metric);
+
+    logger.userAction("Deployment metric recorded", "system", {
+      deploymentId: metric.deploymentId,
+      projectId: metric.projectId,
+      environment: metric.environment,
+      status: metric.status,
+      timestamp: metric.timestamp,
+    });
+  }
+
+  getDeploymentMetric(deploymentId: string): DeploymentMetric | undefined {
+    const allMetrics = this.deploymentMetrics.getAll();
+    return allMetrics.find((m) => m.deploymentId === deploymentId);
+  }
+
+  getDeploymentMetricsSummary(): DeploymentMetricsSummary {
+    const allMetrics = this.deploymentMetrics.getAll();
+
+    const totalDeployments = allMetrics.length;
+    const successfulDeployments = allMetrics.filter(
+      (m) => m.status === "deployed" || m.status === "promoted" || m.status === "rolled_back",
+    ).length;
+    const failedDeployments = allMetrics.filter((m) => m.status === "failed").length;
+
+    const deploymentsWithTime = allMetrics.filter((m) => m.deploymentTime !== undefined);
+    const avgDeploymentTime =
+      deploymentsWithTime.length > 0
+        ? deploymentsWithTime.reduce((sum, m) => sum + (m.deploymentTime || 0), 0) /
+          deploymentsWithTime.length
+        : 0;
+
+    const deploymentsByEnvironment = {
+      production: allMetrics.filter((m) => m.environment === "production").length,
+      staging: allMetrics.filter((m) => m.environment === "staging").length,
+      preview: allMetrics.filter((m) => m.environment === "preview").length,
+    };
+
+    const recentDeployments = this.deploymentMetrics.getLatest(10);
+
+    return {
+      totalDeployments,
+      successfulDeployments,
+      failedDeployments,
+      avgDeploymentTime,
+      deploymentsByEnvironment,
+      recentDeployments,
+    };
+  }
+
+  getDeploymentMetricsByProject(projectId: string): DeploymentMetric[] {
+    return this.deploymentMetrics.getAll().filter((m) => m.projectId === projectId);
   }
 
   getPerformanceReport(): {
