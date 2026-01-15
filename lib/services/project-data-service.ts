@@ -7,6 +7,7 @@ import { RequestContext } from "@/lib/services/user-service";
 import DatabaseQueryCache from "@/lib/services/database-cache-service";
 import { softDelete } from "@/lib/db/soft-delete-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
+import { NotificationService } from "@/lib/services/notification-service";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 
@@ -254,11 +255,36 @@ static async updateProject(
       context,
     );
   } catch (webhookError) {
-    // Log webhook error but don't fail the operation
-    await import("@/lib/logger").then(({ logger }) => 
+    // Log webhook error but don't fail operation
+    await import("@/lib/logger").then(({ logger }) =>
       logger.error("Failed to emit project.updated webhook", {
         projectId: updatedProject.id,
         error: webhookError instanceof Error ? webhookError.message : String(webhookError),
+      })
+    );
+  }
+
+  // Send project updated notification
+  try {
+    const updatedFields = Object.keys(updates);
+    await NotificationService.dispatch(
+      clerkId,
+      "project_updated" as const,
+      "Project Updated",
+      `Your project "${updatedProject.name}" has been updated.`,
+      {
+        projectId: updatedProject.id,
+        projectName: updatedProject.name,
+        updatedFields,
+      },
+      `/projects/${updatedProject.id}`,
+    );
+  } catch (notificationError) {
+    // Log notification error but don't fail operation
+    await import("@/lib/logger").then(({ logger }) =>
+      logger.error("Failed to send project.updated notification", {
+        projectId: updatedProject.id,
+        error: notificationError instanceof Error ? notificationError.message : String(notificationError),
       })
     );
   }
@@ -438,10 +464,34 @@ static async createProject(
     );
   } catch (webhookError) {
     // Log webhook error but don't fail the operation
-    await import("@/lib/logger").then(({ logger }) => 
+    await import("@/lib/logger").then(({ logger }) =>
       logger.error("Failed to emit project.created webhook", {
         projectId: newProject.id,
         error: webhookError instanceof Error ? webhookError.message : String(webhookError),
+      })
+    );
+  }
+
+  // Send project created notification
+  try {
+    await NotificationService.dispatch(
+      clerkId,
+      "project_created" as const,
+      "Project Created",
+      `Your project "${newProject.name}" has been created successfully.`,
+      {
+        projectId: newProject.id,
+        projectName: newProject.name,
+        description: newProject.description || undefined,
+      },
+      `/projects/${newProject.id}`,
+    );
+  } catch (notificationError) {
+    // Log notification error but don't fail operation
+    await import("@/lib/logger").then(({ logger }) =>
+      logger.error("Failed to send project.created notification", {
+        projectId: newProject.id,
+        error: notificationError instanceof Error ? notificationError.message : String(notificationError),
       })
     );
   }
@@ -505,11 +555,34 @@ static async deleteProject(projectId: string, clerkId: string, context?: Request
       context,
     );
   } catch (webhookError) {
-    // Log webhook error but don't fail the operation
-    await import("@/lib/logger").then(({ logger }) => 
+    // Log webhook error but don't fail operation
+    await import("@/lib/logger").then(({ logger }) =>
       logger.error("Failed to emit project.deleted webhook", {
         projectId: deletedProject.id,
         error: webhookError instanceof Error ? webhookError.message : String(webhookError),
+      })
+    );
+  }
+
+  // Send project deleted notification
+  try {
+    await NotificationService.dispatch(
+      clerkId,
+      "project_deleted" as const,
+      "Project Deleted",
+      `Your project "${deletedProject.name}" has been deleted.`,
+      {
+        projectId: deletedProject.id,
+        projectName: deletedProject.name,
+      },
+      undefined,
+    );
+  } catch (notificationError) {
+    // Log notification error but don't fail operation
+    await import("@/lib/logger").then(({ logger }) =>
+      logger.error("Failed to send project.deleted notification", {
+        projectId: deletedProject.id,
+        error: notificationError instanceof Error ? notificationError.message : String(notificationError),
       })
     );
   }

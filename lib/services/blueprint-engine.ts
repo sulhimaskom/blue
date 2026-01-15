@@ -9,6 +9,7 @@ import DatabaseQueryCache from "./database-cache-service";
 import { ValidationError, DatabaseError } from "./service-error-handler";
 import { WebhookEventDispatcher } from "./webhook-event-dispatcher";
 import { NotificationService } from "./notification-service";
+import { ActivityFeedService } from "./activity-feed-service";
 
 export interface BlueprintGenerationRequest {
   userId: number;
@@ -865,6 +866,19 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
             },
             `/projects/${projectId}/blueprints/${blueprintId}`,
           );
+
+          await ActivityFeedService.recordActivity({
+            userId: request.userId,
+            clerkId: userRecord.clerkId,
+            entityType: "blueprint",
+            entityId: blueprintId.toString(),
+            eventType: "blueprint.created",
+            eventData: {
+              projectId: projectId.toString(),
+              projectName: blueprintData.projectName,
+              version: 1,
+            },
+          }, { requestId: `blueprint-${blueprintId}` });
         }
       } catch (webhookError) {
         logger.error("Failed to emit blueprint created webhook", {
@@ -1022,6 +1036,57 @@ Respond with either "VALID" if production-ready, or specific CRITICISM if improv
       // Also invalidate tags from unified cache for blueprint type
       if (blueprintType) {
         await UnifiedCacheManager.invalidateByTag(blueprintType);
+      }
+
+      // Emit webhook and record activity for blueprint refinement
+      try {
+        // Get project owner for webhook and activity
+        const [project] = await database
+          .select({ ownerId: projects.ownerId })
+          .from(projects)
+          .where(eq(projects.id, current.projectId))
+          .limit(1);
+
+        const [userRecord] = await database
+          .select()
+          .from(users)
+          .where(eq(users.id, project?.ownerId))
+          .limit(1);
+
+        if (userRecord && project) {
+          await WebhookEventDispatcher.emitBlueprintRefined(
+            project.ownerId,
+            userRecord.clerkId,
+            current.projectId,
+            request.blueprintId,
+            newVersion,
+            currentData.projectName,
+            request.updateType,
+            current.version,
+            { requestId: `blueprint-refine-${request.blueprintId}` },
+          );
+
+          await ActivityFeedService.recordActivity({
+            userId: project.ownerId,
+            clerkId: userRecord.clerkId,
+            entityType: "blueprint",
+            entityId: request.blueprintId,
+            eventType: "blueprint.refined",
+            eventData: {
+              projectId: current.projectId,
+              projectName: currentData.projectName,
+              previousVersion: current.version,
+              newVersion,
+              updateType: request.updateType,
+            },
+          }, { requestId: `blueprint-refine-${request.blueprintId}` });
+        }
+      } catch (webhookError) {
+        logger.error("Failed to emit blueprint refined webhook or record activity", {
+          blueprintId: request.blueprintId,
+          error: webhookError instanceof Error ? webhookError.message : String(webhookError),
+        });
+        // Don't fail blueprint refinement if webhook fails
       }
 
       const completionDuration = Date.now() - startTime;

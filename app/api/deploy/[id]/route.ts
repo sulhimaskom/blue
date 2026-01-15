@@ -11,6 +11,8 @@ import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { DeploymentService } from "@/lib/services/deployment-service";
 import { NotificationService } from "@/lib/services/notification-service";
+import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
+import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 
 const deployRepoSchema = z.object({
   githubOrg: z
@@ -129,6 +131,31 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           `/projects/${id}/deploy/${deploymentId}`,
         );
 
+        await WebhookEventDispatcher.emitProjectDeployed(
+          user!.id,
+          user!.clerkId,
+          id,
+          deploymentId!,
+          "success",
+          repo.html_url,
+          context,
+        );
+
+        await ActivityFeedService.recordActivity({
+          userId: user!.id,
+          clerkId: user!.clerkId,
+          entityType: "deployment",
+          entityId: deploymentId!,
+          eventType: "deployment.created",
+          eventData: {
+            projectId: id,
+            projectName: project.name,
+            environment,
+            status: "deployed",
+            repoUrl: repo.html_url,
+          },
+        }, context);
+
         // Update project status if this is production deployment
         if (environment === "production") {
           await ProjectDataService.updateProjectDeployment(id, repo.html_url);
@@ -180,6 +207,32 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           },
           deploymentId ? `/projects/${id}/deploy/${deploymentId}` : `/projects/${id}`,
         );
+
+        if (deploymentId) {
+          await WebhookEventDispatcher.emitProjectDeployed(
+            user!.id,
+            user!.clerkId,
+            id,
+            deploymentId,
+            "failed",
+            undefined,
+            context,
+          );
+
+          await ActivityFeedService.recordActivity({
+            userId: user!.id,
+            clerkId: user!.clerkId,
+            entityType: "deployment",
+            entityId: deploymentId,
+            eventType: "deployment.failed",
+            eventData: {
+              projectId: id,
+              projectName: project.name,
+              environment,
+              status: "failed",
+            },
+          }, context);
+        }
 
         if (error instanceof GitHubServiceError) {
           logger.error("GitHub service error during deployment", {

@@ -591,6 +591,21 @@ class TeamService {
             newRole,
           );
 
+          await NotificationService.dispatch(
+            targetUser.clerkId,
+            "team_member_role_changed" as const,
+            "Team Role Updated",
+            `Your role in team "${teamDetails.name}" has been changed from ${previousRole} to ${newRole}.`,
+            {
+              teamId,
+              teamName: teamDetails.name,
+              previousRole,
+              newRole,
+              updatedBy: requestingUser.email,
+            },
+            `/teams/${teamId}`,
+          );
+
           await ActivityFeedService.recordActivity({
             userId: requestingUserId,
             clerkId: requestingUser.clerkId,
@@ -726,6 +741,20 @@ class TeamService {
             targetUser.clerkId,
             targetUser.email,
             removedMember.role as TeamRole,
+          );
+
+          await NotificationService.dispatch(
+            targetUser.clerkId,
+            "team_member_removed" as const,
+            "Removed from Team",
+            `You have been removed from team "${teamDetails.name}".`,
+            {
+              teamId,
+              teamName: teamDetails.name,
+              role: removedMember.role,
+              removedBy: requestingUser.email,
+            },
+            undefined,
           );
 
           await ActivityFeedService.recordActivity({

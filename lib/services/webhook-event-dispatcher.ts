@@ -341,9 +341,9 @@ export class WebhookEventDispatcher {
   }
 
   /**
-   * Emit blueprint status changed webhook event
-   * Triggered when blueprint status changes between any states
-   */
+    * Emit blueprint status changed webhook event
+    * Triggered when blueprint status changes between any states
+    */
   static async emitBlueprintStatusChanged(
     userId: number,
     clerkId: string,
@@ -371,6 +371,47 @@ export class WebhookEventDispatcher {
 
     await this.dispatchEventToSubscribers(
       "blueprint.status_changed",
+      eventData,
+      `user-${clerkId}`,
+      context,
+    );
+  }
+
+  /**
+   * Emit blueprint refined webhook event
+   * Triggered when a blueprint is refined with new feedback
+   */
+  static async emitBlueprintRefined(
+    userId: number,
+    clerkId: string,
+    projectId: string,
+    blueprintId: string,
+    blueprintVersion: number,
+    blueprintName?: string,
+    updateType?: "feature" | "tech" | "architecture" | "monetization",
+    previousVersion?: number,
+    metadata?: Record<string, any>,
+    context?: RequestContext,
+  ): Promise<void> {
+    const eventData: BlueprintLifecycleEventData & { 
+      updateType?: string;
+      previousVersion?: number;
+    } = {
+      userId,
+      clerkId,
+      projectId,
+      blueprintId,
+      blueprintVersion,
+      blueprintName,
+      blueprintStatus: "completed",
+      updateType,
+      previousVersion,
+      metadata,
+      timestamp: new Date(),
+    };
+
+    await this.dispatchEventToSubscribers(
+      "blueprint.refined",
       eventData,
       `user-${clerkId}`,
       context,
