@@ -4,10 +4,14 @@ import { circuitBreakerRegistry, SERVICE_CONFIGS } from "@/lib/circuit-breaker";
 import { retryService, RETRY_CONFIGS } from "./retry-service";
 import { env } from "@/lib/env";
 import * as crypto from "crypto";
+import {
+  DatabaseError,
+  ValidationError,
+  AuthenticationError,
+} from "@/lib/api-utils";
 import type {
   GitHubRepoConfig,
   GitHubCreateRepoResponse,
-  APIErrorResponse,
 } from "./service-types";
 
 /**
@@ -16,32 +20,6 @@ import type {
  * Handles GitHub App API integration for repository creation and management.
  * Uses GitHub App authentication for higher rate limits and proper permissions.
  */
-
-class GitHubServiceError extends Error {
-  // Public properties for error serialization and debugging
-  public statusCode?: number;
-  public response?: APIErrorResponse;
-
-  constructor(
-    message: string,
-    statusCode?: number,
-    response?: APIErrorResponse,
-  ) {
-    super(message);
-    this.name = "GitHubServiceError";
-    this.statusCode = statusCode;
-    this.response = response;
-  }
-
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      statusCode: this.statusCode,
-      response: this.response,
-    };
-  }
-}
 
 class GitHubService {
   private baseUrl = "https://api.github.com";
@@ -59,12 +37,12 @@ class GitHubService {
     const appId = env.GITHUB_APP_ID || "";
     const privateKey = env.GITHUB_APP_PRIVATE_KEY || "";
 
-    if (!appId || !privateKey) {
+      if (!appId || !privateKey) {
       logger.error("GitHub App credentials not configured", {
         hasAppId: !!appId,
         hasPrivateKey: !!privateKey,
       });
-      throw new GitHubServiceError(
+      throw new AuthenticationError(
         "GitHub App credentials not properly configured",
       );
     }
@@ -133,15 +111,13 @@ class GitHubService {
       });
 
       if (error instanceof Error && error.message.includes("PEM routines")) {
-        throw new GitHubServiceError(
+        throw new ValidationError(
           "Invalid GitHub App private key format. Please check GITHUB_APP_PRIVATE_KEY environment variable.",
-          500,
         );
       }
 
-      throw new GitHubServiceError(
+      throw new DatabaseError(
         `Failed to create GitHub App JWT: ${error instanceof Error ? error.message : "Unknown error"}`,
-        500,
       );
     }
   }
@@ -157,9 +133,9 @@ class GitHubService {
 
     try {
       // Check circuit breaker state before making request
-      if (!this.circuitBreaker.isAvailable()) {
+        if (!this.circuitBreaker.isAvailable()) {
         const metrics = this.circuitBreaker.getMetrics();
-        const error = new GitHubServiceError(
+        const error = new ValidationError(
           `GitHub service temporarily unavailable (circuit breaker: ${metrics.state})`,
         );
 
@@ -179,7 +155,7 @@ class GitHubService {
         const token = env.GITHUB_ACCESS_TOKEN;
 
         if (!token) {
-          throw new GitHubServiceError(
+          throw new AuthenticationError(
             "GitHub authentication not available. Please contact administrator.",
           );
         }
@@ -223,11 +199,6 @@ class GitHubService {
               if (fetchResponse.status === 409) {
                 // Don't retry on idempotency conflict
                 const errorText = await fetchResponse.text();
-                const apiErrorResponse: APIErrorResponse = {
-                  message: `Repository already exists: ${config.name}`,
-                  status: fetchResponse.status,
-                  details: { error: errorText },
-                };
                 logger.warn(
                   "Repository already exists (idempotency - no retry)",
                   {
@@ -235,32 +206,22 @@ class GitHubService {
                     org: config.org,
                     name: config.name,
                     status: fetchResponse.status,
+                    error: errorText,
                   },
                 );
-                throw new GitHubServiceError(
+                throw new ValidationError(
                   `Repository already exists: ${config.name}`,
-                  fetchResponse.status,
-                  apiErrorResponse,
                 );
               }
 
-              const errorText = await fetchResponse.text();
-              const apiErrorResponse: APIErrorResponse = {
-                message: `Failed to create repository: ${fetchResponse.statusText}`,
-                status: fetchResponse.status,
-                details: { error: errorText },
-              };
               logger.error("Failed to create repository (will retry)", {
                 requestId: context.requestId,
                 org: config.org,
                 name: config.name,
                 status: fetchResponse.status,
-                error: errorText,
               });
-              throw new GitHubServiceError(
+              throw new DatabaseError(
                 `Failed to create repository: ${fetchResponse.statusText}`,
-                fetchResponse.status,
-                apiErrorResponse,
               );
             }
 
@@ -268,14 +229,14 @@ class GitHubService {
           },
           {
             ...RETRY_CONFIGS.NETWORK_SENSITIVE,
-            retryableErrors: (error) => {
-              // Don't retry on idempotency conflicts (409)
-              if (
-                error instanceof GitHubServiceError &&
-                error.statusCode === 409
-              ) {
-                return false;
-              }
+              retryableErrors: (error) => {
+               // Don't retry on idempotency conflicts (409)
+               if (
+                 error instanceof ValidationError &&
+                 error.message.includes("Repository already exists")
+               ) {
+                 return false;
+               }
               // Use default retryable error detection
               return retryService.isRetryableError(error);
             },
@@ -386,7 +347,7 @@ class GitHubService {
         );
 
         if (!masterResponse.ok) {
-          throw new GitHubServiceError("Could not find default branch");
+          throw new DatabaseError("Could not find default branch");
         }
 
         const masterData = await masterResponse.json();
@@ -456,7 +417,7 @@ class GitHubService {
         );
 
         if (!fetchResponse.ok) {
-          throw new GitHubServiceError("Failed to create blueprint blob");
+          throw new DatabaseError("Failed to create blueprint blob");
         }
 
         return fetchResponse;
@@ -501,7 +462,7 @@ class GitHubService {
         );
 
         if (!fetchResponse.ok) {
-          throw new GitHubServiceError("Failed to create tree");
+          throw new DatabaseError("Failed to create tree");
         }
 
         return fetchResponse;
@@ -540,7 +501,7 @@ class GitHubService {
         );
 
         if (!fetchResponse.ok) {
-          throw new GitHubServiceError("Failed to create commit");
+          throw new DatabaseError("Failed to create commit");
         }
 
         return fetchResponse;
@@ -644,5 +605,3 @@ class GitHubService {
 
 // Export singleton instance
 export const githubService = new GitHubService();
-
-export { GitHubServiceError };

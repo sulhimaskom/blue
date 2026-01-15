@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { DatabaseError } from "@/lib/api-utils";
 import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 import { AIMemoryOptimizationService } from "@/lib/services/performance/ai-memory-optimization-service";
 import { AdvancedCacheStrategiesService } from "@/lib/services/performance/advanced-cache-strategies-service";
@@ -232,7 +233,7 @@ export class PerformanceOrchestratorService {
       };
     } catch (error) {
       logger.error("Performance optimization workflow error", { error });
-      throw new Error(
+      throw new DatabaseError(
         `Optimization workflow failed: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }

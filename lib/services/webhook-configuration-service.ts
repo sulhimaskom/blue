@@ -3,6 +3,11 @@ import { db } from "@/lib/db";
 import { webhookConfigurations, webhookEvents } from "@/lib/db/schema";
 import { eq, and, desc, isNull } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+import {
+  DatabaseError,
+  NotFoundError,
+  ValidationError,
+} from "@/lib/api-utils";
 import type {
   WebhookConfiguration,
   WebhookEvent,
@@ -35,28 +40,6 @@ export interface WebhookEventHistoryOptions {
   eventType?: WebhookEventType;
   startDate?: Date;
   endDate?: Date;
-}
-
-class ServiceError extends Error {
-  constructor(
-    message: string,
-    public _code: string,
-  ) {
-    super(message);
-    this.name = "ServiceError";
-  }
-
-  static databaseError(message: string) {
-    return new ServiceError(message, "DATABASE_ERROR");
-  }
-
-  static notFound(message: string) {
-    return new ServiceError(message, "NOT_FOUND");
-  }
-
-  static badRequest(message: string) {
-    return new ServiceError(message, "BAD_REQUEST");
-  }
 }
 
 export class WebhookConfigurationService {
@@ -104,7 +87,7 @@ export class WebhookConfigurationService {
         userId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      throw ServiceError.databaseError(
+      throw new DatabaseError(
         "Failed to create webhook configuration",
       );
     }
@@ -132,7 +115,7 @@ export class WebhookConfigurationService {
         userId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      throw ServiceError.databaseError("Failed to get webhook configurations");
+      throw new DatabaseError("Failed to get webhook configurations");
     }
   }
 
@@ -160,7 +143,7 @@ export class WebhookConfigurationService {
         webhookId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      throw ServiceError.databaseError("Failed to get webhook configuration");
+      throw new DatabaseError("Failed to get webhook configuration");
     }
   }
 
@@ -172,7 +155,7 @@ export class WebhookConfigurationService {
     try {
       const existing = await this.getConfigurationById(userId, webhookId);
       if (!existing) {
-        throw ServiceError.notFound("Webhook configuration not found");
+        throw new NotFoundError("Webhook configuration not found");
       }
 
       const updateData = {
@@ -195,14 +178,14 @@ export class WebhookConfigurationService {
 
       return updated;
     } catch (error) {
-      if (error instanceof ServiceError) throw error;
+      if (error instanceof DatabaseError || error instanceof NotFoundError || error instanceof ValidationError) throw error;
 
       logger.error("Failed to update webhook configuration", {
         userId,
         webhookId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      throw ServiceError.databaseError(
+      throw new DatabaseError(
         "Failed to update webhook configuration",
       );
     }
@@ -215,7 +198,7 @@ export class WebhookConfigurationService {
     try {
       const existing = await this.getConfigurationById(userId, webhookId);
       if (!existing) {
-        throw ServiceError.notFound("Webhook configuration not found");
+        throw new NotFoundError("Webhook configuration not found");
       }
 
       const database = db();
@@ -232,14 +215,14 @@ export class WebhookConfigurationService {
 
       return true;
     } catch (error) {
-      if (error instanceof ServiceError) throw error;
+      if (error instanceof DatabaseError || error instanceof NotFoundError || error instanceof ValidationError) throw error;
 
       logger.error("Failed to delete webhook configuration", {
         userId,
         webhookId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      throw ServiceError.databaseError(
+      throw new DatabaseError(
         "Failed to delete webhook configuration",
       );
     }
@@ -253,7 +236,7 @@ export class WebhookConfigurationService {
     try {
       const configuration = await this.getConfigurationById(userId, webhookId);
       if (!configuration) {
-        throw ServiceError.notFound("Webhook configuration not found");
+        throw new NotFoundError("Webhook configuration not found");
       }
 
       const startTime = Date.now();
@@ -303,14 +286,14 @@ export class WebhookConfigurationService {
 
       return result;
     } catch (error) {
-      if (error instanceof ServiceError) throw error;
+      if (error instanceof DatabaseError || error instanceof NotFoundError || error instanceof ValidationError) throw error;
 
       logger.error("Failed to test webhook", {
         userId,
         webhookId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      throw ServiceError.databaseError("Failed to test webhook");
+      throw new DatabaseError("Failed to test webhook");
     }
   }
 
@@ -322,7 +305,7 @@ export class WebhookConfigurationService {
     try {
       const configuration = await this.getConfigurationById(userId, webhookId);
       if (!configuration) {
-        throw ServiceError.notFound("Webhook configuration not found");
+        throw new NotFoundError("Webhook configuration not found");
       }
 
       const database = db();
@@ -350,14 +333,14 @@ export class WebhookConfigurationService {
 
       return events;
     } catch (error) {
-      if (error instanceof ServiceError) throw error;
+      if (error instanceof DatabaseError || error instanceof NotFoundError || error instanceof ValidationError) throw error;
 
       logger.error("Failed to get webhook event history", {
         userId,
         webhookId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      throw ServiceError.databaseError("Failed to get webhook event history");
+      throw new DatabaseError("Failed to get webhook event history");
     }
   }
 
@@ -383,13 +366,13 @@ export class WebhookConfigurationService {
         );
 
       if (!event) {
-        throw ServiceError.notFound("Failed webhook event not found");
+        throw new NotFoundError("Failed webhook event not found");
       }
 
       const { event: webhookEvent, configuration } = event;
 
       if (webhookEvent.attemptCount >= configuration.retryCount) {
-        throw ServiceError.badRequest("Maximum retry attempts exceeded");
+        throw new ValidationError("Maximum retry attempts exceeded");
       }
 
       const response = await this.sendWebhookRequest(
@@ -424,14 +407,14 @@ export class WebhookConfigurationService {
 
       return response.ok;
     } catch (error) {
-      if (error instanceof ServiceError) throw error;
+      if (error instanceof DatabaseError || error instanceof NotFoundError || error instanceof ValidationError) throw error;
 
       logger.error("Failed to retry webhook", {
         userId,
         eventId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      throw ServiceError.databaseError("Failed to retry webhook");
+      throw new DatabaseError("Failed to retry webhook");
     }
   }
 
@@ -442,7 +425,7 @@ export class WebhookConfigurationService {
     try {
       const configuration = await this.getConfigurationById(userId, webhookId);
       if (!configuration) {
-        throw ServiceError.notFound("Webhook configuration not found");
+        throw new NotFoundError("Webhook configuration not found");
       }
 
       const newSecret = this.generateSecureSecret();
@@ -464,14 +447,14 @@ export class WebhookConfigurationService {
 
       return newSecret;
     } catch (error) {
-      if (error instanceof ServiceError) throw error;
+      if (error instanceof DatabaseError || error instanceof NotFoundError || error instanceof ValidationError) throw error;
 
       logger.error("Failed to rotate webhook secret", {
         userId,
         webhookId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      throw ServiceError.databaseError("Failed to rotate webhook secret");
+      throw new DatabaseError("Failed to rotate webhook secret");
     }
   }
 
