@@ -14,6 +14,7 @@ import {
   subscriptionUsage,
   type SubscriptionUsage,
   activityLogs,
+  teamMembers,
 } from "@/lib/db/schema";
 import { db, sql } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
@@ -387,6 +388,68 @@ export class SubscriptionService {
         success: false,
         error: "Failed to check team permission",
       };
+    }
+  }
+
+  /**
+   * Validate if user can invite a team member
+   */
+  async canInviteTeamMember(userId: number): Promise<ServiceResult<{ canInvite: boolean; reason?: string; currentCount?: number; limit?: number }>> {
+    try {
+      const subscriptionResult = await this.getCurrentUserSubscription(userId);
+      if (!subscriptionResult.success || !subscriptionResult.data) {
+        return {
+          success: false,
+          error: subscriptionResult.error || "Failed to get subscription",
+        };
+      }
+
+      const { limits } = subscriptionResult.data;
+
+      if (limits.maxTeams === -1) {
+        return { success: true, data: { canInvite: true } };
+      }
+
+      const currentTeamMembers = await this.getTeamMemberCount(userId);
+
+      if (currentTeamMembers >= limits.maxTeams) {
+        return {
+          success: true,
+          data: {
+            canInvite: false,
+            reason: `Team member limit reached (${currentTeamMembers}/${limits.maxTeams})`,
+            currentCount: currentTeamMembers,
+            limit: limits.maxTeams,
+          },
+        };
+      }
+
+      return { success: true, data: { canInvite: true, currentCount: currentTeamMembers, limit: limits.maxTeams } };
+    } catch (error) {
+      Logger.error("Failed to check team member invitation permission", { userId, error });
+      return {
+        success: false,
+        error: "Failed to check team member permission",
+      };
+    }
+  }
+
+  /**
+   * Get current team member count for user across all teams
+   */
+  async getTeamMemberCount(userId: number): Promise<number> {
+    try {
+      const database = db();
+
+      const result = await database
+        .select({ count: sql<number>`count(*)` })
+        .from(teamMembers)
+        .where(eq(teamMembers.userId, userId));
+
+      return result[0]?.count || 0;
+    } catch (error) {
+      Logger.error("Failed to get team member count", { userId, error });
+      return 0;
     }
   }
 

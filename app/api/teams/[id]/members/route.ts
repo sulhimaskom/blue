@@ -3,6 +3,9 @@ import { RateLimiters } from "@/lib/rate-limit-config";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { teamService } from "@/lib/services/team-service";
+import { SubscriptionService } from "@/lib/services/subscription-service";
+import { ValidationError } from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 
 // Validation schemas
 const inviteMemberSchema = z.object({
@@ -18,23 +21,48 @@ interface RouteParams {
 }
 
 /**
- * Invite a member to the team
+ * Invite a member to team
  */
 export async function POST(req: NextRequest, { params }: RouteParams) {
   const { id: teamId } = await params;
 
   return APIRouteHandler.createPOSTHandler({
     requireAuth: true,
-    requireCredits: 10, // Team member invitation costs 10 credits
+    requireCredits: 10,
     rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
     schema: inviteMemberSchema,
-    handler: async ({ user, data }) => {
+    handler: async ({ context, user, data }) => {
+      const subscriptionService = SubscriptionService.getInstance();
+
+      const canInviteResult = await subscriptionService.canInviteTeamMember(user!.id);
+
+      if (!canInviteResult.success || !canInviteResult.data) {
+        throw new ValidationError(
+          canInviteResult.error || "Failed to validate team member invitation",
+        );
+      }
+
+      if (!canInviteResult.data.canInvite) {
+        throw new ValidationError(
+          canInviteResult.data.reason || "Cannot invite team member. Subscription limit reached.",
+        );
+      }
+
       const { email, role } = data!;
 
       const result = await teamService.inviteTeamMember(teamId, {
         email,
         role,
       }, user!.id);
+
+      logger.userAction("Team member invited", user!.clerkId, {
+        requestId: context.requestId,
+        teamId,
+        email,
+        role,
+        currentCount: canInviteResult.data.currentCount,
+        limit: canInviteResult.data.limit,
+      });
 
       return {
         data: result,
@@ -54,8 +82,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
     handler: async ({ user }) => {
-      // This would need to be implemented in TeamService
-      // For now, we get the team details which includes members
       const team = await teamService.getTeamById(teamId, user!.id);
 
       return {
