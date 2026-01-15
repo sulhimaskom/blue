@@ -68,7 +68,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           status: "deployed",
         });
 
-        await Promise.all([
+        const results = await Promise.allSettled([
           DeploymentService.notifyDeploymentStatus(
             rollbackDeploymentId,
             "deployed",
@@ -99,6 +99,20 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
             },
           }, context),
         ]);
+
+        results.forEach((result, index) => {
+          if (result.status === "rejected") {
+            const taskName = [
+              "DeploymentService.notifyDeploymentStatus",
+              "WebhookEventDispatcher.emitProjectDeployed",
+              "ActivityFeedService.recordActivity",
+            ][index];
+            logger.error(`Post-rollback task '${taskName}' failed`, {
+              requestId: context.requestId,
+              error: result.reason,
+            });
+          }
+        });
 
         logger.userAction("Rollback successful", user!.clerkId, {
           requestId: context.requestId,
