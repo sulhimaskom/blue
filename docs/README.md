@@ -27,6 +27,7 @@
 
 - **[deployment/SETUP.md](./deployment/SETUP.md)** - Production deployment procedures
 - **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Emergency procedures & issue resolution
+- **[ci-cd-monitoring.md](./ci-cd-monitoring.md)** - **NEW** CI/CD observability & performance tracking
 - **[PERFORMANCE_OPTIMIZATION.md](./PERFORMANCE_OPTIMIZATION.md)** - Performance tuning guidelines
 
 ### 📊 For Project Management

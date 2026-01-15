@@ -413,6 +413,50 @@ npm ls --depth=0 | grep -E '[0-9]+\.[0-9]+\.[0-9]+.*MB'
 
 ## 🧪 Testing & CI/CD Issues
 
+### Issue: **CI/CD Performance Degradation**
+
+**Symptoms:**
+
+```
+Build times increasing over time
+Test execution slowing down
+Missing performance metrics
+No automated alerting for issues
+```
+
+**Resolution:**
+
+1. **Review CI/CD Monitoring:**
+```bash
+# Check CI/CD monitoring metrics
+# Navigate to: https://github.com/sulhimaskom/blue/actions/workflows/ci-monitoring.yml
+
+# View latest monitoring run for performance data
+```
+
+2. **Access Performance Reports:**
+- Download `ci-metrics-{run_id}` artifact - Markdown summary
+- Download `performance-report-{run_id}` artifact - JSON performance data
+- Check daily health reports for trends
+
+3. **Review Thresholds:**
+```yaml
+# .github/workflows/ci-monitoring.yml
+# Current thresholds:
+OVERALL_THRESHOLD=120  # 2 minutes
+BUILD_THRESHOLD=60     # 1 minute
+TEST_THRESHOLD=30      # 30 seconds
+```
+
+**Automated Alerts:**
+- GitHub issues automatically created with `ci`, `performance`, `P2` labels when thresholds exceeded
+- Duplicate detection prevents multiple issues for same problem
+- Detailed performance breakdown included in issue body
+
+**Documentation:** [docs/ci-cd-monitoring.md](./ci-cd-monitoring.md) - Complete CI/CD observability guide
+
+---
+
 ### Issue: **Test Failures in CI/CD Pipeline**
 
 **Symptoms:**
