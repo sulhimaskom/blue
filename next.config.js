@@ -1,3 +1,4 @@
+const path = require('path');
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
@@ -34,6 +35,15 @@ const nextConfig = {
 
   // Streamlined webpack for maximum speed
   webpack: (config, { dev, isServer }) => {
+    if (isServer) {
+      config.resolve = {
+        ...config.resolve,
+        alias: {
+          ...config.resolve.alias,
+          'self': path.resolve(__dirname, './scripts/empty.js'),
+        },
+      };
+    }
     // Fix for Issue #299: Handle node: scheme imports from Sentry (Enhanced)
     config.resolve = {
       ...config.resolve,
