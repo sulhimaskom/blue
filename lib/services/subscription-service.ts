@@ -13,6 +13,7 @@ import {
   subscriptionPlans,
   subscriptionUsage,
   type SubscriptionUsage,
+  activityLogs,
 } from "@/lib/db/schema";
 import { db, sql } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
@@ -527,7 +528,7 @@ export class SubscriptionService {
   }
 
   /**
-   * Track resource usage for the current period
+   * Track resource usage for current period
    */
   async trackUsage(
     userId: number,
@@ -579,6 +580,175 @@ export class SubscriptionService {
       return {
         success: false,
         error: "Failed to track usage",
+      };
+    }
+  }
+
+  /**
+   * Get detailed credit usage breakdown by operation type
+   * Analyzes activity logs to categorize credit consumption
+   */
+  async getCreditUsageBreakdown(userId: number): Promise<
+    ServiceResult<{
+      breakdown: Record<
+        string,
+        { count: number; credits: number; percentage: number }
+      >;
+      chartData: Array<{ date: string; credits: number }>;
+      recommendations: string[];
+      topOperations: Array<{
+        type: string;
+        count: number;
+        credits: number;
+      }>;
+      totalCredits: number;
+    }>
+  > {
+    try {
+      const database = db();
+
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+      const activities = await database
+        .select({
+          eventType: activityLogs.eventType,
+          eventData: activityLogs.eventData,
+          timestamp: activityLogs.timestamp,
+        })
+        .from(activityLogs)
+        .where(
+          and(
+            eq(activityLogs.userId, userId),
+            sql`${activityLogs.timestamp} >= ${ninetyDaysAgo}`,
+          ),
+        )
+        .orderBy(activityLogs.timestamp);
+
+      const breakdown: Record<
+        string,
+        { count: number; credits: number; percentage: number }
+      > = {
+        blueprint_generation: { count: 0, credits: 0, percentage: 0 },
+        deployment_production: { count: 0, credits: 0, percentage: 0 },
+        deployment_staging: { count: 0, credits: 0, percentage: 0 },
+        team_invitation: { count: 0, credits: 0, percentage: 0 },
+        team_creation: { count: 0, credits: 0, percentage: 0 },
+        team_project_addition: { count: 0, credits: 0, percentage: 0 },
+        other: { count: 0, credits: 0, percentage: 0 },
+      };
+
+      let totalCredits = 0;
+
+      for (const activity of activities) {
+        const creditsDeducted = (activity.eventData as Record<string, unknown>)?.creditsDeducted as number || 0;
+
+        if (creditsDeducted <= 0) continue;
+
+        totalCredits += creditsDeducted;
+
+        let category = "other";
+
+        if (activity.eventType === "blueprint_created") {
+          category = "blueprint_generation";
+        } else if (activity.eventType === "deployment_created") {
+          if ((activity.eventData as Record<string, unknown>)?.environment === "production") {
+            category = "deployment_production";
+          } else {
+            category = "deployment_staging";
+          }
+        } else if (activity.eventType === "team_member_invited") {
+          category = "team_invitation";
+        } else if (activity.eventType === "team_created") {
+          category = "team_creation";
+        } else if (activity.eventType === "team_project_added") {
+          category = "team_project_addition";
+        }
+
+        if (breakdown[category]) {
+          breakdown[category].count += 1;
+          breakdown[category].credits += creditsDeducted;
+        } else {
+          breakdown.other.count += 1;
+          breakdown.other.credits += creditsDeducted;
+        }
+      }
+
+      for (const category in breakdown) {
+        breakdown[category].percentage = totalCredits > 0 ? (breakdown[category].credits / totalCredits) * 100 : 0;
+      }
+
+      const dailyUsage: Map<string, number> = new Map();
+
+      for (const activity of activities) {
+        const dateKey = activity.timestamp.toISOString().split("T")[0];
+        const creditsDeducted = (activity.eventData as Record<string, unknown>)?.creditsDeducted as number || 0;
+
+        if (creditsDeducted > 0) {
+          dailyUsage.set(dateKey, (dailyUsage.get(dateKey) || 0) + creditsDeducted);
+        }
+      }
+
+      const chartData: Array<{ date: string; credits: number }> = [];
+      const sortedDates = Array.from(dailyUsage.keys()).sort();
+
+      for (const date of sortedDates) {
+        chartData.push({
+          date,
+          credits: dailyUsage.get(date) || 0,
+        });
+      }
+
+      const recommendations: string[] = [];
+      const topOperations = Object.entries(breakdown)
+        .map(([type, data]) => ({ type, ...data }))
+        .filter((op) => op.credits > 0)
+        .sort((a, b) => b.credits - a.credits)
+        .slice(0, 5);
+
+      const blueprintUsage = breakdown.blueprint_generation.credits;
+      const deploymentUsage = breakdown.deployment_production.credits + breakdown.deployment_staging.credits;
+      const teamUsage = breakdown.team_invitation.credits + breakdown.team_creation.credits + breakdown.team_project_addition.credits;
+
+      if (teamUsage > totalCredits * 0.3) {
+        recommendations.push(
+          "Team operations consume a large portion of your credits (30%+). Consider consolidating team projects.",
+        );
+      }
+
+      if (deploymentUsage > totalCredits * 0.4) {
+        recommendations.push(
+          "Consider using staging environments more frequently to reduce production deployment costs.",
+        );
+      }
+
+      if (totalCredits > 0 && blueprintUsage === 0) {
+        recommendations.push(
+          "You haven't used blueprint generation recently. Explore AI-powered features to accelerate development.",
+        );
+      }
+
+      if (totalCredits > 100) {
+        recommendations.push(
+          "Your credit usage is high. Consider upgrading to Pro or Enterprise tier for better value.",
+        );
+      }
+
+      return {
+        success: true,
+        data: {
+          breakdown,
+          chartData,
+          recommendations,
+          topOperations,
+          totalCredits,
+        },
+      };
+    } catch (error) {
+      Logger.error("Failed to get credit usage breakdown", { userId, error });
+      return {
+        success: false,
+        error: "Failed to get credit usage breakdown",
       };
     }
   }
