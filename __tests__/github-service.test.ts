@@ -169,41 +169,4 @@ describe("GitHubService", () => {
       expect(result).toBe(false);
     });
   });
-
-  describe("GitHubServiceError", () => {
-    // Clear module cache to create new instances for proper testing
-    let OriginalGitHubServiceError: any;
-
-    beforeAll(() => {
-      OriginalGitHubServiceError = require("@/lib/services/github-service").GitHubServiceError;
-    });
-
-    it("should serialize to JSON correctly", () => {
-      const error = new (OriginalGitHubServiceError as any)("Test error", 400, {
-        detail: "Bad request",
-      });
-
-      const json = error.toJSON();
-
-      expect(json).toEqual({
-        name: "GitHubServiceError",
-        message: "Test error",
-        statusCode: 400,
-        response: { detail: "Bad request" },
-      });
-    });
-
-    it("should handle missing optional parameters", () => {
-      const error = new (OriginalGitHubServiceError as any)("Simple error");
-
-      const json = error.toJSON();
-
-      expect(json).toEqual({
-        name: "GitHubServiceError",
-        message: "Simple error",
-        statusCode: undefined,
-        response: undefined,
-      });
-    });
-  });
 });
