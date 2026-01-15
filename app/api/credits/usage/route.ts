@@ -35,8 +35,8 @@ export const GET = APIRouteHandler.createGETHandler({
       totalCredits,
       summary: {
         mostConsumed: topOperations[0]?.type || "none",
-        totalOperations: Object.values(breakdown).reduce((sum, op) => sum + op.count, 0),
-        averageDailyUsage: chartData.length > 0 ? Math.round(totalCredits / chartData.length) : 0,
+        totalOperations: Object.values(breakdown).reduce((sum, op) => sum + (op?.count || 0), 0),
+        averageDailyUsage: totalCredits > 0 ? Math.round(totalCredits / 90) : 0,
       },
     };
   },

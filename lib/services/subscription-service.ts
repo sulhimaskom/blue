@@ -688,20 +688,45 @@ export class SubscriptionService {
         )
         .orderBy(activityLogs.timestamp);
 
+      const CATEGORIES = {
+        BLUEPRINT_GENERATION: "blueprint_generation",
+        DEPLOYMENT_PRODUCTION: "deployment_production",
+        DEPLOYMENT_STAGING: "deployment_staging",
+        TEAM_INVITATION: "team_invitation",
+        TEAM_CREATION: "team_creation",
+        TEAM_PROJECT_ADDITION: "team_project_addition",
+        OTHER: "other",
+      } as const;
+
+      const EVENT_TYPE_TO_CATEGORY: Record<string, string> = {
+        blueprint_created: CATEGORIES.BLUEPRINT_GENERATION,
+        team_member_invited: CATEGORIES.TEAM_INVITATION,
+        team_created: CATEGORIES.TEAM_CREATION,
+        team_project_added: CATEGORIES.TEAM_PROJECT_ADDITION,
+      };
+
+      const RECOMMENDATION_THRESHOLDS = {
+        TEAM_USAGE: 0.3,
+        DEPLOYMENT_USAGE: 0.4,
+        HIGH_CREDIT_USAGE: 100,
+        ANALYSIS_WINDOW_DAYS: 90,
+      } as const;
+
       const breakdown: Record<
         string,
         { count: number; credits: number; percentage: number }
       > = {
-        blueprint_generation: { count: 0, credits: 0, percentage: 0 },
-        deployment_production: { count: 0, credits: 0, percentage: 0 },
-        deployment_staging: { count: 0, credits: 0, percentage: 0 },
-        team_invitation: { count: 0, credits: 0, percentage: 0 },
-        team_creation: { count: 0, credits: 0, percentage: 0 },
-        team_project_addition: { count: 0, credits: 0, percentage: 0 },
-        other: { count: 0, credits: 0, percentage: 0 },
+        [CATEGORIES.BLUEPRINT_GENERATION]: { count: 0, credits: 0, percentage: 0 },
+        [CATEGORIES.DEPLOYMENT_PRODUCTION]: { count: 0, credits: 0, percentage: 0 },
+        [CATEGORIES.DEPLOYMENT_STAGING]: { count: 0, credits: 0, percentage: 0 },
+        [CATEGORIES.TEAM_INVITATION]: { count: 0, credits: 0, percentage: 0 },
+        [CATEGORIES.TEAM_CREATION]: { count: 0, credits: 0, percentage: 0 },
+        [CATEGORIES.TEAM_PROJECT_ADDITION]: { count: 0, credits: 0, percentage: 0 },
+        [CATEGORIES.OTHER]: { count: 0, credits: 0, percentage: 0 },
       };
 
       let totalCredits = 0;
+      const dailyUsage: Map<string, number> = new Map();
 
       for (const activity of activities) {
         const creditsDeducted = (activity.eventData as Record<string, unknown>)?.creditsDeducted as number || 0;
@@ -710,46 +735,28 @@ export class SubscriptionService {
 
         totalCredits += creditsDeducted;
 
-        let category = "other";
+        let category: string = CATEGORIES.OTHER;
 
-        if (activity.eventType === "blueprint_created") {
-          category = "blueprint_generation";
-        } else if (activity.eventType === "deployment_created") {
-          if ((activity.eventData as Record<string, unknown>)?.environment === "production") {
-            category = "deployment_production";
-          } else {
-            category = "deployment_staging";
-          }
-        } else if (activity.eventType === "team_member_invited") {
-          category = "team_invitation";
-        } else if (activity.eventType === "team_created") {
-          category = "team_creation";
-        } else if (activity.eventType === "team_project_added") {
-          category = "team_project_addition";
-        }
-
-        if (breakdown[category]) {
-          breakdown[category].count += 1;
-          breakdown[category].credits += creditsDeducted;
+        if (activity.eventType === "deployment_created") {
+          category = (activity.eventData as { environment?: string })?.environment === "production"
+            ? CATEGORIES.DEPLOYMENT_PRODUCTION
+            : CATEGORIES.DEPLOYMENT_STAGING;
         } else {
-          breakdown.other.count += 1;
-          breakdown.other.credits += creditsDeducted;
+          category = EVENT_TYPE_TO_CATEGORY[activity.eventType] || CATEGORIES.OTHER;
         }
+
+        const breakdownCategory = breakdown[category];
+        if (breakdownCategory) {
+          breakdownCategory.count += 1;
+          breakdownCategory.credits += creditsDeducted;
+        }
+
+        const dateKey = activity.timestamp.toISOString().split("T")[0];
+        dailyUsage.set(dateKey, (dailyUsage.get(dateKey) || 0) + creditsDeducted);
       }
 
       for (const category in breakdown) {
         breakdown[category].percentage = totalCredits > 0 ? (breakdown[category].credits / totalCredits) * 100 : 0;
-      }
-
-      const dailyUsage: Map<string, number> = new Map();
-
-      for (const activity of activities) {
-        const dateKey = activity.timestamp.toISOString().split("T")[0];
-        const creditsDeducted = (activity.eventData as Record<string, unknown>)?.creditsDeducted as number || 0;
-
-        if (creditsDeducted > 0) {
-          dailyUsage.set(dateKey, (dailyUsage.get(dateKey) || 0) + creditsDeducted);
-        }
       }
 
       const chartData: Array<{ date: string; credits: number }> = [];
@@ -769,17 +776,17 @@ export class SubscriptionService {
         .sort((a, b) => b.credits - a.credits)
         .slice(0, 5);
 
-      const blueprintUsage = breakdown.blueprint_generation.credits;
-      const deploymentUsage = breakdown.deployment_production.credits + breakdown.deployment_staging.credits;
-      const teamUsage = breakdown.team_invitation.credits + breakdown.team_creation.credits + breakdown.team_project_addition.credits;
+      const blueprintUsage = breakdown[CATEGORIES.BLUEPRINT_GENERATION].credits;
+      const deploymentUsage = breakdown[CATEGORIES.DEPLOYMENT_PRODUCTION].credits + breakdown[CATEGORIES.DEPLOYMENT_STAGING].credits;
+      const teamUsage = breakdown[CATEGORIES.TEAM_INVITATION].credits + breakdown[CATEGORIES.TEAM_CREATION].credits + breakdown[CATEGORIES.TEAM_PROJECT_ADDITION].credits;
 
-      if (teamUsage > totalCredits * 0.3) {
+      if (teamUsage > totalCredits * RECOMMENDATION_THRESHOLDS.TEAM_USAGE) {
         recommendations.push(
-          "Team operations consume a large portion of your credits (30%+). Consider consolidating team projects.",
+          `Team operations consume a large portion of your credits (${(RECOMMENDATION_THRESHOLDS.TEAM_USAGE * 100).toFixed(0)}%+). Consider consolidating team projects.`,
         );
       }
 
-      if (deploymentUsage > totalCredits * 0.4) {
+      if (deploymentUsage > totalCredits * RECOMMENDATION_THRESHOLDS.DEPLOYMENT_USAGE) {
         recommendations.push(
           "Consider using staging environments more frequently to reduce production deployment costs.",
         );
@@ -791,7 +798,7 @@ export class SubscriptionService {
         );
       }
 
-      if (totalCredits > 100) {
+      if (totalCredits > RECOMMENDATION_THRESHOLDS.HIGH_CREDIT_USAGE) {
         recommendations.push(
           "Your credit usage is high. Consider upgrading to Pro or Enterprise tier for better value.",
         );
