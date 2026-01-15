@@ -1,4 +1,4 @@
-import { eq, and, desc, count, ilike, isNull, inArray, sum } from "drizzle-orm";
+import { eq, and, desc, count, ilike, isNull, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   teams,
@@ -6,7 +6,6 @@ import {
   teamProjects,
   users,
   projects,
-  transactions,
   type Team,
   type TeamMember,
   type TeamProject,
@@ -28,6 +27,9 @@ import { teamCache } from "@/lib/services/cache-orchestrator";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 import { NotificationService, type NotificationMetadata } from "@/lib/services/notification-service";
+import { subscriptionLimitsService } from "@/lib/services/subscription-limits-service";
+import { teamMemberAccessService } from "@/lib/services/team-member-access-service";
+import { teamAnalyticsService } from "@/lib/services/team-analytics-service";
 
 export type TeamRole = "admin" | "member" | "viewer";
 
@@ -86,13 +88,11 @@ class TeamService {
       }
 
       // Check user's team limits based on subscription
-      const userTeamsCount = await this.getUserActiveTeamCount(request.ownerId);
-      const maxTeams = this.getMaxTeamsForSubscription(user[0].subscriptionTier || "free");
+      const userTeamsCount = await teamMemberAccessService.getUserActiveTeamCount(request.ownerId);
+      const subscriptionTier = user[0].subscriptionTier || "free";
 
-      if (userTeamsCount >= maxTeams) {
-        throw new ValidationError(
-          `Maximum ${maxTeams} teams allowed for ${user[0].subscriptionTier} subscription`
-        );
+      if (!subscriptionLimitsService.canCreateTeam(userTeamsCount, subscriptionTier)) {
+        throw new ValidationError(subscriptionLimitsService.getTeamLimitError(subscriptionTier));
       }
 
       // Create team and add owner as admin
@@ -261,7 +261,7 @@ class TeamService {
       const cached = await teamCache.get(cacheKey);
       if (cached) {
         // Verify user has access
-        await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
+        await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
         return cached;
       }
 
@@ -277,7 +277,7 @@ class TeamService {
       }
 
       // Verify user access
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
 
       // Get team members with user details
       const members = await database.select({
@@ -357,7 +357,7 @@ class TeamService {
       }
 
       // Verify inviting user is team admin
-      await this.verifyTeamAccess(teamId, invitingUserId, ["admin"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, invitingUserId, ["admin"]);
 
       // Get team and check member limits
       const database = db();
@@ -372,13 +372,11 @@ class TeamService {
         throw new NotFoundError("Team not found");
       }
 
-      const memberCount = await this.getTeamMemberCount(teamId);
-      const maxMembers = this.getMaxMembersForSubscription(team.subscriptionTier);
+      const memberCount = await teamMemberAccessService.getTeamMemberCount(teamId);
+      const subscriptionTier = team.subscriptionTier || "free";
 
-      if (memberCount >= maxMembers) {
-        throw new ValidationError(
-          `Maximum ${maxMembers} members allowed for ${team.subscriptionTier} subscription`
-        );
+      if (!subscriptionLimitsService.canAddMember(memberCount, subscriptionTier)) {
+        throw new ValidationError(subscriptionLimitsService.getMemberLimitError(subscriptionTier));
       }
 
       // Find user by email
@@ -524,7 +522,7 @@ class TeamService {
       }
 
       // Verify requesting user is team admin
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
 
       // Cannot remove owner's admin role
       const database = db();
@@ -673,7 +671,7 @@ class TeamService {
   ): Promise<void> {
     try {
       // Verify requesting user is team admin
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
 
       // Cannot remove team owner
       const database = db();
@@ -829,7 +827,7 @@ class TeamService {
   ): Promise<TeamProject> {
     try {
       // Verify requesting user has admin or member access to team
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
 
       // Verify user is project owner
       const database = db();
@@ -906,7 +904,7 @@ class TeamService {
 
     try {
       // Verify user has access to team
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin", "member", "viewer"]);
 
       // Get team projects
       const database = db();
@@ -1116,109 +1114,6 @@ class TeamService {
   }
 
   /**
-   * Private helper methods
-   */
-
-  /**
-   * Get user's active team count
-   */
-  private async getUserActiveTeamCount(userId: number): Promise<number> {
-    try {
-      const database = db();
-      const [{ count: teamCount }] = await database.select({ count: count() })
-        .from(teamMembers)
-        .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-        .where(and(
-          eq(teamMembers.userId, userId),
-          isNull(teamMembers.deletedAt),
-          isNull(teams.deletedAt)
-        ));
-
-      return teamCount;
-    } catch (error) {
-      logger.error("Failed to get user team count", {
-        error: error instanceof Error ? error.message : String(error),
-        userId,
-      });
-      return 0;
-    }
-  }
-
-  /**
-   * Get team member count
-   */
-  private async getTeamMemberCount(teamId: string): Promise<number> {
-    try {
-      const database = db();
-      const [{ count: memberCount }] = await database.select({ count: count() })
-        .from(teamMembers)
-        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
-
-      return memberCount;
-    } catch (error) {
-      logger.error("Failed to get team member count", {
-        error: error instanceof Error ? error.message : String(error),
-        teamId,
-      });
-      return 0;
-    }
-  }
-
-  /**
-   * Verify user has team access with specified roles
-   */
-  private async verifyTeamAccess(
-    teamId: string,
-    userId: number,
-    allowedRoles: TeamRole[]
-  ): Promise<TeamMember> {
-    try {
-      const database = db();
-      const [member] = await database.select().from(teamMembers)
-        .where(and(
-          eq(teamMembers.teamId, teamId),
-          eq(teamMembers.userId, userId),
-          isNull(teamMembers.deletedAt)
-        ))
-        .limit(1);
-
-      if (!member) {
-        throw new AuthorizationError("You are not a member of this team");
-      }
-
-      if (!allowedRoles.includes(member.role as TeamRole)) {
-        throw new AuthorizationError("Insufficient permissions for this action");
-      }
-
-      return member;
-    } catch (error) {
-      if (
-        error instanceof ServiceError ||
-        error instanceof ValidationError ||
-        error instanceof AuthenticationError ||
-        error instanceof AuthorizationError ||
-        error instanceof NotFoundError ||
-        error instanceof DatabaseError
-      ) {
-        throw error;
-      }
-
-      throw new DatabaseError("Failed to verify team access");
-    }
-  }
-
-  /**
-   * Get maximum teams allowed for subscription tier
-   */
-  private getMaxTeamsForSubscription(tier: string): number {
-    const limits: Record<string, number> = {
-      free: 1,
-      pro: 5,
-      enterprise: -1, // unlimited
-    };
-    return limits[tier] || 1;
-  }
-
   /**
    * Get team usage analytics
    */
@@ -1230,92 +1125,7 @@ class TeamService {
     memberCreditUsage: Array<{ userId: number; creditsConsumed: number }>;
     createdAt: string;
   }> {
-    const cacheKey = `team:${teamId}:analytics`;
-
-    try {
-      // Check cache first
-      const cached = await teamCache.get(cacheKey);
-      if (cached) {
-        // Verify user has access
-        await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
-        return cached;
-      }
-
-      // Verify user has access to team analytics
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin", "member"]);
-
-      const database = db();
-      
-      // Get team member count
-      const [{ memberCount }] = await database
-        .select({ memberCount: count() })
-        .from(teamMembers)
-        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
-
-      // Get team project count
-      const [{ projectCount }] = await database
-        .select({ projectCount: count() })
-        .from(teamMembers)
-        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
-
-      // Get credits consumed by team members
-      const teamMemberIds = await database
-        .select({ userId: teamMembers.userId })
-        .from(teamMembers)
-        .where(and(eq(teamMembers.teamId, teamId), isNull(teamMembers.deletedAt)));
-      
-      const memberIds = teamMemberIds.map(m => m.userId);
-      
-      const creditUsageResults = memberIds.length > 0 ? await database
-        .select({
-          userId: transactions.userId,
-          credits: sum(transactions.amount),
-        })
-        .from(transactions)
-        .where(inArray(transactions.userId, memberIds))
-        .groupBy(transactions.userId) : [];
-
-      const totalCreditsConsumed = creditUsageResults.reduce(
-        (sum: number, row: any) => sum + (row.credits || 0),
-        0
-      );
-
-      const analytics = {
-        teamId,
-        memberCount,
-        projectCount: projectCount || 0,
-        totalCreditsConsumed,
-        memberCreditUsage: creditUsageResults.map(usage => ({
-          userId: usage.userId,
-          creditsConsumed: Number(usage.credits) || 0,
-        })),
-        createdAt: new Date().toISOString(),
-      };
-
-      // Cache result with shorter TTL for analytics
-      await teamCache.set(cacheKey, analytics, 180); // 3 minutes
-
-      return analytics;
-    } catch (error) {
-      logger.error("Failed to get team analytics", {
-        error: error instanceof Error ? error.message : String(error),
-        teamId,
-        requestingUserId,
-      });
-
-      if (
-        error instanceof ServiceError ||
-        error instanceof ValidationError ||
-        error instanceof AuthenticationError ||
-        error instanceof AuthorizationError ||
-        error instanceof NotFoundError ||
-        error instanceof DatabaseError
-      ) {
-        throw error;
-      }
-
-      throw new DatabaseError("Failed to get team analytics");
-    }
+    return teamAnalyticsService.getTeamAnalytics(teamId, requestingUserId);
   }
 
   /**
@@ -1351,7 +1161,7 @@ class TeamService {
       }
 
       // Verify requesting user is team admin
-      await this.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
+      await teamMemberAccessService.verifyTeamAccess(teamId, requestingUserId, ["admin"]);
 
       // Check if name actually changed
       if (team.name === trimmedName) {
@@ -1471,17 +1281,6 @@ class TeamService {
     }
   }
 
-  /**
-   * Get maximum members allowed for subscription tier
-   */
-  private getMaxMembersForSubscription(tier: string): number {
-    const limits: Record<string, number> = {
-      free: 2,
-      pro: 10,
-      enterprise: -1, // unlimited
-    };
-    return limits[tier] || 2;
-  }
 }
 
 export const teamService = new TeamService();
