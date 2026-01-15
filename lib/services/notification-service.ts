@@ -14,7 +14,8 @@ export type NotificationType =
   | "team_member_removed"
   | "project_created"
   | "project_updated"
-  | "project_deleted";
+  | "project_deleted"
+  | "team_deleted";
 
 export interface NotificationMetadata {
   blueprintId?: string;
@@ -33,6 +34,7 @@ export interface NotificationMetadata {
   role?: string;
   updatedBy?: string;
   removedBy?: string;
+  deletedBy?: string;
   projectName?: string;
   projectDescription?: string;
   updatedFields?: string[];

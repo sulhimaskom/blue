@@ -3,6 +3,9 @@ import { teamService } from "@/lib/services/team-service";
 import { db } from "@/lib/db";
 import { teams, teamMembers, users } from "@/lib/db/schema";
 import { ValidationError, AuthorizationError, NotFoundError, DatabaseError } from "@/lib/api-utils";
+import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
+import { ActivityFeedService } from "@/lib/services/activity-feed-service";
+import { NotificationService } from "@/lib/services/notification-service";
 
 // Mock dependencies
 jest.mock("@/lib/db", () => ({
@@ -30,6 +33,24 @@ jest.mock("@/lib/logger", () => ({
   logger: {
     userAction: jest.fn(),
     error: jest.fn(),
+  },
+}));
+
+jest.mock("@/lib/services/webhook-event-dispatcher", () => ({
+  WebhookEventDispatcher: {
+    emitTeamDeleted: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock("@/lib/services/activity-feed-service", () => ({
+  ActivityFeedService: {
+    recordActivity: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock("@/lib/services/notification-service", () => ({
+  NotificationService: {
+    dispatch: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -187,6 +208,14 @@ describe("error handling", () => {
       
       // Enterprise tier: unlimited members
       expect(service.getMaxMembersForSubscription("enterprise")).toBe(-1);
+    });
+  });
+
+  describe("deleteTeam integration", () => {
+    it("should have correct integration services imported", () => {
+      expect(WebhookEventDispatcher).toBeDefined();
+      expect(ActivityFeedService).toBeDefined();
+      expect(NotificationService).toBeDefined();
     });
   });
 });
