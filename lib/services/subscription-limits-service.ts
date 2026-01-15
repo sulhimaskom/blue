@@ -1,5 +1,3 @@
-import { logger } from "@/lib/logger";
-
 /**
  * Service for subscription tier limits and quota enforcement
  * Handles team and member limits based on subscription tiers

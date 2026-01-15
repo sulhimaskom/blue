@@ -1,4 +1,4 @@
-import { eq, and, desc, count, ilike, isNull, inArray, sum } from "drizzle-orm";
+import { eq, and, desc, count, ilike, isNull, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   teams,
@@ -6,7 +6,6 @@ import {
   teamProjects,
   users,
   projects,
-  transactions,
   type Team,
   type TeamMember,
   type TeamProject,
