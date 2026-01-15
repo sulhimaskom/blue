@@ -1,12 +1,9 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
-import {
-  githubService,
-  GitHubServiceError,
-} from "@/lib/services/github-service";
+import { githubService } from "@/lib/services/github-service";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
-import { ValidationError } from "@/lib/api-utils";
+import { AuthenticationError, DatabaseError, ValidationError } from "@/lib/api-utils";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { DeploymentService } from "@/lib/services/deployment-service";
@@ -235,13 +232,13 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           ]);
         }
 
-        if (error instanceof GitHubServiceError) {
+        if (error instanceof AuthenticationError || error instanceof DatabaseError) {
           logger.error("GitHub service error during deployment", {
             requestId: context.requestId,
             userId: user!.clerkId,
             projectId: id,
             environment,
-            statusCode: error.statusCode,
+            errorType: error.name,
             message: error.message,
           });
           throw new ValidationError(

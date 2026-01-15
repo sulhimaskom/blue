@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { DeploymentHistoryService } from "@/lib/services/deployment-history-service";
 import { DeploymentService } from "@/lib/services/deployment-service";
-import { GitHubServiceError, githubService } from "@/lib/services/github-service";
+import { AuthenticationError, DatabaseError } from "@/lib/api-utils";
+import { githubService } from "@/lib/services/github-service";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
@@ -136,12 +137,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           { operation: "rollback" }
         );
 
-        if (error instanceof GitHubServiceError) {
+        if (error instanceof AuthenticationError || error instanceof DatabaseError) {
           logger.error("GitHub service error during rollback", {
             requestId: context.requestId,
             userId: user!.clerkId,
             projectId: id,
-            statusCode: error.statusCode,
+            errorType: error.name,
             message: error.message,
           });
         }

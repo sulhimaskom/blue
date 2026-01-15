@@ -6,7 +6,8 @@ import { ProjectDataService } from "@/lib/services/project-data-service";
 import { ValidationError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { DeploymentService } from "@/lib/services/deployment-service";
-import { GitHubServiceError, githubService } from "@/lib/services/github-service";
+import { AuthenticationError, DatabaseError } from "@/lib/api-utils";
+import { githubService } from "@/lib/services/github-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 
@@ -137,12 +138,12 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
           { operation: "promote", fromEnvironment: "staging" }
         );
 
-        if (error instanceof GitHubServiceError) {
+        if (error instanceof AuthenticationError || error instanceof DatabaseError) {
           logger.error("GitHub service error during promotion", {
             requestId: context.requestId,
             userId: user!.clerkId,
             projectId: id,
-            statusCode: error.statusCode,
+            errorType: error.name,
             message: error.message,
           });
           throw new ValidationError(`GitHub promotion failed: ${error.message}`);
