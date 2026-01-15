@@ -5,6 +5,7 @@ import { ValidationError, DatabaseError, NotFoundError, AuthorizationError } fro
 import { logger } from "@/lib/logger";
 import { emailService } from "@/lib/services/email-service";
 import { NotificationService } from "@/lib/services/notification-service";
+import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { env } from "@/lib/env";
 
 export type BlueprintPermission = "read_only" | "edit";
@@ -234,6 +235,27 @@ export class BlueprintSharingService {
         expirationDate,
       });
 
+      // Record activity feed for blueprint sharing
+      try {
+        await ActivityFeedService.recordActivity({
+          userId: input.sharedBy,
+          clerkId: sharer.clerkId,
+          entityType: "blueprint",
+          entityId: input.blueprintId,
+          eventType: "blueprint.shared",
+          eventData: {
+            sharedWithCount: shares.length,
+            permission: input.permission,
+            expiresAt: expirationDate?.toISOString(),
+          },
+        });
+      } catch (activityError) {
+        logger.error("Failed to record blueprint.shared activity", {
+          blueprintId: input.blueprintId,
+          error: activityError instanceof Error ? activityError.message : String(activityError),
+        });
+      }
+
       // Fetch created shares with details
       const sharedBlueprints = await this.getSharesByBlueprintId(input.blueprintId);
 
@@ -409,6 +431,27 @@ export class BlueprintSharingService {
         shareId,
         blueprintId: share.blueprintId,
       });
+
+      // Record activity feed for blueprint share revocation
+      try {
+        await ActivityFeedService.recordActivity({
+          userId,
+          clerkId: String(userId),
+          entityType: "blueprint",
+          entityId: share.blueprintId,
+          eventType: "blueprint.share_revoked",
+          eventData: {
+            shareId,
+            revokedAt: new Date().toISOString(),
+          },
+        });
+      } catch (activityError) {
+        logger.error("Failed to record blueprint.share_revoked activity", {
+          shareId,
+          blueprintId: share.blueprintId,
+          error: activityError instanceof Error ? activityError.message : String(activityError),
+        });
+      }
 
       return { message: "Share revoked successfully" };
     } catch (error) {
