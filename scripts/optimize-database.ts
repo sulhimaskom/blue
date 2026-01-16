@@ -87,7 +87,7 @@ async function main() {
       `   • Query patterns analyzed: ${queryPatterns.patterns.length}`,
     );
     console.log(
-      `   • High-impact queries: ${queryPatterns.patterns.filter((p: any) => p.impact === "High").length}`,
+      `   • High-impact queries: ${queryPatterns.patterns.filter((p) => p.impact === "High").length}`,
     );
 
     if (queryPatterns.autoRecommendations.length > 0) {
@@ -172,14 +172,14 @@ async function main() {
 
     if (monitoringResults.alerts.length > 0) {
       console.log("\n⚠️  Performance Alerts:");
-      monitoringResults.alerts.slice(0, 5).forEach((alert: any) => {
+      monitoringResults.alerts.slice(0, 5).forEach((alert) => {
         console.log(`   ${alert.severity.toUpperCase()}: ${alert.message}`);
       });
     }
 
     if (monitoringResults.recommendations.length > 0) {
       console.log("\n💡 Performance Recommendations:");
-      monitoringResults.recommendations.slice(0, 3).forEach((rec: any) => {
+      monitoringResults.recommendations.slice(0, 3).forEach((rec) => {
         console.log(`   • ${rec}`);
       });
     }
@@ -220,7 +220,7 @@ async function main() {
     // Performance recommendations
     if (realTimeIndicators.recommendations.length > 0) {
       console.log("\n💡 Performance Recommendations:");
-      realTimeIndicators.recommendations.forEach((rec: any, i: number) => {
+      realTimeIndicators.recommendations.forEach((rec, i: number) => {
         console.log(`   ${i + 1}. ${rec}`);
       });
     }

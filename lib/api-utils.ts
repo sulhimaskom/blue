@@ -19,7 +19,10 @@ export function validateRequest<T>(
 
       switch (source) {
         case "body":
-          rawData = await req.json().catch(() => ({}));
+          rawData = await req.json().catch((error) => {
+            logger.warn(`Failed to parse request body as JSON: ${error instanceof Error ? error.message : String(error)}`);
+            return {};
+          });
           break;
         case "query":
           const url = new URL(req.url);

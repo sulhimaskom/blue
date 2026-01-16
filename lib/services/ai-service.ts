@@ -169,7 +169,10 @@ export class AIService {
             );
 
             if (!fetchResponse.ok) {
-              const errorData = await fetchResponse.json().catch(() => ({}));
+              const errorData = await fetchResponse.json().catch((error) => {
+                logger.warn(`Failed to parse IFlow API error response: ${error instanceof Error ? error.message : String(error)}`);
+                return {};
+              });
               throw ServiceError.database(
                 `IFlow API error: ${fetchResponse.status} ${JSON.stringify(errorData)}`,
                 "AIService",
@@ -193,7 +196,10 @@ export class AIService {
         );
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+          const errorData = await response.json().catch((error) => {
+            logger.warn(`Failed to parse IFlow API error response: ${error instanceof Error ? error.message : String(error)}`);
+            return {};
+          });
           throw ServiceError.database(
             `IFlow API error: ${response.status} ${JSON.stringify(errorData)}`,
             "AIService",
@@ -387,7 +393,10 @@ export class AIService {
             });
 
             if (!fetchResponse.ok) {
-              const errorData = await fetchResponse.json().catch(() => ({}));
+              const errorData = await fetchResponse.json().catch((error) => {
+                logger.warn(`Failed to parse Tavily API error response: ${error instanceof Error ? error.message : String(error)}`);
+                return {};
+              });
               throw ServiceError.database(
                 `Tavily API error: ${fetchResponse.status} ${JSON.stringify(errorData)}`,
                 "AIService",

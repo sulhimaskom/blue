@@ -155,7 +155,10 @@ export class OpenAIStrategy implements AIProviderStrategy {
             );
 
             if (!fetchResponse.ok) {
-              const errorData = await fetchResponse.json().catch(() => ({}));
+              const errorData = await fetchResponse.json().catch((error) => {
+                logger.warn(`Failed to parse OpenAI API error response: ${error instanceof Error ? error.message : String(error)}`);
+                return {};
+              });
               throw new DatabaseError(
                 `OpenAI API error: ${fetchResponse.status} ${JSON.stringify(errorData)}`,
               );

@@ -335,7 +335,10 @@ export class IFlowStrategy implements AIProviderStrategy {
             });
 
             if (!fetchResponse.ok) {
-              const errorData = await fetchResponse.json().catch(() => ({}));
+              const errorData = await fetchResponse.json().catch((error) => {
+                logger.warn(`Failed to parse Tavily API error response: ${error instanceof Error ? error.message : String(error)}`);
+                return {};
+              });
               throw new DatabaseError(
                 `Tavily API error: ${fetchResponse.status} ${JSON.stringify(errorData)}`,
               );
