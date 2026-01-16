@@ -20,28 +20,35 @@ const ActivityQuerySchema = z
     eventTypes: data.eventTypes ? data.eventTypes.split(",") : undefined,
   }));
 
-export const GET = APIRouteHandler.createGETHandler({
-  requireAuth: true,
-  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-  handler: async ({ context, user, req }) => {
-    const queryParams = Object.fromEntries(req.nextUrl.searchParams);
-    const validatedQuery = ActivityQuerySchema.parse(queryParams);
+export const GET = APIRouteHandler.createCachedGETHandler(
+  {
+    requireAuth: true,
+    rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+    handler: async ({ context, user, req }) => {
+      const queryParams = Object.fromEntries(req.nextUrl.searchParams);
+      const validatedQuery = ActivityQuerySchema.parse(queryParams);
 
-    const activity = await ActivityFeedService.getUserActivity(
-      user!.id,
-      validatedQuery,
-      context,
-    );
+      const activity = await ActivityFeedService.getUserActivity(
+        user!.id,
+        validatedQuery,
+        context,
+      );
 
-    logger.userAction("User activity feed fetched", user!.clerkId, {
-      requestId: context.requestId,
-      userId: user!.id,
-      activitiesCount: activity.length,
-    });
+      logger.userAction("User activity feed fetched", user!.clerkId, {
+        requestId: context.requestId,
+        userId: user!.id,
+        activitiesCount: activity.length,
+      });
 
-    return {
-      activity,
-      message: "Activity feed retrieved successfully",
-    };
+      return {
+        activity,
+        message: "Activity feed retrieved successfully",
+      };
+    },
   },
-});
+  {
+    ttl: 60,
+    tags: ["activity-feed", "user-activity"],
+    varyBy: ["userId"],
+  },
+);

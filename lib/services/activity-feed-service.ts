@@ -448,6 +448,9 @@ export class ActivityFeedService {
         `activity-summary:${entityType}:${entityId}`,
         `activity-summary:all:all`,
       ]);
+
+      await UnifiedCacheManager.invalidateByTag("activity-feed");
+      await UnifiedCacheManager.invalidateByTag("activity-summary");
     } catch (error) {
       logger.error("Failed to invalidate activity caches", {
         entityType,

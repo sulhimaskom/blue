@@ -9,30 +9,37 @@ const ActivitySummaryQuerySchema = z.object({
   entityId: z.string().optional(),
 });
 
-export const GET = APIRouteHandler.createGETHandler({
-  requireAuth: true,
-  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-  handler: async ({ context, user, req }) => {
-    const queryParams = Object.fromEntries(req.nextUrl.searchParams);
-    const validatedQuery = ActivitySummaryQuerySchema.parse(queryParams);
+export const GET = APIRouteHandler.createCachedGETHandler(
+  {
+    requireAuth: true,
+    rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+    handler: async ({ context, user, req }) => {
+      const queryParams = Object.fromEntries(req.nextUrl.searchParams);
+      const validatedQuery = ActivitySummaryQuerySchema.parse(queryParams);
 
-    const summary = await ActivityFeedService.getActivitySummary(
-      validatedQuery.entityType,
-      validatedQuery.entityId,
-      context,
-    );
+      const summary = await ActivityFeedService.getActivitySummary(
+        validatedQuery.entityType,
+        validatedQuery.entityId,
+        context,
+      );
 
-    logger.userAction("Activity summary fetched", user!.clerkId, {
-      requestId: context.requestId,
-      userId: user!.id,
-      entityType: validatedQuery.entityType,
-      entityId: validatedQuery.entityId,
-      totalActivities: summary.totalActivities,
-    });
+      logger.userAction("Activity summary fetched", user!.clerkId, {
+        requestId: context.requestId,
+        userId: user!.id,
+        entityType: validatedQuery.entityType,
+        entityId: validatedQuery.entityId,
+        totalActivities: summary.totalActivities,
+      });
 
-    return {
-      summary,
-      message: "Activity summary retrieved successfully",
-    };
+      return {
+        summary,
+        message: "Activity summary retrieved successfully",
+      };
+    },
   },
-});
+  {
+    ttl: 120,
+    tags: ["activity-summary", "user-activity"],
+    varyBy: ["entityType", "entityId"],
+  },
+);
