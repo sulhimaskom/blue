@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         // Update deployment records based on push to main branch
         const isMainBranch = ref === "refs/heads/main" || ref === "refs/heads/master";
         if (isMainBranch && commits && commits.length > 0) {
-          const latestCommit = commits[0];
+          const latestCommit = commits[commits.length - 1];
           logger.systemEvent("Main branch push detected - deployment update", {
             requestId: context.requestId,
             repository: repository.full_name,

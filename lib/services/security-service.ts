@@ -264,6 +264,7 @@ export class SecurityService {
             endpoint: "github-webhook-verification",
           },
         );
+        return false;
       }
 
       this.logSecurityEvent("GitHub webhook cryptographic verification successful", {
@@ -272,7 +273,7 @@ export class SecurityService {
         endpoint: "github-webhook-verification",
       });
 
-      return isValid;
+      return true;
     } catch (error) {
       this.logSecurityEvent("GitHub webhook signature verification error", {
         requestId,

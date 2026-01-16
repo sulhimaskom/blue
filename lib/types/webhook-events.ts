@@ -264,7 +264,7 @@ export interface GitHubPullRequest {
   id: number;
   number: number;
   title: string;
-  state: "open" | "closed" | "merged";
+  state: "open" | "closed";
   html_url: string;
   user: GitHubUser;
   head: {
