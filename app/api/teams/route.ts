@@ -64,7 +64,7 @@ export const GET = APIRouteHandler.createCachedGETHandler(
   {
     ttl: 300,
     tags: ["teams"],
-    varyBy: [],
+    varyBy: ["limit", "offset", "search"],
     initializeServices: true,
   },
 );
