@@ -199,34 +199,37 @@ describe("TeamService - Critical Business Logic", () => {
       (teamMemberAccessService.getUserActiveTeamCount as jest.Mock).mockResolvedValue(0);
       (subscriptionLimitsService.canCreateTeam as jest.Mock).mockReturnValue(true);
 
-      let selectCallCount = 0;
+      let insertCallCount = 0;
+      mockDb.transaction = jest.fn().mockImplementation(async (callback) => {
+        const mockTx = {
+          insert: jest.fn().mockImplementation(() => {
+            insertCallCount++;
+            return {
+              values: jest.fn().mockReturnValue({
+                returning: jest.fn().mockImplementation(async () => {
+                  if (insertCallCount === 1) {
+                    return [createMockTeam({ name: request.name })];
+                  }
+                  return [];
+                }),
+              }),
+            };
+          }),
+        };
+        const newTeam = await callback(mockTx);
+        return [newTeam];
+      });
+
       mockDb.select = jest.fn().mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
-            limit: jest.fn().mockImplementation(async () => {
-              selectCallCount++;
-              return selectCallCount === 1 ? [mockUser] : [mockUser];
-            }),
+            limit: jest.fn().mockResolvedValue([mockUser]),
           }),
         }),
       });
 
-      mockDb.transaction = jest.fn().mockImplementation(async (callback) => {
-        await callback({
-          insert: jest.fn().mockReturnValue({
-            values: jest.fn().mockReturnValue(
-              Object.assign(Promise.resolve(), {
-                returning: jest.fn().mockResolvedValue([createMockTeam()]),
-              })
-            ),
-          }),
-        });
-        return createMockTeam();
-      });
-
       // Act
       const result = await teamService.createTeam(request);
-      console.log("Team created successfully:", result);
 
       // Assert
       expect(result).toBeDefined();
@@ -314,6 +317,27 @@ describe("TeamService - Critical Business Logic", () => {
       (teamMemberAccessService.getUserActiveTeamCount as jest.Mock).mockResolvedValue(0);
       (subscriptionLimitsService.canCreateTeam as jest.Mock).mockReturnValue(true);
       
+      let insertCallCount = 0;
+      mockDb.transaction = jest.fn().mockImplementation(async (callback) => {
+        const mockTx = {
+          insert: jest.fn().mockImplementation(() => {
+            insertCallCount++;
+            return {
+              values: jest.fn().mockReturnValue({
+                returning: jest.fn().mockImplementation(async () => {
+                  if (insertCallCount === 1) {
+                    return [createMockTeam({ name: request.name })];
+                  }
+                  return [];
+                }),
+              }),
+            };
+          }),
+        };
+        const newTeam = await callback(mockTx);
+        return [newTeam];
+      });
+
       mockDb.select = jest.fn()
         .mockReturnValueOnce({
           from: jest.fn().mockReturnValue({
@@ -329,17 +353,6 @@ describe("TeamService - Critical Business Logic", () => {
             }),
           }),
         });
-
-      mockDb.transaction = jest.fn().mockImplementation(async (callback) => {
-        const mockTx = {
-          insert: jest.fn().mockReturnValue({
-            values: jest.fn().mockReturnValue({
-              returning: jest.fn().mockResolvedValue([createMockTeam()]),
-            }),
-          }),
-        };
-        return await callback(mockTx);
-      });
 
       // Act
       await teamService.createTeam(request);
@@ -854,6 +867,19 @@ describe("TeamService - Critical Business Logic", () => {
       const mockMembers = [];
       const mockProjectCount = [{ projectCount: 0 }];
 
+      mockDb.transaction = jest.fn().mockImplementation(async (callback) => {
+        const mockTx = {
+          update: jest.fn().mockImplementation(() => {
+            return {
+              set: jest.fn().mockReturnValue({
+                where: jest.fn().mockResolvedValue(undefined),
+              }),
+            };
+          }),
+        };
+        await callback(mockTx);
+      });
+
       mockDb.select = jest.fn()
         .mockReturnValueOnce({
           from: jest.fn().mockReturnValue({
@@ -871,9 +897,7 @@ describe("TeamService - Critical Business Logic", () => {
         })
         .mockReturnValueOnce({
           from: jest.fn().mockReturnValue({
-            innerJoin: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([{ memberCount: 1 }]),
-            }),
+            where: jest.fn().mockResolvedValue([{ memberCount: 1 }]),
           }),
         })
         .mockReturnValueOnce({
@@ -890,22 +914,6 @@ describe("TeamService - Critical Business Logic", () => {
             }),
           }),
         });
-
-      mockDb.transaction = jest.fn().mockImplementation(async (callback) => {
-        const mockTx = {
-          insert: jest.fn().mockReturnValue({
-            values: jest.fn().mockReturnValue({
-              returning: jest.fn().mockResolvedValue([createMockTeam()]),
-            }),
-          }),
-          update: jest.fn().mockReturnValue({
-            set: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue(undefined),
-            }),
-          }),
-        };
-        return await callback(mockTx);
-      });
 
       // Act
       await teamService.deleteTeam(teamId, requestingUserId);
