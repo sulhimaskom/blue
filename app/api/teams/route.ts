@@ -39,24 +39,32 @@ export const POST = APIRouteHandler.createPOSTHandler({
 /**
  * Get teams for the authenticated user
  */
-export const GET = APIRouteHandler.createGETHandler({
-  requireAuth: true,
-  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-  handler: async ({ user, req }) => {
-    const url = new URL(req.url);
-    const searchParams = url.searchParams;
-    
-    const options = {
-      limit: searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined,
-      offset: searchParams.get("offset") ? parseInt(searchParams.get("offset")!) : undefined,
-      search: searchParams.get("search") || undefined,
-    };
+export const GET = APIRouteHandler.createCachedGETHandler(
+  {
+    requireAuth: true,
+    rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+    handler: async ({ user, req }) => {
+      const url = new URL(req.url);
+      const searchParams = url.searchParams;
 
-    const result = await teamService.getUserTeams(user!.id, options);
+      const options = {
+        limit: searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined,
+        offset: searchParams.get("offset") ? parseInt(searchParams.get("offset")!) : undefined,
+        search: searchParams.get("search") || undefined,
+      };
 
-    return {
-      data: result,
-      message: "Teams retrieved successfully",
-    };
+      const result = await teamService.getUserTeams(user!.id, options);
+
+      return {
+        data: result,
+        message: "Teams retrieved successfully",
+      };
+    },
   },
-});
+  {
+    ttl: 300,
+    tags: ["teams"],
+    varyBy: ["limit", "offset", "search"],
+    initializeServices: true,
+  },
+);

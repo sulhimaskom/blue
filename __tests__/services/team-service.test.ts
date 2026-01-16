@@ -23,6 +23,9 @@ jest.mock("@/lib/services/cache-orchestrator", () => ({
     set: jest.fn(),
     invalidate: jest.fn(),
   },
+  UnifiedCacheManager: {
+    invalidateByTag: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
 jest.mock("@/lib/logger", () => ({
@@ -80,7 +83,7 @@ jest.mock("@/lib/services/team-analytics-service", () => ({
 }));
 
 import { db } from "@/lib/db";
-import { teamCache } from "@/lib/services/cache-orchestrator";
+import { teamCache, UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 import { logger } from "@/lib/logger";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
