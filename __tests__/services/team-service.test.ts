@@ -23,6 +23,9 @@ jest.mock("@/lib/services/cache-orchestrator", () => ({
     set: jest.fn(),
     invalidate: jest.fn(),
   },
+  UnifiedCacheManager: {
+    invalidateByTag: jest.fn(),
+  },
 }));
 
 jest.mock("@/lib/logger", () => ({

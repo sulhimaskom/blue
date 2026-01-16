@@ -43,7 +43,7 @@ export const GET = APIRouteHandler.createCachedGETHandler(
   {
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-    handler: async ({ context, user, req }) => {
+    handler: async ({ user, req }) => {
       const url = new URL(req.url);
       const searchParams = url.searchParams;
 
