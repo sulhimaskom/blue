@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { formatErrorResponse, DatabaseError } from "@/lib/api-utils";
+import { formatErrorResponse } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { WebhookService } from "@/lib/services/webhook-service";
 import { SecurityService } from "@/lib/services/security-service";
