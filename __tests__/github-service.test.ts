@@ -169,4 +169,257 @@ describe("GitHubService", () => {
       expect(result).toBe(false);
     });
   });
+
+  describe("createBranch", () => {
+    const mockRepoUrl = "https://github.com/test-org/test-repo";
+    const mockBranchName = "rollback-v1.2-1234567890";
+    const mockBaseBranchSha = "base-sha-123";
+    const mockCreatedBranchSha = "new-branch-sha-456";
+
+    it("should create branch successfully", async () => {
+      // Mock base branch ref fetch
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            object: {
+              sha: mockBaseBranchSha,
+            },
+          }),
+        } as Response)
+        // Mock branch creation
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            object: {
+              sha: mockCreatedBranchSha,
+            },
+          }),
+        } as Response);
+
+      const result = await getGitHubService().createBranch(
+        mockRepoUrl,
+        mockBranchName,
+      );
+
+      expect(result).toEqual({
+        name: mockBranchName,
+        url: `https://github.com/test-org/test-repo/tree/${mockBranchName}`,
+        sha: mockCreatedBranchSha,
+        createdAt: expect.any(String),
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://api.github.com/repos/test-org/test-repo/git/refs/heads/main",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "token test-token",
+          }),
+        }),
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://api.github.com/repos/test-org/test-repo/git/refs",
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            Authorization: "token test-token",
+            "Content-Type": "application/json",
+          }),
+          body: expect.stringContaining(mockBranchName),
+        }),
+      );
+    });
+
+    it("should create branch from custom base branch", async () => {
+      const customBaseBranch = "develop";
+
+      // Mock base branch ref fetch
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            object: {
+              sha: mockBaseBranchSha,
+            },
+          }),
+        } as Response)
+        // Mock branch creation
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            object: {
+              sha: mockCreatedBranchSha,
+            },
+          }),
+        } as Response);
+
+      const result = await getGitHubService().createBranch(
+        mockRepoUrl,
+        mockBranchName,
+        customBaseBranch,
+      );
+
+      expect(result.name).toBe(mockBranchName);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `https://api.github.com/repos/test-org/test-repo/git/refs/heads/${customBaseBranch}`,
+        expect.any(Object),
+      );
+    });
+
+    it("should throw ValidationError for non-GitHub URL", async () => {
+      await expect(
+        getGitHubService().createBranch(
+          "https://gitlab.com/test-org/test-repo",
+          mockBranchName,
+        ),
+      ).rejects.toThrow("Invalid GitHub repository URL");
+    });
+
+    it("should throw ValidationError for malformed URL", async () => {
+      await expect(
+        getGitHubService().createBranch(
+          "https://github.com/test-org",
+          mockBranchName,
+        ),
+      ).rejects.toThrow("Invalid GitHub repository URL format");
+    });
+
+    it("should throw AuthenticationError when token is missing", async () => {
+      // Mock env to return undefined for GITHUB_ACCESS_TOKEN
+      jest.doMock("@/lib/env", () => ({
+        env: {
+          GITHUB_ACCESS_TOKEN: undefined,
+        },
+      }));
+
+      await expect(
+        getGitHubService().createBranch(mockRepoUrl, mockBranchName),
+      ).rejects.toThrow("GitHub authentication not available");
+
+      // Reset env mock for other tests
+      jest.dontMock("@/lib/env");
+    });
+
+    it("should throw ValidationError when branch already exists", async () => {
+      // Mock base branch ref fetch (succeeds)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          object: {
+            sha: mockBaseBranchSha,
+          },
+        }),
+      } as Response);
+
+      // Mock branch creation (fails with 422 - already exists)
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+      } as Response);
+
+      await expect(
+        getGitHubService().createBranch(mockRepoUrl, mockBranchName),
+      ).rejects.toThrow("Branch already exists");
+    });
+
+    it("should throw DatabaseError when base branch fetch fails", async () => {
+      // Mock base branch ref fetch (fails)
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({ message: "Not Found" }),
+      } as Response);
+
+      await expect(
+        getGitHubService().createBranch(mockRepoUrl, mockBranchName),
+      ).rejects.toThrow("Failed to get base branch");
+    });
+
+    it("should throw DatabaseError when branch creation fails", async () => {
+      // Mock base branch ref fetch (succeeds)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          object: {
+            sha: mockBaseBranchSha,
+          },
+        }),
+      } as Response);
+
+      // Mock branch creation (fails with server error)
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ message: "Internal Server Error" }),
+      } as Response);
+
+      await expect(
+        getGitHubService().createBranch(mockRepoUrl, mockBranchName),
+      ).rejects.toThrow("Failed to create branch");
+    });
+
+    it("should parse repo URL correctly with trailing slash", async () => {
+      // Mock base branch ref fetch
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            object: {
+              sha: mockBaseBranchSha,
+            },
+          }),
+        } as Response)
+        // Mock branch creation
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            object: {
+              sha: mockCreatedBranchSha,
+            },
+          }),
+        } as Response);
+
+      const result = await getGitHubService().createBranch(
+        "https://github.com/test-org/test-repo/",
+        mockBranchName,
+      );
+
+      expect(result.url).toBe(
+        `https://github.com/test-org/test-repo/tree/${mockBranchName}`,
+      );
+    });
+
+    it("should parse repo URL correctly with .git suffix", async () => {
+      // Mock base branch ref fetch
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            object: {
+              sha: mockBaseBranchSha,
+            },
+          }),
+        } as Response)
+        // Mock branch creation
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            object: {
+              sha: mockCreatedBranchSha,
+            },
+          }),
+        } as Response);
+
+      const result = await getGitHubService().createBranch(
+        "https://github.com/test-org/test-repo.git",
+        mockBranchName,
+      );
+
+      expect(result.url).toBe(
+        `https://github.com/test-org/test-repo/tree/${mockBranchName}`,
+      );
+    });
+  });
 });

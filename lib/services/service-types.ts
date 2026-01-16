@@ -194,6 +194,13 @@ export interface GitHubAppConfig {
   installationId?: string;
 }
 
+export interface BranchInfo {
+  name: string;
+  url: string;
+  sha: string;
+  createdAt: string;
+}
+
 // =============================================================================
 // CACHE SERVICE TYPES
 // =============================================================================
