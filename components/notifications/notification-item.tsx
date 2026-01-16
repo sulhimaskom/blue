@@ -1,6 +1,7 @@
 import React from "react";
-import { Notification, NotificationType, NotificationMetadata } from "@/lib/hooks/use-notifications-data";
+import { Notification } from "@/lib/hooks/use-notifications-data";
 import { formatStandardDate } from "@/lib/utils/time-formatting";
+import { NotificationType, NotificationMetadata } from "@/lib/services/notification-service";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/constants/ui-themes";
@@ -21,6 +22,14 @@ export const NotificationItem = React.memo(
         deployment_status: "🚀",
         credit_warning: "⚠️",
         blueprint_shared: "📤",
+        team_member_role_changed: "🔄",
+        team_member_removed: "👋",
+        team_updated: "✏️",
+        project_created: "➕",
+        project_updated: "🔧",
+        project_deleted: "🗑️",
+        team_deleted: "💥",
+        credit_exhaustion_warning: "🚨",
       };
       return iconMap[type] || "🔔";
     };
@@ -32,6 +41,14 @@ export const NotificationItem = React.memo(
         deployment_status: "bg-green-100 text-green-800",
         credit_warning: "bg-red-100 text-red-800",
         blueprint_shared: "bg-indigo-100 text-indigo-800",
+        team_member_role_changed: "bg-yellow-100 text-yellow-800",
+        team_member_removed: "bg-orange-100 text-orange-800",
+        team_updated: "bg-teal-100 text-teal-800",
+        project_created: "bg-cyan-100 text-cyan-800",
+        project_updated: "bg-lime-100 text-lime-800",
+        project_deleted: "bg-gray-100 text-gray-800",
+        team_deleted: "bg-red-100 text-red-800",
+        credit_exhaustion_warning: "bg-red-100 text-red-800",
       };
       return colorMap[type] || "bg-gray-100 text-gray-800";
     };
@@ -43,6 +60,14 @@ export const NotificationItem = React.memo(
         deployment_status: "Deployment Status",
         credit_warning: "Credit Warning",
         blueprint_shared: "Blueprint Shared",
+        team_member_role_changed: "Team Member Role Changed",
+        team_member_removed: "Team Member Removed",
+        team_updated: "Team Updated",
+        project_created: "Project Created",
+        project_updated: "Project Updated",
+        project_deleted: "Project Deleted",
+        team_deleted: "Team Deleted",
+        credit_exhaustion_warning: "Credit Exhaustion Warning",
       };
       return labelMap[type] || type;
     };

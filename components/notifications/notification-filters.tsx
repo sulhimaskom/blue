@@ -1,5 +1,5 @@
 import React from "react";
-import { NotificationType } from "@/lib/hooks/use-notifications-data";
+import { NotificationType, NOTIFICATION_TYPES } from "@/lib/services/notification-service";
 
 export interface NotificationFilterOptions {
   unreadOnly: boolean;
@@ -12,13 +12,27 @@ interface NotificationFiltersProps {
   unreadCount?: number;
 }
 
-const NOTIFICATION_TYPES: Array<{ value: NotificationType; label: string; icon: string }> = [
-  { value: "blueprint_complete", label: "Blueprint Complete", icon: "📝" },
-  { value: "team_invitation", label: "Team Invitation", icon: "👥" },
-  { value: "deployment_status", label: "Deployment Status", icon: "🚀" },
-  { value: "credit_warning", label: "Credit Warning", icon: "⚠️" },
-  { value: "blueprint_shared", label: "Blueprint Shared", icon: "📤" },
-];
+const NOTIFICATION_TYPE_LABELS: Record<NotificationType, { label: string; icon: string }> = {
+  blueprint_complete: { label: "Blueprint Complete", icon: "📝" },
+  team_invitation: { label: "Team Invitation", icon: "👥" },
+  deployment_status: { label: "Deployment Status", icon: "🚀" },
+  credit_warning: { label: "Credit Warning", icon: "⚠️" },
+  blueprint_shared: { label: "Blueprint Shared", icon: "📤" },
+  team_member_role_changed: { label: "Team Member Role Changed", icon: "🔄" },
+  team_member_removed: { label: "Team Member Removed", icon: "👋" },
+  team_updated: { label: "Team Updated", icon: "✏️" },
+  project_created: { label: "Project Created", icon: "➕" },
+  project_updated: { label: "Project Updated", icon: "🔧" },
+  project_deleted: { label: "Project Deleted", icon: "🗑️" },
+  team_deleted: { label: "Team Deleted", icon: "💥" },
+  credit_exhaustion_warning: { label: "Credit Exhaustion Warning", icon: "🚨" },
+};
+
+const NOTIFICATION_TYPES_LIST = NOTIFICATION_TYPES.map((type) => ({
+  value: type,
+  label: NOTIFICATION_TYPE_LABELS[type].label,
+  icon: NOTIFICATION_TYPE_LABELS[type].icon,
+}));
 
 export const NotificationFilters = React.memo(
   ({ filters, onFiltersChange, unreadCount = 0 }: NotificationFiltersProps) => {
@@ -88,7 +102,7 @@ export const NotificationFilters = React.memo(
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">All Types</option>
-              {NOTIFICATION_TYPES.map((type) => (
+              {NOTIFICATION_TYPES_LIST.map((type) => (
                 <option key={type.value} value={type.value}>
                   {type.icon} {type.label}
                 </option>

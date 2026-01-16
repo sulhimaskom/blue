@@ -4,20 +4,23 @@ import { eq, and, desc, isNull, count } from "drizzle-orm";
 import { ValidationError, DatabaseError, NotFoundError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
-export type NotificationType =
-  | "blueprint_complete"
-  | "team_invitation"
-  | "deployment_status"
-  | "credit_warning"
-  | "blueprint_shared"
-  | "team_member_role_changed"
-  | "team_member_removed"
-  | "team_updated"
-  | "project_created"
-  | "project_updated"
-  | "project_deleted"
-  | "team_deleted"
-  | "credit_exhaustion_warning";
+export const NOTIFICATION_TYPES = [
+  "blueprint_complete",
+  "team_invitation",
+  "deployment_status",
+  "credit_warning",
+  "blueprint_shared",
+  "team_member_role_changed",
+  "team_member_removed",
+  "team_updated",
+  "project_created",
+  "project_updated",
+  "project_deleted",
+  "team_deleted",
+  "credit_exhaustion_warning",
+] as const;
+
+export type NotificationType = typeof NOTIFICATION_TYPES[number];
 
 export interface NotificationMetadata {
   blueprintId?: string;

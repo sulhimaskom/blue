@@ -3,28 +3,14 @@ import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ValidationError } from "@/lib/api-utils";
-import { NotificationService } from "@/lib/services/notification-service";
+import { NotificationService, NOTIFICATION_TYPES } from "@/lib/services/notification-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 
 const GetNotificationsQuerySchema = z.object({
   page: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
   limit: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
   unreadOnly: z.string().optional().transform((val) => val === "true"),
-  type: z.enum([
-    "blueprint_complete",
-    "team_invitation",
-    "deployment_status",
-    "credit_warning",
-    "blueprint_shared",
-    "team_member_role_changed",
-    "team_member_removed",
-    "team_updated",
-    "project_created",
-    "project_updated",
-    "project_deleted",
-    "team_deleted",
-    "credit_exhaustion_warning",
-  ]).optional(),
+  type: z.enum([...NOTIFICATION_TYPES]).optional(),
 });
 
 interface RouteParams {

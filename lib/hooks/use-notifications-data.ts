@@ -1,24 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-
-export type NotificationType =
-  | "blueprint_complete"
-  | "team_invitation"
-  | "deployment_status"
-  | "credit_warning"
-  | "blueprint_shared";
-
-export interface NotificationMetadata {
-  blueprintId?: string;
-  projectId?: string;
-  deploymentId?: string;
-  teamId?: string;
-  duration?: number;
-  environment?: string;
-  status?: string;
-  remainingCredits?: number;
-  sharerName?: string;
-  inviterName?: string;
-}
+import { NotificationType, NotificationMetadata } from "@/lib/services/notification-service";
 
 export interface Notification {
   id: string;
