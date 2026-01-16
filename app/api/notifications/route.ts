@@ -10,7 +10,21 @@ const GetNotificationsQuerySchema = z.object({
   page: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
   limit: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
   unreadOnly: z.string().optional().transform((val) => val === "true"),
-  type: z.enum(["blueprint_complete", "team_invitation", "deployment_status", "credit_warning", "blueprint_shared"]).optional(),
+  type: z.enum([
+    "blueprint_complete",
+    "team_invitation",
+    "deployment_status",
+    "credit_warning",
+    "blueprint_shared",
+    "team_member_role_changed",
+    "team_member_removed",
+    "team_updated",
+    "project_created",
+    "project_updated",
+    "project_deleted",
+    "team_deleted",
+    "credit_exhaustion_warning",
+  ]).optional(),
 });
 
 interface RouteParams {
@@ -37,7 +51,7 @@ export async function GET(req: NextRequest, { params: _ }: RouteParams) {
         page,
         limit,
         unreadOnly,
-        type: type as any,
+        type,
       });
 
       logger.userAction("Notifications fetched", user!.clerkId, {
