@@ -75,6 +75,10 @@ When rate limits are enforced, responses include:
 | **Deployment**      | `POST /deploy/[id]`                        | ✅ Required | -       | Strict     | Deploy to GitHub         |
 | **Credits**         | `GET /credits`                             | ✅ Required | -       | Standard   | User credit balance      |
 |                     | `POST /credits`                            | ✅ Required | -       | Moderate   | Purchase credits         |
+| **Subscription**    | `GET /subscription/current`              | ✅ Required | -       | Standard   | Current subscription     |
+|                     | `GET /subscription/tiers`                | ❌ Optional | -       | Permissive | Available tiers        |
+|                     | `GET /subscription/predictions`          | ✅ Required | -       | Standard   | Usage predictions       |
+|                     | `POST /subscription/upgrade`             | ✅ Required | -       | Moderate   | Upgrade tier           |
 | **System**          | `GET /health`                              | ❌ Optional | -       | Permissive | System health status     |
 |                     | `GET /metrics`                             | ❌ Optional | -       | Permissive | Performance metrics      |
 | **Monitoring**      | `GET /circuit-breakers/metrics`            | ❌ Optional | -       | Standard   | Circuit breaker status   |
@@ -2253,6 +2257,212 @@ Authorization: Bearer <token>
   }
 }
 ```
+
+---
+
+## 📋 Subscription Management
+
+### GET /subscription/current
+
+Get current subscription details for the authenticated user.
+
+**Request:**
+
+```http
+GET /api/subscription/current
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "tier": "pro",
+    "maxCredits": 500,
+    "creditsRemaining": 150,
+    "maxProjects": 10,
+    "projectsCount": 3,
+    "maxDeployments": 100,
+    "deploymentsCount": 15,
+    "createdAt": "2025-01-01T00:00:00Z",
+    "renewalDate": "2025-02-01T00:00:00Z"
+  }
+}
+```
+
+**Rate Limiting:** 30 requests/minute (Standard)
+
+**Error Responses:**
+
+- `401 Unauthorized` - Authentication required
+- `500 Internal Server Error` - Database error
+
+---
+
+### GET /subscription/tiers
+
+Get available subscription tiers and pricing information.
+
+**Request:**
+
+```http
+GET /api/subscription/tiers
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "tiers": [
+      {
+        "id": "free",
+        "name": "Free",
+        "maxCredits": 100,
+        "maxProjects": 1,
+        "maxDeployments": 10,
+        "price": 0
+      },
+      {
+        "id": "pro",
+        "name": "Pro",
+        "maxCredits": 500,
+        "maxProjects": 10,
+        "maxDeployments": 100,
+        "price": 29
+      },
+      {
+        "id": "enterprise",
+        "name": "Enterprise",
+        "maxCredits": 10000,
+        "maxProjects": 100,
+        "maxDeployments": 1000,
+        "price": 299
+      }
+    ]
+  }
+}
+```
+
+**Authentication:** Not required (public endpoint)
+**Rate Limiting:** 60 requests/minute (Permissive)
+
+**Error Responses:**
+
+- `500 Internal Server Error` - Database error
+
+---
+
+### GET /subscription/predictions
+
+Get predictive analytics for subscription usage including exhaustion dates, tier recommendations, and optimization suggestions.
+
+**Request:**
+
+```http
+GET /api/subscription/predictions
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "predictions": {
+      "credits": {
+        "dailyAverage": 5.2,
+        "projectedExhaustionDate": "2025-03-15T00:00:00Z",
+        "tierRecommendation": {
+          "recommendedTier": "pro",
+          "reason": "Based on current usage rate, you will exhaust credits in 58 days",
+          "urgency": "upcoming"
+        }
+      },
+      "projects": {
+        "currentGrowthRate": 15.5,
+        "projectedLimitHit": "2025-06-01T00:00:00Z"
+      },
+      "deployments": {
+        "dailyAverage": 1.8,
+        "monthlyProjection": 54
+      }
+    },
+    "recommendations": [
+      {
+        "type": "upgrade",
+        "title": "Upgrade to Pro Tier",
+        "description": "Your projected credit usage suggests upgrading to Pro tier",
+        "action": "Upgrade Now"
+      },
+      {
+        "type": "optimization",
+        "title": "Optimize Deployment Frequency",
+        "description": "Consolidate deployments to reduce credit usage"
+      }
+    ]
+  }
+}
+```
+
+**Authentication:** Required (Clerk)
+**Rate Limiting:** 30 requests/minute (Standard) with caching (TTL: 300s, varyBy: userId)
+
+**Error Responses:**
+
+- `401 Unauthorized` - Authentication required
+- `500 Internal Server Error` - Prediction calculation error
+
+---
+
+### POST /subscription/upgrade
+
+Initiate subscription tier upgrade via Stripe checkout.
+
+**Request:**
+
+```http
+POST /api/subscription/upgrade
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "tier": "pro",
+  "billingCycle": "monthly"
+}
+```
+
+**Parameters:**
+
+- `tier` (string, required) - Target tier: "pro", "enterprise"
+- `billingCycle` (string, optional) - Billing cycle: "monthly" or "yearly" (default: "monthly")
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "checkoutUrl": "https://checkout.stripe.com/c/...",
+    "tier": "pro",
+    "billingCycle": "monthly"
+  }
+}
+```
+
+**Authentication:** Required (Clerk)
+**Rate Limiting:** 10 requests/minute (Moderate)
+
+**Error Responses:**
+
+- `400 Bad Request` - Invalid tier or billing cycle
+- `401 Unauthorized` - Authentication required
+- `402 Payment Required` - Payment processing failed
+- `500 Internal Server Error` - Stripe integration error
 
 ---
 
