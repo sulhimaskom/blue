@@ -31,11 +31,13 @@ describe('Issue #178 - AGENTS.md Quality Gate Metrics', () => {
     const buildInfo = buildMatch[1];
 
     // Should have current metrics
-    expect(buildInfo).toContain('62 static pages');
-    expect(buildInfo).toContain('17.0s compile time');
+    expect(buildInfo).toContain('64 static pages');
+    expect(buildInfo).toContain('55.3s compile time');
 
     // Should not have outdated metrics
     expect(buildInfo).not.toContain('25.5s');
+    expect(buildInfo).not.toContain('17.0s');
+    expect(buildInfo).not.toContain('62 static pages');
   });
 
   it('should have current test metrics', () => {
