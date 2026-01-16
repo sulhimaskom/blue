@@ -98,8 +98,8 @@ export function PredictiveAnalytics() {
       try {
         const url = new URL(data.checkoutUrl, window.location.origin);
         if (url.hostname !== new URL(window.location.origin).hostname &&
-            !url.hostname.endsWith(".stripe.com") &&
-            !url.hostname.endsWith(".paypal.com")) {
+            url.hostname !== "checkout.stripe.com" &&
+            url.hostname !== "www.paypal.com") {
           throw new Error("Untrusted checkout URL");
         }
       } catch (e) {
@@ -137,6 +137,25 @@ export function PredictiveAnalytics() {
     }
   };
 
+  const getTierCardClassName = (variant: string): string => {
+    const base = "border-2";
+    if (variant === "destructive") return `${base} border-red-500`;
+    if (variant === "default") return `${base} border-blue-500`;
+    return base;
+  };
+
+  const getRecommendationItemClassName = (type: string): string => {
+    const base = "border rounded-lg p-4";
+    switch (type) {
+      case "upgrade":
+        return `${base} border-blue-500 bg-blue-50 dark:bg-blue-950`;
+      case "optimization":
+        return `${base} border-green-500 bg-green-50 dark:bg-green-950`;
+      default:
+        return `${base} border-gray-300 bg-gray-50 dark:bg-gray-900`;
+    }
+  };
+
   if (loading) {
     return (
       <div 
@@ -168,7 +187,7 @@ export function PredictiveAnalytics() {
   const urgencyBadge = getUrgencyBadge(preds.credits.tierRecommendation.urgency);
 
   return (
-    <main className="space-y-6" role="main" aria-label="Predictive Analytics">
+    <div className="space-y-6" role="main" aria-label="Predictive Analytics">
       {/* Credit Exhaustion & Tier Recommendation */}
       {preds.credits.projectedExhaustionDate && (
         <section aria-labelledby="exhaustion-heading">
@@ -211,7 +230,7 @@ export function PredictiveAnalytics() {
       {/* Tier Recommendation Card */}
       {preds.credits.tierRecommendation.recommendedTier !== "current" && (
         <section aria-labelledby="recommendation-heading">
-          <Card className={`border-2 ${urgencyBadge.variant === "destructive" ? "border-red-500" : urgencyBadge.variant === "default" ? "border-blue-500" : ""}`}>
+          <Card className={getTierCardClassName(urgencyBadge.variant)}>
             <CardHeader>
               <CardTitle id="recommendation-heading" className="flex items-center gap-2">
                 <ChevronUp className="h-5 w-5" aria-hidden="true" />
@@ -326,12 +345,8 @@ export function PredictiveAnalytics() {
               >
                 {recommendations.map((rec, index) => (
                   <div 
-                    key={index}
-                    className={`border rounded-lg p-4 ${
-                      rec.type === "upgrade" ? "border-blue-500 bg-blue-50 dark:bg-blue-950" :
-                      rec.type === "optimization" ? "border-green-500 bg-green-50 dark:bg-green-950" :
-                      "border-gray-300 bg-gray-50 dark:bg-gray-900"
-                    }`}
+                    key={`${rec.type}-${rec.title}-${index}`}
+                    className={getRecommendationItemClassName(rec.type)}
                     role="listitem"
                   >
                     <div className="flex items-start gap-3">
@@ -361,6 +376,6 @@ export function PredictiveAnalytics() {
           </Card>
         </section>
       )}
-    </main>
+    </div>
   );
 }
