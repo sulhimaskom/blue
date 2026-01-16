@@ -12,6 +12,7 @@ export interface BlueprintData {
     name: string;
     description: string;
     blueprintCount: number;
+    status: string;
     createdAt: string;
     updatedAt: string;
   }>;
