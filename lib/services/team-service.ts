@@ -23,7 +23,7 @@ import {
   DatabaseError,
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
-import { teamCache } from "@/lib/services/cache-orchestrator";
+import { teamCache, UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 import { NotificationService, type NotificationMetadata } from "@/lib/services/notification-service";
@@ -116,6 +116,7 @@ class TeamService {
 
       // Clear user team cache
       await teamCache.invalidate(`user:${request.ownerId}:teams`);
+      await UnifiedCacheManager.invalidateByTag("teams");
 
       const duration = Date.now() - startTime;
       logger.userAction("team_created", request.ownerId.toString(), {
@@ -412,6 +413,7 @@ class TeamService {
       // Clear team cache
       await teamCache.invalidate(`team:${teamId}:details`);
       await teamCache.invalidate(`user:${user.id}:teams`);
+      await UnifiedCacheManager.invalidateByTag("teams");
 
       logger.userAction("team_member_invited", invitingUserId.toString(), {
         teamId,
@@ -554,6 +556,7 @@ class TeamService {
 
       // Clear cache
       await teamCache.invalidate(`team:${teamId}:details`);
+      await UnifiedCacheManager.invalidateByTag("teams");
 
       logger.userAction("team_member_role_updated", requestingUserId.toString(), {
         teamId,
@@ -717,6 +720,7 @@ class TeamService {
       // Clear cache
       await teamCache.invalidate(`team:${teamId}:details`);
       await teamCache.invalidate(`user:${targetUserId}:teams`);
+      await UnifiedCacheManager.invalidateByTag("teams");
 
       logger.userAction("team_member_removed", requestingUserId.toString(), {
         teamId,
@@ -1032,6 +1036,7 @@ class TeamService {
 
       // Clear cache
       await teamCache.invalidate(`team:${teamId}:details`);
+      await UnifiedCacheManager.invalidateByTag("teams");
 
       logger.userAction("team_deleted", requestingUserId.toString(), {
         teamId,
@@ -1176,6 +1181,7 @@ class TeamService {
 
       // Clear cache
       await teamCache.invalidate(`team:${teamId}:details`);
+      await UnifiedCacheManager.invalidateByTag("teams");
 
       const duration = Date.now() - startTime;
       logger.userAction("team_name_updated", requestingUserId.toString(), {
