@@ -81,10 +81,12 @@ class GitHubWebhookHandlerService {
    * Handle ping events (webhook verification)
    */
   private async handlePingEvent(
-    event: GitHubWebhookEvent,
+    event: GitHubWebhookEvent & {
+      data: { zen?: string; hook_id?: number; repository?: { full_name?: string }; };
+    },
     context: WebhookContext,
   ): Promise<void> {
-    const pingData = event.data as { zen?: string; hook_id?: number; repository?: { full_name?: string }; };
+    const pingData = event.data;
     logger.systemEvent("GitHub webhook ping received", {
       requestId: context.requestId,
       zen: pingData.zen,
@@ -97,10 +99,10 @@ class GitHubWebhookHandlerService {
    * Handle push events
    */
   private async handlePushEvent(
-    event: GitHubWebhookEvent,
+    event: GitHubWebhookEvent & { data: GitHubPushEventData },
     context: WebhookContext,
   ): Promise<void> {
-    const pushData = event.data as GitHubPushEventData;
+    const pushData = event.data;
     const { repository, pusher, ref, commits } = pushData;
 
     logger.systemEvent("GitHub push event received", {
@@ -138,10 +140,10 @@ class GitHubWebhookHandlerService {
    * Handle pull request events
    */
   private async handlePullRequestEvent(
-    event: GitHubWebhookEvent,
+    event: GitHubWebhookEvent & { data: GitHubPullRequestEventData },
     context: WebhookContext,
   ): Promise<void> {
-    const prData = event.data as GitHubPullRequestEventData;
+    const prData = event.data;
     const { action, pull_request, repository, sender } = prData;
 
     logger.systemEvent("GitHub pull request event received", {
@@ -180,10 +182,10 @@ class GitHubWebhookHandlerService {
    * Handle issues events
    */
   private async handleIssuesEvent(
-    event: GitHubWebhookEvent,
+    event: GitHubWebhookEvent & { data: GitHubIssueEventData },
     context: WebhookContext,
   ): Promise<void> {
-    const issueData = event.data as GitHubIssueEventData;
+    const issueData = event.data;
     const { action, issue, repository, sender } = issueData;
 
     logger.systemEvent("GitHub issues event received", {
@@ -220,10 +222,12 @@ class GitHubWebhookHandlerService {
    * Handle repository creation events
    */
   private async handleRepositoryCreatedEvent(
-    event: GitHubWebhookEvent,
+    event: GitHubWebhookEvent & {
+      data: { repository: { full_name: string; private: boolean }; sender: { login: string }; };
+    },
     context: WebhookContext,
   ): Promise<void> {
-    const repoData = event.data as { repository: { full_name: string; private: boolean }; sender: { login: string }; };
+    const repoData = event.data;
     const { repository, sender } = repoData;
 
     logger.systemEvent("GitHub repository created event received", {
