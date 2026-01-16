@@ -207,7 +207,145 @@ export interface PlatformWebhookEvent extends WebhookEventBase {
 // Webhook Event Union Types
 // ========================================
 
-export type WebhookEvent = ClerkWebhookEvent | StripeWebhookEvent | PlatformWebhookEvent;
+// ========================================
+// GitHub Webhook Event Types
+// ========================================
+
+export interface GitHubUser {
+  id: number;
+  login: string;
+  avatar_url?: string;
+  type: string;
+}
+
+export interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  private: boolean;
+  html_url: string;
+  owner: GitHubUser;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GitHubCommit {
+  id: string;
+  message: string;
+  timestamp: string;
+  author: {
+    name: string;
+    email: string;
+    username?: string;
+  };
+  url: string;
+  distinct: boolean;
+}
+
+export interface GitHubPushEventData {
+  ref: string;
+  ref_type?: string;
+  repository: GitHubRepository;
+  pusher: {
+    name: string;
+    email: string;
+  };
+  sender: GitHubUser;
+  created?: boolean;
+  deleted?: boolean;
+  forced?: boolean;
+  before?: string;
+  after?: string;
+  commits?: GitHubCommit[];
+  compare?: string;
+}
+
+export interface GitHubPullRequest {
+  id: number;
+  number: number;
+  title: string;
+  state: "open" | "closed" | "merged";
+  html_url: string;
+  user: GitHubUser;
+  head: {
+    sha: string;
+    ref: string;
+    repo: GitHubRepository;
+  };
+  base: {
+    sha: string;
+    ref: string;
+    repo: GitHubRepository;
+  };
+  created_at: string;
+  updated_at: string;
+  merged_at?: string;
+  merged?: boolean;
+}
+
+export interface GitHubPullRequestEventData {
+  action: "opened" | "closed" | "reopened" | "edited" | "synchronize";
+  number: number;
+  pull_request: GitHubPullRequest;
+  repository: GitHubRepository;
+  sender: GitHubUser;
+  changes?: unknown;
+}
+
+export interface GitHubIssue {
+  id: number;
+  number: number;
+  title: string;
+  state: "open" | "closed";
+  html_url: string;
+  user: GitHubUser;
+  body?: string;
+  created_at: string;
+  updated_at: string;
+  closed_at?: string;
+  labels: Array<{
+    id: number;
+    name: string;
+    color: string;
+  }>;
+}
+
+export interface GitHubIssueEventData {
+  action: "opened" | "closed" | "reopened" | "edited" | "labeled" | "unlabeled";
+  issue: GitHubIssue;
+  repository: GitHubRepository;
+  sender: GitHubUser;
+  changes?: unknown;
+}
+
+export interface GitHubWebhookEvent extends WebhookEventBase {
+  type:
+    | "push"
+    | "repository.created"
+    | "repository.deleted"
+    | "repository.renamed"
+    | "pull_request"
+    | "pull_request_review"
+    | "issues"
+    | "issue_comment"
+    | "ping";
+  data:
+    | GitHubPushEventData
+    | GitHubPullRequestEventData
+    | GitHubIssueEventData
+    | {
+      zen?: string;
+      hook_id?: number;
+      repository?: GitHubRepository;
+      sender?: GitHubUser;
+    };
+}
+
+// ========================================
+// Webhook Event Union Types
+// ========================================
+
+export type WebhookEvent = ClerkWebhookEvent | StripeWebhookEvent | PlatformWebhookEvent | GitHubWebhookEvent;
 
 export function isClerkWebhookEvent(
   event: WebhookEvent,
@@ -320,4 +458,64 @@ export function isWebhookFailed(
   data: { webhookConfigurationId: string; eventType: string; errorMessage: string; retryCount: number };
 } {
   return event.type === "webhook.failed";
+}
+
+// ========================================
+// GitHub Webhook Event Type Guards
+// ========================================
+
+export function isGitHubWebhookEvent(
+  event: WebhookEvent,
+): event is GitHubWebhookEvent {
+  return (
+    event.type === "push" ||
+    event.type === "repository.created" ||
+    event.type === "repository.deleted" ||
+    event.type === "repository.renamed" ||
+    event.type === "pull_request" ||
+    event.type === "pull_request_review" ||
+    event.type === "issues" ||
+    event.type === "issue_comment" ||
+    event.type === "ping"
+  );
+}
+
+export function isGitHubPushEvent(
+  event: WebhookEvent,
+): event is GitHubWebhookEvent & {
+  data: GitHubPushEventData;
+} {
+  return event.type === "push";
+}
+
+export function isGitHubPullRequestEvent(
+  event: WebhookEvent,
+): event is GitHubWebhookEvent & {
+  data: GitHubPullRequestEventData;
+} {
+  return event.type === "pull_request";
+}
+
+export function isGitHubIssuesEvent(
+  event: WebhookEvent,
+): event is GitHubWebhookEvent & {
+  data: GitHubIssueEventData;
+} {
+  return event.type === "issues";
+}
+
+export function isGitHubRepositoryCreated(
+  event: WebhookEvent,
+): event is GitHubWebhookEvent & {
+  data: { repository: GitHubRepository; sender: GitHubUser };
+} {
+  return event.type === "repository.created";
+}
+
+export function isGitHubPing(
+  event: WebhookEvent,
+): event is GitHubWebhookEvent & {
+  data: { zen?: string; hook_id?: number; repository?: GitHubRepository; sender?: GitHubUser };
+} {
+  return event.type === "ping";
 }

@@ -45,6 +45,7 @@ const envSchema = z.object({
   GITHUB_ACCESS_TOKEN: z.string().min(1, "GitHub access token is required"),
   GITHUB_APP_ID: z.string().optional(),
   GITHUB_APP_PRIVATE_KEY: z.string().optional(),
+  GITHUB_WEBHOOK_SECRET: z.string().optional(),
 
   // Redis (Optional - will fall back to in-memory if not provided)
   REDIS_URL: z.string().url().optional(),
