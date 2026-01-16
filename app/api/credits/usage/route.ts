@@ -2,6 +2,7 @@ import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { SubscriptionService } from "@/lib/services/subscription-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { DatabaseError } from "@/lib/api-utils";
 
 export const GET = APIRouteHandler.createGETHandler({
   requireAuth: true,
@@ -16,7 +17,7 @@ export const GET = APIRouteHandler.createGETHandler({
         new Error(breakdownResult.error || "Unknown error"),
         { userId: user!.id },
       );
-      throw new Error("Failed to get credit usage breakdown");
+      throw new DatabaseError("Failed to get credit usage breakdown");
     }
 
     const { breakdown, chartData, recommendations, topOperations, totalCredits } = breakdownResult.data;
