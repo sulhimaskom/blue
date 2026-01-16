@@ -200,7 +200,7 @@ export class SecurityService {
           requestId,
           error: stripeError.message,
           type: stripeError.type,
-          code: (stripeError as any).code || "UNKNOWN",
+          code: stripeError.code || "UNKNOWN",
           signaturePrefix: signature.substring(0, 15) + "...",
           endpoint: "stripe-webhook-verification",
           potentialAttack: this.isPotentialAttack(signature, stripeError),
@@ -309,7 +309,7 @@ export class SecurityService {
    * Sanitize user input for logging
    * Removes sensitive information while preserving structure
    */
-  static sanitizeForLogging(input: any): any {
+  static sanitizeForLogging(input: unknown): unknown {
     if (typeof input !== "object" || input === null) {
       return input;
     }
@@ -326,7 +326,7 @@ export class SecurityService {
       "email",
     ];
 
-    const sanitized = { ...input };
+    const sanitized = { ...input } as Record<string, unknown>;
 
     for (const key in sanitized) {
       const lowerKey = key.toLowerCase();
@@ -351,7 +351,10 @@ export class SecurityService {
     event: string,
     metadata: Record<string, any> = {},
   ): void {
-    logger.security(event, this.sanitizeForLogging(metadata));
+    logger.security(
+      event,
+      this.sanitizeForLogging(metadata) as Record<string, any>,
+    );
   }
 
   /**
@@ -430,7 +433,7 @@ export class SecurityService {
   /**
    * Analyze error to determine potential attack patterns
    */
-  private static isPotentialAttack(_signature: string, error: any): boolean {
+  private static isPotentialAttack(_signature: string, error: Error): boolean {
     const suspiciousPatterns = [
       /no signatures found matching/i,
       /timestamp provided is too old/i,

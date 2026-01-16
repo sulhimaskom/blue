@@ -630,12 +630,13 @@ export class ErrorMonitoringService {
     );
   }
 
-  private getComponentFromError(error?: any): string {
+  private getComponentFromError(error?: Error | unknown): string {
     if (!error) return "unknown";
 
     // Extract component from error stack or name
-    const stack = error.stack || "";
-    const name = error.name || "Error";
+    const err = error instanceof Error ? error : new Error(String(error));
+    const stack = err.stack || "";
+    const name = err.name || "Error";
 
     // Analyze stack to determine component
     if (stack.includes("api/")) return "api";
@@ -647,11 +648,11 @@ export class ErrorMonitoringService {
   }
 
   private assessBusinessImpact(
-    error?: any,
+    error?: Error | unknown,
   ): "high" | "medium" | "low" | "none" {
     if (!error) return "none";
 
-    const message = error.message || "";
+    const message = error instanceof Error ? error.message : String(error);
 
     // High impact: authentication, payments, data loss
     if (
