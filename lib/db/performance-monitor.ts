@@ -25,6 +25,19 @@ export interface SlowQueryAlert {
   recommendations: string[];
 }
 
+export interface DatabasePerformanceMetrics {
+  totalQueries: number;
+  successRate: number;
+  averageDuration: number;
+  slowQueries: QueryMetrics[];
+  recentErrors: QueryMetrics[];
+  queryStats: Record<
+    string,
+    { count: number; avgDuration: number; errorRate: number }
+  >;
+  performanceReport?: unknown;
+}
+
 export class DatabasePerformanceMonitor {
   private static queryHistory: QueryMetrics[] = [];
   private static readonly MAX_HISTORY_SIZE = 1000;
@@ -99,17 +112,7 @@ export class DatabasePerformanceMonitor {
   /**
    * Get performance metrics for analysis
    */
-  static getPerformanceMetrics(): {
-    totalQueries: number;
-    successRate: number;
-    averageDuration: number;
-    slowQueries: QueryMetrics[];
-    recentErrors: QueryMetrics[];
-    queryStats: Record<
-      string,
-      { count: number; avgDuration: number; errorRate: number }
-    >;
-  } {
+  static getPerformanceMetrics(): DatabasePerformanceMetrics {
     const totalQueries = this.queryHistory.length;
     const successfulQueries = this.queryHistory.filter((q) => q.success).length;
     const successRate =

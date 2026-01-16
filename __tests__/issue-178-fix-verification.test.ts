@@ -23,17 +23,17 @@ describe('Issue #178 - AGENTS.md Quality Gate Metrics', () => {
   it('should have current build metrics', () => {
     const fs = require('fs');
     const agentsContent = fs.readFileSync('AGENTS.md', 'utf8');
-    
+
     // Extract build metrics
-    const buildMatch = agentsContent.match(/`npm run build:clean` - MUST pass \(([^)]+)\)/);
+    const buildMatch = agentsContent.match(/`npm run build` - MUST pass \(([^)]+)\)/);
     expect(buildMatch).toBeTruthy();
-    
+
     const buildInfo = buildMatch[1];
-    
+
     // Should have current metrics
     expect(buildInfo).toContain('62 static pages');
-    expect(buildInfo).toContain('16.9s compile time');
-    
+    expect(buildInfo).toContain('17.0s compile time');
+
     // Should not have outdated metrics
     expect(buildInfo).not.toContain('25.5s');
   });
@@ -58,10 +58,10 @@ describe('Issue #178 - AGENTS.md Quality Gate Metrics', () => {
   it('should have current verification date', () => {
     const fs = require('fs');
     const agentsContent = fs.readFileSync('AGENTS.md', 'utf8');
-    
+
     // Should contain recent verification date
-    expect(agentsContent).toContain('January 15, 2026 FRESH VERIFICATION');
-    
+    expect(agentsContent).toContain('January 16, 2026 FRESH VERIFICATION');
+
     // Should not have old dates
     expect(agentsContent).not.toContain('January 12, 2026 verification');
   });
