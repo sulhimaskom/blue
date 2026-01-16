@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
             repository.full_name,
             pull_request.number,
             pull_request.title,
-            action as "opened" | "closed",
+            action,
             pull_request.state,
             pull_request.merged ?? false,
             sender.login,
