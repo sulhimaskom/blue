@@ -4,6 +4,7 @@ import { userSettings } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 import { ValidationError, DatabaseError, NotFoundError } from "@/lib/api-utils";
+import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 
 const notificationPreferencesSchema = z.object({
   blueprintGeneration: z.boolean().optional(),
@@ -213,9 +214,12 @@ export class UserSettingsService {
         throw new NotFoundError("User settings not found");
       }
 
-      logger.userAction("User settings updated", clerkId || userId.toString(), {
+      await UnifiedCacheManager.invalidateByTag("user-settings");
+      await UnifiedCacheManager.invalidateByTag("notifications");
+      await UnifiedCacheManager.invalidateByTag("ui-preferences");
+
+      logger.userAction("User settings reset", clerkId || userId.toString(), {
         settingsId: updatedSettings.id,
-        updates: validatedUpdates,
       });
 
       return {
