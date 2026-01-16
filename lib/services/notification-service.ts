@@ -36,6 +36,7 @@ export interface NotificationMetadata {
   role?: string;
   updatedBy?: string;
   removedBy?: string;
+  deletedBy?: string;
   projectName?: string;
   projectDescription?: string;
   updatedFields?: string[];
