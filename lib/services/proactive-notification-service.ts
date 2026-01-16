@@ -9,7 +9,7 @@ interface CreditWarningThreshold {
   daysBeforeExhaustion: number;
   urgency: "low" | "medium" | "high" | "critical";
   title: string;
-  messageTemplate: (days: number, projectedDate: string, recommendedTier: string) => string;
+  messageTemplate: (_days: number, _projectedDate: string, _recommendedTier: string) => string;
 }
 
 const WARNING_THRESHOLDS: CreditWarningThreshold[] = [
@@ -17,29 +17,33 @@ const WARNING_THRESHOLDS: CreditWarningThreshold[] = [
     daysBeforeExhaustion: 30,
     urgency: "low",
     title: "Credit Usage Alert - 30 Days",
-    messageTemplate: (days: number, projectedDate: string, recommendedTier: string) => 
-      `Based on your usage pattern, your credits will run out in ${days} days (on ${projectedDate}). Consider upgrading to ${recommendedTier} to avoid service interruption.`,
+    messageTemplate: (_days: number, _projectedDate: string, _recommendedTier: string) => {
+      return `Based on your usage pattern, your credits will run out in ${_days} days (on ${_projectedDate}). Consider upgrading to ${_recommendedTier} to avoid service interruption.`;
+    },
   },
   {
     daysBeforeExhaustion: 14,
     urgency: "medium",
     title: "Credit Usage Alert - 14 Days",
-    messageTemplate: (days: number, projectedDate: string, recommendedTier: string) =>
-      `Your credits will run out in ${days} days (on ${projectedDate}). We recommend upgrading to ${recommendedTier} soon to ensure uninterrupted service.`,
+    messageTemplate: (_days: number, _projectedDate: string, _recommendedTier: string) => {
+      return `Your credits will run out in ${_days} days (on ${_projectedDate}). We recommend upgrading to ${_recommendedTier} soon to ensure uninterrupted service.`;
+    },
   },
   {
     daysBeforeExhaustion: 7,
     urgency: "high",
     title: "Urgent: Credit Exhaustion in 7 Days",
-    messageTemplate: (days: number, projectedDate: string, recommendedTier: string) =>
-      `URGENT: Your credits will be exhausted in ${days} days (on ${projectedDate}). Please upgrade to ${recommendedTier} immediately to avoid service interruption.`,
+    messageTemplate: (_days: number, _projectedDate: string, _recommendedTier: string) => {
+      return `URGENT: Your credits will be exhausted in ${_days} days (on ${_projectedDate}). Please upgrade to ${_recommendedTier} immediately to avoid service interruption.`;
+    },
   },
   {
     daysBeforeExhaustion: 3,
     urgency: "critical",
     title: "CRITICAL: Credit Exhaustion Imminent",
-    messageTemplate: (days: number, projectedDate: string, recommendedTier: string) =>
-      `CRITICAL: Your credits will run out in ${days} days (on ${projectedDate}). Upgrade to ${recommendedTier} NOW to avoid service disruption.`,
+    messageTemplate: (_days: number, _projectedDate: string, _recommendedTier: string) => {
+      return `CRITICAL: Your credits will run out in ${_days} days (on ${_projectedDate}). Upgrade to ${_recommendedTier} NOW to avoid service disruption.`;
+    },
   },
 ];
 
