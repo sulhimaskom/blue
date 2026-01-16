@@ -90,6 +90,22 @@ export function PredictiveAnalytics() {
       }
 
       const data = await response.json();
+      
+      if (!data.checkoutUrl || typeof data.checkoutUrl !== "string") {
+        throw new Error("Invalid checkout URL received");
+      }
+
+      try {
+        const url = new URL(data.checkoutUrl, window.location.origin);
+        if (url.hostname !== new URL(window.location.origin).hostname &&
+            !url.hostname.endsWith(".stripe.com") &&
+            !url.hostname.endsWith(".paypal.com")) {
+          throw new Error("Untrusted checkout URL");
+        }
+      } catch (e) {
+        throw new Error("Invalid checkout URL format");
+      }
+
       window.location.href = data.checkoutUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upgrade failed");
@@ -104,6 +120,20 @@ export function PredictiveAnalytics() {
         return { variant: "default" as const, text: "Upcoming" };
       default:
         return { variant: "secondary" as const, text: "None" };
+    }
+  };
+
+  const formatDateSafely = (dateString: string | null): string => {
+    if (!dateString) return "N/A";
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return "Invalid Date";
+      }
+      return date.toLocaleDateString();
+    } catch (e) {
+      return "Invalid Date";
     }
   };
 
@@ -153,15 +183,15 @@ export function PredictiveAnalytics() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
-                    <ZapIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Projected Exhaustion</div>
-                    <div className="font-semibold flex items-center gap-2">
-                      <CalendarIcon className="h-4 w-4" aria-hidden="true" />
-                      {new Date(preds.credits.projectedExhaustionDate).toLocaleDateString()}
-                    </div>
-                  </div>
+                     <ZapIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                   </div>
+                   <div>
+                     <div className="text-sm text-gray-600 dark:text-gray-400">Projected Exhaustion</div>
+                     <div className="font-semibold flex items-center gap-2">
+                       <CalendarIcon className="h-4 w-4" aria-hidden="true" />
+                       {formatDateSafely(preds.credits.projectedExhaustionDate)}
+                     </div>
+                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="p-3 rounded-full bg-green-100 dark:bg-green-900">
@@ -245,14 +275,14 @@ export function PredictiveAnalytics() {
                     </span>
                   </div>
                   {preds.projects.projectedLimitHit && (
-                    <div className="flex justify-between text-sm">
-                      <span>Projected Limit Hit</span>
-                      <span className="font-medium flex items-center gap-1">
-                        <CalendarIcon className="h-3 w-3" aria-hidden="true" />
-                        {new Date(preds.projects.projectedLimitHit).toLocaleDateString()}
-                      </span>
-                    </div>
-                  )}
+                     <div className="flex justify-between text-sm">
+                       <span>Projected Limit Hit</span>
+                       <span className="font-medium flex items-center gap-1">
+                         <CalendarIcon className="h-3 w-3" aria-hidden="true" />
+                         {formatDateSafely(preds.projects.projectedLimitHit)}
+                       </span>
+                     </div>
+                   )}
                 </div>
               </div>
 
