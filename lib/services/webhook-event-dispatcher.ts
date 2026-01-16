@@ -58,6 +58,43 @@ export interface TeamMemberEventData extends TeamEventData {
   role: string;
 }
 
+export interface GitHubPushEventData {
+  repositoryFullName: string;
+  branch: string;
+  commitSha: string;
+  commitMessage: string;
+  author: string;
+  timestamp: Date;
+}
+
+export interface GitHubPullRequestEventData {
+  repositoryFullName: string;
+  prNumber: number;
+  prTitle: string;
+  action: "opened" | "closed" | "reopened" | "edited" | "synchronize";
+  state: string;
+  merged: boolean;
+  sender: string;
+  timestamp: Date;
+}
+
+export interface GitHubIssueEventData {
+  repositoryFullName: string;
+  issueNumber: number;
+  issueTitle: string;
+  action: "opened" | "closed" | "reopened" | "edited";
+  state: string;
+  sender: string;
+  timestamp: Date;
+}
+
+export interface GitHubRepositoryEventData {
+  repositoryFullName: string;
+  isPrivate: boolean;
+  createdBy: string;
+  timestamp: Date;
+}
+
 /**
  * WebhookEventDispatcher - Centralized event emission for outbound webhooks
  * 
@@ -736,10 +773,10 @@ static async emitTeamMemberRemoved(
   );
 }
 
-/**
- * Emit team member role changed webhook event
- * Triggered when a team member's role is updated
- */
+  /**
+  * Emit team member role changed webhook event
+  * Triggered when a team member's role is updated
+  */
 static async emitTeamMemberRoleChanged(
   userId: number,
   clerkId: string,
@@ -771,6 +808,266 @@ static async emitTeamMemberRoleChanged(
     "team.member_role_changed",
     eventData,
     `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit GitHub push webhook event
+ * Triggered when a push to a main branch is detected (deployment update)
+ */
+static async emitGitHubPush(
+  userId: number,
+  clerkId: string,
+  repositoryFullName: string,
+  branch: string,
+  commitSha: string,
+  commitMessage: string,
+  author: string,
+  context?: RequestContext,
+): Promise<void> {
+  const eventData: GitHubPushEventData = {
+    repositoryFullName,
+    branch,
+    commitSha,
+    commitMessage,
+    author,
+    timestamp: new Date(),
+  };
+
+  await this.dispatchEventToSubscribers(
+    "github.push",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit GitHub pull request webhook event
+ * Triggered when PRs are opened, closed, or merged
+ */
+static async emitGitHubPullRequest(
+  userId: number,
+  clerkId: string,
+  repositoryFullName: string,
+  prNumber: number,
+  prTitle: string,
+  action: "opened" | "closed" | "reopened" | "edited" | "synchronize",
+  state: string,
+  merged: boolean,
+  sender: string,
+  context?: RequestContext,
+): Promise<void> {
+  const eventData: GitHubPullRequestEventData = {
+    repositoryFullName,
+    prNumber,
+    prTitle,
+    action,
+    state,
+    merged,
+    sender,
+    timestamp: new Date(),
+  };
+
+  await this.dispatchEventToSubscribers(
+    "github.pull_request",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit GitHub issue webhook event
+ * Triggered when issues are created, updated, or closed
+ */
+static async emitGitHubIssue(
+  userId: number,
+  clerkId: string,
+  repositoryFullName: string,
+  issueNumber: number,
+  issueTitle: string,
+  action: "opened" | "closed" | "reopened" | "edited",
+  state: string,
+  sender: string,
+  context?: RequestContext,
+): Promise<void> {
+  const eventData: GitHubIssueEventData = {
+    repositoryFullName,
+    issueNumber,
+    issueTitle,
+    action,
+    state,
+    sender,
+    timestamp: new Date(),
+  };
+
+  await this.dispatchEventToSubscribers(
+    "github.issue",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+  /**
+   * Emit GitHub repository creation webhook event
+   * Triggered when a new repository is created
+   */
+static async emitGitHubRepositoryCreated(
+  userId: number,
+  clerkId: string,
+  repositoryFullName: string,
+  isPrivate: boolean,
+  createdBy: string,
+  context?: RequestContext,
+): Promise<void> {
+  const eventData: GitHubRepositoryEventData = {
+    repositoryFullName,
+    isPrivate,
+    createdBy,
+    timestamp: new Date(),
+  };
+
+  await this.dispatchEventToSubscribers(
+    "github.repository_created",
+    eventData,
+    `user-${clerkId}`,
+    context,
+  );
+}
+
+/**
+ * Emit GitHub push webhook event by repository name
+ * Automatically looks up project owner and dispatches event
+ */
+static async emitGitHubPushByRepository(
+  repositoryFullName: string,
+  branch: string,
+  commitSha: string,
+  commitMessage: string,
+  author: string,
+  context?: RequestContext,
+): Promise<void> {
+  const projectOwner = await this.getProjectOwnerByRepository(repositoryFullName, context);
+  if (!projectOwner) {
+    logger.warn("GitHub push event: No project owner found for repository", {
+      requestId: context?.requestId || "unknown",
+      repositoryFullName,
+    });
+    return;
+  }
+
+  await this.emitGitHubPush(
+    projectOwner.userId,
+    projectOwner.clerkId,
+    repositoryFullName,
+    branch,
+    commitSha,
+    commitMessage,
+    author,
+    context,
+  );
+}
+
+/**
+ * Emit GitHub pull request webhook event by repository name
+ * Automatically looks up project owner and dispatches event
+ */
+static async emitGitHubPullRequestByRepository(
+  repositoryFullName: string,
+  prNumber: number,
+  prTitle: string,
+  action: "opened" | "closed" | "reopened" | "edited" | "synchronize",
+  state: string,
+  merged: boolean,
+  sender: string,
+  context?: RequestContext,
+): Promise<void> {
+  const projectOwner = await this.getProjectOwnerByRepository(repositoryFullName, context);
+  if (!projectOwner) {
+    logger.warn("GitHub PR event: No project owner found for repository", {
+      requestId: context?.requestId || "unknown",
+      repositoryFullName,
+    });
+    return;
+  }
+
+  await this.emitGitHubPullRequest(
+    projectOwner.userId,
+    projectOwner.clerkId,
+    repositoryFullName,
+    prNumber,
+    prTitle,
+    action,
+    state,
+    merged,
+    sender,
+    context,
+  );
+}
+
+/**
+ * Emit GitHub issue webhook event by repository name
+ * Automatically looks up project owner and dispatches event
+ */
+static async emitGitHubIssueByRepository(
+  repositoryFullName: string,
+  issueNumber: number,
+  issueTitle: string,
+  action: "opened" | "closed" | "reopened" | "edited",
+  state: string,
+  sender: string,
+  context?: RequestContext,
+): Promise<void> {
+  const projectOwner = await this.getProjectOwnerByRepository(repositoryFullName, context);
+  if (!projectOwner) {
+    logger.warn("GitHub issue event: No project owner found for repository", {
+      requestId: context?.requestId || "unknown",
+      repositoryFullName,
+    });
+    return;
+  }
+
+  await this.emitGitHubIssue(
+    projectOwner.userId,
+    projectOwner.clerkId,
+    repositoryFullName,
+    issueNumber,
+    issueTitle,
+    action,
+    state,
+    sender,
+    context,
+  );
+}
+
+/**
+ * Emit GitHub repository creation webhook event by repository name
+ * Automatically looks up project owner and dispatches event
+ */
+static async emitGitHubRepositoryCreatedByRepository(
+  repositoryFullName: string,
+  isPrivate: boolean,
+  createdBy: string,
+  context?: RequestContext,
+): Promise<void> {
+  const projectOwner = await this.getProjectOwnerByRepository(repositoryFullName, context);
+  if (!projectOwner) {
+    logger.warn("GitHub repository creation event: No project owner found for repository", {
+      requestId: context?.requestId || "unknown",
+      repositoryFullName,
+    });
+    return;
+  }
+
+  await this.emitGitHubRepositoryCreated(
+    projectOwner.userId,
+    projectOwner.clerkId,
+    repositoryFullName,
+    isPrivate,
+    createdBy,
     context,
   );
 }
@@ -1007,6 +1304,53 @@ static async emitTeamMemberRoleChanged(
     } catch (error) {
       logger.error("Failed to get user by ID", {
         userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Get project owner by repository name
+   * Finds the project associated with a GitHub repository and returns its owner
+   */
+  private static async getProjectOwnerByRepository(
+    repositoryFullName: string,
+    _context?: RequestContext,
+  ): Promise<{ userId: number; clerkId: string } | null> {
+    try {
+      const { db } = await import("@/lib/db");
+      const { projects, users } = await import("@/lib/db/schema");
+      const { eq, isNull, and } = await import("drizzle-orm");
+
+      const database = db();
+
+      const [project] = await database
+        .select({
+          userId: projects.ownerId,
+          clerkId: users.clerkId,
+        })
+        .from(projects)
+        .leftJoin(users, eq(projects.ownerId, users.id))
+        .where(
+          and(
+            eq(projects.repoUrl, repositoryFullName),
+            isNull(projects.deletedAt),
+          ),
+        )
+        .limit(1);
+
+      if (project && project.clerkId) {
+        return {
+          userId: project.userId,
+          clerkId: project.clerkId,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      logger.error("Failed to get project owner by repository", {
+        repositoryFullName,
         error: error instanceof Error ? error.message : String(error),
       });
       return null;

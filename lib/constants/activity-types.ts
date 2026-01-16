@@ -35,6 +35,15 @@ export const ACTIVITY_TYPES = {
     USED: "credit_used",
     WARNING: "credit_warning",
   },
+  GITHUB: {
+    PUSH: "github_push",
+    PR_OPENED: "github_pr_opened",
+    PR_CLOSED: "github_pr_closed",
+    PR_MERGED: "github_pr_merged",
+    ISSUE_OPENED: "github_issue_opened",
+    ISSUE_CLOSED: "github_issue_closed",
+    REPOSITORY_CREATED: "github_repository_created",
+  },
 } as const;
 
 export const ACTIVITY_ICONS: Record<string, string> = {
@@ -67,6 +76,14 @@ export const ACTIVITY_ICONS: Record<string, string> = {
   [ACTIVITY_TYPES.CREDIT.PURCHASED]: "💳",
   [ACTIVITY_TYPES.CREDIT.USED]: "💰",
   [ACTIVITY_TYPES.CREDIT.WARNING]: "⚠️",
+  
+  [ACTIVITY_TYPES.GITHUB.PUSH]: "⬆️",
+  [ACTIVITY_TYPES.GITHUB.PR_OPENED]: "🔀",
+  [ACTIVITY_TYPES.GITHUB.PR_CLOSED]: "🔒",
+  [ACTIVITY_TYPES.GITHUB.PR_MERGED]: "✨",
+  [ACTIVITY_TYPES.GITHUB.ISSUE_OPENED]: "🐛",
+  [ACTIVITY_TYPES.GITHUB.ISSUE_CLOSED]: "✅",
+  [ACTIVITY_TYPES.GITHUB.REPOSITORY_CREATED]: "📦",
 };
 
 export const ACTIVITY_LABELS: Record<string, string> = {
@@ -99,6 +116,14 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   [ACTIVITY_TYPES.CREDIT.PURCHASED]: "Credits Purchased",
   [ACTIVITY_TYPES.CREDIT.USED]: "Credits Used",
   [ACTIVITY_TYPES.CREDIT.WARNING]: "Credit Warning",
+  
+  [ACTIVITY_TYPES.GITHUB.PUSH]: "GitHub Push",
+  [ACTIVITY_TYPES.GITHUB.PR_OPENED]: "PR Opened",
+  [ACTIVITY_TYPES.GITHUB.PR_CLOSED]: "PR Closed",
+  [ACTIVITY_TYPES.GITHUB.PR_MERGED]: "PR Merged",
+  [ACTIVITY_TYPES.GITHUB.ISSUE_OPENED]: "Issue Opened",
+  [ACTIVITY_TYPES.GITHUB.ISSUE_CLOSED]: "Issue Closed",
+  [ACTIVITY_TYPES.GITHUB.REPOSITORY_CREATED]: "Repository Created",
 };
 
 export const ACTIVITY_TYPE_GROUPS = [
@@ -147,6 +172,18 @@ export const ACTIVITY_TYPE_GROUPS = [
       ACTIVITY_TYPES.CREDIT.PURCHASED,
       ACTIVITY_TYPES.CREDIT.USED,
       ACTIVITY_TYPES.CREDIT.WARNING,
+    ],
+  },
+  {
+    label: "GitHub",
+    types: [
+      ACTIVITY_TYPES.GITHUB.PUSH,
+      ACTIVITY_TYPES.GITHUB.PR_OPENED,
+      ACTIVITY_TYPES.GITHUB.PR_CLOSED,
+      ACTIVITY_TYPES.GITHUB.PR_MERGED,
+      ACTIVITY_TYPES.GITHUB.ISSUE_OPENED,
+      ACTIVITY_TYPES.GITHUB.ISSUE_CLOSED,
+      ACTIVITY_TYPES.GITHUB.REPOSITORY_CREATED,
     ],
   },
 ] as const;

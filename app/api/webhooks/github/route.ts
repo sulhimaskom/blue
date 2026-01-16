@@ -3,6 +3,7 @@ import { formatErrorResponse } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { WebhookService } from "@/lib/services/webhook-service";
 import { SecurityService } from "@/lib/services/security-service";
+import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import {
   GitHubWebhookEvent,
@@ -70,17 +71,14 @@ export async function POST(req: NextRequest) {
             author: latestCommit.author.email,
           });
 
-          // TODO: Emit internal webhook event for deployment record update
-          // await WebhookService.emitInternalEvent({
-          //   type: "github.push.main",
-          //   data: {
-          //     repositoryFullName: repository.full_name,
-          //     commitSha: latestCommit.id,
-          //     commitMessage: latestCommit.message,
-          //     author: latestCommit.author.email,
-          //   },
-          //   requestId: context.requestId,
-          // });
+          await WebhookEventDispatcher.emitGitHubPushByRepository(
+            repository.full_name,
+            ref.replace("refs/heads/", ""),
+            latestCommit.id,
+            latestCommit.message,
+            latestCommit.author.email,
+            context,
+          );
         }
       }
 
@@ -108,18 +106,16 @@ export async function POST(req: NextRequest) {
             merged: pull_request.merged,
           });
 
-          // TODO: Emit internal webhook event for PR tracking
-          // await WebhookService.emitInternalEvent({
-          //   type: "github.pull_request.lifecycle",
-          //   data: {
-          //     repositoryFullName: repository.full_name,
-          //     prNumber: pull_request.number,
-          //     action,
-          //     state: pull_request.state,
-          //     merged: pull_request.merged,
-          //   },
-          //   requestId: context.requestId,
-          // });
+          await WebhookEventDispatcher.emitGitHubPullRequestByRepository(
+            repository.full_name,
+            pull_request.number,
+            pull_request.title,
+            action,
+            pull_request.state,
+            pull_request.merged ?? false,
+            sender.login,
+            context,
+          );
         }
       }
 
@@ -146,17 +142,15 @@ export async function POST(req: NextRequest) {
             issueState: issue.state,
           });
 
-          // TODO: Emit internal webhook event for issue tracking
-          // await WebhookService.emitInternalEvent({
-          //   type: "github.issue.lifecycle",
-          //   data: {
-          //     repositoryFullName: repository.full_name,
-          //     issueNumber: issue.number,
-          //     action,
-          //     state: issue.state,
-          //   },
-          //   requestId: context.requestId,
-          // });
+          await WebhookEventDispatcher.emitGitHubIssueByRepository(
+            repository.full_name,
+            issue.number,
+            issue.title,
+            action,
+            issue.state,
+            sender.login,
+            context,
+          );
         }
       }
 
@@ -171,16 +165,12 @@ export async function POST(req: NextRequest) {
           sender: sender.login,
         });
 
-        // TODO: Emit internal webhook event for repository creation tracking
-        // await WebhookService.emitInternalEvent({
-        //   type: "github.repository.created",
-        //   data: {
-        //     repositoryFullName: repository.full_name,
-        //     isPrivate: repository.private,
-        //     createdBy: sender.login,
-        //   },
-        //   requestId: context.requestId,
-        // });
+        await WebhookEventDispatcher.emitGitHubRepositoryCreatedByRepository(
+          repository.full_name,
+          repository.private,
+          sender.login,
+          context,
+        );
       }
     },
   });
