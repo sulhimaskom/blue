@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PredictiveAnalytics } from "@/components/dashboard/usage/predictive-analytics";
 import {
   CreditCardIcon,
   UsersIcon,
@@ -314,6 +315,9 @@ export function SubscriptionDashboard() {
           </CardContent>
         </Card>
       </section>
+
+      {/* Predictive Analytics */}
+      <PredictiveAnalytics />
 
       {/* Features */}
       <section aria-labelledby="features-heading">
