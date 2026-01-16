@@ -10,7 +10,6 @@ import { cn } from "@/lib/constants/ui-themes";
 import { DashboardDataService } from "@/lib/services/dashboard-data-service";
 import { logger } from "@/lib/logger";
 import { lazy, Suspense } from "react";
-import type { CircuitBreakerState } from "@/lib/services/service-types";
 
 const CircuitBreakerStatusPanel = lazy(() =>
   import("@/components/monitoring/circuit-breaker-status-panel").then(
@@ -31,13 +30,23 @@ const CircuitBreakerEventHistory = lazy(() =>
 );
 
 // Circuit breaker data types
+interface CircuitBreakerData {
+  state: "CLOSED" | "OPEN" | "HALF_OPEN";
+  totalCalls: number;
+  totalSuccesses: number;
+  totalFailures: number;
+  lastFailureTime?: number;
+  successRate: string;
+  availability: boolean;
+}
+
 interface CircuitBreakerMetrics {
   timestamp: string;
   healthScore: number;
   totalCircuits: number;
   openCircuits: string[];
   healthyCircuits: number;
-  circuitBreakers: Record<string, CircuitBreakerState>;
+  circuitBreakers: Record<string, CircuitBreakerData>;
   status: string;
 }
 
