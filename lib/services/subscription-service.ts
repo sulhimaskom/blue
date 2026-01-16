@@ -87,6 +87,39 @@ export interface UsageMetrics {
   };
 }
 
+export interface HistoricalUsageData {
+  credits: Array<{ date: string; value: number }>;
+  projects: Array<{ date: string; value: number }>;
+  deployments: Array<{ date: string; value: number }>;
+  apiRequests: Array<{ date: string; value: number }>;
+}
+
+export interface PredictionMetrics {
+  credits: {
+    dailyAverage: number;
+    projectedExhaustionDate: string | null;
+    tierRecommendation: {
+      recommendedTier: SubscriptionTier | "current";
+      reason: string;
+      urgency: "immediate" | "upcoming" | "none";
+    };
+  };
+  projects: {
+    currentGrowthRate: number;
+    projectedLimitHit: string | null;
+  };
+  deployments: {
+    dailyAverage: number;
+    monthlyProjection: number;
+  };
+  recommendations: Array<{
+    type: "upgrade" | "optimization" | "info";
+    title: string;
+    description: string;
+    action?: string;
+  }>;
+}
+
 // =============================================================================
 // SUBSCRIPTION SERVICE CLASS
 // =============================================================================
@@ -819,6 +852,417 @@ export class SubscriptionService {
       return {
         success: false,
         error: "Failed to get credit usage breakdown",
+      };
+    }
+  }
+
+  // =============================================================================
+  // PREDICTIVE ANALYTICS METHODS
+  // =============================================================================
+
+  /**
+   * Get historical usage data for the last 90 days
+   */
+  async getHistoricalUsage(userId: number, days: number = 90): Promise<ServiceResult<HistoricalUsageData>> {
+    try {
+      const database = db();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      const historicalData: HistoricalUsageData = {
+        credits: [],
+        projects: [],
+        deployments: [],
+        apiRequests: [],
+      };
+
+      const usageRecords = await database
+        .select()
+        .from(subscriptionUsage)
+        .where(
+          and(
+            eq(subscriptionUsage.userId, userId),
+            sql`${subscriptionUsage.period} >= ${startDate.toISOString().slice(0, 7)}`
+          )
+        )
+        .orderBy(subscriptionUsage.period);
+
+      for (const record of usageRecords) {
+        const monthStart = new Date(record.period + "-01");
+        const monthEnd = new Date(record.period + "-01");
+        monthEnd.setMonth(monthEnd.getMonth() + 1);
+        monthEnd.setDate(0);
+
+        const daysInMonth = monthEnd.getDate();
+        const dailyCredits = record.creditsUsed / daysInMonth;
+        const dailyApiRequests = record.apiRequests / daysInMonth;
+        const dailyProjects = record.projectsCreated / daysInMonth;
+
+        let dayIndex = 0;
+        for (let d = new Date(Math.max(monthStart.getTime(), startDate.getTime())); d <= monthEnd; d.setDate(d.getDate() + 1)) {
+          if (dayIndex >= daysInMonth) break;
+          const dateStr = d.toISOString().split("T")[0];
+          historicalData.credits.push({ date: dateStr, value: dailyCredits });
+          historicalData.apiRequests.push({ date: dateStr, value: dailyApiRequests });
+          historicalData.projects.push({ date: dateStr, value: dailyProjects });
+          dayIndex++;
+        }
+      }
+
+      for (let d = new Date(startDate); d <= new Date(); d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split("T")[0];
+        if (!historicalData.credits.find((item) => item.date === dateStr)) {
+          historicalData.credits.push({ date: dateStr, value: 0 });
+          historicalData.apiRequests.push({ date: dateStr, value: 0 });
+          historicalData.projects.push({ date: dateStr, value: 0 });
+        }
+      }
+
+      const deploymentActivities = await database
+        .select({ eventType: activityLogs.eventType, timestamp: activityLogs.timestamp })
+        .from(activityLogs)
+        .where(
+          and(
+            eq(activityLogs.userId, userId),
+            eq(activityLogs.eventType, "deployment_created"),
+            sql`${activityLogs.timestamp} >= ${startDate}`
+          )
+        )
+        .orderBy(activityLogs.timestamp);
+
+      const deploymentByDay = new Map<string, number>();
+      for (const activity of deploymentActivities) {
+        const dateStr = activity.timestamp.toISOString().split("T")[0];
+        deploymentByDay.set(dateStr, (deploymentByDay.get(dateStr) || 0) + 1);
+      }
+
+      for (let d = new Date(startDate); d <= new Date(); d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split("T")[0];
+        historicalData.deployments.push({ date: dateStr, value: deploymentByDay.get(dateStr) || 0 });
+      }
+
+      historicalData.credits.sort((a, b) => a.date.localeCompare(b.date));
+      historicalData.projects.sort((a, b) => a.date.localeCompare(b.date));
+      historicalData.deployments.sort((a, b) => a.date.localeCompare(b.date));
+      historicalData.apiRequests.sort((a, b) => a.date.localeCompare(b.date));
+
+      return { success: true, data: historicalData };
+    } catch (error) {
+      Logger.error("Failed to get historical usage", { userId, days, error });
+      return {
+        success: false,
+        error: "Failed to get historical usage",
+      };
+    }
+  }
+
+  /**
+   * Calculate daily average from historical data
+   */
+  private calculateDailyAverage(data: Array<{ date: string; value: number }>): number {
+    if (data.length === 0) return 0;
+    const sum = data.reduce((acc, item) => acc + item.value, 0);
+    return Math.round(sum / data.length * 100) / 100;
+  }
+
+  /**
+   * Calculate growth rate using linear regression
+   */
+  private calculateGrowthRate(data: Array<{ date: string; value: number }>): number {
+    if (data.length < 2) return 0;
+
+    const n = data.length;
+    let sumX = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumX2 = 0;
+
+    for (let i = 0; i < n; i++) {
+      const x = i;
+      const y = data[i].value;
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumX2 += x * x;
+    }
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    return isNaN(slope) ? 0 : Math.round(slope * 100) / 100;
+  }
+
+  /**
+   * Predict when credits will be exhausted based on usage rate
+   */
+  private predictExhaustionDate(
+    currentCredits: number,
+    remainingCredits: number,
+    dailyAverage: number,
+  ): string | null {
+    if (dailyAverage <= 0) return null;
+    if (remainingCredits === -1) return null;
+
+    const daysUntilExhaustion = Math.floor(remainingCredits / dailyAverage);
+    if (daysUntilExhaustion < 0) return null;
+
+    const exhaustionDate = new Date();
+    exhaustionDate.setDate(exhaustionDate.getDate() + daysUntilExhaustion);
+
+    return exhaustionDate.toISOString().split("T")[0];
+  }
+
+  /**
+   * Predict when project limit will be hit based on growth rate
+   */
+  private predictLimitHit(
+    currentProjects: number,
+    maxProjects: number,
+    historicalData: Array<{ date: string; value: number }>,
+  ): string | null {
+    if (maxProjects === -1) return null;
+    if (currentProjects >= maxProjects) return new Date().toISOString().split("T")[0];
+
+    const growthRate = this.calculateGrowthRate(historicalData);
+    if (growthRate <= 0) return null;
+
+    const remainingProjects = maxProjects - currentProjects;
+    const daysUntilLimit = Math.ceil(remainingProjects / growthRate);
+
+    if (daysUntilLimit <= 0 || daysUntilLimit > 365) return null;
+
+    const limitHitDate = new Date();
+    limitHitDate.setDate(limitHitDate.getDate() + daysUntilLimit);
+
+    return limitHitDate.toISOString().split("T")[0];
+  }
+
+  /**
+   * Recommend tier based on usage patterns and projections
+   */
+  private recommendTierForCredits(
+    currentUsage: number,
+    maxCredits: number,
+    historicalData: Array<{ date: string; value: number }>,
+    exhaustionDate: string | null,
+  ): {
+    recommendedTier: SubscriptionTier | "current";
+    reason: string;
+    urgency: "immediate" | "upcoming" | "none";
+  } {
+    const percentageUsed = maxCredits > 0 ? (currentUsage / maxCredits) * 100 : 0;
+
+    if (exhaustionDate) {
+      const today = new Date();
+      const exhaustion = new Date(exhaustionDate);
+      const daysUntilExhaustion = Math.ceil((exhaustion.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (daysUntilExhaustion <= 7) {
+        return {
+          recommendedTier: "pro",
+          reason: `Credits will be exhausted in ${daysUntilExhaustion} day${daysUntilExhaustion !== 1 ? 's' : ''}`,
+          urgency: "immediate",
+        };
+      }
+
+      if (daysUntilExhaustion <= 30) {
+        return {
+          recommendedTier: "pro",
+          reason: `${percentageUsed.toFixed(0)}% of credits used, exhaustion in ${daysUntilExhaustion} days`,
+          urgency: "upcoming",
+        };
+      }
+    }
+
+    if (percentageUsed > 80) {
+      return {
+        recommendedTier: "pro",
+        reason: `${percentageUsed.toFixed(0)}% of credits used, consider upgrading to avoid hitting limits`,
+        urgency: "upcoming",
+      };
+    }
+
+    return {
+      recommendedTier: "current",
+      reason: "Current tier meets your usage needs",
+      urgency: "none",
+    };
+  }
+
+  /**
+   * Project monthly usage based on historical trends
+   */
+  private projectMonthlyUsage(
+    historicalData: Array<{ date: string; value: number }>,
+  ): number {
+    if (historicalData.length === 0) return 0;
+
+    const dailyAverage = this.calculateDailyAverage(historicalData);
+    const growthRate = this.calculateGrowthRate(historicalData);
+    const daysInMonth = 30;
+
+    const projectedDailyUsage = Math.max(0, dailyAverage + growthRate * (daysInMonth / 2));
+    const monthlyProjection = Math.round(projectedDailyUsage * daysInMonth);
+
+    return monthlyProjection;
+  }
+
+  /**
+   * Generate optimization recommendations
+   */
+  private generateRecommendations(
+    predictions: Pick<PredictionMetrics, "credits" | "projects" | "deployments">,
+    currentUsage: UsageMetrics,
+  ): Array<{
+    type: "upgrade" | "optimization" | "info";
+    title: string;
+    description: string;
+    action?: string;
+  }> {
+    const recommendations: Array<{
+      type: "upgrade" | "optimization" | "info";
+      title: string;
+      description: string;
+      action?: string;
+    }> = [];
+
+    if (predictions.credits.tierRecommendation.urgency === "immediate") {
+      recommendations.push({
+        type: "upgrade",
+        title: "Upgrade subscription urgently",
+        description: predictions.credits.tierRecommendation.reason,
+        action: "Upgrade to Pro tier",
+      });
+    }
+
+    if (predictions.credits.tierRecommendation.urgency === "upcoming") {
+      recommendations.push({
+        type: "upgrade",
+        title: "Consider subscription upgrade",
+        description: predictions.credits.tierRecommendation.reason,
+        action: "View tier options",
+      });
+    }
+
+    if (predictions.projects.projectedLimitHit) {
+      const daysUntilLimit = Math.ceil(
+        (new Date(predictions.projects.projectedLimitHit).getTime() - new Date().getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+      if (daysUntilLimit <= 30) {
+        recommendations.push({
+          type: "upgrade",
+          title: "Project limit approaching",
+          description: `Project limit will be hit in ${daysUntilLimit} days`,
+          action: "Increase project limit",
+        });
+      }
+    }
+
+    if (currentUsage.percentageUsed.credits > 70) {
+      recommendations.push({
+        type: "optimization",
+        title: "Optimize credit usage",
+        description: "You're using 70%+ of your credits. Consider optimizing deployments",
+        action: "View usage breakdown",
+      });
+    }
+
+    if (predictions.deployments.dailyAverage > 5) {
+      recommendations.push({
+        type: "info",
+        title: "High deployment activity",
+        description: `Average ${predictions.deployments.dailyAverage.toFixed(1)} deployments per day detected`,
+      });
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push({
+        type: "info",
+        title: "Usage is optimal",
+        description: "Your current usage patterns are well within your tier limits",
+      });
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * Get predictive analytics for user subscription usage
+   */
+  async getPredictiveAnalytics(userId: number): Promise<ServiceResult<PredictionMetrics>> {
+    try {
+      const usageResult = await this.getUserUsage(userId);
+      if (!usageResult.success || !usageResult.data) {
+        return {
+          success: false,
+          error: usageResult.error || "Failed to get usage data",
+        };
+      }
+
+      const historicalResult = await this.getHistoricalUsage(userId, 90);
+      if (!historicalResult.success || !historicalResult.data) {
+        return {
+          success: false,
+          error: historicalResult.error || "Failed to get historical data",
+        };
+      }
+
+      const { currentUsage, remaining, limits } = usageResult.data;
+      const historicalData = historicalResult.data;
+
+      const creditsDailyAverage = this.calculateDailyAverage(historicalData.credits);
+      const projectedExhaustionDate = this.predictExhaustionDate(
+        currentUsage.credits,
+        remaining.credits,
+        creditsDailyAverage,
+      );
+
+      const tierRecommendation = this.recommendTierForCredits(
+        currentUsage.credits,
+        limits.maxCredits,
+        historicalData.credits,
+        projectedExhaustionDate,
+      );
+
+      const projectsGrowthRate = this.calculateGrowthRate(historicalData.projects);
+      const projectedLimitHit = this.predictLimitHit(
+        currentUsage.projects,
+        limits.maxProjects,
+        historicalData.projects,
+      );
+
+      const deploymentsDailyAverage = this.calculateDailyAverage(historicalData.deployments);
+      const deploymentsMonthlyProjection = this.projectMonthlyUsage(historicalData.deployments);
+
+      const predictions: PredictionMetrics = {
+        credits: {
+          dailyAverage: creditsDailyAverage,
+          projectedExhaustionDate,
+          tierRecommendation,
+        },
+        projects: {
+          currentGrowthRate: projectsGrowthRate,
+          projectedLimitHit,
+        },
+        deployments: {
+          dailyAverage: deploymentsDailyAverage,
+          monthlyProjection: deploymentsMonthlyProjection,
+        },
+        recommendations: this.generateRecommendations(
+          {
+            credits: { dailyAverage: creditsDailyAverage, projectedExhaustionDate, tierRecommendation },
+            projects: { currentGrowthRate: projectsGrowthRate, projectedLimitHit },
+            deployments: { dailyAverage: deploymentsDailyAverage, monthlyProjection: deploymentsMonthlyProjection },
+          },
+          usageResult.data,
+        ),
+      };
+
+      return { success: true, data: predictions };
+    } catch (error) {
+      Logger.error("Failed to get predictive analytics", { userId, error });
+      return {
+        success: false,
+        error: "Failed to get predictive analytics",
       };
     }
   }
