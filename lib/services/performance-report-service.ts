@@ -11,7 +11,7 @@ import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 import type { QueryCacheStats } from "@/lib/services/database-cache-service";
 import {
   DatabasePerformanceMonitor,
-  type QueryMetrics,
+  type DatabasePerformanceMetrics,
 } from "@/lib/db/performance-monitor";
 import { logger } from "@/lib/logger";
 
@@ -26,19 +26,6 @@ export interface CacheMetrics {
   cachePatterns: unknown[];
   recommendations: string[];
   databaseCacheStats?: QueryCacheStats;
-}
-
-export interface DatabasePerformanceMetrics {
-  totalQueries: number;
-  successRate: number;
-  averageDuration: number;
-  slowQueries: QueryMetrics[];
-  recentErrors: QueryMetrics[];
-  queryStats: Record<
-    string,
-    { count: number; avgDuration: number; errorRate: number }
-  >;
-  performanceReport?: unknown;
 }
 
 export interface PerformanceReportOptions {
