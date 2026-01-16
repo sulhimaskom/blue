@@ -66,8 +66,10 @@ export class ProactiveNotificationService {
       for (const user of allUsers) {
         processed++;
         try {
-          await this.sendCreditWarningsForUser(user.id, user.clerkId);
-          sent++;
+          const notificationSent = await this.sendCreditWarningsForUser(user.id, user.clerkId);
+          if (notificationSent) {
+            sent++;
+          }
         } catch (error) {
           errors++;
           logger.error("Failed to send credit warnings for user", {
@@ -92,7 +94,7 @@ export class ProactiveNotificationService {
     }
   }
 
-  static async sendCreditWarningsForUser(userId: number, clerkId: string): Promise<void> {
+  static async sendCreditWarningsForUser(userId: number, clerkId: string): Promise<boolean> {
     try {
       const database = db();
 
@@ -115,7 +117,7 @@ export class ProactiveNotificationService {
 
       if (!creditExhaustionWarnings) {
         logger.userAction("Skipping credit warnings - user opted out", clerkId);
-        return;
+        return false;
       }
 
       const result = await subscriptionService.getPredictiveAnalytics(userId);
@@ -128,7 +130,7 @@ export class ProactiveNotificationService {
 
       if (!projectedExhaustionDate || tierRecommendation.recommendedTier === "current") {
         logger.userAction("Skipping credit warnings - no exhaustion projected", clerkId);
-        return;
+        return false;
       }
 
       const exhaustionDate = new Date(projectedExhaustionDate);
@@ -137,9 +139,10 @@ export class ProactiveNotificationService {
         (exhaustionDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
       );
 
+      let notificationSent = false;
+
       for (const threshold of WARNING_THRESHOLDS) {
-        const isExactMatch = daysUntilExhaustion <= threshold.daysBeforeExhaustion &&
-                           daysUntilExhaustion > (threshold.daysBeforeExhaustion - 3);
+        const isExactMatch = daysUntilExhaustion === threshold.daysBeforeExhaustion;
 
         if (!isExactMatch) {
           continue;
@@ -174,7 +177,12 @@ export class ProactiveNotificationService {
           daysUntilExhaustion,
           urgency: threshold.urgency,
         });
+
+        notificationSent = true;
+        break;
       }
+
+      return notificationSent;
     } catch (error) {
       if (error instanceof Error) {
         throw error;
