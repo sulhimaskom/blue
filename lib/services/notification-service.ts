@@ -16,7 +16,8 @@ export type NotificationType =
   | "project_created"
   | "project_updated"
   | "project_deleted"
-  | "team_deleted";
+  | "team_deleted"
+  | "credit_exhaustion_warning";
 
 export interface NotificationMetadata {
   blueprintId?: string;
@@ -35,13 +36,15 @@ export interface NotificationMetadata {
   role?: string;
   updatedBy?: string;
   removedBy?: string;
-  deletedBy?: string;
   projectName?: string;
   projectDescription?: string;
   updatedFields?: string[];
   description?: string;
   oldName?: string;
   newName?: string;
+  projectedExhaustionDate?: string;
+  daysUntilExhaustion?: number;
+  recommendedTier?: string;
 }
 
 export interface CreateNotificationInput {
