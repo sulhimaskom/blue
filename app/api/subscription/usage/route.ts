@@ -1,7 +1,7 @@
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { subscriptionService } from "@/lib/services/subscription-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
-import { AuthenticationError, NotFoundError } from "@/lib/api-utils";
+import { AuthenticationError, NotFoundError, DatabaseError } from "@/lib/api-utils";
 
 /**
  * GET /api/subscription/usage
@@ -23,7 +23,7 @@ export const GET = APIRouteHandler.createCachedGETHandler({
     const result = await subscriptionService.getUserUsage(user.id);
 
     if (!result.success) {
-      throw result.error;
+      throw new DatabaseError(result.error || "Failed to get usage data");
     }
 
     if (!result.data) {

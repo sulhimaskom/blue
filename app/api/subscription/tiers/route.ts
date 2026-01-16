@@ -1,6 +1,7 @@
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { subscriptionService } from "@/lib/services/subscription-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
+import { DatabaseError } from "@/lib/api-utils";
 
 /**
  * GET /api/subscription/tiers
@@ -18,7 +19,7 @@ export const GET = APIRouteHandler.createCachedGETHandler(
       const result = await subscriptionService.getSubscriptionTiers();
 
       if (!result.success) {
-        throw result.error;
+        throw new DatabaseError(result.error || "Failed to get subscription tiers");
       }
 
       return {
