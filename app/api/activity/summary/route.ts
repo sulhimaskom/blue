@@ -40,6 +40,6 @@ export const GET = APIRouteHandler.createCachedGETHandler(
   {
     ttl: 120,
     tags: ["activity-summary", "user-activity"],
-    varyBy: ["userId"],
+    varyBy: ["entityType", "entityId"],
   },
 );
