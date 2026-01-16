@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { formatErrorResponse } from "@/lib/api-utils";
 import { WebhookService } from "@/lib/services/webhook-service";
 import { SecurityService } from "@/lib/services/security-service";
+import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { githubWebhookHandlerService } from "@/lib/services/github-webhook-handler-service";
 import {
