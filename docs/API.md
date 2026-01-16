@@ -75,10 +75,10 @@ When rate limits are enforced, responses include:
 | **Deployment**      | `POST /deploy/[id]`                        | ✅ Required | -       | Strict     | Deploy to GitHub         |
 | **Credits**         | `GET /credits`                             | ✅ Required | -       | Standard   | User credit balance      |
 |                     | `POST /credits`                            | ✅ Required | -       | Moderate   | Purchase credits         |
-| **Subscription**    | `GET /subscription/current`                  | ✅ Required | -       | Standard   | Current subscription     |
-|                     | `GET /subscription/tiers`                    | ❌ Optional | -       | Permissive | Available tiers        |
-|                     | `GET /subscription/predictions`              | ✅ Required | -       | Standard   | Usage predictions       |
-|                     | `POST /subscription/upgrade`                 | ✅ Required | -       | Moderate   | Upgrade tier           |
+| **Subscription**    | `GET /subscription/current`              | ✅ Required | -       | Standard   | Current subscription     |
+|                     | `GET /subscription/tiers`                | ❌ Optional | -       | Permissive | Available tiers        |
+|                     | `GET /subscription/predictions`          | ✅ Required | -       | Standard   | Usage predictions       |
+|                     | `POST /subscription/upgrade`             | ✅ Required | -       | Moderate   | Upgrade tier           |
 | **System**          | `GET /health`                              | ❌ Optional | -       | Permissive | System health status     |
 |                     | `GET /metrics`                             | ❌ Optional | -       | Permissive | Performance metrics      |
 | **Monitoring**      | `GET /circuit-breakers/metrics`            | ❌ Optional | -       | Standard   | Circuit breaker status   |
@@ -2350,6 +2350,10 @@ GET /api/subscription/tiers
 **Authentication:** Not required (public endpoint)
 **Rate Limiting:** 60 requests/minute (Permissive)
 
+**Error Responses:**
+
+- `500 Internal Server Error` - Database error
+
 ---
 
 ### GET /subscription/predictions
@@ -2434,7 +2438,7 @@ Content-Type: application/json
 
 **Parameters:**
 
-- `tier` (string, required) - Target tier: "free", "pro", "enterprise"
+- `tier` (string, required) - Target tier: "pro", "enterprise"
 - `billingCycle` (string, optional) - Billing cycle: "monthly" or "yearly" (default: "monthly")
 
 **Response:**
