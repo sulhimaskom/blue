@@ -99,15 +99,20 @@ class PerformanceReportService {
   }
 
   private async getCacheMetrics(): Promise<CacheMetrics> {
-    const rawCacheMetrics = await UnifiedCacheManager.getPerformanceMetrics() as {
-      databaseCacheStats?: QueryCacheStats;
-      [key: string]: unknown;
-    };
+    const rawMetrics = await UnifiedCacheManager.getPerformanceMetrics();
 
     return {
-      ...rawCacheMetrics,
-      databaseCacheStats: rawCacheMetrics.databaseCacheStats,
-    } as CacheMetrics;
+      totalRequests: (rawMetrics as any).totalRequests ?? 0,
+      cacheHits: (rawMetrics as any).cacheHits ?? 0,
+      cacheMisses: (rawMetrics as any).cacheMisses ?? 0,
+      avgCacheTime: (rawMetrics as any).avgCacheTime ?? 0,
+      avgDbTime: (rawMetrics as any).avgDbTime ?? 0,
+      hitRate: (rawMetrics as any).hitRate ?? 0,
+      performanceImprovement: (rawMetrics as any).performanceImprovement ?? 0,
+      cachePatterns: (rawMetrics as any).cachePatterns ?? [],
+      recommendations: (rawMetrics as any).recommendations ?? [],
+      databaseCacheStats: (rawMetrics as any).databaseCacheStats,
+    };
   }
 
   private async getDatabaseMetrics(
