@@ -1,5 +1,5 @@
 import React from "react";
-import { NotificationType } from "@/lib/hooks/use-notifications-data";
+import { NotificationType } from "@/lib/services/notification-service";
 
 export interface NotificationFilterOptions {
   unreadOnly: boolean;
@@ -18,6 +18,14 @@ const NOTIFICATION_TYPES: Array<{ value: NotificationType; label: string; icon: 
   { value: "deployment_status", label: "Deployment Status", icon: "🚀" },
   { value: "credit_warning", label: "Credit Warning", icon: "⚠️" },
   { value: "blueprint_shared", label: "Blueprint Shared", icon: "📤" },
+  { value: "team_member_role_changed", label: "Team Member Role Changed", icon: "🔄" },
+  { value: "team_member_removed", label: "Team Member Removed", icon: "👋" },
+  { value: "team_updated", label: "Team Updated", icon: "✏️" },
+  { value: "project_created", label: "Project Created", icon: "➕" },
+  { value: "project_updated", label: "Project Updated", icon: "🔧" },
+  { value: "project_deleted", label: "Project Deleted", icon: "🗑️" },
+  { value: "team_deleted", label: "Team Deleted", icon: "💥" },
+  { value: "credit_exhaustion_warning", label: "Credit Exhaustion Warning", icon: "🚨" },
 ];
 
 export const NotificationFilters = React.memo(
