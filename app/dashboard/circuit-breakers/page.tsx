@@ -30,13 +30,23 @@ const CircuitBreakerEventHistory = lazy(() =>
 );
 
 // Circuit breaker data types
+interface CircuitBreakerData {
+  state: "CLOSED" | "OPEN" | "HALF_OPEN";
+  totalCalls: number;
+  totalSuccesses: number;
+  totalFailures: number;
+  lastFailureTime?: number;
+  successRate: string;
+  availability: boolean;
+}
+
 interface CircuitBreakerMetrics {
   timestamp: string;
   healthScore: number;
   totalCircuits: number;
   openCircuits: string[];
   healthyCircuits: number;
-  circuitBreakers: Record<string, any>;
+  circuitBreakers: Record<string, CircuitBreakerData>;
   status: string;
 }
 
@@ -51,7 +61,7 @@ export default function CircuitBreakersPage() {
   const fetchMetrics = async () => {
     try {
       // Service Layer: Use centralized DashboardDataService instead of direct API calls
-      const data = await DashboardDataService.getCircuitBreakerMetrics<any>();
+      const data = await DashboardDataService.getCircuitBreakerMetrics<CircuitBreakerMetrics>();
 
       setMetrics(data.data);
       setLastRefresh(new Date());
