@@ -7,6 +7,7 @@ import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher"
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
 import { ValidationError, NotFoundError } from '@/lib/api-utils';
+import { githubService } from "@/lib/services/github-service";
 
 const rollbackSchema = z.object({
   targetVersionId: z.string().uuid("Invalid target version ID"),
@@ -64,13 +65,28 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         createBranch,
       });
 
-      // Optional: Create safety branch (would require Git integration)
+      // Optional: Create safety branch (Git integration)
       let branchInfo = null;
       if (createBranch) {
         try {
-          // This would integrate with Git service to create a branch
-          // branchInfo = await GitService.createBranch(project.id, `rollback-v${targetVersion.version}-${Date.now()}`);
-          branchInfo = { note: "Branch creation not implemented yet" };
+          if (project.repoUrl) {
+            const branchName = `rollback-v${targetVersion.version}-${Date.now()}`;
+            branchInfo = await githubService.createBranch(
+              project.repoUrl,
+              branchName,
+            );
+            logger.info("Safety branch created", {
+              requestId: context.requestId,
+              blueprintId: id,
+              branchName: branchInfo.name,
+              branchUrl: branchInfo.url,
+            });
+          } else {
+            logger.warn("Cannot create safety branch - no repo URL", {
+              requestId: context.requestId,
+              blueprintId: id,
+            });
+          }
         } catch (error) {
           logger.warn("Failed to create safety branch", {
             requestId: context.requestId,

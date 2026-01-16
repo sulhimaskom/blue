@@ -790,6 +790,233 @@ class GitHubService {
       return false;
     }
   }
+
+  /**
+   * Create a Git branch for rollback safety
+   */
+  async createBranch(
+    repoUrl: string,
+    branchName: string,
+    baseBranch: string = "main",
+  ): Promise<import("./service-types").BranchInfo> {
+    const context = createRequestContext();
+    const startTime = Date.now();
+
+    try {
+      const token = env.GITHUB_ACCESS_TOKEN;
+
+      if (!token) {
+        throw new AuthenticationError(
+          "GitHub authentication not available. Please contact administrator.",
+        );
+      }
+
+      const { org, repo } = this.parseRepoUrl(repoUrl);
+
+      logger.info("Creating rollback safety branch", {
+        requestId: context.requestId,
+        org,
+        repo,
+        branchName,
+        baseBranch,
+      });
+
+      return await this.circuitBreaker.execute(async () => {
+        const url = `${this.baseUrl}/repos/${org}/${repo}/git/refs`;
+
+        const baseRefResponse = await retryService.executeWithRetry(
+          async () => {
+            const fetchResponse = await fetch(
+              `${url}/heads/${baseBranch}`,
+              {
+                headers: {
+                  Authorization: `token ${token}`,
+                  Accept: "application/vnd.github.v3+json",
+                  "User-Agent": "Architect-Platform/1.0.0",
+                },
+              },
+            );
+
+            if (!fetchResponse) {
+              throw new DatabaseError(
+                "Failed to get base branch: No response from GitHub API",
+              );
+            }
+
+            if (!fetchResponse.ok) {
+              throw new DatabaseError(
+                `Failed to get base branch: ${fetchResponse.statusText}`,
+              );
+            }
+
+            return fetchResponse;
+          },
+          {
+            ...RETRY_CONFIGS.NETWORK_SENSITIVE,
+            context: {
+              service: "github-api",
+              operation: "get-base-ref",
+              org,
+              repo,
+              branch: baseBranch,
+            },
+          },
+        );
+
+        const baseRefData = await baseRefResponse.json();
+        const baseSha = baseRefData.object.sha;
+
+        const createBranchResponse = await retryService.executeWithRetry(
+          async () => {
+            const fetchResponse = await fetch(url, {
+              method: "POST",
+              headers: {
+                Authorization: `token ${token}`,
+                Accept: "application/vnd.github.v3+json",
+                "Content-Type": "application/json",
+                "User-Agent": "Architect-Platform/1.0.0",
+              },
+              body: JSON.stringify({
+                ref: `refs/heads/${branchName}`,
+                sha: baseSha,
+              }),
+            });
+
+            if (!fetchResponse) {
+              throw new DatabaseError(
+                "Failed to create branch: No response from GitHub API",
+              );
+            }
+
+            if (!fetchResponse.ok) {
+              if (fetchResponse.status === 422) {
+                logger.warn("Branch already exists", {
+                  requestId: context.requestId,
+                  org,
+                  repo,
+                  branchName,
+                });
+                throw new ValidationError(
+                  `Branch already exists: ${branchName}`,
+                );
+              }
+
+              throw new DatabaseError(
+                `Failed to create branch: ${fetchResponse.statusText}`,
+              );
+            }
+
+            return fetchResponse;
+          },
+          {
+            ...RETRY_CONFIGS.NETWORK_SENSITIVE,
+            context: {
+              service: "github-api",
+              operation: "create-branch",
+              org,
+              repo,
+              branchName,
+            },
+          },
+        );
+
+        const branchData = await createBranchResponse.json();
+        const duration = Date.now() - startTime;
+
+        const branchInfo: import("./service-types").BranchInfo = {
+          name: branchName,
+          url: `https://github.com/${org}/${repo}/tree/${branchName}`,
+          sha: branchData.object.sha,
+          createdAt: new Date().toISOString(),
+        };
+
+        logger.userAction("Safety branch created", "system", {
+          requestId: context.requestId,
+          org,
+          repo,
+          branchName,
+          branchSha: branchInfo.sha,
+          duration,
+        });
+
+        monitoringService.trackGitHubOperation(
+          "create-branch",
+          true,
+          duration,
+          {
+            repoName: `${org}/${repo}`,
+            branchName,
+          },
+        );
+
+        return branchInfo;
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+
+      logger.apiError(
+        "Branch creation error",
+        context.requestId,
+        error as Error,
+        { repoUrl, branchName },
+      );
+
+      monitoringService.trackGitHubOperation(
+        "create-branch",
+        false,
+        duration,
+        {
+          repoUrl,
+          branchName,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+
+      throw error;
+    }
+  }
+
+  /**
+   * Parse GitHub repository URL to extract org and repo name
+   */
+  private parseRepoUrl(repoUrl: string): { org: string; repo: string } {
+    try {
+      const url = new URL(repoUrl);
+
+      if (!url.hostname.includes("github.com")) {
+        throw new ValidationError(
+          "Invalid GitHub repository URL",
+        );
+      }
+
+      const pathParts = url.pathname.split("/").filter(Boolean);
+
+      if (pathParts.length < 2) {
+        throw new ValidationError(
+          "Invalid GitHub repository URL format",
+        );
+      }
+
+      let repo = pathParts[1];
+      // Remove .git suffix if present
+      if (repo.endsWith(".git")) {
+        repo = repo.slice(0, -4);
+      }
+
+      return {
+        org: pathParts[0],
+        repo,
+      };
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error;
+      }
+
+      throw new ValidationError(
+        `Failed to parse repository URL: ${repoUrl}`,
+      );
+    }
+  }
 }
 
 // Export singleton instance
