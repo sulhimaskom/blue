@@ -10,6 +10,7 @@ import { cn } from "@/lib/constants/ui-themes";
 import { DashboardDataService } from "@/lib/services/dashboard-data-service";
 import { logger } from "@/lib/logger";
 import { lazy, Suspense } from "react";
+import type { CircuitBreakerState } from "@/lib/services/service-types";
 
 const CircuitBreakerStatusPanel = lazy(() =>
   import("@/components/monitoring/circuit-breaker-status-panel").then(
@@ -36,7 +37,7 @@ interface CircuitBreakerMetrics {
   totalCircuits: number;
   openCircuits: string[];
   healthyCircuits: number;
-  circuitBreakers: Record<string, any>;
+  circuitBreakers: Record<string, CircuitBreakerState>;
   status: string;
 }
 
@@ -51,7 +52,7 @@ export default function CircuitBreakersPage() {
   const fetchMetrics = async () => {
     try {
       // Service Layer: Use centralized DashboardDataService instead of direct API calls
-      const data = await DashboardDataService.getCircuitBreakerMetrics<any>();
+      const data = await DashboardDataService.getCircuitBreakerMetrics<CircuitBreakerMetrics>();
 
       setMetrics(data.data);
       setLastRefresh(new Date());

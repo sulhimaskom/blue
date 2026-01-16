@@ -7,6 +7,19 @@ import {
   DeploymentRequest,
   DeploymentResponse,
 } from "@/lib/services/dashboard-data-service";
+import type { BlueprintFormData } from "@/lib/services/blueprint-validation-service";
+
+export type DashboardProject = BlueprintData["projects"][number] & {
+  deploymentStatus?: {
+    isDeployed: boolean;
+    repoUrl?: string;
+    deployedAt?: string;
+    githubOrg?: string;
+    repoName?: string;
+  };
+};
+
+type DashboardBlueprint = ProjectBlueprintsData["blueprints"][number];
 
 /**
  * Custom hook for blueprints data management
@@ -53,7 +66,7 @@ export function useBlueprintsData() {
   }, []);
 
   const createBlueprint = useCallback(
-    async (formData: any) => {
+    async (formData: BlueprintFormData) => {
       try {
         setError(null);
         await DashboardDataService.createBlueprint(formData);
@@ -105,9 +118,9 @@ export function useBlueprintsData() {
  * - Deployment form management
  */
 export function useProjectsData() {
-  const [projects, setProjects] = useState<any[]>([]);
-  const [selectedProject, setSelectedProject] = useState<any | null>(null);
-  const [blueprints, setBlueprints] = useState<any[]>([]);
+  const [projects, setProjects] = useState<DashboardProject[]>([]);
+  const [selectedProject, setSelectedProject] = useState<DashboardProject | null>(null);
+  const [blueprints, setBlueprints] = useState<DashboardBlueprint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deploying, setDeploying] = useState(false);
@@ -125,7 +138,7 @@ export function useProjectsData() {
     }
   }, []);
 
-  const fetchProjectBlueprints = useCallback(async (project: any) => {
+  const fetchProjectBlueprints = useCallback(async (project: DashboardProject) => {
     try {
       const result = await DashboardDataService.getProjectBlueprints(
         project.id,
@@ -137,7 +150,7 @@ export function useProjectsData() {
   }, []);
 
   const handleProjectSelect = useCallback(
-    (project: any) => {
+    (project: DashboardProject) => {
       setSelectedProject(project);
       fetchProjectBlueprints(project);
     },

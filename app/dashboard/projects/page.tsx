@@ -4,6 +4,7 @@ import { useState, lazy, Suspense } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { useProjectsData } from "@/lib/hooks/use-dashboard-data";
+import type { DashboardProject } from "@/lib/hooks/use-dashboard-data";
 
 const CloneProjectModal = lazy(() => import("@/components/dashboard/clone-project-modal"));
 const TemplateSelectionModal = lazy(() => import("@/components/dashboard/template-selection-modal"));
@@ -29,7 +30,7 @@ export default function ProjectsPage() {
   });
   const [showCloneModal, setShowCloneModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [projectToClone, setProjectToClone] = useState<any>(null);
+  const [projectToClone, setProjectToClone] = useState<DashboardProject | null>(null);
 
   const {
     projects,
