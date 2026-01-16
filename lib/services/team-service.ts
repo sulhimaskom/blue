@@ -1072,7 +1072,7 @@ class TeamService {
                 {
                   teamId,
                   teamName: team.name,
-                  deletedBy: requestingUser.email,
+                  removedBy: requestingUser.email,
                 },
                 undefined,
               );
