@@ -277,6 +277,9 @@ class GitHubService {
           },
         );
 
+        // Create GitHub webhook for bi-directional sync
+        await this.createWebhook(repo.full_name, config.name);
+
         return repo;
       });
     } catch (error) {
@@ -307,6 +310,192 @@ class GitHubService {
       );
 
       throw error;
+    }
+  }
+
+  /**
+   * Create webhook for repository to enable bi-directional sync
+   */
+  async createWebhook(
+    repoFullName: string,
+    projectName: string,
+  ): Promise<void> {
+    const context = createRequestContext();
+    const startTime = Date.now();
+
+    try {
+      const webhookSecret = env.GITHUB_WEBHOOK_SECRET;
+
+      if (!webhookSecret) {
+        logger.warn(
+          "GitHub webhook secret not configured - skipping webhook creation",
+          {
+            requestId: context.requestId,
+            repoFullName,
+            hasWebhookSecret: !!webhookSecret,
+          },
+        );
+        return;
+      }
+
+      return await this.circuitBreaker.execute(async () => {
+        const token = env.GITHUB_ACCESS_TOKEN;
+
+        if (!token) {
+          throw new AuthenticationError(
+            "GitHub authentication not available. Please contact administrator.",
+          );
+        }
+
+        const webhookConfig = {
+          name: "web",
+          config: {
+            url: `${env.NEXT_PUBLIC_APP_URL}/api/webhooks/github`,
+            content_type: "json",
+            secret: webhookSecret,
+            insecure_ssl: false,
+          },
+          events: [
+            "push",
+            "pull_request",
+            "issues",
+            "issue_comment",
+            "pull_request_review",
+          ],
+          active: true,
+        };
+
+        logger.info("Creating GitHub webhook", {
+          requestId: context.requestId,
+          repoFullName,
+          projectName,
+          webhookUrl: webhookConfig.config.url,
+          circuitState: this.circuitBreaker.getMetrics().state,
+        });
+
+        const webhookResponse = await retryService.executeWithRetry(
+          async () => {
+            const fetchResponse = await fetch(
+              `${this.baseUrl}/repos/${repoFullName}/hooks`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `token ${token}`,
+                  Accept: "application/vnd.github.v3+json",
+                  "Content-Type": "application/json",
+                  "User-Agent": "Architect-Platform/1.0.0",
+                },
+                body: JSON.stringify(webhookConfig),
+              },
+            );
+
+            if (!fetchResponse.ok) {
+              // Check if webhook already exists
+              if (fetchResponse.status === 422) {
+                logger.warn(
+                  "Webhook already exists (idempotency - no retry)",
+                  {
+                    requestId: context.requestId,
+                    repoFullName,
+                    status: fetchResponse.status,
+                  },
+                );
+                throw new ValidationError(
+                  `Webhook already exists for repository: ${repoFullName}`,
+                );
+              }
+
+              logger.error("Failed to create GitHub webhook (will retry)", {
+                requestId: context.requestId,
+                repoFullName,
+                status: fetchResponse.status,
+              });
+              throw new DatabaseError(
+                `Failed to create webhook: ${fetchResponse.statusText}`,
+              );
+            }
+
+            return fetchResponse;
+          },
+          {
+            ...RETRY_CONFIGS.NETWORK_SENSITIVE,
+            retryableErrors: (error) => {
+              if (
+                error instanceof ValidationError &&
+                error.message.includes("Webhook already exists")
+              ) {
+                return false;
+              }
+              return retryService.isRetryableError(error);
+            },
+            context: {
+              service: "github-api",
+              operation: "create-webhook",
+              repo: repoFullName,
+            },
+          },
+        );
+
+        const webhook = await webhookResponse.json();
+        const duration = Date.now() - startTime;
+
+        logger.userAction("GitHub webhook created", "system", {
+          requestId: context.requestId,
+          repoFullName,
+          projectName,
+          webhookId: webhook.id,
+          webhookUrl: webhookConfig.config.url,
+          circuitState: this.circuitBreaker.getMetrics().state,
+          circuitSuccessRate: `${this.circuitBreaker.getSuccessRate()}%`,
+        });
+
+        // Track successful GitHub operation
+        monitoringService.trackGitHubOperation(
+          "create-webhook",
+          true,
+          duration,
+          {
+            repoName: repoFullName,
+            projectName,
+            webhookId: webhook.id,
+          },
+        );
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+
+      // Log but don't fail repository creation if webhook fails
+      logger.apiError(
+        "Webhook creation error",
+        context.requestId,
+        error as Error,
+        {
+          repoFullName,
+          projectName,
+          circuitState: this.circuitBreaker.getMetrics().state,
+          circuitSuccessRate: `${this.circuitBreaker.getSuccessRate()}%`,
+        },
+      );
+
+      monitoringService.trackGitHubOperation(
+        "create-webhook",
+        false,
+        duration,
+        {
+          repoName: repoFullName,
+          projectName,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+
+      logger.warn(
+        "Repository created but webhook creation failed - manual setup may be required",
+        {
+          requestId: context.requestId,
+          repoFullName,
+          projectName,
+        },
+      );
     }
   }
 

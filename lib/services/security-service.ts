@@ -211,15 +211,91 @@ export class SecurityService {
   }
 
   /**
+   * Verify GitHub webhook signature using HMAC-SHA256
+   */
+  static verifyGitHubWebhook(body: string, headers: Headers): boolean {
+    const requestId = crypto.randomUUID();
+    const webhookSecret = env.GITHUB_WEBHOOK_SECRET;
+    const signature = headers.get("x-hub-signature-256");
+
+    if (!webhookSecret || !signature) {
+      this.logSecurityEvent(
+        "GitHub webhook signature verification failed - missing headers or secret",
+        {
+          requestId,
+          hasSignature: !!signature,
+          hasWebhookSecret: !!webhookSecret,
+          endpoint: "github-webhook-verification",
+        },
+      );
+      return false;
+    }
+
+    try {
+      // GitHub signature format: sha256=<hex-digest>
+      const signatureFormatRegex = /^sha256=[a-f0-9]{64}$/;
+      if (!signatureFormatRegex.test(signature)) {
+        this.logSecurityEvent("GitHub webhook signature format invalid", {
+          requestId,
+          signaturePrefix: signature.substring(0, 15) + "...",
+          endpoint: "github-webhook-verification",
+        });
+        return false;
+      }
+
+      const receivedSignature = signature.replace("sha256=", "");
+      const expectedSignature = crypto
+        .createHmac("sha256", webhookSecret)
+        .update(body, "utf8")
+        .digest("hex");
+
+      const isValid = crypto.timingSafeEqual(
+        Buffer.from(expectedSignature, "hex"),
+        Buffer.from(receivedSignature, "hex"),
+      );
+
+      if (!isValid) {
+        this.logSecurityEvent(
+          "GitHub webhook signature verification failed - signature mismatch",
+          {
+            requestId,
+            receivedSignature: receivedSignature.substring(0, 20) + "...",
+            expectedSignature: expectedSignature.substring(0, 20) + "...",
+            endpoint: "github-webhook-verification",
+          },
+        );
+        return false;
+      }
+
+      this.logSecurityEvent("GitHub webhook cryptographic verification successful", {
+        requestId,
+        signatureAlgorithm: "HMAC-SHA256",
+        endpoint: "github-webhook-verification",
+      });
+
+      return true;
+    } catch (error) {
+      this.logSecurityEvent("GitHub webhook signature verification error", {
+        requestId,
+        error: error instanceof Error ? error.message : "Unknown error",
+        endpoint: "github-webhook-verification",
+      });
+      return false;
+    }
+  }
+
+  /**
    * Generic webhook signature verification factory
    */
-  static createVerifier(serviceName: "Clerk" | "Stripe") {
+  static createVerifier(serviceName: "Clerk" | "Stripe" | "GitHub") {
     return (body: string, headers: Headers) => {
       switch (serviceName) {
         case "Clerk":
           return this.verifyClerkWebhook(body, headers);
         case "Stripe":
           return this.verifyStripeWebhook(body, headers);
+        case "GitHub":
+          return this.verifyGitHubWebhook(body, headers);
         default:
           logger.security(`Unknown webhook service: ${serviceName}`, {
             serviceName,
