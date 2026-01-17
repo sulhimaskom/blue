@@ -10,7 +10,6 @@ const customJestConfig = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
-    "^next/server$": "<rootDir>/__tests__/mocks/next-server.js",
     "^@clerk/nextjs/server$": "<rootDir>/__tests__/mocks/clerk-server.js",
     "^@clerk/backend$": "<rootDir>/__tests__/mocks/clerk-backend.js",
   },

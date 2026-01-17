@@ -175,6 +175,45 @@ global.Response = jest.fn().mockImplementation((body, options) => {
   return response;
 });
 
+// Add static method for JSON response
+global.Response.json = jest.fn((data, options) => {
+  const jsonString = JSON.stringify(data);
+  const buffer = Buffer.from(jsonString, "utf-8");
+
+  const response = {
+    status: options?.status || 200,
+    statusText: options?.statusText || "",
+    ok: (options?.status || 200) < 400,
+    json: jest.fn().mockResolvedValue(data),
+    text: jest.fn().mockResolvedValue(jsonString),
+    arrayBuffer: jest
+      .fn()
+      .mockResolvedValue(
+        buffer.buffer.slice(
+          buffer.byteOffset,
+          buffer.byteOffset + buffer.byteLength,
+        ),
+      ),
+    body:
+      buffer.length > 0
+        ? new ReadableStream({
+            start(controller) {
+              controller.enqueue(buffer);
+              controller.close();
+            },
+          })
+        : null,
+    headers: new global.Headers({
+      "content-length": buffer.length.toString(),
+      ...(options?.headers || {}),
+    }),
+    clone: jest.fn(function () {
+      return { ...this };
+    }),
+  };
+  return response;
+});
+
 // Mock NextResponse constructor and static methods
 const nextResponseConstructor = jest
   .fn()
