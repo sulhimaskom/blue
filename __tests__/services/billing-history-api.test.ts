@@ -6,7 +6,7 @@ import { setupAuthMocks } from "@/__tests__/setup/auth-setup";
 jest.mock("@/lib/services/user-service", () => ({
   UserService: {
     getAuthenticatedUser: jest.fn().mockResolvedValue({
-      id: "user_test_123",
+      id: 12345,
       clerkId: "user_test_123",
       email: "test@example.com",
     }),

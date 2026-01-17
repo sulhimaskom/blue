@@ -53,7 +53,7 @@ describe("EmailService", () => {
       const html = emailService.renderBlueprintSharedTemplate({
         appName: "Test App",
         blueprintName: "Test Blueprint",
-        permission: "read_only",
+        permission: "view",
         blueprintLink: "https://example.com/blueprints/456",
       });
 
@@ -68,7 +68,7 @@ describe("EmailService", () => {
       const html = emailService.renderBlueprintSharedTemplate({
         appName: "Test App",
         blueprintName: "Test Blueprint",
-        permission: "read_only",
+        permission: "view",
         blueprintLink: "https://example.com/blueprints/789",
       });
 
@@ -87,15 +87,37 @@ describe("EmailService", () => {
       expect(html).toContain("Edit access");
     });
 
-    it("should handle read_only permission correctly", () => {
+    it("should handle view permission correctly", () => {
       const html = emailService.renderBlueprintSharedTemplate({
         appName: "Test App",
         blueprintName: "Test Blueprint",
-        permission: "read_only",
+        permission: "view",
         blueprintLink: "https://example.com/blueprints/202",
       });
 
       expect(html).toContain("Read-only access");
+    });
+
+    it("should handle fork permission correctly", () => {
+      const html = emailService.renderBlueprintSharedTemplate({
+        appName: "Test App",
+        blueprintName: "Test Blueprint",
+        permission: "fork",
+        blueprintLink: "https://example.com/blueprints/202",
+      });
+
+      expect(html).toContain("Fork access");
+    });
+
+    it("should handle admin permission correctly", () => {
+      const html = emailService.renderBlueprintSharedTemplate({
+        appName: "Test App",
+        blueprintName: "Test Blueprint",
+        permission: "admin",
+        blueprintLink: "https://example.com/blueprints/202",
+      });
+
+      expect(html).toContain("Admin access");
     });
   });
 
@@ -154,7 +176,7 @@ describe("EmailService", () => {
       const result = await emailService.sendBlueprintSharedEmail("test@example.com", {
         sharerName: "Jane Doe",
         blueprintName: "Test Blueprint",
-        permission: "read_only",
+        permission: "view",
         blueprintLink: "https://example.com/blueprints/123",
       });
 

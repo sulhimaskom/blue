@@ -23,7 +23,7 @@ export interface EmailTemplateData {
   sharerName?: string;
   blueprintName?: string;
   blueprintDescription?: string;
-  permission?: "read_only" | "edit";
+  permission?: "view" | "edit" | "fork" | "admin";
   blueprintLink?: string;
   expirationDate?: string;
   teamName?: string;
@@ -169,7 +169,12 @@ class EmailService {
       expirationDate,
     } = data;
 
-    const permissionText = permission === "edit" ? "Edit access" : "Read-only access";
+    const permissionText = {
+      view: "Read-only access",
+      edit: "Edit access",
+      fork: "Fork access",
+      admin: "Admin access",
+    }[permission || "view"];
     const expirationText = expirationDate
       ? `<p style="margin: 0 0 16px 0; color: #6b7280;"><strong>Expires:</strong> ${expirationDate}</p>`
       : "";

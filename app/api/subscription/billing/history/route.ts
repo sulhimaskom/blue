@@ -1,6 +1,5 @@
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { ProjectDataService } from "@/lib/services/project-data-service";
-import { RateLimiters } from "@/lib/rate-limit-config";
 import { ValidationError } from "@/lib/api-utils";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -110,7 +109,7 @@ export const GET = APIRouteHandler.createSimpleCachedGETHandler(
         }),
       );
 
-      logger.userAction("Billing history retrieved", userId, {
+      logger.userAction("Billing history retrieved", String(userId), {
         transactionCount: totalCount,
         limit,
         offset,
