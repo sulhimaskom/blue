@@ -34,26 +34,33 @@ const CreateThemeSchema = z.object({
 });
 
 // GET /api/enterprise/themes - List all enterprise themes
-export const GET = APIRouteHandler.createGETHandler({
-  requireAuth: false,
-  rateLimiter: (identifier: string) => RateLimiters.themesGet()(identifier),
-  handler: async ({ context }) => {
-    const themes = enterpriseThemeManager.getAllThemes();
-    const activeTheme = enterpriseThemeManager.getActiveTheme();
+export const GET = APIRouteHandler.createCachedGETHandler(
+  {
+    requireAuth: false,
+    rateLimiter: (identifier: string) => RateLimiters.themesGet()(identifier),
+    handler: async ({ context }) => {
+      const themes = enterpriseThemeManager.getAllThemes();
+      const activeTheme = enterpriseThemeManager.getActiveTheme();
 
-    logger.info("Enterprise themes listed", {
-      requestId: context.requestId,
-      themeCount: themes.length,
-      hasActiveTheme: !!activeTheme,
-    });
+      logger.info("Enterprise themes listed", {
+        requestId: context.requestId,
+        themeCount: themes.length,
+        hasActiveTheme: !!activeTheme,
+      });
 
-    return {
-      themes,
-      activeTheme,
-      total: themes.length,
-    };
+      return {
+        themes,
+        activeTheme,
+        total: themes.length,
+      };
+    },
   },
-});
+  {
+    ttl: 1800,
+    tags: ["enterprise-themes"],
+    varyBy: [],
+  },
+);
 
 // POST /api/enterprise/themes - Create new enterprise theme
 export const POST = APIRouteHandler.createPOSTHandler({

@@ -34,35 +34,42 @@ const UpdateThemeSchema = z.object({
 });
 
 // GET /api/enterprise/themes/[customerId] - Get specific theme
-export const GET = APIRouteHandler.createGETHandler({
-  requireAuth: false,
-  rateLimiter: (identifier: string) => RateLimiters.permissive()(identifier),
-  handler: async ({ context, req }) => {
-    const urlParts = req.url.split("/");
-    const customerId = urlParts[urlParts.length - 1];
+export const GET = APIRouteHandler.createCachedGETHandler(
+  {
+    requireAuth: false,
+    rateLimiter: (identifier: string) => RateLimiters.permissive()(identifier),
+    handler: async ({ context, req }) => {
+      const urlParts = req.url.split("/");
+      const customerId = urlParts[urlParts.length - 1];
 
-    const theme = enterpriseThemeManager.getTheme(customerId!);
+      const theme = enterpriseThemeManager.getTheme(customerId!);
 
-    if (!theme) {
-      throw new NotFoundError(`Theme not found for customer: ${customerId}`);
-    }
+      if (!theme) {
+        throw new NotFoundError(`Theme not found for customer: ${customerId}`);
+      }
 
-    const isActive =
-      enterpriseThemeManager.getActiveTheme()?.customerId === customerId;
+      const isActive =
+        enterpriseThemeManager.getActiveTheme()?.customerId === customerId;
 
-    logger.info("Enterprise theme retrieved", {
-      requestId: context.requestId,
-      customerId,
-      brandName: theme.brandName,
-      isActive,
-    });
+      logger.info("Enterprise theme retrieved", {
+        requestId: context.requestId,
+        customerId,
+        brandName: theme.brandName,
+        isActive,
+      });
 
-    return {
-      theme,
-      isActive,
-    };
+      return {
+        theme,
+        isActive,
+      };
+    },
   },
-});
+  {
+    ttl: 1800,
+    tags: ["enterprise-themes"],
+    varyBy: ["customerId"],
+  },
+);
 
 // PUT /api/enterprise/themes/[customerId] - Update theme
 export const PUT = APIRouteHandler.createPUTHandler({

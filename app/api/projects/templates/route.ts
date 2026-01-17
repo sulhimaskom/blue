@@ -13,24 +13,30 @@ const CreateFromTemplateSchema = z.object({
   description: z.string().optional(),
 });
 
-export const GET = APIRouteHandler.createGETHandler({
-  requireAuth: true,
-  rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-  handler: async ({ context, user }) => {
-    // Get all available project templates
-    const templates = await ProjectCloneService.getProjectTemplates();
+export const GET = APIRouteHandler.createCachedGETHandler(
+  {
+    requireAuth: true,
+    rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+    handler: async ({ context, user }) => {
+      const templates = await ProjectCloneService.getProjectTemplates();
 
-    logger.userAction("Project templates fetched", user!.clerkId, {
-      requestId: context.requestId,
-      templatesCount: templates.length,
-    });
+      logger.userAction("Project templates fetched", user!.clerkId, {
+        requestId: context.requestId,
+        templatesCount: templates.length,
+      });
 
-    return {
-      templates,
-      message: "Templates retrieved successfully",
-    };
+      return {
+        templates,
+        message: "Templates retrieved successfully",
+      };
+    },
   },
-});
+  {
+    ttl: 1800,
+    tags: ["project-templates"],
+    varyBy: [],
+  },
+);
 
 export const POST = APIRouteHandler.createPOSTHandler({
   schema: CreateFromTemplateSchema,
