@@ -131,6 +131,25 @@ interface DeploymentMetricsSummary {
   recentDeployments: DeploymentMetric[];
 }
 
+interface BlueprintPerformanceMetric {
+  blueprintId: string;
+  projectId: string;
+  generationTime: number;
+  success: boolean;
+  qualityScore?: number;
+  timestamp: Date;
+  patterns: string[];
+}
+
+interface BlueprintPerformanceSummary {
+  totalBlueprints: number;
+  successfulBlueprints: number;
+  failedBlueprints: number;
+  avgGenerationTime: number;
+  avgQualityScore: number;
+  successRate: number;
+}
+
 interface BundleChunk {
   name?: string;
   size: number;
@@ -158,6 +177,7 @@ export class PerformanceMonitorService {
     { renderTime: number; reRenderCount: number }
   >();
   private deploymentMetrics = new CircularBuffer<DeploymentMetric>(200); // Keep last 200 deployment metrics
+  private blueprintMetrics = new CircularBuffer<BlueprintPerformanceMetric>(500); // Keep last 500 blueprint metrics
   private memoryCheckInterval?: NodeJS.Timeout;
   private eventLoopCheckTimeout?: NodeJS.Timeout;
   private cpuCheckInterval?: NodeJS.Timeout;
@@ -476,6 +496,73 @@ export class PerformanceMonitorService {
     return this.deploymentMetrics.getAll().filter((m) => m.projectId === projectId);
   }
 
+  recordBlueprintMetric(metric: BlueprintPerformanceMetric): void {
+    this.blueprintMetrics.push(metric);
+
+    logger.userAction("Blueprint metric recorded", "system", {
+      blueprintId: metric.blueprintId,
+      projectId: metric.projectId,
+      generationTime: metric.generationTime,
+      success: metric.success,
+      timestamp: metric.timestamp,
+    });
+  }
+
+  getBlueprintPerformanceByProjects(projectIds: string[]): {
+    avgGenerationTime: number;
+    successRate: number;
+    totalBlueprints: number;
+  } {
+    const allMetrics = this.blueprintMetrics.getAll();
+    const projectMetrics = allMetrics.filter((m) => projectIds.includes(m.projectId));
+
+    if (projectMetrics.length === 0) {
+      return {
+        avgGenerationTime: 0,
+        successRate: 0,
+        totalBlueprints: 0,
+      };
+    }
+
+    const totalBlueprints = projectMetrics.length;
+    const successfulBlueprints = projectMetrics.filter((m) => m.success).length;
+    const totalGenerationTime = projectMetrics.reduce((sum, m) => sum + m.generationTime, 0);
+    const avgGenerationTime = totalGenerationTime / totalBlueprints;
+    const successRate = successfulBlueprints / totalBlueprints;
+
+    return {
+      avgGenerationTime,
+      successRate,
+      totalBlueprints,
+    };
+  }
+
+  getBlueprintPerformanceSummary(): BlueprintPerformanceSummary {
+    const allMetrics = this.blueprintMetrics.getAll();
+
+    const totalBlueprints = allMetrics.length;
+    const successfulBlueprints = allMetrics.filter((m) => m.success).length;
+    const failedBlueprints = totalBlueprints - successfulBlueprints;
+
+    const totalGenerationTime = allMetrics.reduce((sum, m) => sum + m.generationTime, 0);
+    const avgGenerationTime = totalBlueprints > 0 ? totalGenerationTime / totalBlueprints : 0;
+
+    const metricsWithQuality = allMetrics.filter((m) => m.qualityScore !== undefined);
+    const totalQualityScore = metricsWithQuality.reduce((sum, m) => sum + (m.qualityScore || 0), 0);
+    const avgQualityScore = metricsWithQuality.length > 0 ? totalQualityScore / metricsWithQuality.length : 0;
+
+    const successRate = totalBlueprints > 0 ? successfulBlueprints / totalBlueprints : 0;
+
+    return {
+      totalBlueprints,
+      successfulBlueprints,
+      failedBlueprints,
+      avgGenerationTime,
+      avgQualityScore,
+      successRate,
+    };
+  }
+
   getPerformanceReport(): {
     metrics: Partial<PerformanceMetrics>;
     alerts: PerformanceAlert[];
@@ -534,6 +621,7 @@ export class PerformanceMonitorService {
     this.apiResponseTimes.clear();
     this.componentMetrics.clear();
     this.deploymentMetrics.clear();
+    this.blueprintMetrics.clear();
   }
 
   stopMonitoring(): void {
