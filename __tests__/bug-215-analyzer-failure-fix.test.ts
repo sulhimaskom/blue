@@ -3,6 +3,9 @@
  *
  * This test validates that the analyzer workflow is properly fixed and functional.
  * It reproduces the original issue conditions and verifies the surgical fix.
+ *
+ * TEMPORARY WORKAROUND: Workflow disabled due to external OpenCode service failure (Issue #609)
+ * Tests adapted to handle both enabled and disabled states.
  */
 
 const { execSync } = require("child_process");
@@ -19,9 +22,19 @@ jest.mock("child_process", () => ({
 
 console.log("🧪 Testing BUG-215 Analyzer Workflow Fix\n");
 
+const workflowPath = ".github/workflows/oc analyzer.yml";
+const workflowContent = fs.readFileSync(workflowPath, "utf8");
+const isWorkflowDisabled = workflowContent.includes('if: ${{ false }}');
+
+console.log(`ℹ️  Workflow State: ${isWorkflowDisabled ? 'DISABLED (temporary workaround)' : 'ENABLED'}`);
+
 describe("BUG-215 Analyzer Workflow Fix", () => {
   test("OpenCode version specified in workflow", () => {
-    const workflowPath = ".github/workflows/oc analyzer.yml";
+    if (isWorkflowDisabled) {
+      console.log("⏭️  Skipping - workflow temporarily disabled");
+      return;
+    }
+
     const content = fs.readFileSync(workflowPath, "utf8");
 
     // Check that workflow explicitly installs version 1.0.193
@@ -36,6 +49,15 @@ describe("BUG-215 Analyzer Workflow Fix", () => {
     expect(fs.existsSync(workflowPath)).toBe(true);
 
     const content = fs.readFileSync(workflowPath, "utf8");
+
+    if (isWorkflowDisabled) {
+      // Verify disabled state has proper explanation
+      expect(content).toContain("ANALYZER WORKFLOW TEMPORARILY DISABLED");
+      expect(content).toContain("Issue: #609");
+      expect(content).toContain("https://opencode.ai/install");
+      return;
+    }
+
     expect(content).toContain("Verify OpenCode Version");
     expect(content).toContain("timeout 2700"); // Updated to 45 minutes
     expect(content).toContain("Check for Timeout"); // New timeout detection logic
@@ -52,6 +74,11 @@ describe("BUG-215 Analyzer Workflow Fix", () => {
   });
 
   test("Analyzer timeout handling is properly configured", () => {
+    if (isWorkflowDisabled) {
+      console.log("⏭️  Skipping - workflow temporarily disabled");
+      return;
+    }
+
     const workflowPath = ".github/workflows/oc analyzer.yml";
     const content = fs.readFileSync(workflowPath, "utf8");
 
@@ -83,6 +110,11 @@ describe("BUG-215 Analyzer Workflow Fix", () => {
   });
 
   test("Network timeout resilience enhancement", () => {
+    if (isWorkflowDisabled) {
+      console.log("⏭️  Skipping - workflow temporarily disabled");
+      return;
+    }
+
     const workflowPath = ".github/workflows/oc analyzer.yml";
     const content = fs.readFileSync(workflowPath, "utf8");
 
@@ -109,7 +141,7 @@ describe("BUG-215 Analyzer Workflow Fix", () => {
     // Mock quality gate commands to avoid expensive execSync calls
     // In CI, these commands run separately as quality gates
     // This test validates that the test infrastructure is correct
-    
+
     expect(() => {
       const result = execSync("npm audit", { stdio: "pipe", encoding: "utf8" });
       // Mock should return empty string indicating success
@@ -126,6 +158,24 @@ describe("BUG-215 Analyzer Workflow Fix", () => {
       expect(result).toBeDefined();
     }).not.toThrow();
   });
+
+  if (isWorkflowDisabled) {
+    test("Disabled workflow state is properly configured", () => {
+      const content = fs.readFileSync(workflowPath, "utf8");
+
+      // Verify disabled state
+      expect(content).toContain('if: ${{ false }}');
+
+      // Verify disabled state has proper explanation
+      expect(content).toContain("ANALYZER WORKFLOW TEMPORARILY DISABLED");
+      expect(content).toContain("External OpenCode installation service failure");
+      expect(content).toContain("https://opencode.ai/install");
+      expect(content).toContain("Issue: #609");
+
+      // Verify next steps are documented
+      expect(content).toContain("Re-enable workflow by removing 'if: \\${{ false }}'");
+    });
+  }
 });
 
 console.log("✅ BUG-215 analyzer fix verification complete");
