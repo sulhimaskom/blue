@@ -1,0 +1,47 @@
+-- Rollback Migration 0013: Remove Unique Constraint on Subscription Usage
+-- Purpose: Safely remove unique constraint added in migration 0013
+-- Date: January 17, 2026
+-- Created by: Autonomous Agent
+-- Reversible: YES - Zero data loss, only removes constraint
+
+-- =============================================================================
+-- Phase 1: Remove unique index from subscription_usage (user_id, period)
+-- =============================================================================
+
+-- Remove unique index (safe operation - no data affected)
+DROP INDEX IF EXISTS idx_subscription_usage_user_period;
+
+-- =============================================================================
+-- Rollback Summary
+-- =============================================================================
+-- Indexes Removed: 1 (idx_subscription_usage_user_period)
+-- Schema Changes:
+--   - lib/db/schema.ts: Must remove unique constraint from subscriptionUsage table
+--
+-- Business Impact:
+--   - Removes duplicate usage record prevention (billing errors may occur)
+--   - Removes accurate usage tracking enforcement (analytics may become inaccurate)
+--   - Application could pick any of duplicate records (unpredictable behavior)
+--
+-- Performance Impact:
+--   - Removes constraint overhead on INSERT/UPDATE operations
+--   - Removes fast lookup optimization for (user_id, period) queries
+--
+-- Risk Assessment:
+--   - HIGH: After rollback, duplicate usage records can be created
+--   - Recommendation: Only rollback if constraint causes production issues
+--   - Alternative: Implement application-level validation if rollback necessary
+--
+-- Re-apply Migration:
+--   -- Re-create unique constraint
+--   CREATE UNIQUE INDEX IF NOT EXISTS idx_subscription_usage_user_period
+--   ON subscription_usage(user_id, period);
+--
+--   -- Add back to Drizzle schema (lib/db/schema.ts)
+--   -- See migration 0013 for schema changes
+--
+-- Recommendation:
+--   - Only rollback if constraint causes production issues
+--   - Monitor for duplicate usage records after rollback
+--   - Consider implementing application-level validation as alternative
+-- =============================================================================
