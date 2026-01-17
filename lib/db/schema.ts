@@ -7,6 +7,7 @@ import {
   jsonb,
   serial,
   boolean,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -264,7 +265,9 @@ export const subscriptionUsage = pgTable("subscription_usage", {
   lastResetAt: timestamp("last_reset_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  uniqueUserPeriod: uniqueIndex("idx_subscription_usage_user_period").on(table.userId, table.period),
+}));
 
 // Team-related types
 export type Team = typeof teams.$inferSelect;
