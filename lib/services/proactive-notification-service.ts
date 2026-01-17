@@ -4,6 +4,7 @@ import { eq, isNull } from "drizzle-orm";
 import { NotificationService } from "./notification-service";
 import { subscriptionService } from "./subscription-service";
 import { logger } from "@/lib/logger";
+import { NotFoundError, DatabaseError } from "@/lib/api-utils";
 
 interface CreditWarningThreshold {
   daysBeforeExhaustion: number;
@@ -104,7 +105,7 @@ export class ProactiveNotificationService {
         .where(eq(users.id, userId));
 
       if (!user) {
-        throw new Error("User not found");
+        throw new NotFoundError("User not found");
       }
 
       const [settings] = await database
@@ -122,7 +123,7 @@ export class ProactiveNotificationService {
 
       const result = await subscriptionService.getPredictiveAnalytics(userId);
       if (!result.success || !result.data) {
-        throw new Error(`Failed to get predictive analytics: ${result.error}`);
+        throw new DatabaseError(`Failed to get predictive analytics: ${result.error}`);
       }
 
       const analyticsData = result.data;
@@ -184,10 +185,7 @@ export class ProactiveNotificationService {
 
       return notificationSent;
     } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error(String(error));
+      throw error instanceof Error ? error : new Error(String(error));
     }
   }
 
