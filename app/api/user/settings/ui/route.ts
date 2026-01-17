@@ -11,7 +11,7 @@ const uiPreferencesSchema = z.object({
   showMetrics: z.boolean().optional(),
 });
 
-export const GET = APIRouteHandler.createGETHandler({
+export const GET = APIRouteHandler.createCachedGETHandler({
   requireAuth: true,
   rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
   handler: async ({ context, user }) => {
@@ -27,6 +27,10 @@ export const GET = APIRouteHandler.createGETHandler({
       message: "UI preferences retrieved successfully",
     };
   },
+}, {
+  ttl: 600,
+  tags: ["user-settings", "ui-preferences"],
+  varyBy: ["userId"],
 });
 
 export const PUT = APIRouteHandler.createPOSTHandler({
