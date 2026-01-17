@@ -1,6 +1,22 @@
 // Mock for next/server module in Jest environment
 
 const nextResponseMock = {
+  next: jest.fn(() => {
+    const response = {
+      status: 200,
+      statusText: "OK",
+      ok: true,
+      json: jest.fn().mockResolvedValue({}),
+      text: jest.fn().mockResolvedValue(""),
+      arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(0)),
+      body: null,
+      headers: new global.Headers(),
+      clone: jest.fn(function () {
+        return { ...this };
+      }),
+    };
+    return response;
+  }),
   json: jest.fn((data, options) => {
     const jsonString = JSON.stringify(data);
     const buffer = Buffer.from(jsonString, "utf-8");
