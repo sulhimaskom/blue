@@ -14,6 +14,19 @@ import { teamCache } from "@/lib/services/cache-orchestrator";
 import { teamMemberAccessService } from "@/lib/services/team-member-access-service";
 import { performanceMonitorService } from "@/lib/services/performance-monitor-service";
 
+export interface CreditUsageRow {
+  userId: number;
+  credits: string | null;
+}
+
+export interface TeamProjectRow {
+  projectId: string;
+}
+
+export interface DeployedBlueprintRow {
+  blueprintVersion: number;
+}
+
 export interface BlueprintMetrics {
   totalBlueprintsGenerated: number;
   avgBlueprintGenerationTime: number;
@@ -113,11 +126,10 @@ export class TeamAnalyticsService {
           : [];
 
       const totalCreditsConsumed = creditUsageResults.reduce(
-        (sum: number, row: any) => sum + (row.credits || 0),
+        (sum: number, row: CreditUsageRow) => sum + (Number(row.credits) || 0),
         0
       );
 
-      // Get blueprint metrics
       const blueprintMetrics = await this.getBlueprintMetrics(teamId, database);
 
       const analytics = {
@@ -159,7 +171,7 @@ export class TeamAnalyticsService {
     }
   }
 
-  async getBlueprintMetrics(teamId: string, database: any): Promise<BlueprintMetrics> {
+  async getBlueprintMetrics(teamId: string, database: ReturnType<typeof db>): Promise<BlueprintMetrics> {
     try {
       // Get team project IDs
       const teamProjectIds = await database
@@ -167,7 +179,7 @@ export class TeamAnalyticsService {
         .from(teamProjects)
         .where(eq(teamProjects.teamId, teamId));
 
-      const projectIds = teamProjectIds.map((p: any) => p.projectId);
+      const projectIds = teamProjectIds.map((p: TeamProjectRow) => p.projectId);
 
       if (projectIds.length === 0) {
         return {
@@ -195,7 +207,7 @@ export class TeamAnalyticsService {
         .from(deployments)
         .where(inArray(deployments.projectId, projectIds));
 
-      const uniqueDeployedBlueprints = new Set(deployedBlueprints.map((d: any) => d.blueprintVersion)).size;
+      const uniqueDeployedBlueprints = new Set(deployedBlueprints.map((d: DeployedBlueprintRow) => d.blueprintVersion)).size;
 
       // Calculate average blueprint quality score (from structured data)
       const blueprintsWithQuality = await database
@@ -300,7 +312,7 @@ export class TeamAnalyticsService {
           : [];
 
       const totalCreditsConsumed = creditUsageResults.reduce(
-        (sum: number, row: any) => sum + (row.credits || 0),
+        (sum: number, row: CreditUsageRow) => sum + Number(row.credits) || 0,
         0
       );
 
