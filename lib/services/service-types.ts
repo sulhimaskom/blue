@@ -644,6 +644,56 @@ export interface EnterpriseThemeStats {
   customizationRate: number;
 }
 
+export interface ThemeUsageAnalytics {
+  customerId: string;
+  activationCount: number;
+  customerUsageCount: number;
+  totalSessionDuration: number;
+  lastActivatedAt: string | null;
+  avgSessionDuration: number;
+}
+
+export interface ThemePerformanceMetrics {
+  customerId: string;
+  avgLoadTime: number;
+  avgRenderTime: number;
+  peakLoadTime: number;
+  slowestEndpoint: string | null;
+  cacheHitRate: number;
+}
+
+export interface ThemeEffectivenessMetrics {
+  customerId: string;
+  userEngagementScore: number;
+  sessionCompletionRate: number;
+  pageViewsPerSession: number;
+  errorRate: number;
+  conversionRate: number;
+}
+
+export interface EnterpriseThemeAnalytics {
+  themeId: string;
+  themeName: string;
+  brandName: string;
+  usage: ThemeUsageAnalytics;
+  performance: ThemePerformanceMetrics;
+  effectiveness: ThemeEffectivenessMetrics;
+  lastUpdated: string;
+}
+
+export interface AllThemesAnalytics {
+  totalThemes: number;
+  themes: EnterpriseThemeAnalytics[];
+  summary: {
+    avgEngagementScore: number;
+    avgLoadTime: number;
+    topPerformingTheme: string;
+    leastPerformingTheme: string;
+    totalActivations: number;
+  };
+  lastUpdated: string;
+}
+
 /**
  * Service result wrapper for consistent error handling
  */
