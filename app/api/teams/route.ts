@@ -48,9 +48,15 @@ export const GET = APIRouteHandler.createCachedGETHandler(
       const searchParams = url.searchParams;
 
       const options = {
-        limit: searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined,
-        offset: searchParams.get("offset") ? parseInt(searchParams.get("offset")!) : undefined,
-        search: searchParams.get("search") || undefined,
+        limit: Math.min(
+          parseInt(searchParams.get("limit") || "100"),
+          1000
+        ),
+        offset: Math.max(
+          parseInt(searchParams.get("offset") || "0"),
+          0
+        ),
+        search: searchParams.get("search")?.substring(0, 100) || undefined,
       };
 
       const result = await teamService.getUserTeams(user!.id, options);
