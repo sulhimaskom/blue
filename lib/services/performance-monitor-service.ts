@@ -36,14 +36,13 @@ class CircularBuffer<T> {
   getLatest(n: number, sortByTimestamp?: boolean): T[] {
     const all = this.getAll();
     const sliced = all.slice(-Math.min(n, all.length));
-    
-    if (sortByTimestamp && all.length > 0 && this.hasTimestampProperty(all[0])) {
-      const slicedWithTimestamp = sliced as Array<{ timestamp: Date } & T>;
-      return slicedWithTimestamp.sort((a, b) => 
-        b.timestamp.getTime() - a.timestamp.getTime()
-      ) as T[];
+
+    if (sortByTimestamp && sliced.length > 0 && sliced.every(this.hasTimestampProperty)) {
+      return (sliced as Array<T & { timestamp: Date }>).sort((a, b) => {
+        return b.timestamp.getTime() - a.timestamp.getTime();
+      });
     }
-    
+
     return sliced;
   }
 
