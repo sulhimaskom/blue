@@ -67,10 +67,42 @@ jobs:
         continue-on-error: true
         run: npm ci
 
-      - name: Install OpenCode CLI
+      - name: Cache OpenCode CLI
+        id: cache-opencode
+        uses: actions/cache@v4
+        with:
+          path: ~/.opencode
+          key: opencode-cli-1.0.180-${{ hashFiles('**/package.json') }}
+
+      - name: Download OpenCode Installer
+        if: steps.cache-opencode.outputs.cache-hit != 'true'
         run: |
-          curl -fsSL https://opencode.ai/install | bash
+          curl -fsSL -o opencode-install.sh https://opencode.ai/install
+
+      - name: Verify Installer Checksum
+        if: steps.cache-opencode.outputs.cache-hit != 'true'
+        run: |
+          EXPECTED_SHA256="91f1c6c34cc3d8e28e04449050e3a7f2a3c3ead7f922450a8336ed3643c81b7e"
+          ACTUAL_SHA256=$(sha256sum opencode-install.sh | awk '{print $1}')
+
+          if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+            echo "::error::Checksum verification failed! Expected: $EXPECTED_SHA256, Got: $ACTUAL_SHA256"
+            echo "::error::Security alert: Installer script integrity check failed. This could indicate a supply chain attack."
+            exit 1
+          fi
+
+          echo "✓ Checksum verification passed: $ACTUAL_SHA256"
+
+      - name: Install OpenCode CLI
+        if: steps.cache-opencode.outputs.cache-hit != 'true'
+        run: |
+          bash opencode-install.sh
           echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+
+      - name: Verify OpenCode Installation
+        run: |
+          export PATH="$HOME/.opencode/bin:$PATH"
+          opencode --version || (echo "::error::OpenCode installation verification failed" && exit 1)
 
       - name: Auto-fix CI Failures
         run: |
