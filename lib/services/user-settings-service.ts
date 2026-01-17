@@ -215,11 +215,10 @@ export class UserSettingsService {
       }
 
       await UnifiedCacheManager.invalidateByTag("user-settings");
-      await UnifiedCacheManager.invalidateByTag("notifications");
-      await UnifiedCacheManager.invalidateByTag("ui-preferences");
 
-      logger.userAction("User settings reset", clerkId || userId.toString(), {
+      logger.userAction("User settings updated", clerkId || userId.toString(), {
         settingsId: updatedSettings.id,
+        updates: validatedUpdates,
       });
 
       return {
@@ -276,6 +275,9 @@ export class UserSettingsService {
         })
         .where(eq(userSettings.userId, userId))
         .returning();
+
+      await UnifiedCacheManager.invalidateByTag("user-settings");
+      await UnifiedCacheManager.invalidateByTag("notifications");
 
       logger.userAction("Notification preferences updated", clerkId || userId.toString(), {
         settingsId: updatedSettings.id,
@@ -334,6 +336,9 @@ export class UserSettingsService {
         .where(eq(userSettings.userId, userId))
         .returning();
 
+      await UnifiedCacheManager.invalidateByTag("user-settings");
+      await UnifiedCacheManager.invalidateByTag("ui-preferences");
+
       logger.userAction("UI preferences updated", clerkId || userId.toString(), {
         settingsId: updatedSettings.id,
         preferences: updatedPreferences,
@@ -383,6 +388,10 @@ export class UserSettingsService {
       if (!updatedSettings) {
         throw new NotFoundError("User settings not found");
       }
+
+      await UnifiedCacheManager.invalidateByTag("user-settings");
+      await UnifiedCacheManager.invalidateByTag("notifications");
+      await UnifiedCacheManager.invalidateByTag("ui-preferences");
 
       logger.userAction("User settings reset", clerkId || userId.toString(), {
         settingsId: updatedSettings.id,
