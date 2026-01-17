@@ -45,6 +45,16 @@ jest.mock("@/lib/services/real-time-performance-monitor", () => ({
   },
 }));
 
+jest.mock("@/lib/rate-limit-config", () => ({
+  RateLimiters: {
+    strict: jest.fn(() => Promise.resolve({ allowed: true })),
+    moderate: jest.fn(() => Promise.resolve({ allowed: true })),
+    standard: jest.fn(() => Promise.resolve({ allowed: true })),
+    permissive: jest.fn(() => Promise.resolve({ allowed: true })),
+    webhook: jest.fn(() => Promise.resolve({ allowed: true })),
+  },
+}));
+
 describe("Subscription Billing History API - Integration Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -83,15 +93,20 @@ describe("Subscription Billing History API - Integration Tests", () => {
         },
       );
 
-      const response = await GET(mockRequest as any);
-      const data = await response.json();
+      try {
+        const response = await GET(mockRequest as any);
+        const data = await response.json();
 
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.data.transactions).toHaveLength(2);
-      expect(data.data.totalCount).toBe(2);
-      expect(data.data.limit).toBe(50);
-      expect(data.data.offset).toBe(0);
+        expect(response.status).toBe(200);
+        expect(data.success).toBe(true);
+        expect(data.data.transactions).toHaveLength(2);
+        expect(data.data.totalCount).toBe(2);
+        expect(data.data.limit).toBe(50);
+        expect(data.data.offset).toBe(0);
+      } catch (error) {
+        console.error("Test error:", error);
+        throw error;
+      }
     });
 
     it("should apply limit parameter", async () => {
@@ -297,6 +312,10 @@ describe("Subscription Billing History API - Integration Tests", () => {
     });
 
     it("should require authentication", async () => {
+      const { setupUnauthenticatedMocks } = await import("@/__tests__/setup/auth-setup");
+      jest.clearAllMocks();
+      setupUnauthenticatedMocks();
+
       const mockRequest = new Request(
         "http://localhost/api/subscription/billing/history",
       );
