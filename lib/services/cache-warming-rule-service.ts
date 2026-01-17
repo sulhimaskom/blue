@@ -1,5 +1,5 @@
 import { UnifiedCacheManager } from "./cache-orchestrator";
-import { CacheKeyGeneratorService } from "./cache-key-generator-service";
+import { CacheKeyGeneratorService } from "./cache/key-generator-service";
 import { logger } from "@/lib/logger";
 import type { AIPatternType, CacheWarmingRule, AIPattern } from "./ai-pattern-types";
 
@@ -392,12 +392,12 @@ export class CacheWarmingRuleService {
    */
   static async warmRule(rule: CacheWarmingRule): Promise<void> {
     try {
-      const cacheKey = CacheKeyGeneratorService.generateOptimizedCacheKey(
-        "iflow",
-        `blueprint-${rule.pattern}`,
-        rule.pattern,
-        rule.pattern.includes("-") ? rule.pattern.split("-")[0] : undefined,
-      );
+      const cacheKey = CacheKeyGeneratorService.generateOptimizedCacheKey({
+        service: "iflow",
+        input: `blueprint-${rule.pattern}`,
+        pattern: rule.pattern,
+        industryContext: rule.pattern.includes("-") ? rule.pattern.split("-")[0] : undefined,
+      });
 
       await UnifiedCacheManager.setData(cacheKey, rule.prewarmedData, {
         ttl: rule.ttl,

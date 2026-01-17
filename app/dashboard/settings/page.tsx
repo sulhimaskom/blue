@@ -1,15 +1,44 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { SettingsPanel } from "@/components/dashboard/settings-panel";
-import { NotificationPreferences, NotificationPreference } from "@/components/dashboard/notification-preferences";
-import { ThemeSelector, ThemeOption } from "@/components/dashboard/theme-selector";
-import { LanguageSelector } from "@/components/dashboard/language-selector";
-import { TimezoneSelector } from "@/components/dashboard/timezone-selector";
 import { useAuthSafe } from "@/lib/hooks/use-auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { logger } from "@/lib/logger";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
+
+const SettingsPanel = lazy(() =>
+  import("@/components/dashboard/settings-panel").then((module) => ({
+    default: module.SettingsPanel,
+  })),
+);
+
+const NotificationPreferences = lazy(() =>
+  import("@/components/dashboard/notification-preferences").then((module) => ({
+    default: module.NotificationPreferences,
+  })),
+);
+
+const ThemeSelector = lazy(() =>
+  import("@/components/dashboard/theme-selector").then((module) => ({
+    default: module.ThemeSelector,
+  })),
+);
+
+const LanguageSelector = lazy(() =>
+  import("@/components/dashboard/language-selector").then((module) => ({
+    default: module.LanguageSelector,
+  })),
+);
+
+const TimezoneSelector = lazy(() =>
+  import("@/components/dashboard/timezone-selector").then((module) => ({
+    default: module.TimezoneSelector,
+  })),
+);
+
+type NotificationPreference = any;
+type ThemeOption = any;
 
 export default function SettingsPage() {
   const { isSignedIn, isLoaded } = useAuthSafe();
@@ -237,37 +266,43 @@ export default function SettingsPage() {
       id: "notifications",
       label: "Notifications",
       content: (
-        <NotificationPreferences
-          initialPreferences={settings.notificationPreferences}
-          onSave={handleSaveNotificationPreferences}
-        />
+        <Suspense fallback={<DashboardSkeleton />}>
+          <NotificationPreferences
+            initialPreferences={settings.notificationPreferences}
+            onSave={handleSaveNotificationPreferences}
+          />
+        </Suspense>
       ),
     },
     {
       id: "appearance",
       label: "Appearance",
       content: (
-        <div className="space-y-8">
-          <ThemeSelector
-            initialTheme={settings.theme}
-            onSave={handleSaveTheme}
-          />
-          <hr className="border-gray-200" />
-          <LanguageSelector
-            initialLanguage={settings.language}
-            onSave={handleSaveLanguage}
-          />
-        </div>
+        <Suspense fallback={<DashboardSkeleton />}>
+          <div className="space-y-8">
+            <ThemeSelector
+              initialTheme={settings.theme}
+              onSave={handleSaveTheme}
+            />
+            <hr className="border-gray-200" />
+            <LanguageSelector
+              initialLanguage={settings.language}
+              onSave={handleSaveLanguage}
+            />
+          </div>
+        </Suspense>
       ),
     },
     {
       id: "general",
       label: "General",
       content: (
-        <TimezoneSelector
-          initialTimezone={settings.timezone}
-          onSave={handleSaveTimezone}
-        />
+        <Suspense fallback={<DashboardSkeleton />}>
+          <TimezoneSelector
+            initialTimezone={settings.timezone}
+            onSave={handleSaveTimezone}
+          />
+        </Suspense>
       ),
     },
   ];
@@ -282,7 +317,9 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <SettingsPanel tabs={tabs} defaultTab="notifications" />
+        <Suspense fallback={<DashboardSkeleton />}>
+          <SettingsPanel tabs={tabs} defaultTab="notifications" />
+        </Suspense>
       </div>
     </DashboardLayout>
   );

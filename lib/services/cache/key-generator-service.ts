@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import { NextRequest } from "next/server";
+import { SemanticSignatureService } from "../semantic-signature-service";
+import type { AIPatternType } from "../ai-pattern-types";
 
 export interface ETagGenerationOptions {
   algorithm?: 'md5' | 'sha1' | 'sha256' | 'sha512';
@@ -7,11 +9,23 @@ export interface ETagGenerationOptions {
   customSalt?: string;
 }
 
+export interface OptimizedCacheKeyOptions {
+  service: "iflow" | "tavily";
+  input: string;
+  pattern?: AIPatternType;
+  industryContext?: string;
+}
+
 /**
  * Service for generating cache keys with consistent patterns
+ * 
+ * Consolidated from two previous implementations:
+ * - cache/key-generator-service.ts: Comprehensive caching features
+ * - cache-key-generator-service.ts: AI/research specific keys with semantic fingerprint
  */
 export class CacheKeyGeneratorService {
   private static readonly CACHE_PREFIX = "ai-platform:";
+  private static readonly STOPWORDS = /\b(a|an|the|for|to|in|on|at|by|with|as|from|that|this|it|is|are|was|were|be|been|being)\b/g;
 
   /**
    * Generate standardized cache key
@@ -35,7 +49,6 @@ export class CacheKeyGeneratorService {
     const url = request.url;
     const method = request.method;
 
-    // Add varying headers to key
     const varyData: Record<string, unknown> = { url, method };
     for (const header of varyBy) {
       const value = request.headers.get(header);
@@ -82,6 +95,34 @@ export class CacheKeyGeneratorService {
   }
 
   /**
+   * Generate optimized cache key for AI/research responses
+   * Merged from cache-key-generator-service.ts
+   */
+  static generateOptimizedCacheKey(options: OptimizedCacheKeyOptions): string {
+    const { service, input, pattern, industryContext } = options;
+    const normalizedInput = this.normalizeInputForCaching(input);
+    const patternPrefix = pattern ? `${pattern}:` : "";
+    const industryPrefix = industryContext ? `${industryContext}:` : "";
+    const servicePrefix = service === "iflow" ? "ai" : "research";
+
+    const semanticComponents = [
+      servicePrefix,
+      industryPrefix,
+      patternPrefix,
+      normalizedInput,
+      SemanticSignatureService.extractSemanticSignature(input),
+    ].filter(Boolean);
+
+    const semanticHash = crypto
+      .createHash("sha256")
+      .update(semanticComponents.join(":"))
+      .digest("hex")
+      .substring(0, 16);
+
+    return `${servicePrefix}-${industryPrefix}${patternPrefix}${semanticHash}`;
+  }
+
+  /**
    * Normalize cache data for consistent keys
    */
   private static normalizeCacheData(data: unknown): unknown {
@@ -101,7 +142,6 @@ export class CacheKeyGeneratorService {
 
       const lowerKey = key.toLowerCase();
 
-      // Normalize timestamps to minute precision
       if (lowerKey.includes("timestamp") || lowerKey.includes("date")) {
         if (typeof value === "number") {
           normalized[key] = Math.floor(value / 60000) * 60000;
@@ -111,7 +151,6 @@ export class CacheKeyGeneratorService {
           ).toISOString();
         }
       }
-      // Normalize limits and counts
       else if (lowerKey.includes("limit") || lowerKey.includes("count")) {
         const normalizedLimit = Math.min(
           Math.max(parseInt(String(value)) || 10, 1),
@@ -119,15 +158,12 @@ export class CacheKeyGeneratorService {
         );
         normalized[key] = normalizedLimit;
       }
-      // Normalize AI model names
       else if (lowerKey.includes("model") || lowerKey.includes("ai")) {
         normalized[key] = this.normalizeAIModelName(value);
       }
-      // Normalize text content
       else if (typeof value === "string" && value.length > 100) {
         normalized[key] = this.normalizeTextForCache(value);
       }
-      // Normalize URLs
       else if (lowerKey.includes("url") && typeof value === "string") {
         normalized[key] = this.normalizeUrlForCache(value);
       } else {
@@ -136,6 +172,23 @@ export class CacheKeyGeneratorService {
     }
 
     return normalized;
+  }
+
+  /**
+   * Normalize input for better cache hit rates
+   * Merged and enhanced from cache-key-generator-service.ts
+   */
+  private static normalizeInputForCaching(input: string): string {
+    if (!input) {
+      return "";
+    }
+    return input
+      .toLowerCase()
+      .replace(this.STOPWORDS, "")
+      .replace(/\s+/g, " ")
+      .replace(/[^\w\s]/g, " ")
+      .trim()
+      .substring(0, 200);
   }
 
   /**
@@ -156,14 +209,19 @@ export class CacheKeyGeneratorService {
 
   /**
    * Normalize text content for caching
+   * Enhanced with stopword removal from cache-key-generator-service.ts
    */
   private static normalizeTextForCache(text: unknown): string {
     if (typeof text !== "string") {
       return JSON.stringify(text);
     }
 
-    // Normalize whitespace and case for cache keys
-    return text.trim().toLowerCase().replace(/\s+/g, " ").substring(0, 200); // Limit length for cache keys
+    return text
+      .toLowerCase()
+      .replace(this.STOPWORDS, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .substring(0, 200);
   }
 
   /**
@@ -176,10 +234,8 @@ export class CacheKeyGeneratorService {
 
     try {
       const urlObj = new URL(url);
-      // Remove query parameters that don't affect caching
       const paramsToDelete = ["timestamp", "_t", "cache", "v"];
       paramsToDelete.forEach((param) => urlObj.searchParams.delete(param));
-
       return urlObj.toString();
     } catch {
       return url;
@@ -190,7 +246,6 @@ export class CacheKeyGeneratorService {
    * Get key version for cache invalidation
    */
   private static getKeyVersion(prefix: string): string {
-    // Simple versioning strategy - can be enhanced
     const versions: Record<string, string> = {
       "ai-response": "v1",
       "api-response": "v1",

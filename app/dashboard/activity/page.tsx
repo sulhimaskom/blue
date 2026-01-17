@@ -1,11 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { ActivityFilters, ActivityFilterOptions } from "@/components/activity/activity-filters";
 import { useActivityData } from "@/lib/hooks/use-activity-data";
 import { Button } from "@/components/ui/button";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
+import type { ActivityFilterOptions } from "@/components/activity/activity-filters";
+
+const ActivityFeed = lazy(() =>
+  import("@/components/dashboard/activity-feed").then((module) => ({
+    default: module.ActivityFeed,
+  })),
+);
+
+const ActivityFilters = lazy(() =>
+  import("@/components/activity/activity-filters").then((module) => ({
+    default: module.ActivityFilters,
+  })),
+);
 
 export default function ActivityPage() {
   const [limit, setLimit] = useState(50);
@@ -77,20 +89,24 @@ export default function ActivityPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-1">
-            <ActivityFilters
-              filters={filters}
-              onFiltersChange={setFilters}
-            />
+            <Suspense fallback={<DashboardSkeleton />}>
+              <ActivityFilters
+                filters={filters}
+                onFiltersChange={setFilters}
+              />
+            </Suspense>
           </div>
           <div className="lg:col-span-3">
-            <ActivityFeed
-              activities={activities}
-              summary={summary}
-              loading={loading}
-              error={error}
-              onLoadMore={handleLoadMore}
-              hasMore={activities.length >= limit}
-            />
+            <Suspense fallback={<DashboardSkeleton />}>
+              <ActivityFeed
+                activities={activities}
+                summary={summary}
+                loading={loading}
+                error={error}
+                onLoadMore={handleLoadMore}
+                hasMore={activities.length >= limit}
+              />
+            </Suspense>
           </div>
         </div>
       </div>

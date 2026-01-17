@@ -25,6 +25,42 @@ import { eq, and } from "drizzle-orm";
 
 export type SubscriptionTier = "free" | "pro" | "enterprise";
 
+export interface SubscriptionPlanFeatures {
+  maxBlueprintVersions?: number;
+  maxDeploymentsPerDay?: number;
+  advancedAnalytics?: boolean;
+  customDomains?: boolean;
+  prioritySupport?: boolean;
+  apiAccess?: boolean;
+  teamCollaboration?: boolean;
+  webhookHistory?: number;
+  blueprintVersioning?: boolean;
+  advancedDeployments?: boolean;
+  customThemes?: boolean;
+  exportFeatures?: boolean;
+  priorityQueue?: boolean;
+}
+
+export interface SubscriptionPlanRow {
+  id: number;
+  tier: string;
+  maxCredits: number;
+  monthlyCreditAllowance: number;
+  apiRateLimitMultiplier: number;
+  maxProjects: number;
+  maxTeams: number;
+  maxWebhooks: number;
+  features: unknown;
+  priceMonthly: number;
+  priceYearly: number;
+  stripePriceId: string | null;
+  stripePriceIdYearly: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date | null;
+}
+
 export interface TierFeatures {
   advancedAnalytics: boolean;
   customDomains: boolean;
@@ -126,7 +162,7 @@ export interface PredictionMetrics {
 
 export class SubscriptionService {
   private static instance: SubscriptionService;
-  private cache = new Map<string, { data: any; timestamp: number }>();
+  private cache = new Map<string, { data: SubscriptionTierInfo[]; timestamp: number }>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   private constructor() {}
@@ -159,7 +195,7 @@ export class SubscriptionService {
         .where(eq(subscriptionPlans.isActive, true))
         .orderBy(subscriptionPlans.sortOrder);
 
-      const tierInfos: SubscriptionTierInfo[] = plans.map((plan: any) => ({
+      const tierInfos: SubscriptionTierInfo[] = plans.map((plan: SubscriptionPlanRow) => ({
         tier: plan.tier as SubscriptionTier,
         limits: {
           maxCredits: plan.maxCredits,
@@ -168,21 +204,21 @@ export class SubscriptionService {
           maxProjects: plan.maxProjects,
           maxTeams: plan.maxTeams,
           maxWebhooks: plan.maxWebhooks,
-          maxBlueprintVersions: (plan.features as any)?.maxBlueprintVersions || 10,
-          maxDeploymentsPerDay: (plan.features as any)?.maxDeploymentsPerDay || 5,
+          maxBlueprintVersions: (plan.features as SubscriptionPlanFeatures)?.maxBlueprintVersions || 10,
+          maxDeploymentsPerDay: (plan.features as SubscriptionPlanFeatures)?.maxDeploymentsPerDay || 5,
         },
         features: {
-          advancedAnalytics: (plan.features as any)?.advancedAnalytics || false,
-          customDomains: (plan.features as any)?.customDomains || false,
-          prioritySupport: (plan.features as any)?.prioritySupport || false,
-          apiAccess: (plan.features as any)?.apiAccess || false,
-          teamCollaboration: (plan.features as any)?.teamCollaboration || false,
-          webhookHistory: (plan.features as any)?.webhookHistory || 7,
-          blueprintVersioning: (plan.features as any)?.blueprintVersioning || false,
-          advancedDeployments: (plan.features as any)?.advancedDeployments || false,
-          customThemes: (plan.features as any)?.customThemes || false,
-          exportFeatures: (plan.features as any)?.exportFeatures || false,
-          priorityQueue: (plan.features as any)?.priorityQueue || false,
+          advancedAnalytics: (plan.features as SubscriptionPlanFeatures)?.advancedAnalytics || false,
+          customDomains: (plan.features as SubscriptionPlanFeatures)?.customDomains || false,
+          prioritySupport: (plan.features as SubscriptionPlanFeatures)?.prioritySupport || false,
+          apiAccess: (plan.features as SubscriptionPlanFeatures)?.apiAccess || false,
+          teamCollaboration: (plan.features as SubscriptionPlanFeatures)?.teamCollaboration || false,
+          webhookHistory: (plan.features as SubscriptionPlanFeatures)?.webhookHistory || 7,
+          blueprintVersioning: (plan.features as SubscriptionPlanFeatures)?.blueprintVersioning || false,
+          advancedDeployments: (plan.features as SubscriptionPlanFeatures)?.advancedDeployments || false,
+          customThemes: (plan.features as SubscriptionPlanFeatures)?.customThemes || false,
+          exportFeatures: (plan.features as SubscriptionPlanFeatures)?.exportFeatures || false,
+          priorityQueue: (plan.features as SubscriptionPlanFeatures)?.priorityQueue || false,
         },
         pricing: {
           monthly: plan.priceMonthly,
@@ -1328,7 +1364,7 @@ export class SubscriptionService {
   // UTILITY METHODS
   // =============================================================================
 
-  private getFromCache(key: string): any | null {
+  private getFromCache(key: string): SubscriptionTierInfo[] | null {
     const cached = this.cache.get(key);
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
       return cached.data;
@@ -1337,7 +1373,7 @@ export class SubscriptionService {
     return null;
   }
 
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: SubscriptionTierInfo[]): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),

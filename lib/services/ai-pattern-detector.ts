@@ -1,7 +1,7 @@
 import { logger } from "@/lib/logger";
 import { PatternDetectionService } from "./pattern-detection-service";
 import { SemanticSignatureService } from "./semantic-signature-service";
-import { CacheKeyGeneratorService } from "./cache-key-generator-service";
+import { CacheKeyGeneratorService } from "./cache/key-generator-service";
 import { CacheWarmingRuleService } from "./cache-warming-rule-service";
 import { UsageAnalyticsService } from "./usage-analytics-service";
 import type { AIPatternType, UsageAnalytics } from "./ai-pattern-types";
@@ -54,12 +54,12 @@ export class AIPatternDetector {
     pattern?: AIPatternType,
     industryContext?: string,
   ): string {
-    return CacheKeyGeneratorService.generateOptimizedCacheKey(
+    return CacheKeyGeneratorService.generateOptimizedCacheKey({
       service,
       input,
       pattern,
       industryContext,
-    );
+    });
   }
 
   /**

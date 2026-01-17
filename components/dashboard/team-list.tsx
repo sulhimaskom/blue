@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/constants/ui-themes";
 import { formatStandardDate } from "@/lib/utils/time-formatting";
 import type { Team } from "@/lib/hooks/use-teams-data";
@@ -23,12 +24,16 @@ export const TeamList = React.memo(
           </div>
           <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
             {teams.length === 0 ? (
-              <div className="p-6 text-center">
-                <p className="text-gray-500">No teams found</p>
-                <Button onClick={onCreateTeam} className="mt-4">
-                  Create First Team
-                </Button>
-              </div>
+              <EmptyState
+                variant="folder"
+                title="No teams found"
+                description="Get started by creating your first team to collaborate on projects"
+                action={
+                  <Button onClick={onCreateTeam}>
+                    Create First Team
+                  </Button>
+                }
+              />
             ) : (
               teams.map((_team) => (
                 <div
