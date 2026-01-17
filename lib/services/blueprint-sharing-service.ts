@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { blueprintShares, blueprints, users, teams, teamMembers, projects, userSettings } from "@/lib/db/schema";
+import { blueprintShares, blueprintShareAuditLogs, blueprints, users, teams, teamMembers, projects, userSettings } from "@/lib/db/schema";
 import { eq, and, desc, isNull, count } from "drizzle-orm";
 import { ValidationError, DatabaseError, NotFoundError, AuthorizationError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
@@ -8,7 +8,7 @@ import { NotificationService } from "@/lib/services/notification-service";
 import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 import { env } from "@/lib/env";
 
-export type BlueprintPermission = "read_only" | "edit";
+export type BlueprintPermission = "view" | "edit" | "fork" | "admin";
 
 export interface ShareBlueprintInput {
   blueprintId: string;
@@ -63,8 +63,10 @@ export interface ShareStats {
   totalViews: number;
   uniqueRecipients: number;
   sharesByPermission: {
-    read_only: number;
+    view: number;
     edit: number;
+    fork: number;
+    admin: number;
   };
 }
 
@@ -529,8 +531,10 @@ export class BlueprintSharingService {
       ).size;
 
       const sharesByPermission = {
-        read_only: shares.filter(s => s.permission === "read_only").length,
+        view: shares.filter(s => s.permission === "view").length,
         edit: shares.filter(s => s.permission === "edit").length,
+        fork: shares.filter(s => s.permission === "fork").length,
+        admin: shares.filter(s => s.permission === "admin").length,
       };
 
       return {
@@ -628,6 +632,279 @@ export class BlueprintSharingService {
         error: error instanceof Error ? error.message : String(error),
       });
       throw new DatabaseError("Failed to track blueprint view");
+    }
+  }
+
+  /**
+   * Update a blueprint share's permission level
+   * @param shareId Share ID to update
+   * @param userId User ID performing the update
+   * @param newPermission New permission level
+   * @returns Success message
+   * @throws ValidationError if input is invalid
+   * @throws NotFoundError if share not found
+   * @throws AuthorizationError if user doesn't own the blueprint
+   * @throws DatabaseError if operation fails
+   */
+  static async updateSharePermission(
+    shareId: string,
+    userId: number,
+    newPermission: BlueprintPermission,
+  ): Promise<{ message: string; share: SharedBlueprint }> {
+    try {
+      const database = db();
+
+      // Validate permission
+      if (!["view", "edit", "fork", "admin"].includes(newPermission)) {
+        throw new ValidationError("Invalid permission level");
+      }
+
+      // Get share details
+      const [share] = await database
+        .select()
+        .from(blueprintShares)
+        .where(eq(blueprintShares.id, shareId))
+        .limit(1);
+
+      if (!share) {
+        throw new NotFoundError("Share not found");
+      }
+
+      // Verify user owns the blueprint
+      const [blueprint] = await database
+        .select()
+        .from(blueprints)
+        .where(eq(blueprints.id, share.blueprintId))
+        .limit(1);
+
+      if (!blueprint) {
+        throw new NotFoundError("Blueprint not found");
+      }
+
+      const [project] = await database
+        .select({ ownerId: projects.ownerId })
+        .from(projects)
+        .where(eq(projects.id, blueprint.projectId))
+        .limit(1);
+
+      if (!project || project.ownerId !== userId) {
+        throw new AuthorizationError("You don't have permission to update this share");
+      }
+
+      // Update share permission
+      await database
+        .update(blueprintShares)
+        .set({
+          permission: newPermission,
+          updatedAt: new Date(),
+        })
+        .where(eq(blueprintShares.id, shareId));
+
+      logger.userAction("Blueprint share permission updated", String(userId), {
+        shareId,
+        blueprintId: share.blueprintId,
+        newPermission,
+      });
+
+      // Record activity feed for permission update
+      try {
+        const [user] = await database
+          .select()
+          .from(users)
+          .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+          .limit(1);
+
+        if (user) {
+          await ActivityFeedService.recordActivity({
+            userId,
+            clerkId: user.clerkId,
+            entityType: "blueprint",
+            entityId: share.blueprintId,
+            eventType: "blueprint.share_permission_updated",
+            eventData: {
+              shareId,
+              previousPermission: share.permission,
+              newPermission,
+            },
+          });
+        }
+      } catch (activityError) {
+        logger.error("Failed to record blueprint.share_permission_updated activity", {
+          shareId,
+          blueprintId: share.blueprintId,
+          error: activityError instanceof Error ? activityError.message : String(activityError),
+        });
+      }
+
+      // Fetch updated share with details
+      const [updatedShare] = await database
+        .select({
+          id: blueprintShares.id,
+          blueprintId: blueprintShares.blueprintId,
+          sharedBy: blueprintShares.sharedBy,
+          sharedWithUser: blueprintShares.sharedWithUser,
+          sharedWithTeam: blueprintShares.sharedWithTeam,
+          permission: blueprintShares.permission,
+          expiresAt: blueprintShares.expiresAt,
+          viewCount: blueprintShares.viewCount,
+          lastViewedAt: blueprintShares.lastViewedAt,
+          createdAt: blueprintShares.createdAt,
+          updatedAt: blueprintShares.updatedAt,
+          recipientEmail: users.email,
+          teamName: teams.name,
+        })
+        .from(blueprintShares)
+        .leftJoin(users, eq(blueprintShares.sharedWithUser, users.id))
+        .leftJoin(teams, eq(blueprintShares.sharedWithTeam, teams.id))
+        .where(eq(blueprintShares.id, shareId))
+        .limit(1);
+
+      return {
+        message: "Share permission updated successfully",
+        share: updatedShare as SharedBlueprint,
+      };
+    } catch (error) {
+      if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof AuthorizationError) {
+        throw error;
+      }
+      logger.error("Failed to update blueprint share permission", {
+        shareId,
+        userId,
+        newPermission,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new DatabaseError("Failed to update blueprint share permission");
+    }
+  }
+
+  /**
+   * Get audit logs for blueprint shares
+   * @param blueprintId Blueprint ID
+   * @param userId User ID requesting logs
+   * @param page Page number
+   * @param limit Items per page
+   * @returns Paginated audit logs
+   * @throws ValidationError if input is invalid
+   * @throws NotFoundError if blueprint not found
+   * @throws AuthorizationError if user doesn't own the blueprint
+   * @throws DatabaseError if operation fails
+   */
+  static async getShareAuditLogs(
+    blueprintId: string,
+    userId: number,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<{
+    logs: Array<{
+      id: string;
+      blueprintId: string;
+      shareId: string;
+      userId: number;
+      action: string;
+      permissionLevel: string | null;
+      ipAddress: string | null;
+      userAgent: string | null;
+      metadata: unknown;
+      createdAt: Date;
+      userEmail?: string;
+      userName?: string;
+    }>;
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    try {
+      const database = db();
+
+      // Verify user owns the blueprint
+      const [blueprint] = await database
+        .select()
+        .from(blueprints)
+        .where(eq(blueprints.id, blueprintId))
+        .limit(1);
+
+      if (!blueprint) {
+        throw new NotFoundError("Blueprint not found");
+      }
+
+      const [project] = await database
+        .select({ ownerId: projects.ownerId })
+        .from(projects)
+        .where(eq(projects.id, blueprint.projectId))
+        .limit(1);
+
+      if (!project || project.ownerId !== userId) {
+        throw new AuthorizationError("You don't have permission to view audit logs for this blueprint");
+      }
+
+      const offset = (page - 1) * limit;
+
+      // Get total count
+      const [totalResult] = await database
+        .select({ count: count() })
+        .from(blueprintShareAuditLogs)
+        .where(eq(blueprintShareAuditLogs.blueprintId, blueprintId));
+
+      const total = totalResult?.count || 0;
+
+      // Get audit logs with user details
+      const logs = await database
+        .select({
+          id: blueprintShareAuditLogs.id,
+          blueprintId: blueprintShareAuditLogs.blueprintId,
+          shareId: blueprintShareAuditLogs.shareId,
+          userId: blueprintShareAuditLogs.userId,
+          action: blueprintShareAuditLogs.action,
+          permissionLevel: blueprintShareAuditLogs.permissionLevel,
+          ipAddress: blueprintShareAuditLogs.ipAddress,
+          userAgent: blueprintShareAuditLogs.userAgent,
+          metadata: blueprintShareAuditLogs.metadata,
+          createdAt: blueprintShareAuditLogs.createdAt,
+          userEmail: users.email,
+          userName: users.clerkId,
+        })
+        .from(blueprintShareAuditLogs)
+        .leftJoin(users, eq(blueprintShareAuditLogs.userId, users.id))
+        .where(eq(blueprintShareAuditLogs.blueprintId, blueprintId))
+        .orderBy(desc(blueprintShareAuditLogs.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      return {
+        logs: logs as Array<{
+          id: string;
+          blueprintId: string;
+          shareId: string;
+          userId: number;
+          action: string;
+          permissionLevel: string | null;
+          ipAddress: string | null;
+          userAgent: string | null;
+          metadata: unknown;
+          createdAt: Date;
+          userEmail?: string;
+          userName?: string;
+        }>,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } catch (error) {
+      if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof AuthorizationError) {
+        throw error;
+      }
+      logger.error("Failed to get blueprint share audit logs", {
+        blueprintId,
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new DatabaseError("Failed to get blueprint share audit logs");
     }
   }
 

@@ -12,7 +12,7 @@ interface RouteParams {
 const ShareBlueprintSchema = z.object({
   emails: z.array(z.string().email()).optional(),
   teamIds: z.array(z.string().uuid()).optional(),
-  permission: z.enum(["read_only", "edit"]),
+  permission: z.enum(["view", "edit", "fork", "admin"]),
   expiresInDays: z.number().int().positive().optional(),
 });
 

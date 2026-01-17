@@ -126,12 +126,26 @@ export const blueprintShares = pgTable("blueprint_shares", {
     .references(() => users.id, { onDelete: "cascade" }),
   sharedWithTeam: uuid("shared_with_team")
     .references(() => teams.id, { onDelete: "cascade" }),
-  permission: text("permission").notNull(), // read_only, edit
+  permission: text("permission").notNull(), // view, edit, fork, admin
   expiresAt: timestamp("expires_at"),
   viewCount: integer("view_count").default(0).notNull(),
   lastViewedAt: timestamp("last_viewed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Blueprint share audit logs table for access tracking and compliance
+export const blueprintShareAuditLogs = pgTable("blueprint_share_audit_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  blueprintId: uuid("blueprint_id").notNull(),
+  shareId: uuid("share_id").notNull(),
+  userId: integer("user_id").notNull(),
+  action: text("action").notNull(),
+  permissionLevel: text("permission_level"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const transactions = pgTable("transactions", {

@@ -10,7 +10,7 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-const GetBlueprintSharesSchema = z.object({
+const GetAuditLogsSchema = z.object({
   page: z.string().optional().transform((val: string | undefined) => val ? parseInt(val, 10) : undefined),
   limit: z.string().optional().transform((val: string | undefined) => val ? parseInt(val, 10) : undefined),
 });
@@ -25,30 +25,30 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       const url = new URL(req.url);
       const query = Object.fromEntries(url.searchParams);
 
-      const validationResult = GetBlueprintSharesSchema.safeParse(query);
+      const validationResult = GetAuditLogsSchema.safeParse(query);
       if (!validationResult.success) {
         throw new ValidationError("Invalid query parameters");
       }
 
-      const { page, limit } = validationResult.data;
+      const { page = 1, limit = 50 } = validationResult.data;
 
-      const result = await BlueprintSharingService.getBlueprintShares({
+      const result = await BlueprintSharingService.getShareAuditLogs(
         blueprintId,
-        userId: user!.id,
+        user!.id,
         page,
         limit,
-      });
+      );
 
-      logger.userAction("Blueprint shares fetched", user!.clerkId, {
+      logger.userAction("Blueprint share audit logs fetched", user!.clerkId, {
         requestId: context.requestId,
         blueprintId,
-        totalShares: result.pagination.total,
+        totalLogs: result.pagination.total,
       });
 
       return {
-        shares: result.shares,
+        logs: result.logs,
         pagination: result.pagination,
-        message: "Blueprint shares retrieved successfully",
+        message: "Audit logs retrieved successfully",
       };
     },
   })(req);

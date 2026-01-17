@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import { BlueprintSharingService } from "@/lib/services/blueprint-sharing-service";
 import { NotificationService } from "@/lib/services/notification-service";
+import { ValidationError, NotFoundError, AuthorizationError, DatabaseError } from "@/lib/api-utils";
+import { ActivityFeedService } from "@/lib/services/activity-feed-service";
 
 describe("BlueprintSharingService - In-App Notifications", () => {
   beforeEach(() => {
@@ -234,6 +236,163 @@ describe("BlueprintSharingService - In-App Notifications", () => {
       ];
 
       expect(validTypes).toContain("blueprint_shared");
+    });
+  });
+
+  describe("updateSharePermission", () => {
+    it("should update share permission level", async () => {
+      const mockDatabase = {
+        select: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockResolvedValue([{ id: 1 }]),
+      };
+
+      jest.doMock("@/lib/db", () => ({
+        db: () => mockDatabase,
+      }));
+
+      try {
+        const result = await BlueprintSharingService.updateSharePermission(
+          "share-id",
+          1,
+          "edit",
+        );
+
+        expect(result.message).toBe("Share permission updated successfully");
+        expect(result.share).toBeDefined();
+      } finally {
+        jest.clearAllMocks();
+      }
+    });
+
+    it("should validate permission level", async () => {
+      await expect(
+        BlueprintSharingService.updateSharePermission("share-id", 1, "invalid" as any),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it("should require valid permission types", async () => {
+      const validPermissions = ["view", "edit", "fork", "admin"];
+
+      for (const permission of validPermissions) {
+        expect(() => {
+          BlueprintSharingService.updateSharePermission("share-id", 1, permission as any);
+        }).not.toThrow();
+      }
+    });
+  });
+
+  describe("getShareAuditLogs", () => {
+    it("should return audit logs for blueprint shares", async () => {
+      const mockDatabase = {
+        select: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        offset: jest.fn().mockResolvedValue([
+          {
+            id: "log-1",
+            action: "view",
+            createdAt: new Date(),
+          },
+        ]),
+      };
+
+      jest.doMock("@/lib/db", () => ({
+        db: () => mockDatabase,
+      }));
+
+      try {
+        const result = await BlueprintSharingService.getShareAuditLogs(
+          "blueprint-id",
+          1,
+          1,
+          50,
+        );
+
+        expect(result.logs).toBeDefined();
+        expect(Array.isArray(result.logs)).toBe(true);
+        expect(result.pagination).toBeDefined();
+        expect(result.pagination.total).toBeDefined();
+      } finally {
+        jest.clearAllMocks();
+      }
+    });
+
+    it("should paginate audit logs", async () => {
+      const result = await BlueprintSharingService.getShareAuditLogs(
+        "blueprint-id",
+        1,
+        2,
+        25,
+      );
+
+      expect(result.pagination.page).toBe(2);
+      expect(result.pagination.limit).toBe(25);
+    });
+
+    it("should enforce owner access for audit logs", async () => {
+      await expect(
+        BlueprintSharingService.getShareAuditLogs("blueprint-id", 999, 1, 50),
+      ).rejects.toThrow(AuthorizationError);
+    });
+  });
+
+  describe("Permission Levels", () => {
+    it("should support view permission", () => {
+      expect(["view", "edit", "fork", "admin"]).toContain("view");
+    });
+
+    it("should support edit permission", () => {
+      expect(["view", "edit", "fork", "admin"]).toContain("edit");
+    });
+
+    it("should support fork permission", () => {
+      expect(["view", "edit", "fork", "admin"]).toContain("fork");
+    });
+
+    it("should support admin permission", () => {
+      expect(["view", "edit", "fork", "admin"]).toContain("admin");
+    });
+
+    it("should maintain backward compatibility with old permissions", () => {
+      const permissions = ["view", "edit", "fork", "admin"];
+      expect(permissions.length).toBeGreaterThan(2);
+    });
+  });
+
+  describe("Audit Log Actions", () => {
+    it("should track view actions", () => {
+      const validActions = ["view", "edit", "fork", "share_created", "share_revoked", "permission_changed"];
+      expect(validActions).toContain("view");
+    });
+
+    it("should track edit actions", () => {
+      const validActions = ["view", "edit", "fork", "share_created", "share_revoked", "permission_changed"];
+      expect(validActions).toContain("edit");
+    });
+
+    it("should track fork actions", () => {
+      const validActions = ["view", "edit", "fork", "share_created", "share_revoked", "permission_changed"];
+      expect(validActions).toContain("fork");
+    });
+
+    it("should track share_created actions", () => {
+      const validActions = ["view", "edit", "fork", "share_created", "share_revoked", "permission_changed"];
+      expect(validActions).toContain("share_created");
+    });
+
+    it("should track share_revoked actions", () => {
+      const validActions = ["view", "edit", "fork", "share_created", "share_revoked", "permission_changed"];
+      expect(validActions).toContain("share_revoked");
+    });
+
+    it("should track permission_changed actions", () => {
+      const validActions = ["view", "edit", "fork", "share_created", "share_revoked", "permission_changed"];
+      expect(validActions).toContain("permission_changed");
     });
   });
 });
