@@ -23,6 +23,7 @@ jest.mock("@/lib/logger", () => ({
     systemEvent: jest.fn(),
     serviceError: jest.fn(),
     info: jest.fn(),
+    debug: jest.fn(),
   },
 }));
 
@@ -39,6 +40,11 @@ jest.mock("../../lib/services/retry-service", () => ({
 
 jest.mock("@/lib/services/user-service");
 jest.mock("@/lib/services/project-data-service");
+jest.mock("@/lib/services/cache-orchestrator", () => ({
+  UnifiedCacheManager: {
+    invalidateByTag: jest.fn().mockResolvedValue(undefined),
+  },
+}));
 jest.mock("@/lib/constants", () => ({
   CREDIT_RULES: {
     CONVERSION_RATE: 100, // 1 USD = 100 credits
