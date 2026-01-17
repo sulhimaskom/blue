@@ -21,7 +21,7 @@
     "*.eot"
   ],
   "scripts": {
-    "setup": "npm install && npm run verify-build",
+    "setup": "npm install && ./scripts/verify-build.sh",
     "dev": "next dev",
     "build": "node scripts/fixed-build-232.js",
     "build:ci": "node scripts/ci-build-343.js",
