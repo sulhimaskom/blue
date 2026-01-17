@@ -14,6 +14,7 @@ import {
   mockAPIMetricsService,
   mockCircuitBreakerService,
   mockCacheService,
+  mockProjectDataService,
   mockDatabase,
 } from "../factories/mock-factory";
 import { createDatabaseMock } from "../builders/database-builder";
@@ -95,6 +96,7 @@ export class ApiTestHelper {
       apiMetricsService: mockAPIMetricsService,
       circuitBreakerService: mockCircuitBreakerService,
       cacheService: mockCacheService,
+      projectDataService: mockProjectDataService,
       database: mockDatabase,
     };
 
@@ -158,6 +160,7 @@ export class ApiTestHelper {
       apiMetricsService: mockAPIMetricsService,
       circuitBreakerService: mockCircuitBreakerService,
       cacheService: mockCacheService,
+      projectDataService: mockProjectDataService,
     }).forEach((mock) => {
       Object.values(mock).forEach((method: any) => {
         if (typeof method === "function" && method.mockClear) {

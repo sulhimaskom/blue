@@ -178,17 +178,37 @@ export class MockFactory {
    * Creates cache service mock for performance
    */
   static createCacheServiceMock() {
-    return this.createServiceMock("cache-service", [
-      "getMetrics",
-      "getEnhancedMetrics",
-      "clearCache",
-      "warmCache",
-    ]);
+    return this.createServiceMock(
+      "cache-service",
+      [
+        "get",
+        "set",
+        "delete",
+        "clear",
+        "getMany",
+        "setMany",
+        "deleteMany",
+        "invalidateByTag",
+        "invalidateByPattern",
+        "getStatistics",
+        "clearExpired",
+      ],
+      "CacheServiceError",
+    );
   }
 
-  /**
-   * Creates database mock for data operations
-   */
+  static createProjectDataServiceMock() {
+    return this.createServiceMock(
+      "project-data-service",
+      [
+        "getUserTransactions",
+        "createTransaction",
+        "processCreditPurchase",
+      ],
+      "ProjectDataServiceError",
+    );
+  }
+
   static createDatabaseMock() {
     const databaseMock = {
       select: jest.fn(),
@@ -221,4 +241,5 @@ export const mockAPIMetricsService = MockFactory.createAPIMetricsServiceMock();
 export const mockCircuitBreakerService =
   MockFactory.createCircuitBreakerServiceMock();
 export const mockCacheService = MockFactory.createCacheServiceMock();
+export const mockProjectDataService = MockFactory.createProjectDataServiceMock();
 export const mockDatabase = MockFactory.createDatabaseMock();
