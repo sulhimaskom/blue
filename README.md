@@ -46,7 +46,7 @@
 ### Prerequisites
 
 - **Node.js 20+** (LTS) - [Download Node.js](https://nodejs.org/)
-- **pnpm** (package manager) - `npm install -g pnpm`
+- **npm** (package manager) - Included with Node.js
 - **Redis** (optional for development, required for production) - See Redis Configuration Guide below
 - **Free Accounts Required**:
   - [Neon Database](https://neon.tech) - PostgreSQL database
@@ -62,11 +62,11 @@
 git clone https://github.com/sulhimaskom/blue
 cd blue
 
-# Install dependencies with pnpm
-pnpm install
+# Install dependencies with npm
+npm install
 
 # Verify installation succeeded
-pnpm run typecheck
+npm run typecheck
 ```
 
 **Expected Output**: `No TypeScript errors found` or similar success message
@@ -107,10 +107,10 @@ vim .env
 
 ```bash
 # Run database migrations to create tables
-pnpm run db:migrate
+npm run db:migrate
 
 # Verify database is ready
-pnpm run db:status
+npm run db:status
 ```
 
 **Expected Output**: Success message showing tables created
@@ -118,7 +118,7 @@ pnpm run db:status
 **Troubleshooting**:
 - If migration fails, check your `DATABASE_URL` is correct
 - Verify your Neon database is active (not suspended)
-- Run `pnpm run db:rollback` if you need to retry
+- Run `npm run db:rollback` if you need to retry
 
 ### Step 4: (Optional) Set Up Redis for Development
 
@@ -142,7 +142,7 @@ REDIS_URL="redis://localhost:6379"
 
 ```bash
 # Start the development server
-pnpm run dev
+npm run dev
 ```
 
 **Expected Output**:
@@ -290,7 +290,7 @@ You now have a complete software blueprint! Choose your path:
 ### Common Questions
 
 **Q: Why does the build fail with "module not found"?**
-A: Run `pnpm install` to ensure all dependencies are installed. If the issue persists, try deleting `node_modules` and `.next` folders, then run `pnpm install` again.
+A: Run `npm install` to ensure all dependencies are installed. If the issue persists, try deleting `node_modules` and `.next` folders, then run `npm install` again.
 
 **Q: How do I get an IFlow API key?**
 A: Visit [models.dev](https://models.dev) and sign up for free. The IFlow API provides unlimited AI requests for development.
@@ -302,10 +302,10 @@ A: No. The platform has intelligent fallback to in-memory caching when Redis is 
 A: Yes. The platform falls back to Personal Access Tokens if GitHub App is not configured. GitHub App is recommended for production deployments with higher rate limits.
 
 **Q: How do I reset the database?**
-A: Run `pnpm run db:rollback` to revert migrations, then `pnpm run db:migrate` to re-apply them. For a fresh start, use your Neon database console to recreate the database.
+A: Run `npm run db:rollback` to revert migrations, then `npm run db:migrate` to re-apply them. For a fresh start, use your Neon database console to recreate the database.
 
-**Q: What's the difference between `pnpm run dev` and `pnpm run start`?**
-A: `pnpm run dev` starts the development server with hot-reload and debugging features. `pnpm run start` runs the production build (requires `pnpm run build` first).
+**Q: What's the difference between `npm run dev` and `npm run start`?**
+A: `npm run dev` starts the development server with hot-reload and debugging features. `npm run start` runs the production build (requires `npm run build` first).
 
 **Q: How do I add a new API route?**
 A: Create a new file in `app/api/[resource]/route.ts` and use the `APIRouteHandler` pattern. See existing routes in `app/api/` for examples.
@@ -324,7 +324,7 @@ A: You'll see a message in the dashboard and won't be able to generate new bluep
 **Prevention**:
 - Always copy `.env.example` to `.env` after cloning
 - Verify all required variables are set before starting the server
-- Use the provided validation script: `pnpm run infrastructure:check`
+- Use the provided validation script: `npm run infrastructure:check`
 
 ### 2. Database Connection Issues
 
@@ -333,8 +333,8 @@ A: You'll see a message in the dashboard and won't be able to generate new bluep
 **Prevention**:
 - Verify `DATABASE_URL` is correct and includes the full connection string
 - Check your Neon database is active and not in suspended state
-- Run `pnpm run db:status` to verify database connectivity
-- Use `pnpm run db:migrate` to apply pending migrations
+- Run `npm run db:status` to verify database connectivity
+- Use `npm run db:migrate` to apply pending migrations
 
 ### 3. Import Path Errors
 
@@ -342,7 +342,7 @@ A: You'll see a message in the dashboard and won't be able to generate new bluep
 
 **Prevention**:
 - Always use `@/` alias for internal imports (e.g., `@/lib/services` instead of `../lib/services`)
-- Run `pnpm run typecheck` to catch import errors early
+- Run `npm run typecheck` to catch import errors early
 - Verify `tsconfig.json` has correct path mappings
 
 ### 4. CORS Issues in Development
@@ -370,8 +370,8 @@ A: You'll see a message in the dashboard and won't be able to generate new bluep
 
 **Prevention**:
 - Tests use fake timers for deterministic timing
-- Run tests with `pnpm test --silent` for cleaner output
-- Individual test suites can be run: `pnpm test path/to/test.test.ts`
+- Run tests with `npm test --silent` for cleaner output
+- Individual test suites can be run: `npm test path/to/test.test.ts`
 - Check test logs for specific timing-related failures
 
 ### 7. Build Performance Issues
@@ -380,7 +380,7 @@ A: You'll see a message in the dashboard and won't be able to generate new bluep
 
 **Prevention**:
 - Ensure `NODE_OPTIONS` doesn't have incompatible flags
-- Use `pnpm run build:clean` for a fresh build
+- Use `npm run build:clean` for a fresh build
 - Close other heavy applications to free system resources
 - Check system has at least 4GB RAM available
 
@@ -390,7 +390,7 @@ A: You'll see a message in the dashboard and won't be able to generate new bluep
 
 **Prevention**:
 - Verify all environment variables are set in production
-- Run production build locally: `pnpm run build && pnpm run start`
+- Run production build locally: `npm run build && npm run start`
 - Check production logs for specific error messages
 - Ensure Redis is configured and accessible in production
 - Verify Neon database allows connections from your deployment host
@@ -399,10 +399,10 @@ A: You'll see a message in the dashboard and won't be able to generate new bluep
 
 ```
 Issue occurring?
-├── Build/Install issues? → pnpm install && delete .next folder
+├── Build/Install issues? → npm install && delete .next folder
 ├── Database issues?      → Check DATABASE_URL and run migrations
 ├── API errors?          → Check env vars and logs → See TROUBLESHOOTING.md
-├── Test failures?        → Run pnpm test --silent → Check test isolation
+├── Test failures?        → Run npm test --silent → Check test isolation
 └── Production issues?    → Verify all env vars → Check logs → Monitor dashboards
 ```
 
@@ -575,24 +575,24 @@ architect-platform/
 
 | Command                           | Description                                   |
 | --------------------------------- | --------------------------------------------- |
-| `pnpm run dev`                    | Start development server                      |
-| `pnpm run build`                  | Create production build                       |
-| `pnpm run start`                  | Start production server                       |
-| `pnpm run lint`                   | Run ESLint validation                         |
-| `pnpm run typecheck`              | TypeScript type checking                      |
-| `pnpm run test`                   | Run all test suites                           |
-| `pnpm run test:coverage`          | Run tests with coverage                       |
-| `pnpm run test:api`               | Run API integration tests                     |
-| `pnpm run test:api:coverage`      | Run API tests with coverage                   |
-| `pnpm run test:all`               | Run all test suites including API integration |
-| `pnpm run optimize-db`            | Database optimization script                  |
-| `pnpm run db:migrate`             | Run database migrations                       |
-| `pnpm run db:push`                | Push schema changes without migration         |
-| `pnpm run db:rollback`            | Rollback database migrations                  |
-| `pnpm run db:status`              | Check migration status                        |
-| `pnpm run infrastructure:check`   | Check infrastructure health                   |
-| `pnpm run infrastructure:recover` | Auto-recover from infrastructure issues       |
-| `pnpm run infrastructure:report`  | Generate infrastructure health report         |
+| `npm run dev`                    | Start development server                      |
+| `npm run build`                  | Create production build                       |
+| `npm run start`                  | Start production server                       |
+| `npm run lint`                   | Run ESLint validation                         |
+| `npm run typecheck`              | TypeScript type checking                      |
+| `npm run test`                   | Run all test suites                           |
+| `npm run test:coverage`          | Run tests with coverage                       |
+| `npm run test:api`               | Run API integration tests                     |
+| `npm run test:api:coverage`      | Run API tests with coverage                   |
+| `npm run test:all`               | Run all test suites including API integration |
+| `npm run optimize-db`            | Database optimization script                  |
+| `npm run db:migrate`             | Run database migrations                       |
+| `npm run db:push`                | Push schema changes without migration         |
+| `npm run db:rollback`            | Rollback database migrations                  |
+| `npm run db:status`              | Check migration status                        |
+| `npm run infrastructure:check`   | Check infrastructure health                   |
+| `npm run infrastructure:recover` | Auto-recover from infrastructure issues       |
+| `npm run infrastructure:report`  | Generate infrastructure health report         |
 
 ---
 
@@ -683,7 +683,7 @@ Visit `/dashboard/monitoring` for real-time:
 1. **Environment Setup** - Configure all required environment variables
 2. **Database Provisioning** - Set up Neon PostgreSQL with RLS policies
 3. **Redis Configuration** - Production Redis instance for caching
-4. **Build & Deploy** - `pnpm run build` → Deploy to Vercel/Netlify
+4. **Build & Deploy** - `npm run build` → Deploy to Vercel/Netlify
 
 ### Environment-Specific Notes
 
@@ -1123,7 +1123,7 @@ const optimizationConfig = {
 
 ```bash
 # Build failures (99% success rate)
-pnpm install
+npm install
 ```
 
 ### Support Channels
