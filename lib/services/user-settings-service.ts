@@ -14,6 +14,33 @@ const notificationPreferencesSchema = z.object({
   projectShares: z.boolean().optional(),
   blueprintShares: z.boolean().optional(),
   marketing: z.boolean().optional(),
+  deliveryChannels: z.object({
+    email: z.boolean().optional(),
+    inApp: z.boolean().optional(),
+    push: z.boolean().optional(),
+    webhook: z.boolean().optional(),
+  }).optional(),
+  frequency: z.enum(["immediate", "batched", "hourly", "daily", "weekly"]).optional(),
+  doNotDisturb: z.object({
+    enabled: z.boolean().optional(),
+    startTime: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+    endTime: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+    timezone: z.string().optional(),
+  }).optional(),
+  categories: z.object({
+    critical: z.object({
+      enabled: z.boolean().optional(),
+      overrideDnd: z.boolean().optional(),
+    }).optional(),
+    important: z.object({
+      enabled: z.boolean().optional(),
+      overrideDnd: z.boolean().optional(),
+    }).optional(),
+    informational: z.object({
+      enabled: z.boolean().optional(),
+      overrideDnd: z.boolean().optional(),
+    }).optional(),
+  }).optional(),
 });
 
 const uiPreferencesSchema = z.object({
@@ -59,6 +86,33 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   projectShares: true,
   blueprintShares: true,
   marketing: false,
+  deliveryChannels: {
+    email: true,
+    inApp: true,
+    push: false,
+    webhook: false,
+  },
+  frequency: "immediate",
+  doNotDisturb: {
+    enabled: false,
+    startTime: "22:00",
+    endTime: "08:00",
+    timezone: "UTC",
+  },
+  categories: {
+    critical: {
+      enabled: true,
+      overrideDnd: true,
+    },
+    important: {
+      enabled: true,
+      overrideDnd: false,
+    },
+    informational: {
+      enabled: true,
+      overrideDnd: false,
+    },
+  },
 };
 
 const DEFAULT_UI_PREFERENCES: UIPreferences = {
