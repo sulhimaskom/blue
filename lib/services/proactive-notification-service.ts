@@ -185,7 +185,16 @@ export class ProactiveNotificationService {
 
       return notificationSent;
     } catch (error) {
-      throw error instanceof Error ? error : new Error(String(error));
+      if (error instanceof Error) {
+        throw error;
+      }
+
+      logger.error("Unexpected error checking credit warnings", {
+        error: String(error),
+        userId,
+        clerkId,
+      });
+      throw new DatabaseError("An unexpected error occurred while checking for credit warnings.");
     }
   }
 
