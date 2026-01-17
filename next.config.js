@@ -8,7 +8,7 @@ const nextConfig = {
   transpilePackages: [],
 
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
 
 // Stable experimental features - Fix for Issue #232: Removed problematic optimizePackageImports
