@@ -110,11 +110,13 @@ const nextConfig = {
 
     // Production optimizations
     if (!dev) {
-      // Optimized parallelism - use all available CPU cores (4)
       config.parallelism = 4;
-      
-      // Enable memory cache for faster incremental builds
-      config.cache = true;
+
+      config.cache = {
+        type: 'filesystem',
+        buildDependencies: { config: [__filename] },
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+      };
 
       // Streamlined optimization
       config.optimization = {

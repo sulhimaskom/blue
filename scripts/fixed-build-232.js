@@ -15,12 +15,26 @@ const fs = require("fs");
 console.log("🔧 GitHub Issue #232 Fixed Build Script");
 console.log("=" .repeat(40));
 
-// Check for and clean problematic cache
+// BUILD OPTIMIZATION: Preserve cache for incremental builds
+// Clean only build artifacts, not cache
 if (fs.existsSync(".next")) {
-  console.log("🧹 Cleaning build artifacts...");
+  console.log("🧹 Cleaning build artifacts (preserving cache)...");
   try {
-    fs.rmSync(".next", { recursive: true, force: true });
-    console.log("✓ Build artifacts cleaned");
+    // Remove build directories but preserve cache
+    const dirsToClean = [
+      ".next/server",
+      ".next/static",
+      ".next/standalone",
+      ".next/types",
+    ];
+
+    dirsToClean.forEach(dir => {
+      if (fs.existsSync(dir)) {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    console.log("✓ Build artifacts cleaned (cache preserved)");
   } catch (error) {
     console.log("⚠️  Cache cleanup failed");
   }
