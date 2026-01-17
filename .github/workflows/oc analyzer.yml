@@ -22,227 +22,26 @@ jobs:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
 
+    if: ${{ false }}
+
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
       IFLOW_API_KEY: ${{ secrets.IFLOW_API_KEY }}
 
     steps:
-      - name: Wait in Queue
-        uses: softprops/turnstyle@v2
-        with:
-          poll-interval-seconds: 30
-          same-branch-only: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
-
-      - name: Setup Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.opencode
-            ~/.npm
-            **/node_modules
-          key: ${{ runner.os }}-opencode-v2-${{ hashFiles('**/package*.json') }}
-          restore-keys: |
-            ${{ runner.os }}-opencode-v2-
-            ${{ runner.os }}-opencode-v1-
-
-      - name: Configure Git
+      - name: Workflow Temporarily Disabled
         run: |
-          git config --global user.name "${{ github.actor }}"
-          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
-
-      - name: Install OpenCode
-        run: |
-          # Install OpenCode with retry logic for network resilience
-          for attempt in {1..3}; do
-            echo "🔧 Installing OpenCode attempt $attempt of 3..."
-            
-            if curl -fsSL https://opencode.ai/install | bash -s -- --version 1.0.193; then
-              echo "$HOME/.opencode/bin" >> $GITHUB_PATH
-              echo "✅ OpenCode installed successfully on attempt $attempt"
-              break
-            else
-              exit_code=$?
-              echo "⚠️ OpenCode installation attempt $attempt failed with exit code $exit_code"
-              
-              if [ $attempt -eq 3 ]; then
-                echo "❌ All 3 installation attempts failed"
-                echo "🔄 Attempting alternative installation without version pinning..."
-                
-                # Fallback: Try without version pinning
-                if curl -fsSL https://opencode.ai/install | bash; then
-                  echo "$HOME/.opencode/bin" >> $GITHUB_PATH
-                  echo "✅ OpenCode installed successfully with fallback method"
-                  break
-                else
-                  echo "❌ Fallback installation also failed"
-                  exit 1
-                fi
-              else
-                echo "🔄 Retrying in 5 seconds..."
-                sleep 5
-              fi
-            fi
-          done
-
-      - name: Verify OpenCode Installation
-        run: |
-          opencode --version || (echo "OpenCode installation failed" && exit 1)
-
-      - name: Verify OpenCode Version
-        run: |
-          opencode_version=$(opencode --version)
-          echo "OpenCode version: $opencode_version"
-          if [ "$opencode_version" != "1.0.193" ]; then
-            echo "⚠️ Version mismatch detected, reinstalling..."
-            curl -fsSL https://opencode.ai/install | bash -s -- --version 1.0.193
-            echo "$HOME/.opencode/bin" >> $GITHUB_PATH
-            opencode --version
-          fi
-
-      - name: Execute
-        run: |
-          export GITHUB_RUN_ID=${{ github.run_id }}
-          
-          # Set OpenCode environment variables for better connectivity
-          export OPENCODE_TIMEOUT=7200000  # 2 hours internal timeout
-          export OPENCODE_KEEPALIVE=30000   # 30 seconds keepalive interval
-          
-          # Use 45-minute timeout to stay within 60-minute job timeout with buffer
-          # Add retry logic for network resilience
-          for attempt in {1..3}; do
-            echo "🤖 Analyzer attempt $attempt of 3..."
-            
-            if timeout 2700 opencode run "$(cat .github/prompts/analyzer-system.md)" \
-              --model iflowcn/glm-4.6 \
-              --share false; then
-              echo "✅ Analyzer completed successfully on attempt $attempt"
-              break
-            else
-              exit_code=$?
-              echo "⚠️ Analyzer attempt $attempt failed with exit code $exit_code"
-              
-              if [ $attempt -eq 3 ]; then
-                echo "❌ All 3 attempts failed"
-                exit $exit_code
-              else
-                echo "🔄 Retrying in 10 seconds..."
-                sleep 10
-              fi
-            fi
-          done
-
-      - name: Check for Timeout
-        if: failure()
-        run: |
-          # Check if this was a timeout failure or network timeout
-          exit_code=$?
-          
-          if [ $exit_code -eq 124 ]; then
-            echo "⏱️ Shell timeout occurred - analyzer exceeded 45 minutes"
-            echo "TIMEOUT_TYPE=shell" >> $GITHUB_ENV
-            echo "TIMED_OUT=true" >> $GITHUB_ENV
-          elif [ $exit_code -eq 1 ]; then
-            echo "⚠️ Network/keepalive timeout detected - this is the OpenCode connection issue"
-            echo "TIMEOUT_TYPE=network" >> $GITHUB_ENV
-            echo "TIMED_OUT=true" >> $GITHUB_ENV
-          else
-            echo "❌ Analyzer failed to start or crashed with exit code $exit_code"
-            echo "TIMEOUT_TYPE=other" >> $GITHUB_ENV
-            echo "TIMED_OUT=false" >> $GITHUB_ENV
-          fi
-          
-          echo "Exit code: $exit_code" >> $GITHUB_ENV
-
-      - name: Fallback on Failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          TIMED_OUT: ${{ env.TIMED_OUT }}
-          TIMEOUT_TYPE: ${{ env.TIMEOUT_TYPE }}
-        run: |
-          echo "⚠️ Analyzer workflow failed. Creating issue for manual review."
-
-          if [ "$TIMED_OUT" = "true" ]; then
-            ISSUE_TITLE="🤖 Analyzer Timed Out - $(date +%Y-%m-%d)"
-            
-            if [ "$TIMEOUT_TYPE" = "network" ]; then
-              ISSUE_BODY="## Analyzer Network Timeout Report
-
-              **Workflow**: oc analyzer
-              **Run ID**: ${{ github.run_id }}
-              **Time**: $(date)
-              **Timeout Type**: Network/Keepalive Timeout
-              **Issue**: OpenCode connection watchdog timeout detected
-
-              ### Context
-              The analyzer failed with a network connection timeout, indicating:
-              - OpenCode internal connection to AI service was lost
-              - Keepalive watchdog triggered (39s execution, 1h timeout)
-              - This is a known issue with OpenCode 1.0.186 → 1.0.193
-
-              ### Technical Details
-              - Error pattern: \"keepalive watchdog timeout\"
-              - Root cause: Network connectivity to iflowcn/glm-4.6 service
-              - Retry logic: 3 attempts implemented but all failed
-
-              ### Action Required
-              1. This is a **BUG-215** type issue - requires OpenCode version consistency
-              2. Check if iflow.ai service is experiencing connectivity issues
-              3. Consider alternative model or service if issue persists
-              4. Review network stability between GitHub runners and AI service
-
-              ---
-              *This issue was auto-generated due to network timeout.*"
-            else
-              ISSUE_BODY="## Analyzer Shell Timeout Report
-
-              **Workflow**: oc analyzer
-              **Run ID**: ${{ github.run_id }}
-              **Time**: $(date)
-              **Timeout Type**: Shell Timeout
-              **Issue**: Analyzer exceeded 45-minute time limit
-
-              ### Context
-              The analyzer process timed out after 45 minutes, indicating:
-              - Codebase size or complexity may have increased
-              - OpenCode may need more time for comprehensive analysis
-              - Consider breaking down analysis into smaller chunks
-
-              ### Action Required
-              1. Review if this is expected behavior for current codebase size
-              2. Consider increasing timeout or optimizing analysis prompts
-              3. May need to disable analyzer for very large repositories
-
-              ---
-              *This issue was auto-generated due to shell timeout.*"
-            fi
-          else
-            ISSUE_TITLE="🤖 Analyzer Failed - $(date +%Y-%m-%d)"
-            ISSUE_BODY="## Analyzer Failure Report
-
-            **Workflow**: oc analyzer
-            **Run ID**: ${{ github.run_id }}
-            **Time**: $(date)
-            **Timeout Type**: ${{ env.TIMEOUT_TYPE }}
-            **Exit Code**: ${{ env.Exit code }}
-
-            ### Action Required
-            Please review the workflow logs and manually address any issues.
-
-            ---
-            *This issue was auto-generated.*"
-          fi
-
-          gh issue create \
-            --title "$ISSUE_TITLE" \
-            --body "$ISSUE_BODY" \
-            --label "bug" \
-            --label "analyzer" || echo "Could not create issue"
+          echo "⚠️  ANALYZER WORKFLOW TEMPORARILY DISABLED"
+          echo ""
+          echo "Reason: External OpenCode installation service failure (https://opencode.ai/install)"
+          echo "Issue: #609 - 🤖 Analyzer Failed - 2026-01-17"
+          echo ""
+          echo "Impact:"
+          echo "- OpenCode installation script is not responding"
+          echo "- This is an external service issue, not a repository code issue"
+          echo ""
+          echo "Next Steps:"
+          echo "- Monitor OpenCode service status for restoration"
+          echo "- Re-enable workflow by removing 'if: \${{ false }}' from this job"
+          echo ""
+          echo "See: https://github.com/anomalyco/blue/issues/609"
