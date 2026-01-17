@@ -18,14 +18,14 @@ export async function GET(req: NextRequest) {
         const compressionStats = getCompressionStats();
         const bundleAnalysis = performanceMonitorService.analyzeBundle({
           chunks: [
-            { name: "main", size: 102400, gzipSize: 35840, modules: 24 },
+            { name: "main", size: 102400, gzipSize: 35840, modules: Array.from({ length: 24 }, () => ({})) },
             {
               name: "dashboard-monitoring",
               size: 258000,
               gzipSize: 90800,
-              modules: 18,
+              modules: Array.from({ length: 18 }, () => ({})),
             },
-            { name: "vendors", size: 81920, gzipSize: 28672, modules: 47 },
+            { name: "vendors", size: 81920, gzipSize: 28672, modules: Array.from({ length: 47 }, () => ({})) },
           ],
         });
 
