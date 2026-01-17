@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { NextRequest } from "next/server";
-import { SemanticSignatureService } from "./semantic-signature-service";
-import type { AIPatternType } from "./ai-pattern-types";
+import { SemanticSignatureService } from "../semantic-signature-service";
+import type { AIPatternType } from "../ai-pattern-types";
 
 export interface ETagGenerationOptions {
   algorithm?: 'md5' | 'sha1' | 'sha256' | 'sha512';
