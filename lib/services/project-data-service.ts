@@ -720,6 +720,8 @@ static async deleteProject(projectId: string, clerkId: string, context?: Request
       context,
     );
     await DatabaseQueryCache.invalidateUserCache(userId);
+    await UnifiedCacheManager.invalidateByTag("credits");
+    await UnifiedCacheManager.invalidateByTag(`user-${userId}`);
 
     // Emit credit purchased webhook event
     await WebhookEventDispatcher.emitCreditPurchased(

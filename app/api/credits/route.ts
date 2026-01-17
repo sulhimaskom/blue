@@ -4,7 +4,6 @@ import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { CREDIT_RULES, PRICING_PACKAGES } from "@/lib/constants";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { IdGenerators } from "@/lib/utils/id-generator";
-import DatabaseQueryCache from "@/lib/services/database-cache-service";
 import { StripePaymentService } from "@/lib/services/stripe-payment-service";
 import type { Transaction } from "@/lib/db/schema";
 import { RateLimiters } from "@/lib/rate-limit-config";
@@ -140,45 +139,46 @@ export const POST = APIRouteHandler.createPOSTHandler({
   },
 });
 
-export const GET = APIRouteHandler.createGETHandler({
-  requireAuth: true,
-  rateLimiter: (identifier: string) => RateLimiters.creditsGet()(identifier),
-  handler: async ({ context, user }) => {
-    const stripeService = StripePaymentService.getInstance();
-    // Get transaction history with caching
-    const transactionHistory = await DatabaseQueryCache.executeCachedQuery(
-      "user-transactions",
-      async () => ProjectDataService.getUserTransactions(user!.id),
-      { userId: user!.id },
-      { ttl: 900, tags: [`user-${user!.id}`, "transactions", "credits"] },
-    );
+export const GET = APIRouteHandler.createCachedGETHandler(
+  {
+    requireAuth: true,
+    rateLimiter: (identifier: string) => RateLimiters.creditsGet()(identifier),
+    handler: async ({ context, user }) => {
+      const stripeService = StripePaymentService.getInstance();
+      const transactionHistory = await ProjectDataService.getUserTransactions(user!.id);
 
-    logger.userAction("Credits information fetched", user!.clerkId, {
-      requestId: context.requestId,
-      currentCredits: user!.credits,
-      transactionCount: transactionHistory.length,
-    });
+      logger.userAction("Credits information fetched", user!.clerkId, {
+        requestId: context.requestId,
+        currentCredits: user!.credits,
+        transactionCount: transactionHistory.length,
+      });
 
-    return {
-      credits: user!.credits,
-      subscriptionTier: user!.subscriptionTier,
-      transactions: transactionHistory.map((t: Transaction) => ({
-        id: t.id,
-        amount: t.amount,
-        creditsAdded: t.creditsAdded,
-        createdAt: t.createdAt,
-        paymentId: t.stripePaymentId,
-      })),
-      pricing: {
-        creditValue: `$0.10 per credit`,
-        packages: PRICING_PACKAGES,
-      },
-      stripeConfig: {
-        configured: stripeService.isConfigured(),
-        publishableKey: stripeService.isConfigured()
-          ? stripeService.getPublishableKey()
-          : null,
-      },
-    };
+      return {
+        credits: user!.credits,
+        subscriptionTier: user!.subscriptionTier,
+        transactions: transactionHistory.map((t: Transaction) => ({
+          id: t.id,
+          amount: t.amount,
+          creditsAdded: t.creditsAdded,
+          createdAt: t.createdAt,
+          paymentId: t.stripePaymentId,
+        })),
+        pricing: {
+          creditValue: `$0.10 per credit`,
+          packages: PRICING_PACKAGES,
+        },
+        stripeConfig: {
+          configured: stripeService.isConfigured(),
+          publishableKey: stripeService.isConfigured()
+            ? stripeService.getPublishableKey()
+            : null,
+        },
+      };
+    },
   },
-});
+  {
+    ttl: 900,
+    tags: ["credits", "user-specific"],
+    varyBy: ["userId"],
+  },
+);

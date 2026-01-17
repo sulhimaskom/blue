@@ -3,6 +3,7 @@ import { retryService, RETRY_CONFIGS } from "./retry-service";
 import type { RequestContext } from "@/lib/services/user-service";
 import { DatabaseError, ValidationError } from "@/lib/api-utils";
 import Stripe from "stripe";
+import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 
 export interface PaymentIntentRequest {
   amount: number;
@@ -321,6 +322,10 @@ export class StripePaymentService {
         creditsToAdd,
         context,
       );
+
+      // Invalidate credits cache
+      await UnifiedCacheManager.invalidateByTag("credits");
+      await UnifiedCacheManager.invalidateByTag(`user-${userId}`);
 
       logger.systemEvent("Payment processed successfully", {
         requestId: context.requestId,
