@@ -625,7 +625,7 @@ describe("APIRouteHandler", () => {
       );
 
       let capturedHandler: Function | undefined;
-      (withCompression as jest.Mock).mockImplementation((fn) => fn());
+      (withCompression as jest.Mock).mockImplementation((fn, req) => fn(req));
       (UnifiedCacheManager.withCache as jest.Mock).mockImplementation(
         async (req, cacheFn) => {
           capturedHandler = cacheFn;
@@ -657,7 +657,7 @@ describe("APIRouteHandler", () => {
         cacheConfig,
       );
 
-      (withCompression as jest.Mock).mockImplementation((fn) => fn());
+      (withCompression as jest.Mock).mockImplementation((fn, req) => fn(req));
       (UnifiedCacheManager.withCache as jest.Mock).mockImplementation(
         async (req, cacheFn) => {
           return NextResponse.json({ result: "cached" });
@@ -687,7 +687,7 @@ describe("APIRouteHandler", () => {
         cacheConfig,
       );
 
-      (withCompression as jest.Mock).mockImplementation((fn) => fn());
+      (withCompression as jest.Mock).mockImplementation((fn, req) => fn(req));
       (UnifiedCacheManager.withCache as jest.Mock).mockImplementation(
         async (req, cacheFn) => {
           return NextResponse.json({ result: "cached" });
@@ -724,13 +724,13 @@ describe("APIRouteHandler", () => {
         cacheConfig,
       );
 
-      (withCompression as jest.Mock).mockImplementation((fn) => fn());
+      (withCompression as jest.Mock).mockImplementation((fn, req) => fn(req));
       (UnifiedCacheManager.withCache as jest.Mock).mockImplementation(
         async (req, cacheFn) => {
           (UserService.getAuthenticatedUser as jest.Mock).mockResolvedValue(
             mockUser,
           );
-          return cacheFn(req, cacheConfig);
+          return cacheFn();
         },
       );
 
@@ -759,10 +759,10 @@ describe("APIRouteHandler", () => {
       );
 
       let capturedResponse: NextResponse | undefined;
-      (withCompression as jest.Mock).mockImplementation((fn) => fn());
+      (withCompression as jest.Mock).mockImplementation((fn, req) => fn(req));
       (UnifiedCacheManager.withCache as jest.Mock).mockImplementation(
         async (req, cacheFn) => {
-          const result = await cacheFn(req, cacheConfig);
+          const result = await cacheFn();
           capturedResponse = result;
           return result;
         },
@@ -788,9 +788,9 @@ describe("APIRouteHandler", () => {
         cacheConfig,
       );
 
-      (withCompression as jest.Mock).mockImplementation((fn) => fn());
+      (withCompression as jest.Mock).mockImplementation((fn, req) => fn(req));
       (UnifiedCacheManager.withCache as jest.Mock).mockImplementation(
-        async (req, cacheFn) => cacheFn(req, cacheConfig),
+        async (req, cacheFn) => cacheFn(),
       );
 
       const response = await handler(mockRequest);
@@ -1048,13 +1048,13 @@ describe("APIRouteHandler", () => {
         cacheConfig,
       );
 
-      (withCompression as jest.Mock).mockImplementation((fn) => fn());
+      (withCompression as jest.Mock).mockImplementation((fn, req) => fn(req));
       (UnifiedCacheManager.withCache as jest.Mock).mockImplementation(
         async (req, cacheFn) => {
           (UserService.getAuthenticatedUser as jest.Mock).mockResolvedValue(
             mockUser,
           );
-          return cacheFn(req, cacheConfig);
+          return cacheFn();
         },
       );
 
@@ -1090,6 +1090,47 @@ describe("APIRouteHandler", () => {
           endpoint: "http://localhost:3000/api/test",
         }),
       );
+    });
+
+    it("should properly initialize services with compression", async () => {
+      const mockHandler = jest.fn().mockResolvedValue({ result: "test" });
+      const cacheConfig = {
+        ttl: 3600,
+        tags: ["test"],
+        varyBy: [],
+        initializeServices: true,
+      };
+
+      const handler = APIRouteHandler.createCachedGETHandler(
+        {
+          requireAuth: true,
+          rateLimiter: jest.fn().mockResolvedValue({ allowed: true }),
+          handler: mockHandler,
+        },
+        cacheConfig,
+      );
+
+      (UserService.getAuthenticatedUser as jest.Mock).mockResolvedValue(
+        mockUser,
+      );
+
+      (withCompression as jest.Mock).mockImplementation((fn, req) => fn(req));
+      (UnifiedCacheManager.withCache as jest.Mock).mockImplementation(
+        async (req, cacheFn) => {
+          (UserService.getAuthenticatedUser as jest.Mock).mockResolvedValue(
+            mockUser,
+          );
+          return cacheFn();
+        },
+      );
+
+      const response = await handler(mockRequest);
+
+      expect(RuntimeServiceInitializer.initializeServices).toHaveBeenCalled();
+      expect(IntelligentPrefetchService.initialize).toHaveBeenCalled();
+      expect(RealTimePerformanceMonitor.initialize).toHaveBeenCalled();
+      expect(withCompression).toHaveBeenCalled();
+      expect(UnifiedCacheManager.withCache).toHaveBeenCalled();
     });
   });
 });

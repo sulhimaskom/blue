@@ -435,7 +435,7 @@ class APIRouteHandler {
     cacheConfig: CachedAPIHandlerConfig,
   ) {
     return async (req: NextRequest) => {
-      return withCompression(async () => {
+      return withCompression(async (req: NextRequest) => {
         // Initialize runtime services safely (won't run during build)
         if (cacheConfig.initializeServices !== false) {
           await RuntimeServiceInitializer.initializeServices();
