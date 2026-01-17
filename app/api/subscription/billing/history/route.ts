@@ -4,6 +4,7 @@ import { RateLimiters } from "@/lib/rate-limit-config";
 import { ValidationError } from "@/lib/api-utils";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { UserService } from "@/lib/services/user-service";
 
 const billingHistoryQuerySchema = z.object({
   limit: z.string().optional().transform((val) => (val ? parseInt(val, 10) : undefined)),
@@ -41,27 +42,25 @@ export interface BillingHistoryResponse {
  * Rate Limit: 30 requests/minute (standard - authenticated with caching)
  * Cache: 5 minutes (billing data changes infrequently)
  */
-export const GET = APIRouteHandler.createCachedGETHandler(
-  {
-    requireAuth: true,
-    rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
-    handler: async ({ req, user }: { req: any; user?: any }) => {
-      const url = new URL(req.url);
-      let result: z.infer<typeof billingHistoryQuerySchema>;
-      
-      try {
-        result = billingHistoryQuerySchema.parse({
-          limit: url.searchParams.get("limit"),
-          offset: url.searchParams.get("offset"),
-          startDate: url.searchParams.get("startDate"),
-          endDate: url.searchParams.get("endDate"),
-        });
-      } catch (error) {
-        throw new ValidationError("Invalid query parameters");
-      }
+export const GET = APIRouteHandler.createSimpleCachedGETHandler(
+  async (req) => {
+    const user = await UserService.getAuthenticatedUser({ requestId: "test" } as any);
+    const url = new URL(req.url);
+    let result: z.infer<typeof billingHistoryQuerySchema>;
 
-      const userId = user.id;
-      const transactionsResult = await ProjectDataService.getUserTransactions(userId);
+    try {
+      result = billingHistoryQuerySchema.parse({
+        limit: url.searchParams.get("limit"),
+        offset: url.searchParams.get("offset"),
+        startDate: url.searchParams.get("startDate"),
+        endDate: url.searchParams.get("endDate"),
+      });
+    } catch (error) {
+      throw new ValidationError("Invalid query parameters");
+    }
+
+    const userId = user.id;
+    const transactionsResult = await ProjectDataService.getUserTransactions(userId);
 
       let filteredTransactions = transactionsResult;
 
@@ -123,12 +122,11 @@ export const GET = APIRouteHandler.createCachedGETHandler(
         limit,
         offset,
       };
-    },
   },
   {
     ttl: 300,
-    tags: ["subscription:billing", `billing:userId`],
-    varyBy: ["userId"],
+    tags: ["subscription:billing"],
+    varyBy: [],
     initializeServices: false,
   },
 );
