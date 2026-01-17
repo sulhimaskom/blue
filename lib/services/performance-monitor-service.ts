@@ -1,9 +1,9 @@
 import { logger } from "@/lib/logger";
 
 /**
- * Circular Buffer for memory-efficient metrics collection
- * Prevents unlimited memory growth while maintaining performance data
- */
+  * Circular Buffer for memory-efficient metrics collection
+  * Prevents unlimited memory growth while maintaining performance data
+  */
 class CircularBuffer<T> {
   private buffer: T[];
   private size: number;
@@ -36,14 +36,18 @@ class CircularBuffer<T> {
   getLatest(n: number, sortByTimestamp?: boolean): T[] {
     const all = this.getAll();
     const sliced = all.slice(-Math.min(n, all.length));
-    
-    if (sortByTimestamp && all.length > 0 && typeof all[0] === 'object' && all[0] !== null && 'timestamp' in all[0]) {
-      return sliced.sort((a, b) => 
-        (b as any).timestamp - (a as any).timestamp
-      );
+
+    if (sortByTimestamp && sliced.length > 0 && sliced.every(this.hasTimestampProperty)) {
+      return (sliced as Array<T & { timestamp: Date }>).sort((a, b) => {
+        return b.timestamp.getTime() - a.timestamp.getTime();
+      });
     }
-    
+
     return sliced;
+  }
+
+  private hasTimestampProperty(item: unknown): item is { timestamp: Date } {
+    return typeof item === 'object' && item !== null && 'timestamp' in item && item.timestamp instanceof Date;
   }
 
   clear(): void {
@@ -125,6 +129,18 @@ interface DeploymentMetricsSummary {
     preview: number;
   };
   recentDeployments: DeploymentMetric[];
+}
+
+interface BundleChunk {
+  name?: string;
+  size: number;
+  gzipSize?: number;
+  modules?: unknown[];
+}
+
+interface BundleStats {
+  chunks?: BundleChunk[];
+  [key: string]: unknown;
 }
 
 export class PerformanceMonitorService {
@@ -325,7 +341,7 @@ export class PerformanceMonitorService {
 
     // Find slowest endpoint
     if (this.apiResponseTimes.length > 0) {
-      const slowestCall = allCalls.reduce((slowest: any, current) =>
+      const slowestCall = allCalls.reduce((slowest, current) =>
         current.time > slowest.time ? current : slowest,
       );
       this.metrics.slowestApiEndpoint = slowestCall.endpoint;
@@ -360,14 +376,14 @@ export class PerformanceMonitorService {
     );
   }
 
-  analyzeBundle(bundleStats: any): BundleAnalysis {
+  analyzeBundle(bundleStats: BundleStats): BundleAnalysis {
     const chunks = bundleStats.chunks || [];
     const totalSize = chunks.reduce(
-      (sum: number, chunk: any) => sum + chunk.size,
+      (sum: number, chunk: BundleChunk) => sum + chunk.size,
       0,
     );
     const gzippedSize = chunks.reduce(
-      (sum: number, chunk: any) => sum + (chunk.gzipSize || chunk.size),
+      (sum: number, chunk: BundleChunk) => sum + (chunk.gzipSize || chunk.size),
       0,
     );
 
@@ -383,7 +399,7 @@ export class PerformanceMonitorService {
 
     const largestChunk =
       chunks.length > 0
-        ? Math.max(...chunks.map((chunk: any) => chunk.size || 0))
+        ? Math.max(...chunks.map((chunk: BundleChunk) => chunk.size || 0))
         : 0;
     if (largestChunk > 300 * 1024) {
       // 300KB
@@ -395,7 +411,7 @@ export class PerformanceMonitorService {
     return {
       totalSize,
       gzippedSize,
-      chunks: chunks.map((chunk: any) => ({
+      chunks: chunks.map((chunk: BundleChunk) => ({
         name: chunk.name || "unknown",
         size: chunk.size || 0,
         gzippedSize: chunk.gzipSize || chunk.size || 0,
