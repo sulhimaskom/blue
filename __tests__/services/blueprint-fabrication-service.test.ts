@@ -48,6 +48,11 @@ jest.mock("@/lib/db", () => ({
   db: jest.fn(),
 }));
 
+let mockDbInstance: any = null;
+jest.mock("../../lib/db", () => ({
+  db: jest.fn().mockImplementation(() => mockDbInstance),
+}));
+
 import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 import { AIPatternDetector } from "@/lib/services/ai-pattern-detector";
 import { logger } from "@/lib/logger";
@@ -494,23 +499,28 @@ describe("BlueprintFabricationService - Critical Business Logic", () => {
       const mockDb = createMockDb();
 
       (UnifiedCacheManager.getData as jest.Mock).mockResolvedValue(null);
-      (db as jest.Mock).mockReturnValue(() => mockDb);
+      mockDbInstance = mockDb;
 
       // Act
       const result = await blueprintFabricationService.getUserBlueprintStats(
         request,
       );
 
-      // Assert - Database returns 0 results due to mock chain issue
+      // Assert - Database returns 3 results
       expect(result).toEqual({
-        total: 0,
-        completed: 0,
-        generating: 0,
+        total: 3,
+        completed: 1,
+        generating: 1,
         avgGenerationTime: 0,
       });
       expect(UnifiedCacheManager.setData).toHaveBeenCalledWith(
         "user-blueprint-stats:123",
-        expect.any(Object),
+        expect.objectContaining({
+          total: 3,
+          completed: 1,
+          generating: 1,
+          avgGenerationTime: 0,
+        }),
         expect.objectContaining({
           ttl: 600, // 10 minutes TTL
           tags: expect.arrayContaining([
@@ -528,18 +538,18 @@ describe("BlueprintFabricationService - Critical Business Logic", () => {
       const mockDb = createMockDb();
 
       (UnifiedCacheManager.getData as jest.Mock).mockResolvedValue(null);
-      (db as jest.Mock).mockReturnValue(() => mockDb);
+      mockDbInstance = mockDb;
 
       // Act
       await blueprintFabricationService.getUserBlueprintStats(request);
 
-      // Assert - Database returns 0 results, cache stores empty stats
+      // Assert - Database returns 3 results, cache stores the stats
       expect(UnifiedCacheManager.setData).toHaveBeenCalledWith(
         "user-blueprint-stats:123",
         expect.objectContaining({
-          total: 0,
-          completed: 0,
-          generating: 0,
+          total: 3,
+          completed: 1,
+          generating: 1,
           avgGenerationTime: 0,
         }),
         expect.any(Object),
@@ -551,9 +561,7 @@ describe("BlueprintFabricationService - Critical Business Logic", () => {
       const request: UserStatsRequest = { userId: 123 };
 
       (UnifiedCacheManager.getData as jest.Mock).mockResolvedValue(null);
-      (db as jest.Mock).mockImplementation(() => {
-        throw new Error("Database connection failed");
-      });
+      mockDbInstance = null;
 
       // Act
       const result = await blueprintFabricationService.getUserBlueprintStats(
@@ -570,7 +578,7 @@ describe("BlueprintFabricationService - Critical Business Logic", () => {
       expect(logger.error).toHaveBeenCalledWith(
         "Failed to get user blueprint stats",
         expect.objectContaining({
-          error: expect.stringContaining("Database connection failed"),
+          error: "Cannot read properties of null (reading 'select')",
           userId: 123,
         }),
       );
@@ -581,13 +589,13 @@ describe("BlueprintFabricationService - Critical Business Logic", () => {
       const request: UserStatsRequest = { userId: 123 };
 
       (UnifiedCacheManager.getData as jest.Mock).mockResolvedValue(null);
-      (db as jest.Mock).mockReturnValue({
+      mockDbInstance = {
         select: jest.fn().mockReturnValue({
           from: jest.fn().mockReturnValue({
             where: jest.fn().mockRejectedValue(new Error("Query failed")),
           }),
         }),
-      });
+      };
 
       // Act
       const result = await blueprintFabricationService.getUserBlueprintStats(
@@ -609,16 +617,16 @@ describe("BlueprintFabricationService - Critical Business Logic", () => {
       const mockDb = createMockDb();
 
       (UnifiedCacheManager.getData as jest.Mock).mockResolvedValue(null);
-      (db as jest.Mock).mockReturnValue(() => mockDb);
+      mockDbInstance = mockDb;
 
       // Act
       const result = await blueprintFabricationService.getUserBlueprintStats(
         request,
       );
 
-      // Assert - Database returns 0 results due to mock chain issue
-      expect(result.completed).toBe(0);
-      expect(result.total).toBe(0);
+      // Assert - Database returns 1 completed project
+      expect(result.completed).toBe(1);
+      expect(result.total).toBe(3);
     });
 
     it("should correctly count generating projects", async () => {
@@ -627,15 +635,15 @@ describe("BlueprintFabricationService - Critical Business Logic", () => {
       const mockDb = createMockDb();
 
       (UnifiedCacheManager.getData as jest.Mock).mockResolvedValue(null);
-      (db as jest.Mock).mockReturnValue(() => mockDb);
+      mockDbInstance = mockDb;
 
       // Act
       const result = await blueprintFabricationService.getUserBlueprintStats(
         request,
       );
 
-      // Assert - Database returns 0 results due to mock chain issue
-      expect(result.generating).toBe(0);
+      // Assert - Database returns 1 generating project
+      expect(result.generating).toBe(1);
     });
   });
 
@@ -1187,18 +1195,18 @@ describe("BlueprintFabricationService - Critical Business Logic", () => {
       const mockDb = createMockDb();
 
       (UnifiedCacheManager.getData as jest.Mock).mockResolvedValue(null);
-      (db as jest.Mock).mockReturnValue(() => mockDb);
+      mockDbInstance = mockDb;
 
       // Act
       await blueprintFabricationService.getUserBlueprintStats(request);
 
-      // Assert - Cache key generated and cache is set with default values
+      // Assert - Cache key generated and cache is set with stats
       expect(UnifiedCacheManager.setData).toHaveBeenCalledWith(
         "user-blueprint-stats:123",
         expect.objectContaining({
-          total: 0,
-          completed: 0,
-          generating: 0,
+          total: 3,
+          completed: 1,
+          generating: 1,
           avgGenerationTime: 0,
         }),
         expect.any(Object),
@@ -1289,23 +1297,23 @@ describe("BlueprintFabricationService - Critical Business Logic", () => {
       const mockDb = createMockDb();
 
       (UnifiedCacheManager.getData as jest.Mock).mockResolvedValue(null);
-      (db as jest.Mock).mockReturnValue(() => mockDb);
+      mockDbInstance = mockDb;
 
       // Act
       const result = await blueprintFabricationService.getUserBlueprintStats(
         request,
       );
 
-      // Assert - Database queried (mock is set up but returns 0 due to chain issue)
+      // Assert - Database queried successfully
       expect(mockDb.select).toHaveBeenCalled();
 
-      // Assert - Results cached with 0 values
+      // Assert - Results cached with actual values
       expect(UnifiedCacheManager.setData).toHaveBeenCalledWith(
         "user-blueprint-stats:123",
         expect.objectContaining({
-          total: 0,
-          completed: 0,
-          generating: 0,
+          total: 3,
+          completed: 1,
+          generating: 1,
           avgGenerationTime: 0,
         }),
         expect.objectContaining({
@@ -1313,10 +1321,10 @@ describe("BlueprintFabricationService - Critical Business Logic", () => {
         }),
       );
 
-      // Assert - Default stats returned due to mock issue
-      expect(result.total).toBe(0);
-      expect(result.completed).toBe(0);
-      expect(result.generating).toBe(0);
+      // Assert - Stats returned with correct values
+      expect(result.total).toBe(3);
+      expect(result.completed).toBe(1);
+      expect(result.generating).toBe(1);
     });
   });
 });
