@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/constants/ui-themes";
 import { formatStandardDate } from "@/lib/utils/time-formatting";
 
@@ -36,12 +37,16 @@ export const ProjectList = React.memo(
         </div>
         <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
           {projects.length === 0 ? (
-            <div className="p-6 text-center">
-              <p className="text-gray-500">No projects found</p>
-              <Button onClick={onCreateBlueprint} className="mt-4">
-                Create First Blueprint
-              </Button>
-            </div>
+            <EmptyState
+              variant="folder"
+              title="No projects found"
+              description="Create your first project to start building AI-powered blueprints"
+              action={
+                <Button onClick={onCreateBlueprint}>
+                  Create First Blueprint
+                </Button>
+              }
+            />
           ) : (
             projects.map((project) => (
               <div

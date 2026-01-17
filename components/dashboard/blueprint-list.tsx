@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/constants/ui-themes";
 
 interface Project {
@@ -45,37 +46,19 @@ export const BlueprintList = React.memo(
           </div>
           <div className="p-4 sm:p-6">
             {blueprints.length === 0 ? (
-              <div className="text-center py-8 sm:py-12">
-                <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <svg
-                    className="w-6 h-6 text-gray-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
+              <EmptyState
+                variant="document"
+                title="No blueprints yet"
+                description="Get started by creating your first AI-generated blueprint for this project"
+                action={
+                  <Button
+                    onClick={onCreateBlueprint}
+                    className="w-full sm:w-auto"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-sm font-medium text-gray-900 mb-2">
-                  No blueprints yet
-                </h3>
-                <p className="text-sm text-gray-500 mb-4 px-4 sm:px-0">
-                  Get started by creating your first AI-generated blueprint for
-                  this project.
-                </p>
-                <Button
-                  onClick={onCreateBlueprint}
-                  className="w-full sm:w-auto"
-                >
-                  Create Blueprint
-                </Button>
-              </div>
+                    Create Blueprint
+                  </Button>
+                }
+              />
             ) : (
               <div className="space-y-4">
                 {blueprints.map((blueprint) => (
@@ -142,30 +125,11 @@ export const BlueprintList = React.memo(
         </div>
       ) : (
         <div className="bg-white rounded-lg border border-gray-200">
-          <div className="p-8 sm:p-12 text-center">
-            <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-            </div>
-            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
-              Select a project
-            </h3>
-            <p className="text-sm sm:text-base text-gray-500 px-4 sm:px-0">
-              Choose a project from the list to view and manage its blueprints.
-            </p>
-          </div>
+          <EmptyState
+            variant="folder"
+            title="Select a project"
+            description="Choose a project from the list to view and manage its blueprints"
+          />
         </div>
       )}
     </div>
