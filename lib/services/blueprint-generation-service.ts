@@ -1,6 +1,8 @@
 import { aiService, ResearchResult } from "./ai-service";
 import { logger } from "../logger";
 import { ValidationError, DatabaseError } from "./service-error-handler";
+import { performanceMonitorService } from "./performance-monitor-service";
+import { randomUUID } from "crypto";
 
 export interface BlueprintData {
   projectName: string;
@@ -25,6 +27,7 @@ export interface BlueprintData {
 export interface BlueprintGenerationRequest {
   input: string;
   research: ResearchResult;
+  projectId?: string;
 }
 
 /**
@@ -114,6 +117,10 @@ class BlueprintGenerationService {
   ): Promise<BlueprintData> {
     logger.info("Phase 2: Blueprint generation started", { input: request.input });
 
+    const startTime = Date.now();
+    const blueprintId = randomUUID();
+    const projectId = request.projectId || "unknown";
+
     try {
       const reasoningPrompt = this.buildReasoningPrompt(
         request.input,
@@ -131,20 +138,97 @@ class BlueprintGenerationService {
 
       await this.validateBlueprint(blueprintData);
 
+      const generationTime = Date.now() - startTime;
+
+      // Record blueprint performance metric for team analytics
+      performanceMonitorService.recordBlueprintMetric({
+        blueprintId,
+        projectId,
+        generationTime,
+        success: true,
+        qualityScore: this.calculateQualityScore(blueprintData),
+        timestamp: new Date(),
+        patterns: this.extractPatterns(blueprintData),
+      });
+
       logger.info("Phase 2: Blueprint generation completed", {
         projectName: blueprintData.projectName,
         techStack: blueprintData.techStack,
         featureCount: blueprintData.features.length,
+        generationTime,
       });
 
       return blueprintData;
     } catch (error) {
+      const generationTime = Date.now() - startTime;
+
+      // Record failed blueprint generation
+      performanceMonitorService.recordBlueprintMetric({
+        blueprintId,
+        projectId,
+        generationTime,
+        success: false,
+        timestamp: new Date(),
+        patterns: [],
+      });
+
       logger.error("Phase 2: Blueprint generation failed", {
         input: request.input,
         error: error instanceof Error ? error.message : String(error),
+        generationTime,
       });
       throw error;
     }
+  }
+
+  private calculateQualityScore(blueprint: BlueprintData): number {
+    let score = 0;
+
+    // Tech stack selection (up to 30 points)
+    if (blueprint.techStack.runtime && blueprint.techStack.framework) {
+      score += 10;
+    }
+    if (blueprint.techStack.database && blueprint.techStack.auth) {
+      score += 10;
+    }
+    if (blueprint.techStack.deployment) {
+      score += 10;
+    }
+
+    // Features (up to 30 points)
+    if (blueprint.features.length >= 5 && blueprint.features.length <= 8) {
+      score += 20;
+    } else if (blueprint.features.length > 0) {
+      score += 10;
+    }
+
+    // Monetization strategy (up to 20 points)
+    if (blueprint.monetizationStrategy && blueprint.monetizationStrategy.length > 20) {
+      score += 20;
+    }
+
+    // Architecture (up to 20 points)
+    if (blueprint.architecture.type && blueprint.architecture.scaling) {
+      score += 10;
+    }
+    if (blueprint.architecture.security && blueprint.architecture.security.length > 0) {
+      score += 10;
+    }
+
+    return Math.min(100, Math.max(0, score));
+  }
+
+  private extractPatterns(blueprint: BlueprintData): string[] {
+    const patterns: string[] = [];
+
+    if (blueprint.architecture?.type) {
+      patterns.push(blueprint.architecture.type);
+    }
+    if (blueprint.architecture?.scaling) {
+      patterns.push(`scaling-${blueprint.architecture.scaling}`);
+    }
+
+    return patterns;
   }
 
   /**
