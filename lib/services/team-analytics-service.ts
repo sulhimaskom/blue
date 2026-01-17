@@ -1,6 +1,6 @@
-import { eq, and, count, isNull, inArray, sum, avg, desc } from "drizzle-orm";
+import { eq, and, count, isNull, inArray, sum } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { teamMembers, transactions, teamProjects, projects, blueprints, deployments } from "@/lib/db/schema";
+import { teamMembers, transactions, teamProjects, blueprints, deployments } from "@/lib/db/schema";
 import { logger } from "@/lib/logger";
 import {
   DatabaseError,
