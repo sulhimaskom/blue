@@ -1,10 +1,12 @@
 import { GET } from "@/app/api/subscription/billing/history/route";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { Mock } from "vitest";
+import { setupAuthMocks } from "@/__tests__/setup/auth-setup";
 
 describe("Subscription Billing History API - Integration Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    setupAuthMocks();
   });
 
   describe("GET /api/subscription/billing/history", () => {
