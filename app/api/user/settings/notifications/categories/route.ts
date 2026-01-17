@@ -3,12 +3,7 @@ import { logger } from "@/lib/logger";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { NotificationPreferencesService } from "@/lib/services/notification-preferences-service";
 import { RateLimiters } from "@/lib/rate-limit-config";
-
-export const NOTIFICATION_CATEGORIES = [
-  { id: "critical", name: "Critical", description: "System alerts and urgent notifications", color: "red" },
-  { id: "important", name: "Important", description: "Business-critical updates", color: "orange" },
-  { id: "informational", name: "Informational", description: "General updates and announcements", color: "blue" },
-] as const;
+import { NOTIFICATION_CATEGORIES } from "@/lib/constants/notification-categories";
 
 const updateCategoriesSchema = z.object({
   critical: z.object({
