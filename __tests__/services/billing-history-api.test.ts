@@ -3,6 +3,48 @@ import { ProjectDataService } from "@/lib/services/project-data-service";
 import { Mock } from "vitest";
 import { setupAuthMocks } from "@/__tests__/setup/auth-setup";
 
+jest.mock("@/lib/services/user-service", () => ({
+  UserService: {
+    getAuthenticatedUser: jest.fn().mockResolvedValue({
+      id: "user_test_123",
+      clerkId: "user_test_123",
+      email: "test@example.com",
+    }),
+    hasSufficientCredits: jest.fn().mockResolvedValue(true),
+  },
+}));
+
+jest.mock("@/lib/services/cache-orchestrator", () => ({
+  UnifiedCacheManager: {
+    withCache: jest.fn().mockImplementation((fn) => fn()),
+    invalidateByTag: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock("@/lib/monitoring", () => ({
+  monitoringService: {
+    trackApiRequest: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock("@/lib/services/runtime-service-initializer", () => ({
+  RuntimeServiceInitializer: {
+    initializeServices: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock("@/lib/services/intelligent-prefetch-service", () => ({
+  IntelligentPrefetchService: {
+    initialize: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock("@/lib/services/real-time-performance-monitor", () => ({
+  RealTimePerformanceMonitor: {
+    initialize: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 describe("Subscription Billing History API - Integration Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
