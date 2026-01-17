@@ -6,8 +6,9 @@
  * This service centralizes all performance analysis business logic.
  */
 
+import { CacheStatisticsService } from "@/lib/services/cache/cache-statistics-service";
 import { DatabasePerformanceOptimizer } from "@/lib/db/performance-optimizer";
-import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
+import DatabaseCacheService from "@/lib/services/database-cache-service";
 import type { QueryCacheStats } from "@/lib/services/database-cache-service";
 import {
   DatabasePerformanceMonitor,
@@ -15,6 +16,10 @@ import {
 } from "@/lib/db/performance-monitor";
 import { logger } from "@/lib/logger";
 
+/**
+ * Cache performance metrics interface
+ * Mapped from CacheStatisticsService methods
+ */
 export interface CacheMetrics {
   totalRequests: number;
   cacheHits: number;
@@ -99,19 +104,31 @@ class PerformanceReportService {
   }
 
   private async getCacheMetrics(): Promise<CacheMetrics> {
-    const rawMetrics = await UnifiedCacheManager.getPerformanceMetrics();
+    const [richStats, healthStatus] = await Promise.all([
+      CacheStatisticsService.getRichCacheStats(),
+      CacheStatisticsService.getCacheHealthStatus(),
+    ]);
+
+    const dbCacheStats = DatabaseCacheService.getCacheStats();
+
+    const totalKeys = richStats.totalKeys;
+    const hitRate = richStats.hitRate;
+    const cacheHits = Math.floor(totalKeys * hitRate);
+    const cacheMisses = totalKeys - cacheHits;
+    const avgCacheTime = richStats.performance.avgGetTime;
+    const performanceImprovement = healthStatus.score;
 
     return {
-      totalRequests: (rawMetrics as any).totalRequests ?? 0,
-      cacheHits: (rawMetrics as any).cacheHits ?? 0,
-      cacheMisses: (rawMetrics as any).cacheMisses ?? 0,
-      avgCacheTime: (rawMetrics as any).avgCacheTime ?? 0,
-      avgDbTime: (rawMetrics as any).avgDbTime ?? 0,
-      hitRate: (rawMetrics as any).hitRate ?? 0,
-      performanceImprovement: (rawMetrics as any).performanceImprovement ?? 0,
-      cachePatterns: (rawMetrics as any).cachePatterns ?? [],
-      recommendations: (rawMetrics as any).recommendations ?? [],
-      databaseCacheStats: (rawMetrics as any).databaseCacheStats,
+      totalRequests: richStats.performance.operationsPerSecond,
+      cacheHits,
+      cacheMisses,
+      avgCacheTime,
+      avgDbTime: dbCacheStats.avgQueryTime,
+      hitRate,
+      performanceImprovement,
+      cachePatterns: Object.entries(richStats.tags).map(([pattern, count]) => ({ pattern, count })),
+      recommendations: healthStatus.recommendations,
+      databaseCacheStats: dbCacheStats,
     };
   }
 
