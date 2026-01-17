@@ -1,12 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useTeamsData } from "@/lib/hooks/use-teams-data";
-import { TeamList } from "@/components/dashboard/team-list";
-import { TeamCreateModal } from "@/components/dashboard/team-create-modal";
-import { TeamDetails } from "@/components/dashboard/team-details";
-import { TeamMemberList } from "@/components/dashboard/team-member-list";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
+
+const TeamList = lazy(() =>
+  import("@/components/dashboard/team-list").then((m) => ({
+    default: m.TeamList,
+  })),
+);
+
+const TeamCreateModal = lazy(() =>
+  import("@/components/dashboard/team-create-modal").then((m) => ({
+    default: m.TeamCreateModal,
+  })),
+);
+
+const TeamDetails = lazy(() =>
+  import("@/components/dashboard/team-details").then((m) => ({
+    default: m.TeamDetails,
+  })),
+);
+
+const TeamMemberList = lazy(() =>
+  import("@/components/dashboard/team-member-list").then((m) => ({
+    default: m.TeamMemberList,
+  })),
+);
 
 
 export default function TeamsPage() {
@@ -119,37 +140,42 @@ export default function TeamsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
-            <TeamList
-              teams={teams}
-              selectedTeam={selectedTeam}
-              onTeamSelect={(team) => {
-                handleTeamSelect(team);
-                setShowTeamDetails(true);
-              }}
-              onCreateTeam={() => setShowCreateModal(true)}
-            />
+            <Suspense fallback={<DashboardSkeleton />}>
+              <TeamList
+                teams={teams}
+                selectedTeam={selectedTeam}
+                onTeamSelect={(team) => {
+                  handleTeamSelect(team);
+                  setShowTeamDetails(true);
+                }}
+                onCreateTeam={() => setShowCreateModal(true)}
+              />
+            </Suspense>
           </div>
 
           <div className="lg:col-span-2">
             {selectedTeam && showTeamDetails ? (
               <div className="space-y-6">
-                <TeamDetails
-                  team={selectedTeam}
-                  onUpdateTeam={handleUpdateTeam}
-                  onDeleteTeam={handleDeleteTeam}
-                  loading={creating}
-                />
-
-                <TeamMemberList
-                  members={teamMembers}
-                  onAddMember={async (email, role) => {
-                    await addTeamMember(selectedTeam.id, email, role);
-                  }}
-                  onRemoveMember={async (userId) => {
-                    await removeTeamMember(selectedTeam.id, userId);
-                  }}
-                  loading={creating}
-                />
+                <Suspense fallback={<DashboardSkeleton />}>
+                  <TeamDetails
+                    team={selectedTeam}
+                    onUpdateTeam={handleUpdateTeam}
+                    onDeleteTeam={handleDeleteTeam}
+                    loading={creating}
+                  />
+                </Suspense>
+                <Suspense fallback={<DashboardSkeleton />}>
+                  <TeamMemberList
+                    members={teamMembers}
+                    onAddMember={async (email, role) => {
+                      await addTeamMember(selectedTeam.id, email, role);
+                    }}
+                    onRemoveMember={async (userId) => {
+                      await removeTeamMember(selectedTeam.id, userId);
+                    }}
+                    loading={creating}
+                  />
+                </Suspense>
               </div>
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
@@ -163,26 +189,28 @@ export default function TeamsPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v-1m0 0a6 6 0 00-12 0v1m0 0V6a6 6 0 0112 0v9m3.17-5a2 2 0 00-1.11-1.82l-3.39-3.14A6 6 0 006 13H4a6 6 0 00-6 6v1a6 6 0 0012 0v-1M20 15v1a2 2 0 002 2h-1.37m0-6.83l-2.89 2.68"
+                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v-1m0 0a6 6 0 00-12 0v1m3.17-5a2 2 0 00-1.11-1.82l-3.39-3.14A6 6 0 006 13H4a6 6 0 00-6 6v1a6 6 0 0012 0v-1M20 15v1a2 2 0 002 2h-1.37m0-6.83l-2.89 2.68"
                   />
                 </svg>
                 <h3 className="mt-2 text-sm font-medium text-gray-900">
                   Select a team
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Choose a team from the list to view details and manage members
+                  Choose a team from list to view details and manage members
                 </p>
               </div>
             )}
           </div>
         </div>
 
-        <TeamCreateModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onSubmit={handleCreateTeam}
-          loading={creating}
-        />
+        <Suspense fallback={<DashboardSkeleton />}>
+          <TeamCreateModal
+            isOpen={showCreateModal}
+            onClose={() => setShowCreateModal(false)}
+            onSubmit={handleCreateTeam}
+            loading={creating}
+          />
+        </Suspense>
       </div>
     </DashboardLayout>
   );

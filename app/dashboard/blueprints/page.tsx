@@ -4,14 +4,30 @@ import { useState, lazy, Suspense } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useBlueprintValidation } from "@/lib/hooks/use-blueprint-validation";
 import { useBlueprintsData } from "@/lib/hooks/use-dashboard-data";
-import { StatsOverview } from "@/components/dashboard/stats-overview";
-import { ProjectList } from "@/components/dashboard/project-list";
-import { BlueprintList } from "@/components/dashboard/blueprint-list";
 import { ValidationError } from "@/lib/api-utils";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
 
 const BlueprintCreateModal = lazy(() =>
   import("@/components/dashboard/blueprint-create-modal").then((m) => ({
     default: m.BlueprintCreateModal,
+  })),
+);
+
+const StatsOverview = lazy(() =>
+  import("@/components/dashboard/stats-overview").then((m) => ({
+    default: m.StatsOverview,
+  })),
+);
+
+const ProjectList = lazy(() =>
+  import("@/components/dashboard/project-list").then((m) => ({
+    default: m.ProjectList,
+  })),
+);
+
+const BlueprintList = lazy(() =>
+  import("@/components/dashboard/blueprint-list").then((m) => ({
+    default: m.BlueprintList,
   })),
 );
 
@@ -121,23 +137,31 @@ export default function BlueprintsPage() {
           </div>
         )}
 
-        {stats && <StatsOverview stats={stats} credits={credits} />}
+        {stats && (
+          <Suspense fallback={<DashboardSkeleton />}>
+            <StatsOverview stats={stats} credits={credits} />
+          </Suspense>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <ProjectList
-            projects={projects}
-            selectedProject={selectedProject}
-            onProjectSelect={handleProjectSelect}
-            onCreateBlueprint={() => {
-              setShowCreateForm(true);
-              resetValidation();
-            }}
-          />
-          <BlueprintList
-            selectedProject={selectedProject}
-            blueprints={selectedProjectBlueprints}
-            onCreateBlueprint={() => setShowCreateForm(true)}
-          />
+          <Suspense fallback={<DashboardSkeleton />}>
+            <ProjectList
+              projects={projects}
+              selectedProject={selectedProject}
+              onProjectSelect={handleProjectSelect}
+              onCreateBlueprint={() => {
+                setShowCreateForm(true);
+                resetValidation();
+              }}
+            />
+          </Suspense>
+          <Suspense fallback={<DashboardSkeleton />}>
+            <BlueprintList
+              selectedProject={selectedProject}
+              blueprints={selectedProjectBlueprints}
+              onCreateBlueprint={() => setShowCreateForm(true)}
+            />
+          </Suspense>
         </div>
 
         {showCreateForm && (
