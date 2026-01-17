@@ -12,6 +12,7 @@ const customJestConfig = {
     "^@/(.*)$": "<rootDir>/$1",
     "^@clerk/nextjs/server$": "<rootDir>/__tests__/mocks/clerk-server.js",
     "^@clerk/backend$": "<rootDir>/__tests__/mocks/clerk-backend.js",
+    "^next/server$": "<rootDir>/__tests__/mocks/next-server.js",
   },
   testEnvironment: "jest-environment-jsdom",
   // Performance optimizations for faster CI/CD
