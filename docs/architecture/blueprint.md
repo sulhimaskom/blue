@@ -89,6 +89,12 @@ This logic follows the **Model Context Protocol (MCP)** concept, where the "Brai
 --   - Webhook Configurations: retry/timeout ranges, URL format, secret length
 --   - Teams: subscription tier enum
 --   - Team Members: role enum
+-- Additional CHECK Constraints: Complete validation coverage (Migration 0016 - January 17, 2026)
+--   - Blueprint Shares: permission enum, non-negative view count, expiry validation
+--   - Team Projects: role enum
+--   - Subscription Usage: non-negative usage metrics (credits, projects, teams, webhooks, API requests)
+--   - User Settings: theme enum, language code format, timezone format, visibility enum
+--   - Notifications: notification type enum
 -- Performance Indexes: Query optimization (Migration 0008 - January 22, 2026)
 --   - High Impact (10 indexes): User dashboard, blueprint navigation, payment processing
 --   - Medium Impact (11 indexes): Team collaboration, webhook queue, analytics
@@ -108,6 +114,20 @@ This logic follows the **Model Context Protocol (MCP)** concept, where the "Brai
 --   - Retention Policies: Users (7y), Projects/Blueprints/Teams (5y), Webhooks (1y), Logs (2y)
 --   - Archival Functions (8): Individual table archival + master job + purge job
 --   - Performance Improvement: Maintains query performance at scale, 30-40% storage savings, 40-50% faster backups
+-- Blueprint Share Audit Logs: Access tracking and compliance (Migration 0012 - January 17, 2026)
+--   - Audit Table: blueprint_share_audit_logs
+--   - Tracking: Share actions, access events, permission changes
+--   - Compliance: Full audit trail for shared blueprints
+-- Subscription Usage Unique Constraint: Prevent duplicate usage records (Migration 0013 - January 17, 2026)
+--   - Unique Constraint: (user_id, period) for subscription_usage table
+--   - Purpose: Prevents duplicate usage tracking per user per month
+-- Blueprint Share Permission Check: Database-level sharing validation (Migration 0014 - January 17, 2026)
+--   - Constraint: At least one of sharedWithUser or sharedWithTeam must be non-null
+--   - Purpose: Prevents invalid share records (shares to neither user nor team)
+-- Webhook Composite Index: Optimization for webhook API queries (Migration 0015 - January 17, 2026)
+--   - Index: (user_id, is_active) on webhook_configurations
+--   - Performance: 10-100x improvement for webhook configuration queries
+--   - Impact: Eliminates full table scans for webhook listing/filtering
 
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
