@@ -72,6 +72,10 @@ class NextResponseMock {
   }
 
   static json(data, options = {}) {
+    if (data === undefined || data === null) {
+      const buffer = Buffer.alloc(0);
+      return new NextResponseMock(buffer, options);
+    }
     const jsonString = JSON.stringify(data);
     const buffer = Buffer.from(jsonString, "utf-8");
     return new NextResponseMock(buffer, options);
