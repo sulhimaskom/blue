@@ -7739,6 +7739,125 @@ All documentation is now world-class and ready to support immediate customer acq
        - `lib/services/performance-monitor-service.ts` (+19 -6 lines, net +13 - added 2 new interfaces, fixed 6 `any` type usages)
 
    - [ ] **MEDIUM**: Type Safety Enhancement - Reduce `any` Type Usage in Services (51 instances remaining across 19 services)
+
+## Active Tasks 🔄 (Reviewer Mode - January 18, 2026)
+
+  - [ ] **HIGH**: Service Decomposition - Large Service Files Refactoring
+    - **Location**: lib/services/
+    - **Issue**: Several services exceed 1000 lines violating Single Responsibility Principle
+    - **Large Services Identified**:
+      - **subscription-service.ts** (1387 lines): Subscription tier management, billing, usage limits, and feature gating
+      - **webhook-event-dispatcher.ts** (1358 lines): Webhook event routing, retry logic, circuit breaker protection
+      - **team-service.ts** (1291 lines): Team CRUD operations, member management, access control
+      - **blueprint-engine.ts** (1282 lines): AI-powered blueprint generation (four-phase architecture)
+      - **blueprint-sharing-service.ts** (1215 lines): Blueprint sharing permissions, access control
+      - **predictive-cache-optimizer.ts** (1086 lines): Cache optimization strategies, pattern detection
+    - **Suggestion**: Extract atomic sub-services following blueprint.md service layer principles:
+      - **subscription-service.ts**: Extract BillingService, SubscriptionTierService, UsageLimitsService
+      - **webhook-event-dispatcher.ts**: Extract WebhookRetryHandler, WebhookCircuitBreaker, WebhookQueueManager
+      - **team-service.ts**: Extract TeamMemberService, TeamAccessControlService, TeamValidationService
+      - **blueprint-engine.ts**: Extract BlueprintResearchService, BlueprintValidationService, BlueprintRefinementService
+    - **Architecture Benefits**:
+      - **Single Responsibility**: Each sub-service handles one clear concern
+      - **Enhanced Testability**: Smaller services easier to unit test
+      - **Improved Maintainability**: Changes to specific features don't affect unrelated code
+      - **Better Code Reusability**: Extracted services can be reused across the platform
+    - **Priority**: High (Code quality and maintainability improvement)
+    - **Effort**: Large (16-24 hours for careful service extraction with zero breaking changes)
+
+  - [ ] **HIGH**: Environment Variable Consolidation - Centralized Env Validation
+    - **Location**: lib/services/ (29 instances bypassing env.ts)
+    - **Issue**: Direct `process.env` usage bypasses centralized validation in lib/env.ts
+    - **Affected Services** (5 files, 29 instances):
+      - **openai-strategy.ts**: `process.env.OPENAI_API_KEY` (1 instance)
+      - **email-service.ts**: `process.env.RESEND_API_KEY`, `process.env.RESEND_FROM_EMAIL`, `process.env.NEXT_PUBLIC_APP_NAME` (3 instances)
+      - **webhook-service.ts**: `process.env.NODE_ENV` (2 instances - test environment checks)
+      - **stripe-payment-service.ts**: `process.env.STRIPE_SECRET_KEY`, `process.env.STRIPE_WEBHOOK_SECRET`, `process.env.NEXT_PUBLIC_APP_URL`, `process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (6 instances)
+      - **runtime-service-initializer.ts**: `process.env.NEXT_PHASE`, `process.env.NEXT_STATIC`, `process.env.PORT`, `process.env.HOST`, `process.env.REDIS_URL`, `process.env.VERCEL` (17 instances)
+    - **Security Concern**: Identified in docs/security-assessment-january-17-2026-detailed.md as SEC-001 (🔴 CRITICAL)
+    - **Suggestion**: Replace all direct process.env usage with centralized env.ts imports:
+      - Add missing environment variables to lib/env.ts schema validation (OPENAI_API_KEY missing)
+      - Replace all direct process.env usage with validated env.* imports
+      - Implement type-safe environment variable access throughout services
+      - Add runtime validation for production environments
+    - **Architecture Benefits**:
+      - **Security**: All environment variables validated at startup
+      - **Type Safety**: TypeScript interfaces prevent typos and missing keys
+      - **Consistency**: Single source of truth for all environment variable access
+      - **Production Readiness**: Early validation failures prevent runtime errors
+    - **Priority**: High (Security and type safety improvement - matches SEC-001 critical finding)
+    - **Effort**: Medium (6-8 hours for systematic replacement and env.ts enhancement)
+
+  - [ ] **MEDIUM**: Console Logging Cleanup - Production Logging Standardization
+    - **Location**: lib/ and app/ (81 console statements)
+    - **Issue**: Console.log/error/warn statements in production code without structured logging
+    - **Analysis**: 81 console statements across codebase
+      - Development debugging statements scattered in services and components
+      - Missing structured logging context (userId, requestId, operation)
+      - No correlation IDs for tracing requests across services
+      - Potential security risk (leaking sensitive information to console)
+    - **Suggestion**: Replace all console statements with structured logger service:
+      - **lib/logger.ts**: World-class logging system already exists (should be used)
+      - Replace `console.log()` → `logger.info()`, `logger.userAction()`, `logger.apiRequest()`
+      - Replace `console.error()` → `logger.apiError()`, `logger.error()`
+      - Replace `console.warn()` → `logger.warn()`
+      - Add context metadata: userId, requestId, operation, timestamp
+      - Implement log level filtering for production (DEBUG logs suppressed)
+    - **Architecture Benefits**:
+      - **Observability**: Structured logs enable advanced log aggregation and querying
+      - **Security**: Centralized logging prevents accidental sensitive data exposure
+      - **Production Monitoring**: Real-time log dashboards with correlation tracking
+      - **Developer Experience**: Consistent logging patterns across entire codebase
+    - **Priority**: Medium (Production readiness and monitoring improvement)
+    - **Effort**: Medium (8-10 hours for systematic replacement with proper context)
+
+  - [ ] **MEDIUM**: API Route Optimization - Complex Route Decomposition
+    - **Location**: app/api/ (routes > 150 lines)
+    - **Issue**: API routes with embedded business logic and multiple responsibilities
+    - **Large Routes Identified** (routes exceeding 150 lines):
+      - **app/api/credits/route.ts** (184 lines): Credit purchasing, balance updates, transaction recording
+      - **app/api/health/route.ts** (177 lines): System health checks, database status, cache status
+      - **app/api/user/settings/notifications/route.ts** (176 lines): Notification preferences, settings management
+      - **app/api/blueprints/route.ts** (174 lines): Blueprint CRUD, versioning, sharing
+      - **app/api/blueprints/[id]/rollback/route.ts** (174 lines): Blueprint rollback logic
+    - **Suggestion**: Extract business logic to service layer following blueprint.md:208-209 principles:
+      - **credits/route.ts**: Extract CreditPurchaseService, CreditBalanceService, TransactionService
+      - **health/route.ts**: Extract HealthCheckService, DatabaseHealthService, CacheHealthService
+      - **user/settings/notifications/route.ts**: Extract NotificationSettingsService, NotificationPreferenceService
+      - **blueprints/route.ts**: Extract BlueprintCRUDService, BlueprintVersioningService, BlueprintSharingService
+      - **blueprints/[id]/rollback/route.ts**: Extract BlueprintRollbackService
+    - **Architecture Benefits**:
+      - **Layer Separation**: Routes delegate to service layer (zero business logic in routes)
+      - **Testability**: Business logic isolated and independently testable
+      - **Reusability**: Service logic available for multiple endpoints
+      - **Maintainability**: Route files become thin wrappers around service calls
+    - **Priority**: Medium (Service layer compliance and testability improvement)
+    - **Effort**: Medium (12-16 hours for service extraction and route simplification)
+
+  - [ ] **LOW**: Error Message Standardization - Error Handling Enhancement
+    - **Location**: lib/services/ (Error throwing patterns across services)
+    - **Issue**: Inconsistent error message formats and missing contextual information in some error cases
+    - **Analysis**: Examined error throwing patterns across services
+      - **Good Practices Found**:
+        - ServiceError with context: `ServiceError("Message", "Service", "Method", undefined, context)`
+        - ValidationError with details: `ValidationError("Message with details")`
+        - GitHubServiceError with status: `GitHubServiceError("Message", statusCode)`
+      - **Inconsistencies Identified**:
+        - Some errors thrown without context/metadata
+        - Missing user-friendly error messages for common scenarios
+        - Inconsistent error code/message mapping for API responses
+    - **Suggestion**: Standardized error handling enhancement:
+      - **Error Message Template Library**: Create centralized error message templates with user-friendly text
+      - **Context Metadata Standards**: Require all errors to include operation context (userId, requestId, affectedResource)
+      - **Error Code System**: Implement structured error codes for client-side error handling (e.g., "BLUEPRINT_001", "DEPLOYMENT_005")
+      - **Localization Ready**: Structure error messages for future i18n framework integration
+    - **Implementation Steps**:
+      - Create `lib/error-message-templates.ts` with centralized message library
+      - Update error classes to enforce context metadata requirements
+      - Implement error code system in service-error-handler.ts
+      - Update API error responses to include structured error codes
+    - **Priority**: Low (User experience enhancement, no functional impact)
+    - **Effort**: Medium (6-8 hours for comprehensive error handling standardization)
     - **Location**: lib/services/ (51 remaining `any` types across 19 service files)
     - **Issue**: Excessive `any` type usage reduces TypeScript's type safety benefits and increases runtime error risk
     - **Progress Tracking**:
