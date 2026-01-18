@@ -1,29 +1,29 @@
 // Enhanced middleware with production-grade security headers and CORS handling
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { env } from "./lib/env";
 
 // Helper function to determine allowed origin
 function getAllowedOrigin(requestedOrigin?: string): string {
   // In production, restrict CORS to approved domains only
-  if (process.env.NODE_ENV === "production") {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  if (env.NODE_ENV === "production") {
+    const allowedOrigins = env.ALLOWED_ORIGINS
+      ? env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
       : [];
 
-    // If no allowed origins configured, default to same-origin for security
-    if (allowedOrigins.length === 0) {
-      return process.env.NEXT_PUBLIC_APP_URL || "same-origin";
+    // If allowed origins configured, use them
+    if (allowedOrigins.length > 0) {
+      // If specific origin requested and it's in allowed list, use it
+      if (requestedOrigin && allowedOrigins.includes(requestedOrigin)) {
+        return requestedOrigin;
+      }
+
+      // Otherwise, use same-origin for security (prevents information leakage)
+      return "same-origin";
     }
 
-    // If specific origin requested and it's in allowed list, use it
-    if (requestedOrigin && allowedOrigins.includes(requestedOrigin)) {
-      return requestedOrigin;
-    }
-
-    // Otherwise, use the first allowed origin or same-origin
-    return (
-      allowedOrigins[0] || process.env.NEXT_PUBLIC_APP_URL || "same-origin"
-    );
+    // If no allowed origins configured, use APP_URL if set, otherwise same-origin
+    return env.NEXT_PUBLIC_APP_URL || "same-origin";
   }
 
   // In development, allow all origins for convenience
@@ -32,7 +32,7 @@ function getAllowedOrigin(requestedOrigin?: string): string {
 
 // Helper function to get CSP policy
 function getContentSecurityPolicy(): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+  const appUrl = env.NEXT_PUBLIC_APP_URL || "";
 
   // Base CSP directives
   const csp = [
@@ -67,7 +67,7 @@ function getContentSecurityPolicy(): string {
   ];
 
   // Add external domains if configured (e.g., CDN, analytics)
-  if (appUrl && process.env.NODE_ENV === "production") {
+  if (appUrl && env.NODE_ENV === "production") {
     csp.push(`connect-src 'self' ${appUrl} https://api.stripe.com`);
     csp.push(`script-src 'self' 'unsafe-eval' 'unsafe-inline' ${appUrl}`);
   } else {
@@ -118,7 +118,7 @@ export default function middleware(req: NextRequest) {
   response.headers.set("Content-Security-Policy", csp);
 
   // Add Strict-Transport-Security (HSTS) for HTTPS enforcement in production
-  if (process.env.NODE_ENV === "production") {
+  if (env.NODE_ENV === "production") {
     response.headers.set(
       "Strict-Transport-Security",
       "max-age=31536000; includeSubDomains; preload",
