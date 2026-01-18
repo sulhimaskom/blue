@@ -2,15 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { RateLimiters } from "@/lib/rate-limit-config";
-import { ProjectDataService } from "@/lib/services/project-data-service";
-import { ValidationError } from "@/lib/api-utils";
-import { logger } from "@/lib/logger";
-import { DeploymentService } from "@/lib/services/deployment-service";
-import { AuthenticationError, DatabaseError } from "@/lib/api-utils";
-import { githubService } from "@/lib/services/github-service";
-import { WebhookEventDispatcher } from "@/lib/services/webhook-event-dispatcher";
-import { ActivityFeedService } from "@/lib/services/activity-feed-service";
-import { performanceMonitorService } from "@/lib/services/performance-monitor-service";
+import { deploymentPromotionService } from "@/lib/services/deployment-promotion-service";
 
 const promoteEnvironmentSchema = z.object({
   targetEnvironment: z.enum(["production"]),
@@ -29,151 +21,13 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     requireAuth: true,
     rateLimiter: (identifier: string) => RateLimiters.strict()(identifier),
     handler: async ({ context, user, data }) => {
-      const { validationRequired } = data!;
-
-      const promotionStartTime = Date.now();
-
-      const projectDetails = await ProjectDataService.verifyProjectOwnership(
+      return await deploymentPromotionService.promoteToProduction(
         id,
+        data!.validationRequired ?? true,
+        user!.id,
         user!.clerkId,
+        context
       );
-
-      const { project } = projectDetails;
-
-      const stagingDeployment = await DeploymentService.checkExistingDeployment(id, "staging");
-      if (!stagingDeployment || stagingDeployment.status !== "deployed") {
-        throw new ValidationError("Valid staging deployment required for promotion");
-      }
-
-      const existingProduction = await DeploymentService.checkExistingDeployment(id, "production");
-      if (existingProduction) {
-        throw new ValidationError("Production deployment already exists");
-      }
-
-      if (validationRequired) {
-        const latestBlueprint = await ProjectDataService.getLatestBlueprint(id);
-        if (latestBlueprint.version !== stagingDeployment.blueprintVersion) {
-          throw new ValidationError("Blueprint version mismatch between staging and latest");
-        }
-      }
-
-      const productionRepoName = stagingDeployment.githubRepoName.replace("-staging", "");
-      const productionDeploymentId = await DeploymentService.createDeploymentRecord({
-        projectId: id,
-        environment: "production",
-        githubOrg: stagingDeployment.githubOrg,
-        githubRepoName: productionRepoName,
-        blueprintVersion: stagingDeployment.blueprintVersion,
-      });
-
-      try {
-        const repo = await githubService.createRepository({
-          org: stagingDeployment.githubOrg,
-          name: productionRepoName,
-          description: `${project.description || "AI-generated software project"} (production)`,
-          isPrivate: true,
-          blueprintContent: await (await ProjectDataService.getLatestBlueprint(id)).contentMarkdown,
-        });
-
-        await DeploymentService.updateDeploymentRecord(productionDeploymentId, {
-          githubRepoId: repo.id,
-          githubRepoUrl: repo.html_url,
-          status: "deployed",
-        });
-
-        const promotionEndTime = Date.now();
-        const promotionTime = promotionEndTime - promotionStartTime;
-
-        performanceMonitorService.recordDeploymentMetric({
-          deploymentId: productionDeploymentId,
-          projectId: id,
-          environment: "production",
-          status: "promoted",
-          timestamp: new Date(),
-          deploymentTime: promotionTime,
-          metadata: {
-            blueprintVersion: stagingDeployment.blueprintVersion,
-            repoUrl: repo.html_url,
-            githubOrg: stagingDeployment.githubOrg,
-            githubRepoName: productionRepoName,
-            fromEnvironment: "staging",
-            toEnvironment: "production",
-          },
-        });
-
-        await DeploymentService.notifyDeploymentStatus(
-          productionDeploymentId,
-          "deployed",
-          { operation: "promote", fromEnvironment: "staging" }
-        );
-
-        await WebhookEventDispatcher.emitProjectDeployed(
-          user!.id,
-          user!.clerkId,
-          id,
-          productionDeploymentId,
-          "promoted",
-          repo.html_url,
-          context,
-        );
-
-        await ActivityFeedService.recordActivity({
-          userId: user!.id,
-          clerkId: user!.clerkId,
-          entityType: "deployment",
-          entityId: productionDeploymentId,
-          eventType: "deployment.promoted",
-          eventData: {
-            projectId: id,
-            projectName: project.name,
-            fromEnvironment: "staging",
-            toEnvironment: "production",
-            status: "promoted",
-          },
-        }, context);
-
-        await ProjectDataService.updateProjectDeployment(id, repo.html_url);
-
-        logger.userAction("Environment promotion successful", user!.clerkId, {
-          requestId: context.requestId,
-          projectId: id,
-          fromEnvironment: "staging",
-          toEnvironment: "production",
-          stagingDeploymentId: stagingDeployment.id,
-          productionDeploymentId,
-        });
-
-        return {
-          projectId: id,
-          fromEnvironment: "staging",
-          toEnvironment: "production",
-          deploymentId: productionDeploymentId,
-          repoUrl: repo.html_url,
-          repoName: productionRepoName,
-          status: "deployed",
-          message: "Environment promotion successful",
-          promotedAt: new Date().toISOString(),
-        };
-      } catch (error) {
-        await DeploymentService.notifyDeploymentStatus(
-          productionDeploymentId,
-          "failed",
-          { operation: "promote", fromEnvironment: "staging" }
-        );
-
-        if (error instanceof AuthenticationError || error instanceof DatabaseError) {
-          logger.error("GitHub service error during promotion", {
-            requestId: context.requestId,
-            userId: user!.clerkId,
-            projectId: id,
-            errorType: error.name,
-            message: error.message,
-          });
-          throw new ValidationError(`GitHub promotion failed: ${error.message}`);
-        }
-
-        throw error;
-      }
     },
   })(req);
 }
