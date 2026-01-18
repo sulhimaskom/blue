@@ -55,9 +55,13 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z.string().optional(),
 
+  // OpenAI (Optional - Alternative AI provider)
+  OPENAI_API_KEY: z.string().optional(),
+
   // Application Configuration
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   NEXT_PUBLIC_APP_NAME: z.string().default("Architect Platform"),
+  ALLOWED_ORIGINS: z.string().optional(),
 });
 
 type Env = z.infer<typeof envSchema>;
@@ -121,6 +125,8 @@ function validateEnv(): Env {
       SENTRY_RELEASE: process.env.SENTRY_RELEASE || "",
       NEXT_PUBLIC_APP_URL:
         process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
+      ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || "",
     } as Env;
   }
 

@@ -3,6 +3,7 @@ import { ZodSchema, ZodError } from "zod";
 import { redisManager } from "./redis";
 import { Timing } from "./utils/time-measurement";
 import { logger } from "./logger";
+import { env } from "./env";
 
 // Validation middleware factory
 export function validateRequest<T>(
@@ -147,25 +148,24 @@ export function RateLimiter(maxRequests: number, windowMs: number) {
 // Environment-aware CORS origin validation
 export function getAllowedOrigin(requestedOrigin?: string): string {
   // In production, restrict CORS to approved domains only
-  if (process.env.NODE_ENV === "production") {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  if (env.NODE_ENV === "production") {
+    const allowedOrigins = env.ALLOWED_ORIGINS
+      ? env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
       : [];
 
-    // If no allowed origins configured, default to same-origin for security
-    if (allowedOrigins.length === 0) {
-      return process.env.NEXT_PUBLIC_APP_URL || "same-origin";
+    // If allowed origins configured, use them
+    if (allowedOrigins.length > 0) {
+      // If specific origin requested and it's in allowed list, use it
+      if (requestedOrigin && allowedOrigins.includes(requestedOrigin)) {
+        return requestedOrigin;
+      }
+
+      // Otherwise, use first allowed origin
+      return allowedOrigins[0];
     }
 
-    // If specific origin requested and it's in allowed list, use it
-    if (requestedOrigin && allowedOrigins.includes(requestedOrigin)) {
-      return requestedOrigin;
-    }
-
-    // Otherwise, use the first allowed origin or same-origin
-    return (
-      allowedOrigins[0] || process.env.NEXT_PUBLIC_APP_URL || "same-origin"
-    );
+    // If no allowed origins configured, use APP_URL if set, otherwise same-origin
+    return env.NEXT_PUBLIC_APP_URL || "same-origin";
   }
 
   // In development, allow all origins for convenience
@@ -200,7 +200,7 @@ export function createCorsResponse(
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 
   // Add Content Security Policy in production
-  if (process.env.NODE_ENV === "production") {
+  if (env.NODE_ENV === "production") {
     response.headers.set(
       "Content-Security-Policy",
       "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline';",
@@ -285,7 +285,7 @@ export function formatErrorResponse(error: Error): NextResponse {
                 : 500;
 
   const message =
-    process.env.NODE_ENV === "production"
+    env.NODE_ENV === "production"
       ? status === 500
         ? "Internal server error"
         : error.message
@@ -295,7 +295,7 @@ export function formatErrorResponse(error: Error): NextResponse {
     {
       success: false,
       error: message,
-      ...(process.env.NODE_ENV !== "production" && { stack: error.stack }),
+      ...(env.NODE_ENV !== "production" && { stack: error.stack }),
     },
     status,
   );

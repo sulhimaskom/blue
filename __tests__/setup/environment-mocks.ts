@@ -54,6 +54,10 @@ export function setupEnvironmentMocks() {
       get SENTRY_DSN() { return process.env.SENTRY_DSN; },
       get SENTRY_RELEASE() { return process.env.SENTRY_RELEASE; },
       get NEXT_PUBLIC_APP_URL() { return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"; },
+      get RESEND_API_KEY() { return process.env.RESEND_API_KEY; },
+      get RESEND_FROM_EMAIL() { return process.env.RESEND_FROM_EMAIL; },
+      get OPENAI_API_KEY() { return process.env.OPENAI_API_KEY; },
+      get ALLOWED_ORIGINS() { return process.env.ALLOWED_ORIGINS; },
     },
   }));
 
