@@ -119,6 +119,29 @@ export class ServiceError extends Error {
     Object.setPrototypeOf(error, AuthorizationError.prototype);
     return error as any;
   }
+
+  /**
+   * Create a standard NetworkError for service operations
+   */
+  static network(
+    message: string,
+    service: string,
+    operation: string,
+    cause?: Error,
+    context?: Record<string, any>,
+  ): ServiceError {
+    const error = new ServiceError(
+      `Network error in ${service}: ${message}`,
+      service,
+      operation,
+      cause,
+      context,
+    );
+    // Make it compatible with DatabaseError for API route handler compatibility
+    // (network errors are treated similarly to database errors for API layer)
+    Object.setPrototypeOf(error, DatabaseError.prototype);
+    return error as any;
+  }
 }
 
 /**

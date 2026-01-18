@@ -9,6 +9,7 @@ import {
   ValidationError,
   AuthenticationError,
 } from "@/lib/api-utils";
+import { ServiceError } from "./service-error-handler";
 import type {
   GitHubRepoConfig,
   GitHubCreateRepoResponse,
@@ -58,8 +59,12 @@ class GitHubService {
       clearTimeout(timeoutId);
 
       if (error instanceof Error && error.name === "AbortError") {
-        throw new DatabaseError(
+        throw ServiceError.network(
           `GitHub API request timeout after ${timeout}ms: ${url}`,
+          "GitHubService",
+          "fetchWithTimeout",
+          undefined,
+          { timeout, url },
         );
       }
 

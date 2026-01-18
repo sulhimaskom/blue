@@ -85,7 +85,7 @@ export class AIService {
       clearTimeout(timeoutId);
 
       if (error instanceof Error && error.name === "AbortError") {
-        throw ServiceError.database(
+        throw ServiceError.network(
           `API request timeout after ${timeout}ms: ${url}`,
           "AIService",
           "fetchWithTimeout",
