@@ -71,7 +71,8 @@ jobs:
             ~/.npm
             ~/.cache
             **/node_modules
-          key: ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v3-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock') }}
+            **/.next/cache
+          key: ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v3-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/next.config.*') }}
           restore-keys: |
             ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v3-
             ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-v2-

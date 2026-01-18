@@ -9,6 +9,7 @@ import {
   ValidationError,
   AuthenticationError,
 } from "@/lib/api-utils";
+import { ServiceError } from "./service-error-handler";
 import type {
   GitHubRepoConfig,
   GitHubCreateRepoResponse,
@@ -24,6 +25,7 @@ import type {
 class GitHubService {
   private baseUrl = "https://api.github.com";
   private circuitBreaker;
+  private static readonly FETCH_TIMEOUT = 30000;
 
   constructor() {
     // Initialize circuit breaker for GitHub API
@@ -31,6 +33,43 @@ class GitHubService {
       SERVICE_CONFIGS.GITHUB_API.name,
       SERVICE_CONFIGS.GITHUB_API.config,
     );
+  }
+
+  /**
+   * Fetch with timeout protection using AbortController
+   * Prevents indefinite hangs on network issues
+   */
+  private async fetchWithTimeout(
+    url: string,
+    options: RequestInit = {},
+    timeout = GitHubService.FETCH_TIMEOUT,
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error instanceof Error && error.name === "AbortError") {
+        throw ServiceError.network(
+          `GitHub API request timeout after ${timeout}ms: ${url}`,
+          "GitHubService",
+          "fetchWithTimeout",
+          undefined,
+          { timeout, url },
+        );
+      }
+
+      throw error;
+    }
   }
 
   private getCredentials() {
@@ -180,7 +219,7 @@ class GitHubService {
         // Layer 1: Retry (inner) - handles transient network failures
         const createResponse = await retryService.executeWithRetry(
           async () => {
-            const fetchResponse = await fetch(
+            const fetchResponse = await this.fetchWithTimeout(
               `${this.baseUrl}/orgs/${config.org}/repos`,
               {
                 method: "POST",
@@ -375,7 +414,7 @@ class GitHubService {
 
         const webhookResponse = await retryService.executeWithRetry(
           async () => {
-            const fetchResponse = await fetch(
+            const fetchResponse = await this.fetchWithTimeout(
               `${this.baseUrl}/repos/${repoFullName}/hooks`,
               {
                 method: "POST",
@@ -511,7 +550,7 @@ class GitHubService {
 
     try {
       // Get current commit SHA
-      const repoResponse = await fetch(
+      const repoResponse = await this.fetchWithTimeout(
         `${this.baseUrl}/repos/${repo.full_name}/git/refs/heads/main`,
         {
           headers: {
@@ -524,7 +563,7 @@ class GitHubService {
 
       if (!repoResponse.ok) {
         // Try master branch if main doesn't exist
-        const masterResponse = await fetch(
+        const masterResponse = await this.fetchWithTimeout(
           `${this.baseUrl}/repos/${repo.full_name}/git/refs/heads/master`,
           {
             headers: {
@@ -588,7 +627,7 @@ class GitHubService {
     // Create blueprint.md blob
     const blobResponse = await retryService.executeWithRetry(
       async () => {
-        const fetchResponse = await fetch(
+        const fetchResponse = await this.fetchWithTimeout(
           `${this.baseUrl}/repos/${repo.full_name}/git/blobs`,
           {
             method: "POST",
@@ -626,7 +665,7 @@ class GitHubService {
     // Create tree with blueprint.md
     const treeResponse = await retryService.executeWithRetry(
       async () => {
-        const fetchResponse = await fetch(
+        const fetchResponse = await this.fetchWithTimeout(
           `${this.baseUrl}/repos/${repo.full_name}/git/trees`,
           {
             method: "POST",
@@ -671,7 +710,7 @@ class GitHubService {
     // Create commit
     const commitResponse = await retryService.executeWithRetry(
       async () => {
-        const fetchResponse = await fetch(
+        const fetchResponse = await this.fetchWithTimeout(
           `${this.baseUrl}/repos/${repo.full_name}/git/commits`,
           {
             method: "POST",
@@ -708,7 +747,7 @@ class GitHubService {
     const commitData = await commitResponse.json();
 
     // Update branch reference (no retry - idempotent via sha)
-    await fetch(
+    await this.fetchWithTimeout(
       `${this.baseUrl}/repos/${repo.full_name}/git/refs/heads/${branch}`,
       {
         method: "PATCH",
@@ -748,7 +787,7 @@ class GitHubService {
 
       const response = await retryService.executeWithRetry(
         async () => {
-          const fetchResponse = await fetch(
+          const fetchResponse = await this.fetchWithTimeout(
             `${this.baseUrl}/repos/${repoFullName}`,
             {
               headers: {
@@ -826,7 +865,7 @@ class GitHubService {
 
         const baseRefResponse = await retryService.executeWithRetry(
           async () => {
-            const fetchResponse = await fetch(
+            const fetchResponse = await this.fetchWithTimeout(
               `${url}/heads/${baseBranch}`,
               {
                 headers: {
@@ -868,7 +907,7 @@ class GitHubService {
 
         const createBranchResponse = await retryService.executeWithRetry(
           async () => {
-            const fetchResponse = await fetch(url, {
+            const fetchResponse = await this.fetchWithTimeout(url, {
               method: "POST",
               headers: {
                 Authorization: `token ${token}`,

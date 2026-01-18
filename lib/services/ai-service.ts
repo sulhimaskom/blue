@@ -26,6 +26,8 @@ export class AIService {
   private readonly apiKey: string;
   private readonly iflowCircuitBreaker;
   private readonly tavilyCircuitBreaker;
+  private static readonly IFLOW_FETCH_TIMEOUT = 60000;
+  private static readonly TAVILY_FETCH_TIMEOUT = 30000;
 
   // AI Models defined in blueprint.md
   private readonly models = {
@@ -57,6 +59,43 @@ export class AIService {
       SERVICE_CONFIGS.RESEARCH_TAVILY.name,
       SERVICE_CONFIGS.RESEARCH_TAVILY.config,
     );
+  }
+
+  /**
+   * Fetch with timeout protection using AbortController
+   * Prevents indefinite hangs on network issues
+   */
+  private async fetchWithTimeout(
+    url: string,
+    options: RequestInit = {},
+    timeout: number,
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error instanceof Error && error.name === "AbortError") {
+        throw ServiceError.network(
+          `API request timeout after ${timeout}ms: ${url}`,
+          "AIService",
+          "fetchWithTimeout",
+          undefined,
+          { timeout, url },
+        );
+      }
+
+      throw error;
+    }
   }
 
   /**
@@ -145,7 +184,7 @@ export class AIService {
         // Layer 1: Retry (inner) - handles transient network failures
         const response = await retryService.executeWithRetry(
           async () => {
-            const fetchResponse = await fetch(
+            const fetchResponse = await this.fetchWithTimeout(
               `${this.baseUrl}/chat/completions`,
               {
                 method: "POST",
@@ -166,6 +205,7 @@ export class AIService {
                   max_tokens: maxTokens,
                 }),
               },
+              AIService.IFLOW_FETCH_TIMEOUT,
             );
 
             if (!fetchResponse.ok) {
@@ -376,21 +416,25 @@ export class AIService {
         // Layer 1: Retry (inner) - handles transient network failures
         const response = await retryService.executeWithRetry(
           async () => {
-            const fetchResponse = await fetch("https://api.tavily.com/search", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
+            const fetchResponse = await this.fetchWithTimeout(
+              "https://api.tavily.com/search",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  api_key: env.TAVILY_API_KEY,
+                  query: request.query,
+                  search_depth: "advanced",
+                  include_answer: true,
+                  include_raw_content: false,
+                  max_results: request.maxResults || 10,
+                  include_images: request.includeImages || false,
+                }),
               },
-              body: JSON.stringify({
-                api_key: env.TAVILY_API_KEY,
-                query: request.query,
-                search_depth: "advanced",
-                include_answer: true,
-                include_raw_content: false,
-                max_results: request.maxResults || 10,
-                include_images: request.includeImages || false,
-              }),
-            });
+              AIService.TAVILY_FETCH_TIMEOUT,
+            );
 
             if (!fetchResponse.ok) {
               const errorData = await fetchResponse.json().catch((error) => {

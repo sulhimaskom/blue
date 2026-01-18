@@ -278,8 +278,10 @@ export function ValidationFeedback({
           "flex items-center space-x-2 text-sm mt-1",
           getTextColor("muted"),
         )}
+        role="status"
+        aria-live="polite"
       >
-        <Loader2Icon className="w-4 h-4" />
+        <Loader2Icon className="w-4 h-4" aria-hidden="true" />
         <span>Validating...</span>
       </div>
     );
@@ -299,39 +301,45 @@ export function ValidationFeedback({
             "flex items-start space-x-2 text-sm",
             getStatusTheme("unhealthy").split(" ")[0],
           )}
+          role="alert"
+          aria-live="assertive"
         >
-          <AlertCircleIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <AlertCircleIcon className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Warning state */}
       {warning && !error && (
-        <div className="flex items-start space-x-2 text-yellow-600 text-sm">
-          <InfoIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
+        <div className="flex items-start space-x-2 text-yellow-600 text-sm" role="alert" aria-live="polite">
+          <InfoIcon className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
           <span>{warning}</span>
         </div>
       )}
 
       {/* Success state */}
       {isValid && !error && !warning && isTouched && (
-        <div className="flex items-center space-x-2 text-green-600 text-sm">
-          <CheckCircleIcon className="w-4 h-4" />
+        <div className="flex items-center space-x-2 text-green-600 text-sm" role="status" aria-live="polite">
+          <CheckCircleIcon className="w-4 h-4" aria-hidden="true" />
           <span>Looks good!</span>
         </div>
       )}
 
       {/* Suggestions */}
       {showSuggestions && suggestions.length > 0 && !error && (
-        <div className="rounded-md bg-blue-50 p-3">
+        <div
+          className="rounded-md bg-blue-50 p-3"
+          role="complementary"
+          aria-label="Form suggestions"
+        >
           <div className="flex items-start space-x-2">
-            <LightbulbIcon className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <LightbulbIcon className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
             <div className="flex-1">
               <p className="text-sm font-medium text-blue-800">Suggestions</p>
               <ul className="mt-1 text-sm text-blue-700 space-y-1">
                 {suggestions.map((suggestion, index) => (
                   <li key={index} className="flex items-start">
-                    <span className="mr-2">•</span>
+                    <span className="mr-2" aria-hidden="true">•</span>
                     <span>{suggestion}</span>
                   </li>
                 ))}
@@ -510,14 +518,24 @@ export function FormProgress({
   const progressPercentage = (completedFields / requiredFields.length) * 100;
 
   return (
-    <div className="mb-6">
+    <div className="mb-6" role="group" aria-label="Form completion progress">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-medium text-gray-700">Form Completion</h3>
+        <h3 className="text-sm font-medium text-gray-700" id="form-progress-label">
+          Form Completion
+        </h3>
         <span className="text-sm text-gray-500">
           {completedFields} of {requiredFields.length} completed
         </span>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
+      <div
+        className="w-full bg-gray-200 rounded-full h-2"
+        role="progressbar"
+        aria-valuenow={progressPercentage}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-labelledby="form-progress-label"
+        aria-live="polite"
+      >
         <div
           className={cn(
             "h-2 rounded-full transition-all duration-300 ease-out",
@@ -529,6 +547,7 @@ export function FormProgress({
             },
           )}
           style={{ width: `${progressPercentage}%` }}
+          aria-hidden="true"
         />
       </div>
     </div>
