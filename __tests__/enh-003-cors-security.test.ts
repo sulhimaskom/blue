@@ -61,16 +61,16 @@ describe("CORS Security Configuration - ENH-003", () => {
       expect(result).toBe("https://trusted.com");
     });
 
-    it("should reject origins not in ALLOWED_ORIGINS list and default to first allowed", () => {
+    it("should reject origins not in ALLOWED_ORIGINS list and default to same-origin (security)", () => {
       jest.replaceProperty(env, "ALLOWED_ORIGINS", "https://trusted.com,https://api.trusted.com");
       const result = getAllowedOrigin("https://malicious.com");
-      expect(result).toBe("https://trusted.com"); // First allowed origin
+      expect(result).toBe("same-origin"); // Security: reject unknown origins
     });
 
     it("should handle comma-separated origins correctly", () => {
       jest.replaceProperty(env, "ALLOWED_ORIGINS", "https://site1.com,https://site2.com,https://site3.com");
       expect(getAllowedOrigin("https://site2.com")).toBe("https://site2.com");
-      expect(getAllowedOrigin("https://unknown.com")).toBe("https://site1.com");
+      expect(getAllowedOrigin("https://unknown.com")).toBe("same-origin"); // Security: reject unknown origins
     });
 
     it("should handle whitespace in ALLOWED_ORIGINS", () => {
@@ -84,9 +84,7 @@ describe("CORS Security Configuration - ENH-003", () => {
       expect(getAllowedOrigin("https://only-trusted.com")).toBe(
         "https://only-trusted.com",
       );
-      expect(getAllowedOrigin("https://other.com")).toBe(
-        "https://only-trusted.com",
-      );
+      expect(getAllowedOrigin("https://other.com")).toBe("same-origin"); // Security: reject unknown origins
     });
   });
 

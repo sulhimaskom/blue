@@ -160,8 +160,8 @@ export function getAllowedOrigin(requestedOrigin?: string): string {
         return requestedOrigin;
       }
 
-      // Otherwise, use first allowed origin
-      return allowedOrigins[0];
+      // Otherwise, use same-origin for security (prevents information leakage)
+      return "same-origin";
     }
 
     // If no allowed origins configured, use APP_URL if set, otherwise same-origin
