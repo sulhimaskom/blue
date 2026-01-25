@@ -7,11 +7,13 @@
  * - The webhook endpoint follows our centralized security architecture with queue-based processing
  */
 
+const fs = require("fs");
+
 describe("BUG-010: Stripe webhook signature validation - FIX VERIFICATION", () => {
+  const webhookPath = "app/api/stripe/webhook/route.ts";
+
   it("should verify SecurityService.import is present in webhook endpoint", () => {
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
+    const webhookPath = "app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
     // Should import SecurityService
@@ -22,9 +24,6 @@ describe("BUG-010: Stripe webhook signature validation - FIX VERIFICATION", () =
   });
 
   it("should verify SecurityService.verifyStripeWebhook is used", () => {
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
     // Should use SecurityService for verification
@@ -35,9 +34,6 @@ describe("BUG-010: Stripe webhook signature validation - FIX VERIFICATION", () =
   });
 
   it("should verify centralized WebhookService is used for reliability", () => {
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
     // Should use WebhookService for centralized error handling and logging
@@ -50,9 +46,6 @@ describe("BUG-010: Stripe webhook signature validation - FIX VERIFICATION", () =
   });
 
   it("should verify SecurityService is still used for verification", () => {
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
     // Should still use SecurityService for signature verification
@@ -63,9 +56,6 @@ describe("BUG-010: Stripe webhook signature validation - FIX VERIFICATION", () =
   });
 
   it("should verify proper logging via WebhookService and logger", () => {
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
     // Should have proper centralized logging
@@ -76,9 +66,6 @@ describe("BUG-010: Stripe webhook signature validation - FIX VERIFICATION", () =
   });
 
   it("should verify centralized security pattern is properly implemented", () => {
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
     // Should implement complete centralized security pattern
@@ -103,9 +90,6 @@ describe("BUG-010: Stripe webhook signature validation - FIX VERIFICATION", () =
   });
 
   it("should verify proper error handling with centralized logging", () => {
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
     // Should have proper error handling via WebhookService for POST
