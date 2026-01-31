@@ -120,7 +120,7 @@ export class BlueprintValidationService {
           suggestions: businessValidation.suggestions,
         },
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         field,
         value,

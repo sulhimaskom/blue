@@ -131,7 +131,7 @@ export class DatabaseQueryCache {
       }
 
       return baseTTL;
-    } catch (error) {
+    } catch (_error) {
       // Fall back to base TTL if metrics unavailable
       return baseTTL;
     }

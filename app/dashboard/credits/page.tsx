@@ -43,7 +43,7 @@ export default function CreditsPage() {
 
       setPurchaseModalOpen(false);
       setSelectedPackage(null);
-    } catch (err) {
+    } catch (_err) {
       // Error is handled by the hook
     }
   };

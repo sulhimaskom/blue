@@ -102,7 +102,7 @@ export function PredictiveAnalytics() {
             url.hostname !== "www.paypal.com") {
           throw new Error("Untrusted checkout URL");
         }
-      } catch (e) {
+      } catch (_e) {
         throw new Error("Invalid checkout URL format");
       }
 
@@ -132,7 +132,7 @@ export function PredictiveAnalytics() {
         return "Invalid Date";
       }
       return date.toLocaleDateString();
-    } catch (e) {
+    } catch (_e) {
       return "Invalid Date";
     }
   };

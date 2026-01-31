@@ -41,7 +41,7 @@ function useUserSafe() {
     const { useUser } = require("@clerk/nextjs");
     // eslint-disable-next-line react-hooks/rules-of-hooks
     return useUser();
-  } catch (error) {
+  } catch (_error) {
     // Fallback if Clerk not available
     return {
       isSignedIn: false,

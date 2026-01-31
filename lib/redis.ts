@@ -476,7 +476,7 @@ class RedisManager {
               );
             }
           });
-        } catch (memError) {
+        } catch (_memError) {
           // Memory info is optional for health check
         }
       }

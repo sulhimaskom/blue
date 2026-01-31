@@ -46,7 +46,7 @@ export function ThemeSelector({ initialTheme = "system", onSave, disabled = fals
       await onSave(selectedTheme);
       setMessage({ type: "success", text: "Theme preference saved successfully" });
       setTimeout(() => setMessage(null), 3000);
-    } catch (error) {
+    } catch (_error) {
       setMessage({
         type: "error",
         text: "Failed to save theme preference. Please try again.",

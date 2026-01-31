@@ -47,7 +47,7 @@ export function WebhookConfigurationManager() {
     try {
       const data = await webhookService.loadWebhooks();
       setWebhooks(data);
-    } catch (error) {
+    } catch (_error) {
       showNotification("Failed to load webhooks", "error");
     } finally {
       setLoading(false);
@@ -236,7 +236,7 @@ function WebhookEventHistory({ webhookId }: { webhookId: string }) {
     try {
       const data = await webhookService.loadWebhookEvents(webhookId, pagination);
       setEvents(data);
-    } catch (error) {
+    } catch (_error) {
       // Error loading events will be handled silently
     } finally {
       setLoading(false);
@@ -251,7 +251,7 @@ function WebhookEventHistory({ webhookId }: { webhookId: string }) {
     try {
       await webhookService.retryEvent(eventId);
       loadEvents();
-    } catch (error) {
+    } catch (_error) {
       // Error retrying event will be handled silently
     }
   };

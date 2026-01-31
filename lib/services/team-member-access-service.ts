@@ -124,7 +124,7 @@ export class TeamMemberAccessService {
     try {
       const member = await this.verifyTeamAccess(teamId, userId, ["admin", "member", "viewer"]);
       return !!member;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }
@@ -136,7 +136,7 @@ export class TeamMemberAccessService {
     try {
       const member = await this.verifyTeamAccess(teamId, userId, ["admin", "member", "viewer"]);
       return member.role as TeamRole;
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }
@@ -148,7 +148,7 @@ export class TeamMemberAccessService {
     try {
       await this.verifyTeamAccess(teamId, userId, ["admin"]);
       return true;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

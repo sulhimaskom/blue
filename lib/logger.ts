@@ -334,7 +334,7 @@ class Logger {
           environment: process.env.NODE_ENV || "development",
         };
       }
-    } catch (error) {
+    } catch (_error) {
       // Fallback health check if production service unavailable
       return {
         status: "degraded",

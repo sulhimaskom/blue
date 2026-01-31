@@ -67,7 +67,7 @@ export class BlueprintComparisonService {
       this.compareTechStack(fromData, toData, changes);
       this.compareArchitecture(fromData, toData, changes);
       this.compareMonetization(fromData, toData, changes);
-    } catch (error) {
+    } catch (_error) {
       this.fallbackToBasicComparison(fromVersion, toVersion, changes);
     }
 

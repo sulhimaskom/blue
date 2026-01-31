@@ -44,7 +44,7 @@ function SafeSignIn({ path }: { path?: string }) {
     try {
       const { SignIn } = require("@clerk/nextjs");
       return <SignIn path={path} />;
-    } catch (error) {
+    } catch (_error) {
       return (
         <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg">
           <p className="text-gray-600">Authentication temporarily unavailable</p>
@@ -94,7 +94,7 @@ function SafeSignUp({ path }: { path?: string }) {
     try {
       const { SignUp } = require("@clerk/nextjs");
       return <SignUp path={path} />;
-    } catch (error) {
+    } catch (_error) {
       return (
         <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg">
           <p className="text-gray-600">Authentication temporarily unavailable</p>

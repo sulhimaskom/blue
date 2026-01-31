@@ -18,7 +18,7 @@ export function useUnreadCount(refreshInterval: number = 30000) {
       if (data.success && data.pagination) {
         setUnreadCount(data.pagination.unreadCount);
       }
-    } catch (error) {
+    } catch (_error) {
     } finally {
       setLoading(false);
     }

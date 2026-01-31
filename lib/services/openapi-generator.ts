@@ -414,7 +414,7 @@ export class OpenAPIGenerator {
     try {
       const yaml = require("js-yaml");
       return yaml.dump(this.generate(), { indent: 2 });
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
         "js-yaml package not installed. Install it to export YAML.",
       );

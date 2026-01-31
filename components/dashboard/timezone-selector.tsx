@@ -48,7 +48,7 @@ export function TimezoneSelector({ initialTimezone, onSave, disabled = false }: 
       await onSave(selectedTimezone);
       setMessage({ type: "success", text: "Timezone preference saved successfully" });
       setTimeout(() => setMessage(null), 3000);
-    } catch (error) {
+    } catch (_error) {
       setMessage({
         type: "error",
         text: "Failed to save timezone preference. Please try again.",

@@ -42,7 +42,7 @@ export class RedisConfig {
       // Validate Redis URL format
       try {
         new URL(redisUrl);
-      } catch (error) {
+      } catch (_error) {
         recommendations.push(
           "Invalid REDIS_URL format. Expected format: redis://[password@]host:port",
         );

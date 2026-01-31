@@ -371,7 +371,7 @@ export class IntelligentPrefetchService {
       );
 
       return usageScore >= (config.threshold || 0.5);
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }
@@ -389,7 +389,7 @@ export class IntelligentPrefetchService {
       // Simulate event occurrence
       const eventOccurred = Math.random() > 0.7; // 30% chance
       return eventOccurred;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }
@@ -421,7 +421,7 @@ export class IntelligentPrefetchService {
       }
 
       return false;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }
@@ -441,7 +441,7 @@ export class IntelligentPrefetchService {
         avgResponseTime: 100 + Math.random() * 400, // 100-500ms response time
         successRate: 0.9 + Math.random() * 0.1, // 90-100% success rate
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         failureRate: 0.05,
         avgResponseTime: 200,
@@ -620,7 +620,7 @@ export class IntelligentPrefetchService {
         lastPrefetchTime: new Date().toISOString(),
         topPatterns: [],
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         totalPrefetches: 0,
         successfulPrefetches: 0,

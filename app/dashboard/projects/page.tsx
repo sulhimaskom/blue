@@ -51,8 +51,8 @@ export default function ProjectsPage() {
     try {
       await deployToRepository(deployId, deploymentForm);
       setShowDeployModal(false);
-    } catch (err) {
-      // Error is handled by hook
+    } catch (_err) {
+      // Error is handled by the hook
     }
   };
 

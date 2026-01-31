@@ -54,7 +54,7 @@ export const GET = APIRouteHandler.createSimpleCachedGETHandler(
         startDate: url.searchParams.get("startDate"),
         endDate: url.searchParams.get("endDate"),
       });
-    } catch (error) {
+    } catch (_error) {
       throw new ValidationError("Invalid query parameters");
     }
 

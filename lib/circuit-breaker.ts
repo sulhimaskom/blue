@@ -262,7 +262,7 @@ export class CircuitBreaker {
         this.circuitBreakerName,
         this.getMetrics(),
       );
-    } catch (error) {
+    } catch (_error) {
       // Error already logged above, but we don't want to throw
       // from the circuit breaker operation itself
     }

@@ -20,7 +20,7 @@ export interface AuthUser {
 export function useAuthSafe() {
   try {
     return useAuth();
-  } catch (error) {
+  } catch (_error) {
     return {
       isSignedIn: false,
       isLoaded: true,

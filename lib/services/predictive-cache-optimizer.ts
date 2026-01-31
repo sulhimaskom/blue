@@ -730,12 +730,12 @@ class PredictiveCacheOptimizer {
           hitRate: 0.75,
         }),
       );
-    } catch (error) {
+    } catch (_error) {
       return {
         avgResponseTime: 100,
         operationsPerSecond: 125,
         errorRate: 0.01,
-        memoryUsage: 0,
+        memoryUsage:  0,
         hitRate: 0.75,
       };
     }

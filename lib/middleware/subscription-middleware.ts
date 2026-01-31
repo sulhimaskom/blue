@@ -308,7 +308,7 @@ function getUserIdFromRequest(request: NextRequest): number | null {
       // Parse JWT or session to get user ID
       // This would need to match your auth implementation
     }
-  } catch (error) {
+  } catch (_error) {
     // Auth parsing failed
   }
 

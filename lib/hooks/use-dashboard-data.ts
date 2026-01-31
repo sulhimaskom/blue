@@ -60,7 +60,7 @@ export function useBlueprintsData() {
     try {
       const result = await DashboardDataService.getProjectBlueprints(projectId);
       setSelectedProjectBlueprints(result.blueprints || []);
-    } catch (err) {
+    } catch (_err) {
       setSelectedProjectBlueprints([]);
     }
   }, []);
@@ -144,7 +144,7 @@ export function useProjectsData() {
         project.id,
       );
       setBlueprints(result.blueprints || []);
-    } catch (err) {
+    } catch (_err) {
       setBlueprints([]);
     }
   }, []);

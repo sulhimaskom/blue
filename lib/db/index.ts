@@ -95,7 +95,7 @@ export async function checkDbHealth(): Promise<{
   let sql;
   try {
     sql = neon(process.env.DATABASE_URL!);
-  } catch (error) {
+  } catch (_error) {
     return {
       healthy: false,
       latency: Date.now() - startTime,

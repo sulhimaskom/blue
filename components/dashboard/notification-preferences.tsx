@@ -51,7 +51,7 @@ export function NotificationPreferences({
       await onSave(preferences);
       setMessage({ type: "success", text: "Notification preferences saved successfully" });
       setTimeout(() => setMessage(null), 3000);
-    } catch (error) {
+    } catch (_error) {
       setMessage({
         type: "error",
         text: "Failed to save notification preferences. Please try again.",

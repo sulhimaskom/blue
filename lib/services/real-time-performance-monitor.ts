@@ -570,7 +570,7 @@ export class RealTimePerformanceMonitor {
         memory: memoryUsage,
         redis: 0.1 + Math.random() * 0.3, // 10-40% Redis
       };
-    } catch (error) {
+    } catch (_error) {
       return { cpu: 0.3, memory: 0.5, redis: 0.2 };
     }
   }
@@ -708,7 +708,7 @@ export class RealTimePerformanceMonitor {
         ...this.DEFAULT_CONFIG,
         thresholds: storedThresholds || this.DEFAULT_CONFIG.thresholds,
       };
-    } catch (error) {
+    } catch (_error) {
       return this.DEFAULT_CONFIG;
     }
   }

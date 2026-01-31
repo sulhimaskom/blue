@@ -84,7 +84,7 @@ export default function BlueprintsPage() {
       await createBlueprint(formData);
       setShowCreateForm(false);
       resetValidation(); // Reset validation state
-    } catch (err) {
+    } catch (_err) {
       // Error is handled by the hook
     }
   };
