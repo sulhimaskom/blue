@@ -7,12 +7,14 @@
  * - The webhook endpoint follows our centralized security architecture with queue-based processing
  */
 
+const fs = require("fs");
+
 describe("BUG-010: Stripe webhook signature validation missing - REGRESSION TEST", () => {
+  const webhookPath = "app/api/stripe/webhook/route.ts";
+
   it("should verify SecurityService has verification capability", () => {
     // SecurityService should have the verification method
-    const fs = require("fs");
-    const securityServicePath =
-      "/home/runner/work/blue/blue/lib/services/security-service.ts";
+    const securityServicePath = "lib/services/security-service.ts";
     const securityContent = fs.readFileSync(securityServicePath, "utf8");
 
     const hasVerificationMethod = securityContent.includes(
@@ -26,9 +28,6 @@ describe("BUG-010: Stripe webhook signature validation missing - REGRESSION TEST
     // should now verify the signature using SecurityService first
 
     // Read the actual webhook endpoint implementation
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
     // Check if it uses SecurityService
@@ -43,9 +42,6 @@ describe("BUG-010: Stripe webhook signature validation missing - REGRESSION TEST
   it("should verify proper security logging is implemented", () => {
     // Security events should be properly logged using centralized WebhookService
 
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
     // Check for proper security logging patterns via WebhookService
@@ -70,9 +66,6 @@ describe("BUG-010: Stripe webhook signature validation missing - REGRESSION TEST
     // The original issue was that the webhook endpoint bypassed centralized security
     // This test confirms that fix is properly implemented
 
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
     // The bug is fixed if:
@@ -101,9 +94,6 @@ describe("BUG-010: Stripe webhook signature validation missing - REGRESSION TEST
   it("should verify stripe service processing is maintained", () => {
     // The webhook should still process events through StripePaymentService
 
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
     // Verify that StripePaymentService is still used for event processing
@@ -125,9 +115,6 @@ describe("BUG-010: Stripe webhook signature validation missing - REGRESSION TEST
 
   it("should verify all centralized security features are in use", () => {
     // The security features provided by SecurityService and WebhookService should now be fully utilized
-    const fs = require("fs");
-    const webhookPath =
-      "/home/runner/work/blue/blue/app/api/stripe/webhook/route.ts";
     const webhookContent = fs.readFileSync(webhookPath, "utf8");
 
     // Verify all security components are used
