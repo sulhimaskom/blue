@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-slim
     timeout-minutes: 60
     env:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       IFLOW_API_KEY: ${{ secrets.IFLOW_API_KEY }}
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_KEY }}
@@ -32,14 +32,14 @@ jobs:
           poll-interval-seconds: 30
           same-branch-only: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout Code
         uses: actions/checkout@v4
         continue-on-error: true
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -340,7 +340,7 @@ jobs:
       - name: Fallback on Failure
         if: failure()
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "⚠️ Analyzer workflow failed. Creating issue for manual review."
           gh issue create \
