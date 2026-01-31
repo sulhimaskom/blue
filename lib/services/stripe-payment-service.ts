@@ -4,6 +4,7 @@ import type { RequestContext } from "@/lib/services/user-service";
 import { DatabaseError, ValidationError } from "@/lib/api-utils";
 import Stripe from "stripe";
 import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
+import { env } from "@/lib/env";
 
 export interface PaymentIntentRequest {
   amount: number;
@@ -81,14 +82,14 @@ export class StripePaymentService {
     }
 
     // Stripe initialization with strict validation
-    if (!process.env.STRIPE_SECRET_KEY) {
+    if (!env.STRIPE_SECRET_KEY) {
       throw new DatabaseError(
         "STRIPE_SECRET_KEY is not configured. Please set this environment variable to enable payment processing.",
       );
     }
 
     try {
-      this.stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+      this.stripe = require("stripe")(env.STRIPE_SECRET_KEY);
       this.initialized = true;
       logger.info("Stripe payment service initialized successfully");
     } catch (error) {
@@ -209,7 +210,7 @@ export class StripePaymentService {
       throw new DatabaseError("Stripe payment service not configured");
     }
 
-    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    if (!env.STRIPE_WEBHOOK_SECRET) {
       logger.error("STRIPE_WEBHOOK_SECRET not configured", {
         requestId: context.requestId,
       });
@@ -220,7 +221,7 @@ export class StripePaymentService {
       const event = this.stripe.webhooks.constructEvent(
         payload,
         signature,
-        process.env.STRIPE_WEBHOOK_SECRET,
+        env.STRIPE_WEBHOOK_SECRET,
       );
 
       logger.systemEvent("Webhook event received", {
@@ -598,7 +599,7 @@ export class StripePaymentService {
    * Does not throw exceptions - safe to call for configuration checks
    */
   public isConfigured(): boolean {
-    return !!process.env.STRIPE_SECRET_KEY;
+    return !!env.STRIPE_SECRET_KEY;
   }
 
   /**

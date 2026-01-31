@@ -3,6 +3,7 @@ import { ZodSchema, ZodError } from "zod";
 import { redisManager } from "./redis";
 import { Timing } from "./utils/time-measurement";
 import { logger } from "./logger";
+import { env } from "@/lib/env";
 
 // Validation middleware factory
 export function validateRequest<T>(
@@ -147,14 +148,14 @@ export function RateLimiter(maxRequests: number, windowMs: number) {
 // Environment-aware CORS origin validation
 export function getAllowedOrigin(requestedOrigin?: string): string {
   // In production, restrict CORS to approved domains only
-  if (process.env.NODE_ENV === "production") {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  if (env.NODE_ENV === "production") {
+    const allowedOrigins = env.ALLOWED_ORIGINS
+      ? env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
       : [];
 
     // If no allowed origins configured, default to same-origin for security
     if (allowedOrigins.length === 0) {
-      return process.env.NEXT_PUBLIC_APP_URL || "same-origin";
+      return env.NEXT_PUBLIC_APP_URL || "same-origin";
     }
 
     // If specific origin requested and it's in allowed list, use it
@@ -162,9 +163,9 @@ export function getAllowedOrigin(requestedOrigin?: string): string {
       return requestedOrigin;
     }
 
-    // Otherwise, use the first allowed origin or same-origin
+    // Otherwise, use first allowed origin or same-origin
     return (
-      allowedOrigins[0] || process.env.NEXT_PUBLIC_APP_URL || "same-origin"
+      allowedOrigins[0] || env.NEXT_PUBLIC_APP_URL || "same-origin"
     );
   }
 

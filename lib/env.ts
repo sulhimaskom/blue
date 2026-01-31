@@ -22,6 +22,7 @@ const envSchema = z.object({
   IFLOW_API_KEY: z.string().min(1, "IFlow API key is required"),
   IFLOW_BASE_URL: z.string().url().default("https://api.models.dev/v1"),
   TAVILY_API_KEY: z.string().min(1, "Tavily API key is required"),
+  OPENAI_API_KEY: z.string().optional(),
 
   // Authentication (Clerk)
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z
@@ -58,6 +59,7 @@ const envSchema = z.object({
   // Application Configuration
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   NEXT_PUBLIC_APP_NAME: z.string().default("Architect Platform"),
+  ALLOWED_ORIGINS: z.string().optional(),
 });
 
 type Env = z.infer<typeof envSchema>;
@@ -100,6 +102,7 @@ function validateEnv(): Env {
       IFLOW_API_KEY: process.env.IFLOW_API_KEY || "test-iflow-key",
       IFLOW_BASE_URL: process.env.IFLOW_BASE_URL || "https://test.api.com",
       TAVILY_API_KEY: process.env.TAVILY_API_KEY || "test-tavily-key",
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY || "test-openai-key",
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
         process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
         "test-clerk-publishable",
@@ -121,6 +124,7 @@ function validateEnv(): Env {
       SENTRY_RELEASE: process.env.SENTRY_RELEASE || "",
       NEXT_PUBLIC_APP_URL:
         process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+      ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || "",
     } as Env;
   }
 

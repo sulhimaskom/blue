@@ -7,6 +7,7 @@ import { IdGenerators } from "../../../utils/id-generator";
 import { Timing } from "../../../utils/time-measurement";
 import { retryService, RETRY_CONFIGS } from "../../retry-service";
 import { DatabaseError, ValidationError } from "@/lib/api-utils";
+import { env } from "@/lib/env";
 import type {
   AIModel,
   AICompletionRequest,
@@ -299,7 +300,7 @@ export class OpenAIStrategy implements AIProviderStrategy {
 export function createOpenAIStrategy(
   config?: Partial<AIProviderConfig>,
 ): OpenAIStrategy {
-  const apiKey = config?.apiKey || process.env.OPENAI_API_KEY;
+  const apiKey = config?.apiKey || env.OPENAI_API_KEY;
 
   if (!apiKey) {
     logger.warn("OpenAI API key not configured", {

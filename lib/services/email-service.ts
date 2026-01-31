@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { logger } from "@/lib/logger";
+import { env } from "@/lib/env";
 
 export interface SendEmailInput {
   to: string | string[];
@@ -39,7 +40,7 @@ class EmailService {
 
   private initialize(): void {
     try {
-      const apiKey = process.env.RESEND_API_KEY;
+      const apiKey = env.RESEND_API_KEY;
 
       if (!apiKey || apiKey === "" || apiKey.startsWith("your_")) {
         logger.warn("Email service not configured: RESEND_API_KEY not set or is a placeholder");
@@ -69,7 +70,7 @@ class EmailService {
     }
 
     try {
-      const from = input.from || process.env.RESEND_FROM_EMAIL || "noreply@architect-platform.com";
+      const from = input.from || env.RESEND_FROM_EMAIL || "noreply@architect-platform.com";
 
       const data = {
         from,
@@ -119,7 +120,7 @@ class EmailService {
     let sentCount = 0;
     let failedCount = 0;
 
-    const from = input.from || process.env.RESEND_FROM_EMAIL || "noreply@architect-platform.com";
+    const from = input.from || env.RESEND_FROM_EMAIL || "noreply@architect-platform.com";
 
     for (const email of input.emails) {
       try {
