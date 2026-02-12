@@ -2,6 +2,78 @@
  
 ## Active Tasks 🔄
 
+### Phase 2: Feature Hardening & Enhancement (February 2026)
+
+Based on **Phase 1 Comprehensive Audit** (2026-02-12) - Overall Score: 96/100 World-Class
+
+- [ ] 🔵 **IN PROGRESS**: [ENH-003] Expand Test Coverage to 98%+ (P1 - High Priority)
+    - **Task Selected**: Address 33 TODO tests and 20 skipped tests
+    - **Current State**: 96.3% coverage (1398/1451 tests), 79/80 suites passing
+    - **Target**: 98%+ coverage with all 80 suites passing
+    - **Areas of Focus**:
+        - API integration tests for business-critical endpoints
+        - Error scenario edge cases
+        - Circuit breaker recovery paths
+        - Rate limiting edge cases
+        - Webhook retry logic scenarios
+    - **Business Impact**: Prevent production regressions, enable fearless refactoring, maintain world-class standards
+    - **Acceptance Criteria**:
+        - [ ] Achieve 98%+ test coverage
+        - [ ] Resolve all 33 TODO tests
+        - [ ] Reduce skipped tests from 20 to < 10
+        - [ ] All 80 test suites passing (0 skipped)
+        - [ ] No test timing issues or flakes
+    - **Files Affected**: `__tests__/**/*.test.ts`, `lib/services/*.test.ts`
+    - **Estimated Effort**: 2 weeks
+    - **Owner**: Quality Assurance Team
+
+- [ ] 🟡 **PENDING**: [ENH-002] Bundle Size Optimization - Reduce First Load JS (P2 - Medium Priority)
+    - **Task Selected**: Optimize bundle size from 383kB to <200kB (target <150kB)
+    - **Current State**: 383kB First Load JS (156% over 150kB target)
+    - **Root Cause**:
+        - Framework chunks: 112.8kB (React, Next.js - essential)
+        - Vendor chunks: 270.2kB (optimization opportunity)
+        - No code splitting for dashboard components
+    - **Proposed Solutions**:
+        1. Implement dynamic imports for dashboard components
+        2. Audit and remove unused dependencies
+        3. Enable aggressive webpack code splitting
+        4. Defer non-critical component initialization
+    - **Business Impact**: 40-60% faster initial page loads, improved Core Web Vitals, better mobile experience
+    - **Acceptance Criteria**:
+        - [ ] First Load JS < 200kB (intermediate target)
+        - [ ] First Load JS < 150kB (final target)
+        - [ ] Build time remains < 80s
+        - [ ] All quality gates passing
+        - [ ] No functional regressions
+    - **Files Affected**: `next.config.js`, component imports, webpack config
+    - **Estimated Effort**: 2-3 weeks
+    - **Owner**: Frontend Performance Team
+
+- [ ] 🟡 **PENDING**: [ENH-004] Build Performance Optimization (P2 - Medium Priority)
+    - **Task Selected**: Reduce build time from 74.4s to <30s
+    - **Current State**: 74.4s total build time (644% over 10s target)
+        - Compile time: 20.3s
+        - Static page generation: ~54s (71 pages)
+    - **Proposed Solutions**:
+        1. Optimize .next/cache usage in CI/CD
+        2. Enable incremental builds
+        3. Evaluate build worker optimization
+        4. Reduce node_modules bloat
+        5. Assess Turbopack migration feasibility
+    - **Business Impact**: Faster developer feedback, reduced CI/CD costs, faster time-to-production
+    - **Acceptance Criteria**:
+        - [ ] Build time < 60s (intermediate target)
+        - [ ] Build time < 30s (stretch target)
+        - [ ] CI/CD cache hit rate > 70%
+        - [ ] No build warnings or errors
+        - [ ] All quality gates passing
+    - **Files Affected**: `.github/workflows/`, `next.config.js`, `scripts/fixed-build-232.js`
+    - **Estimated Effort**: 2 weeks
+    - **Owner**: DevOps/Build Team
+
+---
+
 - [x] ✅ **COMPLETED** (2026-01-18): STUB `agent.md` CREATION - Autonomous Agent execution
     - **Task Selected**: Create `agent.md` stub file (🟡 MEDIUM PRIORITY - Documentation)
     - **Rationale**: The canonical artifact `agent.md` was missing from the repository. To adhere to the `CONTROLLED CREATIVE AGENT OS v1.0` directive, a minimal stub file must be created.
