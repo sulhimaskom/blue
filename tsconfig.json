@@ -5,6 +5,7 @@
       "dom.iterable",
       "esnext"
     ],
+    "types": ["node", "jest"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -43,6 +44,8 @@
     "**/*.spec.*",
     "jest.config.*",
     "jest.setup.*",
-    "*.test-d.ts"
+    "*.test-d.ts",
+    "migrations/**/*",
+    "scripts/**/*"
   ]
 }

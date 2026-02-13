@@ -7,7 +7,7 @@ function getAllowedOrigin(requestedOrigin?: string): string {
   // In production, restrict CORS to approved domains only
   if (process.env.NODE_ENV === "production") {
     const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+      ? process.env.ALLOWED_ORIGINS.split(",").map((o: string) => o.trim())
       : [];
 
     // If no allowed origins configured, default to same-origin for security

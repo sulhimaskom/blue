@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2020",
+    "types": ["node"],
+    "noEmit": false,
+    "outDir": "./dist/migrations"
+  },
+  "include": [
+    "migrations/**/*",
+    "scripts/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "__tests__/**/*",
+    "**/*.test.*",
+    "**/*.spec.*"
+  ]
+}
