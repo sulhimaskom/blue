@@ -6,6 +6,7 @@ import { useBlueprintValidation } from "@/lib/hooks/use-blueprint-validation";
 import { useBlueprintsData } from "@/lib/hooks/use-dashboard-data";
 import { ValidationError } from "@/lib/api-utils";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
+import { analytics } from "@/lib/services/analytics-service";
 
 const BlueprintCreateModal = lazy(() =>
   import("@/components/dashboard/blueprint-create-modal").then((m) => ({
@@ -150,6 +151,7 @@ export default function BlueprintsPage() {
               selectedProject={selectedProject}
               onProjectSelect={handleProjectSelect}
               onCreateBlueprint={() => {
+                analytics.trackButtonClick('create-blueprint', 'project-list', { pagePath: '/dashboard/blueprints' });
                 setShowCreateForm(true);
                 resetValidation();
               }}
@@ -159,7 +161,10 @@ export default function BlueprintsPage() {
             <BlueprintList
               selectedProject={selectedProject}
               blueprints={selectedProjectBlueprints}
-              onCreateBlueprint={() => setShowCreateForm(true)}
+              onCreateBlueprint={() => {
+                analytics.trackButtonClick('create-blueprint', 'blueprint-list', { pagePath: '/dashboard/blueprints' });
+                setShowCreateForm(true);
+              }}
             />
           </Suspense>
         </div>

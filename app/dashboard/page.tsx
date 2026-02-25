@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { DashboardCard } from "@/components/ui/dashboard-card";
 import { StatsCard } from "@/components/ui/stats-card";
 import { MiniActivityFeed } from "@/components/activity/mini-activity-feed";
+import { analytics } from "@/lib/services/analytics-service";
 import { useActivityData } from "@/lib/hooks/use-activity-data";
 import { DashboardDataService } from "@/lib/services/dashboard-data-service";
 import { logger } from "@/lib/logger";
@@ -168,7 +169,10 @@ export default function DashboardPage() {
             <MiniActivityFeed
               activities={activities}
               limit={10}
-              onViewAll={() => router.push("/dashboard/activity")}
+              onViewAll={() => {
+                analytics.trackButtonClick('view-all-activity', 'dashboard', { pagePath: '/dashboard' });
+                router.push("/dashboard/activity");
+              }}
             />
           </div>
         </div>
