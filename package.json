@@ -41,7 +41,7 @@
     "test:all": "npm run test && npm run test:api",
     "test:performance": "node scripts/test-performance-monitor.js",
     "test:build-performance": "node scripts/build-performance-monitor.js",
-    "optimize-db": "node scripts/optimize-database.js",
+    "optimize-db": "node scripts/optimize-database.ts",
     "infrastructure:check": "./scripts/infrastructure-health-monitor.sh",
     "migrate:up": "npx tsx migrations/0001_add_data_integrity_constraints.ts",
     "migrate:down": "npx tsx migrations/0001_add_data_integrity_constraints.ts down",
