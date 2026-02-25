@@ -82,6 +82,13 @@ All changes must pass:
 
 ## History
 
+### 2026-02-25: Build Failure Fix - Missing Bundle Analyzer
+
+- Fixed missing `@next/bundle-analyzer` dependency causing build failures
+- Installed missing dev dependency: `@next/bundle-analyzer@^15.5.12`
+- Result: Build now passes (72.9s, 71 static pages)
+
+
 ### 2026-02-25: Remove Hardcoded Localhost Fallback
 
 - Fixed hardcoded `http://localhost:3000` fallback in `lib/env.ts` (line 59)
