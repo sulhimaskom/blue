@@ -105,3 +105,28 @@ npm run lint        # ESLint
 npm run typecheck   # TypeScript
 npm test --silent   # Test suite
 ```
+
+
+---
+
+### 2026-02-25: Build Dependency Fix (Re-run)
+
+**Issue**: Build failing with `MODULE_NOT_FOUND` error for `@next/bundle-analyzer`
+
+**Root Cause**: 
+- Package declared in `package.json` devDependencies but not installed in `node_modules`
+- Same issue as previous session - likely node_modules not properly populated
+
+**Fix Applied**:
+1. Installed `@next/bundle-analyzer` via `npm install --save-dev @next/bundle-analyzer`
+
+**Quality Gates Verified**:
+- Build: PASS (59.4s, 71 static pages)
+- Lint: PASS (0 warnings)
+- Typecheck: PASS (0 errors)
+- Tests: PASS (81/82 suites, 1421/1430 tests)
+- Security: PASS (0 vulnerabilities)
+
+**Note**: No code change required - fix was populating node_modules via npm install. Previous fix in PR #680 addressed same issue.
+
+---
