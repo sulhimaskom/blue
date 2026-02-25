@@ -1,19 +1,16 @@
-"use client";
+'use client';
 
-import { useState, lazy, Suspense } from "react";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { Button } from "@/components/ui/button";
-import { useProjectsData } from "@/lib/hooks/use-dashboard-data";
-import type { DashboardProject } from "@/lib/hooks/use-dashboard-data";
+import { useState, lazy, Suspense } from 'react';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { Button } from '@/components/ui/button';
+import { useProjectsData } from '@/lib/hooks/use-dashboard-data';
+import type { DashboardProject } from '@/lib/hooks/use-dashboard-data';
+import { analytics } from '@/lib/services/analytics-service';
 
-const CloneProjectModal = lazy(() => import("@/components/dashboard/clone-project-modal"));
-const TemplateSelectionModal = lazy(() => import("@/components/dashboard/template-selection-modal"));
-
-interface DeploymentForm {
-  githubOrg: string;
-  repoName: string;
-  isPrivate: boolean;
-}
+const CloneProjectModal = lazy(() => import('@/components/dashboard/clone-project-modal'));
+const TemplateSelectionModal = lazy(
+  () => import('@/components/dashboard/template-selection-modal')
+);
 
 interface DeploymentForm {
   githubOrg: string;
@@ -24,8 +21,8 @@ interface DeploymentForm {
 export default function ProjectsPage() {
   const [showDeployModal, setShowDeployModal] = useState(false);
   const [deploymentForm, setDeploymentForm] = useState<DeploymentForm>({
-    githubOrg: "",
-    repoName: "",
+    githubOrg: '',
+    repoName: '',
     isPrivate: false,
   });
   const [showCloneModal, setShowCloneModal] = useState(false);
@@ -60,14 +57,14 @@ export default function ProjectsPage() {
     if (!projectToClone) return;
 
     const response = await fetch(`/api/projects/${projectToClone.id}/clone`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, description }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || "Failed to clone project");
+      throw new Error(error.error || 'Failed to clone project');
     }
 
     window.location.reload();
@@ -76,17 +73,17 @@ export default function ProjectsPage() {
   const handleCreateFromTemplate = async (
     templateId: string,
     name: string,
-    description: string,
+    description: string
   ) => {
-    const response = await fetch("/api/projects/templates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const response = await fetch('/api/projects/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ templateId, name, description }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || "Failed to create project from template");
+      throw new Error(error.error || 'Failed to create project from template');
     }
 
     window.location.reload();
@@ -108,9 +105,7 @@ export default function ProjectsPage() {
     <DashboardLayout>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Projects & Deployment
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Projects & Deployment</h1>
           <p className="mt-2 text-gray-600">
             Manage your projects and deploy blueprints to GitHub repositories.
           </p>
@@ -120,11 +115,7 @@ export default function ProjectsPage() {
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-red-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
                   <path
                     fillRule="evenodd"
                     d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -146,12 +137,15 @@ export default function ProjectsPage() {
             <div className="bg-white rounded-lg border border-gray-200">
               <div className="px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Projects
-                  </h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Projects</h2>
                   <Button
                     size="sm"
-                    onClick={() => setShowTemplateModal(true)}
+                    onClick={() => {
+                      analytics.trackButtonClick('new-from-template', 'projects', {
+                        pagePath: '/dashboard/projects',
+                      });
+                      setShowTemplateModal(true);
+                    }}
                     className="text-xs"
                   >
                     + New from Template
@@ -164,24 +158,27 @@ export default function ProjectsPage() {
                     <p className="text-gray-500">No projects found</p>
                   </div>
                 ) : (
-                   projects.map((project) => (
+                  projects.map(project => (
                     <div
                       key={project.id}
                       className={`p-4 hover:bg-gray-50 ${
-                        selectedProject?.id === project.id ? "bg-blue-50" : ""
+                        selectedProject?.id === project.id ? 'bg-blue-50' : ''
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div
                           className="flex-1 cursor-pointer"
-                          onClick={() => handleProjectSelect(project)}
+                          onClick={() => {
+                            analytics.trackButtonClick('select-project', 'projects', {
+                              pagePath: '/dashboard/projects',
+                              projectId: project.id,
+                              projectName: project.name,
+                            });
+                            handleProjectSelect(project);
+                          }}
                         >
-                          <h3 className="font-medium text-gray-900">
-                            {project.name}
-                          </h3>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {project.description}
-                          </p>
+                          <h3 className="font-medium text-gray-900">{project.name}</h3>
+                          <p className="text-sm text-gray-600 mt-1">{project.description}</p>
                           <div className="flex items-center mt-2 space-x-4">
                             <span className="text-sm text-blue-600">
                               {project.blueprintCount} blueprints
@@ -196,8 +193,13 @@ export default function ProjectsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation();
+                            analytics.trackButtonClick('clone-project', 'projects', {
+                              pagePath: '/dashboard/projects',
+                              projectId: project.id,
+                              projectName: project.name,
+                            });
                             setProjectToClone(project);
                             setShowCloneModal(true);
                           }}
@@ -218,11 +220,16 @@ export default function ProjectsPage() {
               <div className="bg-white rounded-lg border border-gray-200">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-gray-900">
-                      {selectedProject.name}
-                    </h2>
+                    <h2 className="text-lg font-semibold text-gray-900">{selectedProject.name}</h2>
                     <Button
-                      onClick={() => setShowDeployModal(true)}
+                      onClick={() => {
+                        analytics.trackButtonClick('deploy-to-github', 'projects', {
+                          pagePath: '/dashboard/projects',
+                          projectId: selectedProject.id,
+                          projectName: selectedProject.name,
+                        });
+                        setShowDeployModal(true);
+                      }}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       Deploy to GitHub
@@ -250,7 +257,7 @@ export default function ProjectsPage() {
                             Successfully Deployed
                           </h3>
                           <p className="text-sm text-green-700 mt-1">
-                            Repository{" "}
+                            Repository{' '}
                             <a
                               href={selectedProject.deploymentStatus.repoUrl}
                               target="_blank"
@@ -259,13 +266,13 @@ export default function ProjectsPage() {
                             >
                               {selectedProject.deploymentStatus.githubOrg}/
                               {selectedProject.deploymentStatus.repoName}
-                            </a>{" "}
+                            </a>{' '}
                             is ready for development.
                           </p>
                           <p className="text-xs text-green-600 mt-1">
-                            Deployed on{" "}
+                            Deployed on{' '}
                             {new Date(
-                              selectedProject.deploymentStatus.deployedAt!,
+                              selectedProject.deploymentStatus.deployedAt!
                             ).toLocaleDateString()}
                           </p>
                         </div>
@@ -275,9 +282,7 @@ export default function ProjectsPage() {
 
                   {/* Project Info */}
                   <div className="mb-6">
-                    <h3 className="text-sm font-medium text-gray-900 mb-2">
-                      Project Details
-                    </h3>
+                    <h3 className="text-sm font-medium text-gray-900 mb-2">Project Details</h3>
                     <dl className="grid grid-cols-2 gap-4">
                       <div>
                         <dt className="text-sm text-gray-600">Status</dt>
@@ -294,17 +299,13 @@ export default function ProjectsPage() {
                       <div>
                         <dt className="text-sm text-gray-600">Created</dt>
                         <dd className="text-sm font-medium text-gray-900">
-                          {new Date(
-                            selectedProject.createdAt,
-                          ).toLocaleDateString()}
+                          {new Date(selectedProject.createdAt).toLocaleDateString()}
                         </dd>
                       </div>
                       <div>
                         <dt className="text-sm text-gray-600">Last Updated</dt>
                         <dd className="text-sm font-medium text-gray-900">
-                          {new Date(
-                            selectedProject.updatedAt,
-                          ).toLocaleDateString()}
+                          {new Date(selectedProject.updatedAt).toLocaleDateString()}
                         </dd>
                       </div>
                     </dl>
@@ -312,25 +313,21 @@ export default function ProjectsPage() {
 
                   {/* Blueprints List */}
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900 mb-3">
-                      Blueprints
-                    </h3>
+                    <h3 className="text-sm font-medium text-gray-900 mb-3">Blueprints</h3>
                     {blueprints.length === 0 ? (
                       <div className="text-center py-8">
                         <p className="text-gray-500">No blueprints found</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {blueprints.map((blueprint) => (
+                        {blueprints.map(blueprint => (
                           <div
                             key={blueprint.id}
                             className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <h4 className="font-medium text-gray-900">
-                                  {blueprint.title}
-                                </h4>
+                                <h4 className="font-medium text-gray-900">{blueprint.title}</h4>
                                 <p className="text-sm text-gray-600 mt-1">
                                   {blueprint.description}
                                 </p>
@@ -340,9 +337,9 @@ export default function ProjectsPage() {
                                   </span>
                                   <span
                                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                      blueprint.status === "completed"
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-yellow-100 text-yellow-800"
+                                      blueprint.status === 'completed'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-yellow-100 text-yellow-800'
                                     }`}
                                   >
                                     {blueprint.status}
@@ -352,7 +349,16 @@ export default function ProjectsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleDeploy(blueprint.id)}
+                                onClick={() => {
+                                  analytics.trackButtonClick('deploy-blueprint', 'projects', {
+                                    pagePath: '/dashboard/projects',
+                                    projectId: selectedProject?.id,
+                                    projectName: selectedProject?.name,
+                                    blueprintId: blueprint.id,
+                                    blueprintTitle: blueprint.title,
+                                  });
+                                  handleDeploy(blueprint.id);
+                                }}
                                 disabled={deploying}
                               >
                                 Deploy
@@ -383,9 +389,7 @@ export default function ProjectsPage() {
                       />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Select a project
-                  </h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Select a project</h3>
                   <p className="text-gray-500">
                     Choose a project to view details and deploy to GitHub.
                   </p>
@@ -401,19 +405,12 @@ export default function ProjectsPage() {
             <div className="bg-white rounded-lg max-w-md w-full">
               <div className="px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Deploy to GitHub
-                  </h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Deploy to GitHub</h2>
                   <button
                     onClick={() => setShowDeployModal(false)}
                     className="text-gray-400 hover:text-gray-500"
                   >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -437,7 +434,7 @@ export default function ProjectsPage() {
                       type="text"
                       id="githubOrg"
                       value={deploymentForm.githubOrg}
-                      onChange={(e) =>
+                      onChange={e =>
                         setDeploymentForm({
                           ...deploymentForm,
                           githubOrg: e.target.value,
@@ -458,7 +455,7 @@ export default function ProjectsPage() {
                       type="text"
                       id="repoName"
                       value={deploymentForm.repoName}
-                      onChange={(e) =>
+                      onChange={e =>
                         setDeploymentForm({
                           ...deploymentForm,
                           repoName: e.target.value,
@@ -473,7 +470,7 @@ export default function ProjectsPage() {
                       <input
                         type="checkbox"
                         checked={deploymentForm.isPrivate}
-                        onChange={(e) =>
+                        onChange={e =>
                           setDeploymentForm({
                             ...deploymentForm,
                             isPrivate: e.target.checked,
@@ -481,9 +478,7 @@ export default function ProjectsPage() {
                         }
                         className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
-                      <span className="text-sm text-gray-700">
-                        Private repository
-                      </span>
+                      <span className="text-sm text-gray-700">Private repository</span>
                     </label>
                   </div>
                 </div>
@@ -497,11 +492,7 @@ export default function ProjectsPage() {
                   </Button>
                   <Button
                     onClick={() => handleDeploy()}
-                    disabled={
-                      deploying ||
-                      !deploymentForm.githubOrg ||
-                      !deploymentForm.repoName
-                    }
+                    disabled={deploying || !deploymentForm.githubOrg || !deploymentForm.repoName}
                     className="bg-green-600 hover:bg-green-700"
                   >
                     {deploying ? (
@@ -529,7 +520,7 @@ export default function ProjectsPage() {
                         Deploying...
                       </>
                     ) : (
-                      "Deploy Project"
+                      'Deploy Project'
                     )}
                   </Button>
                 </div>
@@ -540,15 +531,17 @@ export default function ProjectsPage() {
 
         {/* Clone Project Modal */}
         {showCloneModal && projectToClone && (
-          <Suspense fallback={
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-lg max-w-md w-full p-6">
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <Suspense
+            fallback={
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-lg max-w-md w-full p-6">
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  </div>
                 </div>
               </div>
-            </div>
-          }>
+            }
+          >
             <CloneProjectModal
               isOpen={showCloneModal}
               onClose={() => {
@@ -563,15 +556,17 @@ export default function ProjectsPage() {
 
         {/* Template Selection Modal */}
         {showTemplateModal && (
-          <Suspense fallback={
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-lg max-w-md w-full p-6">
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <Suspense
+            fallback={
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-lg max-w-md w-full p-6">
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  </div>
                 </div>
               </div>
-            </div>
-          }>
+            }
+          >
             <TemplateSelectionModal
               isOpen={showTemplateModal}
               onClose={() => setShowTemplateModal(false)}

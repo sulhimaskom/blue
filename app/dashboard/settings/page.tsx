@@ -1,40 +1,41 @@
-"use client";
+'use client';
 
-import { useState, useEffect, lazy, Suspense } from "react";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { useAuthSafe } from "@/lib/hooks/use-auth";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { logger } from "@/lib/logger";
-import { DashboardSkeleton } from "@/components/ui/skeleton";
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { useAuthSafe } from '@/lib/hooks/use-auth';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { logger } from '@/lib/logger';
+import { DashboardSkeleton } from '@/components/ui/skeleton';
+import { analytics } from '@/lib/services/analytics-service';
 
 const SettingsPanel = lazy(() =>
-  import("@/components/dashboard/settings-panel").then((module) => ({
+  import('@/components/dashboard/settings-panel').then(module => ({
     default: module.SettingsPanel,
-  })),
+  }))
 );
 
 const NotificationPreferences = lazy(() =>
-  import("@/components/dashboard/notification-preferences").then((module) => ({
+  import('@/components/dashboard/notification-preferences').then(module => ({
     default: module.NotificationPreferences,
-  })),
+  }))
 );
 
 const ThemeSelector = lazy(() =>
-  import("@/components/dashboard/theme-selector").then((module) => ({
+  import('@/components/dashboard/theme-selector').then(module => ({
     default: module.ThemeSelector,
-  })),
+  }))
 );
 
 const LanguageSelector = lazy(() =>
-  import("@/components/dashboard/language-selector").then((module) => ({
+  import('@/components/dashboard/language-selector').then(module => ({
     default: module.LanguageSelector,
-  })),
+  }))
 );
 
 const TimezoneSelector = lazy(() =>
-  import("@/components/dashboard/timezone-selector").then((module) => ({
+  import('@/components/dashboard/timezone-selector').then(module => ({
     default: module.TimezoneSelector,
-  })),
+  }))
 );
 
 type NotificationPreference = any;
@@ -56,12 +57,12 @@ export default function SettingsPage() {
 
     const fetchSettings = async () => {
       try {
-        const response = await fetch("/api/user/settings", {
-          credentials: "include",
+        const response = await fetch('/api/user/settings', {
+          credentials: 'include',
         });
 
         if (!response.ok) {
-          throw new Error("Failed to fetch user settings");
+          throw new Error('Failed to fetch user settings');
         }
 
         const data = await response.json();
@@ -74,9 +75,9 @@ export default function SettingsPage() {
           });
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
         setError(errorMessage);
-        logger.error("Failed to fetch user settings", { error: err });
+        logger.error('Failed to fetch user settings', { error: err });
       } finally {
         setLoading(false);
       }
@@ -85,114 +86,147 @@ export default function SettingsPage() {
     fetchSettings();
   }, [isLoaded, isSignedIn]);
 
-  const handleSaveNotificationPreferences = async (preferences: Partial<NotificationPreference>) => {
+  const handleSaveNotificationPreferences = async (
+    preferences: Partial<NotificationPreference>
+  ) => {
     try {
-      const response = await fetch("/api/user/settings/notifications", {
-        method: "PUT",
+      analytics.trackButtonClick('save-notification-preferences', 'settings', {
+        pagePath: '/dashboard/settings',
+      });
+      const response = await fetch('/api/user/settings/notifications', {
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "include",
+        credentials: 'include',
         body: JSON.stringify(preferences),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update notification preferences");
+        throw new Error('Failed to update notification preferences');
       }
 
       const data = await response.json();
-        if (data.success && data.data) {
-          setSettings((prev) => prev ? {
-            ...prev,
-            notificationPreferences: data.data.notificationPreferences,
-          } : prev);
-        }
+      if (data.success && data.data) {
+        setSettings(prev =>
+          prev
+            ? {
+                ...prev,
+                notificationPreferences: data.data.notificationPreferences,
+              }
+            : prev
+        );
+      }
     } catch (err) {
-      logger.error("Failed to update notification preferences", { error: err });
+      logger.error('Failed to update notification preferences', { error: err });
       throw err;
     }
   };
 
   const handleSaveTheme = async (theme: ThemeOption) => {
     try {
-      const response = await fetch("/api/user/settings", {
-        method: "PUT",
+      analytics.trackButtonClick('save-theme', 'settings', {
+        pagePath: '/dashboard/settings',
+        theme: theme,
+      });
+      const response = await fetch('/api/user/settings', {
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "include",
+        credentials: 'include',
         body: JSON.stringify({ theme }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update theme preference");
+        throw new Error('Failed to update theme preference');
       }
 
       const data = await response.json();
-        if (data.success && data.data) {
-          setSettings((prev) => prev ? {
-            ...prev,
-            theme: data.data.settings.theme,
-          } : prev);
-        }
+      if (data.success && data.data) {
+        setSettings(prev =>
+          prev
+            ? {
+                ...prev,
+                theme: data.data.settings.theme,
+              }
+            : prev
+        );
+      }
     } catch (err) {
-      logger.error("Failed to update theme preference", { error: err });
+      logger.error('Failed to update theme preference', { error: err });
       throw err;
     }
   };
 
   const handleSaveLanguage = async (language: string) => {
     try {
-      const response = await fetch("/api/user/settings", {
-        method: "PUT",
+      analytics.trackButtonClick('save-language', 'settings', {
+        pagePath: '/dashboard/settings',
+        language,
+      });
+      const response = await fetch('/api/user/settings', {
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "include",
+        credentials: 'include',
         body: JSON.stringify({ language }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update language preference");
+        throw new Error('Failed to update language preference');
       }
 
       const data = await response.json();
-        if (data.success && data.data) {
-          setSettings((prev) => prev ? {
-            ...prev,
-            language: data.data.settings.language,
-          } : prev);
-        }
+      if (data.success && data.data) {
+        setSettings(prev =>
+          prev
+            ? {
+                ...prev,
+                language: data.data.settings.language,
+              }
+            : prev
+        );
+      }
     } catch (err) {
-      logger.error("Failed to update language preference", { error: err });
+      logger.error('Failed to update language preference', { error: err });
       throw err;
     }
   };
 
   const handleSaveTimezone = async (timezone: string) => {
     try {
-      const response = await fetch("/api/user/settings", {
-        method: "PUT",
+      analytics.trackButtonClick('save-timezone', 'settings', {
+        pagePath: '/dashboard/settings',
+        timezone,
+      });
+      const response = await fetch('/api/user/settings', {
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "include",
+        credentials: 'include',
         body: JSON.stringify({ timezone }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update timezone preference");
+        throw new Error('Failed to update timezone preference');
       }
 
       const data = await response.json();
-        if (data.success && data.data) {
-          setSettings((prev) => prev ? {
-            ...prev,
-            timezone: data.data.settings.timezone,
-          } : prev);
-        }
+      if (data.success && data.data) {
+        setSettings(prev =>
+          prev
+            ? {
+                ...prev,
+                timezone: data.data.settings.timezone,
+              }
+            : prev
+        );
+      }
     } catch (err) {
-      logger.error("Failed to update timezone preference", { error: err });
+      logger.error('Failed to update timezone preference', { error: err });
       throw err;
     }
   };
@@ -212,12 +246,8 @@ export default function SettingsPage() {
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-              Sign In Required
-            </h1>
-            <p className="text-gray-600">
-              Please sign in to access your settings.
-            </p>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-2">Sign In Required</h1>
+            <p className="text-gray-600">Please sign in to access your settings.</p>
           </div>
         </div>
       </DashboardLayout>
@@ -263,8 +293,8 @@ export default function SettingsPage() {
 
   const tabs = [
     {
-      id: "notifications",
-      label: "Notifications",
+      id: 'notifications',
+      label: 'Notifications',
       content: (
         <Suspense fallback={<DashboardSkeleton />}>
           <NotificationPreferences
@@ -275,33 +305,24 @@ export default function SettingsPage() {
       ),
     },
     {
-      id: "appearance",
-      label: "Appearance",
+      id: 'appearance',
+      label: 'Appearance',
       content: (
         <Suspense fallback={<DashboardSkeleton />}>
           <div className="space-y-8">
-            <ThemeSelector
-              initialTheme={settings.theme}
-              onSave={handleSaveTheme}
-            />
+            <ThemeSelector initialTheme={settings.theme} onSave={handleSaveTheme} />
             <hr className="border-gray-200" />
-            <LanguageSelector
-              initialLanguage={settings.language}
-              onSave={handleSaveLanguage}
-            />
+            <LanguageSelector initialLanguage={settings.language} onSave={handleSaveLanguage} />
           </div>
         </Suspense>
       ),
     },
     {
-      id: "general",
-      label: "General",
+      id: 'general',
+      label: 'General',
       content: (
         <Suspense fallback={<DashboardSkeleton />}>
-          <TimezoneSelector
-            initialTimezone={settings.timezone}
-            onSave={handleSaveTimezone}
-          />
+          <TimezoneSelector initialTimezone={settings.timezone} onSave={handleSaveTimezone} />
         </Suspense>
       ),
     },
