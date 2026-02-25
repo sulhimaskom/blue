@@ -3,7 +3,6 @@ import { CheckIcon, WarningIcon, ErrorIcon } from "./icons";
 import {
   STATUS_THEMES,
   SIZE_VARIANTS,
-  type StatusThemeType,
 } from "@/lib/constants/ui-themes";
 import type { StatusType } from "@/lib/services/service-types";
 
@@ -23,9 +22,8 @@ export function StatusIndicator({
   className,
 }: StatusIndicatorProps) {
   const getStatusConfig = (status: StatusType) => {
-    const themeKey =
-      status === "unknown" ? "unknown" : (status as StatusThemeType);
-    const theme = STATUS_THEMES[themeKey];
+    const themeKey = status in STATUS_THEMES ? status : 'unknown';
+    const theme = STATUS_THEMES[themeKey as keyof typeof STATUS_THEMES];
 
     switch (status) {
       case "healthy":
@@ -68,7 +66,7 @@ export function StatusIndicator({
       aria-live="polite"
       aria-label={`${config.text} status`}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border font-medium",
+        "inline-flex items-center gap-2 rounded-full border font-medium transition-all duration-200 hover:scale-105",
         getSizeClasses(size),
         config.color,
         className,
