@@ -100,11 +100,11 @@ export interface PerformanceData {
   [key: string]: unknown;
 }
 
-export type PerformanceStatus =
-  | "healthy"
-  | "degraded"
-  | "unhealthy"
-  | "unknown";
+import { type StatusType } from "@/lib/services/service-types";
+
+// Performance status is sourced from the central StatusType to ensure
+// consistent typing across the service layer and UI components.
+export type PerformanceStatus = StatusType;
 
 // ========================================
 // Performance Dashboard Response Types
