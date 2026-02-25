@@ -14,6 +14,7 @@
  */
 
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 import { ServiceError } from "@/lib/services/service-error-handler";
 import { EnvironmentError } from "@/lib/env";
 import { zodToJsonSchema } from "zod-to-json-schema";
@@ -510,8 +511,7 @@ export function getOpenAPIGenerator(): OpenAPIGenerator {
         );
       }
       // In development/test, use localhost but log warning
-      // eslint-disable-next-line no-console
-      console.warn("WARNING: NEXT_PUBLIC_APP_URL not configured, using localhost for development");
+      logger.warn("NEXT_PUBLIC_APP_URL not configured, using localhost for development");
     }
 
     openAPIGeneratorInstance = new OpenAPIGenerator({
