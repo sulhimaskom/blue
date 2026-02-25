@@ -59,7 +59,8 @@ const envSchema = z.object({
   RESEND_FROM_EMAIL: z.string().optional(),
 
   // Application Configuration
-  NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  // Application Configuration - REQUIRED in production, must be set via environment variable
+  NEXT_PUBLIC_APP_URL: z.string().url().min(1, "NEXT_PUBLIC_APP_URL is required for payment redirects and OpenAPI generation"),
   NEXT_PUBLIC_APP_NAME: z.string().default("Architect Platform"),
   ALLOWED_ORIGINS: z.string().optional(),
 });
