@@ -16,6 +16,7 @@
 import { z } from "zod";
 import { ServiceError } from "@/lib/services/service-error-handler";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import { ValidationError } from "@/lib/api-utils";
 
 // =============================================================================
 // OPENAPI SPECIFICATION STRUCTURE
@@ -499,10 +500,19 @@ let openAPIGeneratorInstance: OpenAPIGenerator | null = null;
 export function getOpenAPIGenerator(): OpenAPIGenerator {
   if (!openAPIGeneratorInstance) {
     const { env } = require("@/lib/env");
+
+    // Validate required environment variable - no hardcoded fallback
+    if (!env.NEXT_PUBLIC_APP_URL) {
+      throw new ValidationError(
+        "NEXT_PUBLIC_APP_URL environment variable is required for OpenAPI generation. " +
+          "Please set it in your environment configuration."
+      );
+    }
+
     openAPIGeneratorInstance = new OpenAPIGenerator({
       title: "Architect Platform API",
       version: env.NPM_PACKAGE_VERSION || "1.0.0",
-      baseUrl: env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+      baseUrl: env.NEXT_PUBLIC_APP_URL,
     });
   }
   return openAPIGeneratorInstance;
