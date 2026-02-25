@@ -79,6 +79,22 @@ Growth-Innovation-Strategist owns:
 
 ## Implementation Log
 
+### 2026-02-25 - Settings and Projects Analytics Instrumentation (PR #743)
+- **Scope**: Instrumented Settings and Projects pages with analytics tracking
+- **Files Modified**:
+  - `app/dashboard/settings/page.tsx` - Added tracking for: save-notification-preferences, save-theme, save-language, save-timezone
+  - `app/dashboard/projects/page.tsx` - Added tracking for: new-from-template, select-project, clone-project, deploy-to-github, deploy-blueprint
+- **Impact**: Now can measure:
+  - User settings preference changes
+  - Project creation from templates
+  - Project cloning behavior
+  - Deployment conversion rates
+  - Blueprint deployment funnel
+
+---
+
+### 2026-02-25 - Dashboard and Blueprints Analytics Re-implemented
+
 ### 2026-02-25 - Dashboard and Blueprints Analytics Re-implemented
 - **Issue Found**: PR #704 was reverted due to Next.js 15 useSearchParams() build failures
 - **Solution**: Used analytics service directly instead of useAnalytics hook to avoid Suspense boundary requirements
@@ -142,6 +158,18 @@ Growth-Innovation-Strategist owns:
 - **Impact:** Enables funnel analysis and conversion optimization
 
 **Pages to Instrument Next:**
+1. ~~Credits page~~ - track credit purchases ✅ (Already done)
+2. ~~Subscription page~~ - track upgrade attempts ✅ (Already done)
+3. ~~Settings page~~ - track preference changes ✅ (Done - PR #743)
+4. ~~Project pages~~ - track project creation/deployment ✅ (Done - PR #743)
+
+**Pages Completed in This Session:**
+- Dashboard page - track activity feed clicks ✅
+- Blueprints page - track create blueprint clicks ✅
+- Credits page - track credit purchases ✅
+- Subscription page - track upgrade attempts ✅
+- Settings page - track preference changes ✅ (PR #743)
+- Project pages - track project creation/deployment ✅ (PR #743)
 1. ~~Credits page~~ - track credit purchases ✅ (Already done)
 2. ~~Subscription page~~ - track upgrade attempts ✅ (Already done)
 3. Settings page - track preference changes
