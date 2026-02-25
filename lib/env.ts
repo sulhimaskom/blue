@@ -23,6 +23,9 @@ const envSchema = z.object({
   IFLOW_BASE_URL: z.string().url().default("https://api.models.dev/v1"),
   TAVILY_API_KEY: z.string().min(1, "Tavily API key is required"),
 
+  // OpenAI (Optional - Alternative AI provider)
+  OPENAI_API_KEY: z.string().optional(),
+
   // Authentication (Clerk)
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z
     .string()
@@ -56,8 +59,10 @@ const envSchema = z.object({
   RESEND_FROM_EMAIL: z.string().optional(),
 
   // Application Configuration
-  NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  // Application Configuration - REQUIRED in production, must be set via environment variable
+  NEXT_PUBLIC_APP_URL: z.string().url().min(1, "NEXT_PUBLIC_APP_URL is required for payment redirects and OpenAPI generation"),
   NEXT_PUBLIC_APP_NAME: z.string().default("Architect Platform"),
+  ALLOWED_ORIGINS: z.string().optional(),
 });
 
 type Env = z.infer<typeof envSchema>;
@@ -88,6 +93,9 @@ function validateEnv(): Env {
       SENTRY_DSN: "",
       SENTRY_RELEASE: "",
       NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+      NEXT_PUBLIC_APP_NAME: "Architect Platform",
+      OPENAI_API_KEY: "",
+      ALLOWED_ORIGINS: "",
     } as Env;
   }
 
@@ -121,6 +129,9 @@ function validateEnv(): Env {
       SENTRY_RELEASE: process.env.SENTRY_RELEASE || "",
       NEXT_PUBLIC_APP_URL:
         process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+      NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || "Architect Platform",
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
+      ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || "",
     } as Env;
   }
 

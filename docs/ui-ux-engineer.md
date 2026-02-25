@@ -34,6 +34,17 @@ Specialist focused on delivering small, safe, measurable UI/UX improvements.
 ## History of Changes
 
 ### 2026-02-25
+- **Card, Badge, StatusIndicator hover enhancement**: Added subtle scale animation (hover:scale-[1.01]/hover:scale-105) with 200ms transition for tactile feedback
+- **Files modified**: components/ui/card.tsx, components/ui/badge.tsx, components/ui/status-indicator.tsx
+- **PR**: #689
+
+### 2026-02-25
+- **Button hover enhancement**: Added subtle scale animation (hover:scale-[1.02], active:scale-[0.98]) with 200ms duration for tactile feedback
+- **Files modified**: components/ui/button.tsx
+
+## Skills Available
+
+### 2026-02-25
 - **Button hover enhancement**: Added subtle scale animation (hover:scale-[1.02], active:scale-[0.98]) with 200ms duration for tactile feedback
 - **Files modified**: components/ui/button.tsx
 
