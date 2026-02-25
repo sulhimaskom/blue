@@ -32,6 +32,16 @@ Specialist focused on delivering small, safe, measurable UI/UX improvements.
 - Match existing aesthetic direction
 
 ## History of Changes
+TX|
+VB|### 2026-02-25
+WM|- **Modal, Alert, EmptyState, Navigation hover enhancement**: Added subtle scale animation (hover:scale-105) with 200ms transition to interactive components
+VH|- **Files modified**: components/ui/modal.tsx, components/ui/alert.tsx, components/ui/empty-state.tsx, components/navigation/navigation.tsx
+PT|- **PR**: #700
+ZK|
+VB|### 2026-02-25
+WM|- **Card, Badge, StatusIndicator hover enhancement**: Added subtle scale animation (hover:scale-[1.01]/hover:scale-105) with 200ms transition for tactile feedback
+VH|- **Files modified**: components/ui/card.tsx, components/ui/badge.tsx, components/ui/status-indicator.tsx
+PT|- **PR**: #689
 
 ### 2026-02-25
 - **Card, Badge, StatusIndicator hover enhancement**: Added subtle scale animation (hover:scale-[1.01]/hover:scale-105) with 200ms transition for tactile feedback
