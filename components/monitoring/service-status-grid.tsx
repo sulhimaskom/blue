@@ -188,7 +188,7 @@ const ServiceCard = React.memo(function ServiceCardComponent({
             )}
           >
             <StatusIndicator
-              status={check.status as StatusType}
+              status={check.status}
               size="sm"
               showText={false}
               aria-label={`${check.service} service status: ${check.status}`}
@@ -212,7 +212,7 @@ const ServiceCard = React.memo(function ServiceCardComponent({
               </div>
             )}
             <StatusIndicator
-              status={check.status as StatusType}
+              status={check.status}
               size="sm"
               showIcon={false}
               aria-label={`Service status: ${check.status}`}
@@ -247,7 +247,7 @@ interface ServiceDetailPanelProps {
     name: string;
     label: string;
     value: string | number;
-    status?: string;
+    status?: StatusType | string;
   }>;
   /** Optional error message to display for failed services */
   error?: string;
@@ -284,8 +284,8 @@ const ServiceDetailPanel = React.memo(function ServiceDetailPanelComponent({
                 {detail.label}
               </span>
               {detail.status ? (
-                <StatusIndicator
-                  status={detail.status as StatusType}
+            <StatusIndicator
+              status={detail.status as StatusType}
                   size="sm"
                   showIcon={false}
                   className="px-2 py-1 rounded text-xs font-medium"

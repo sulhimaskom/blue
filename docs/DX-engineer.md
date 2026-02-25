@@ -82,6 +82,15 @@ All changes must pass:
 
 ## History
 
+### 2026-02-25: Remove Hardcoded Localhost Fallback
+
+- Fixed hardcoded `http://localhost:3000` fallback in `lib/env.ts` (line 59)
+- Fixed hardcoded fallback in `lib/services/openapi-generator.ts` (line 505)
+- Changed NEXT_PUBLIC_APP_URL from optional with default to required field
+- Now fails fast in production if environment variable is missing
+- PR: (to be created)
+- Result: Proper validation requires environment variable, no silent failures
+
 ### 2026-02-25: Security Vulnerability Fix
 
 - Fixed 2 security vulnerabilities (minimatch high, ajv moderate)
