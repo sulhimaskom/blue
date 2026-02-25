@@ -66,7 +66,7 @@ export function StatusIndicator({
       aria-live="polite"
       aria-label={`${config.text} status`}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border font-medium",
+        "inline-flex items-center gap-2 rounded-full border font-medium transition-all duration-200 hover:scale-105",
         getSizeClasses(size),
         config.color,
         className,
