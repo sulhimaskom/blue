@@ -87,6 +87,13 @@ export class StripePaymentService {
       );
     }
 
+    // Validate NEXT_PUBLIC_APP_URL for payment redirects
+    if (!process.env.NEXT_PUBLIC_APP_URL) {
+      throw new DatabaseError(
+        "NEXT_PUBLIC_APP_URL is not configured. Please set this environment variable for payment redirect URLs."
+      );
+    }
+
     try {
       this.stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
       this.initialized = true;
@@ -141,7 +148,7 @@ export class StripePaymentService {
             automatic_payment_methods: {
               enabled: true,
             },
-            return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/credits/success`,
+            return_url: `${process.env.NEXT_PUBLIC_APP_URL}/credits/success`,
           });
           return intent;
         },

@@ -657,35 +657,27 @@ describe("StripePaymentService - Critical Business Logic", () => {
       );
     });
 
-    test("should use default app URL when NEXT_PUBLIC_APP_URL is not set", () => {
+    test("should throw error when NEXT_PUBLIC_APP_URL is not set", async () => {
+      // Reset the singleton to test initialization with missing env var
+      (StripePaymentService as any).instance = null;
       delete process.env.NEXT_PUBLIC_APP_URL;
 
+      const newService = StripePaymentService.getInstance();
+      
       const request = {
         amount: 1000,
-        paymentMethodId: "pm_test_default_url",
+        paymentMethodId: "pm_test_no_url",
         userId: "123",
       };
 
       const context = {
-        requestId: "req_test_default_url",
+        requestId: "req_test_no_url",
         userId: "123",
         role: "user",
       };
 
-      mockStripe.paymentIntents.create.mockResolvedValue({
-        id: "pi_test_default_url",
-        client_secret: "secret",
-        status: "requires_action",
-        amount: 1000,
-        currency: "usd",
-      });
-
-      void service.createPaymentIntent(request, context);
-
-      expect(mockStripe.paymentIntents.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          return_url: "http://localhost:3000/credits/success",
-        }),
+      await expect(newService.createPaymentIntent(request, context)).rejects.toThrow(
+        "NEXT_PUBLIC_APP_URL is not configured"
       );
     });
   });
