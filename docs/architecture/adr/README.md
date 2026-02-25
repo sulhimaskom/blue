@@ -28,6 +28,11 @@ Each ADR follows the standard format:
 | [ADR-004](ADR-004-unified-caching-strategy.md)       | Unified Caching Strategy       | Accepted | 2026-02-25 |
 | [ADR-005](ADR-005-error-handling-standardization.md) | Error Handling Standardization | Accepted | 2026-02-25 |
 | [ADR-006](ADR-006-webhook-reliability-pattern.md)    | Webhook Reliability Pattern    | Accepted | 2026-02-25 |
+| [ADR-007](ADR-007-nextjs-app-router.md)              | Next.js App Router             | Accepted | 2026-02-25 |
+| [ADR-008](ADR-008-service-layer-pattern.md)         | Service Layer Pattern          | Accepted | 2026-02-25 |
+| [ADR-009](ADR-009-database-orm-choice.md)            | Database ORM Choice            | Accepted | 2026-02-25 |
+| [ADR-010](ADR-010-clerk-authentication.md)           | Clerk Authentication           | Accepted | 2026-02-25 |
+| [ADR-011](ADR-011-ai-integration.md)                 | AI Integration                 | Accepted | 2026-02-25 |
 
 ## Decision Categories
 
@@ -51,6 +56,14 @@ Each ADR follows the standard format:
 ### Developer Experience
 
 - **ADR-005**: Error Handling Standardization - Consistent error responses
+
+### Foundation/Tech Stack
+
+- **ADR-007**: Next.js App Router - React framework choice
+- **ADR-008**: Service Layer Pattern - Business logic organization
+- **ADR-009**: Database ORM Choice - Drizzle ORM selection
+- **ADR-010**: Clerk Authentication - User authentication
+- **ADR-011**: AI Integration - IFlow + Tavily integration
 
 ## Adding New ADRs
 
