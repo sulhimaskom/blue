@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useBlueprintValidation } from "@/lib/hooks/use-blueprint-validation";
 import { useBlueprintsData } from "@/lib/hooks/use-dashboard-data";
 import { ValidationError } from "@/lib/api-utils";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
+import { useAnalytics } from "@/lib/hooks/useAnalytics";
 
 const BlueprintCreateModal = lazy(() =>
   import("@/components/dashboard/blueprint-create-modal").then((m) => ({
@@ -43,6 +44,7 @@ interface Project {
 export default function BlueprintsPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const { pageView, trackButton } = useAnalytics();
 
   const { formData, validateForm, resetValidation } = useBlueprintValidation(
     {
@@ -63,6 +65,11 @@ export default function BlueprintsPage() {
     selectedProjectBlueprints,
     createBlueprint,
   } = useBlueprintsData();
+
+  // Track blueprints page view
+  useEffect(() => {
+    pageView({ path: '/dashboard/blueprints', title: 'Blueprints Management' });
+  }, [pageView]);
 
   const handleProjectSelect = (project: Project) => {
     setSelectedProject(project);
@@ -150,6 +157,7 @@ export default function BlueprintsPage() {
               selectedProject={selectedProject}
               onProjectSelect={handleProjectSelect}
               onCreateBlueprint={() => {
+                trackButton('create-blueprint', 'blueprints-project-list');
                 setShowCreateForm(true);
                 resetValidation();
               }}
@@ -159,7 +167,10 @@ export default function BlueprintsPage() {
             <BlueprintList
               selectedProject={selectedProject}
               blueprints={selectedProjectBlueprints}
-              onCreateBlueprint={() => setShowCreateForm(true)}
+              onCreateBlueprint={() => {
+                trackButton('create-blueprint', 'blueprints-list');
+                setShowCreateForm(true);
+              }}
             />
           </Suspense>
         </div>
