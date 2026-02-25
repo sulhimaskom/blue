@@ -65,7 +65,7 @@ export function ColorInput({
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
-            "flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors font-mono text-sm",
+            "flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors duration-200 hover:border-gray-400 font-mono text-sm",
             error
               ? "border-red-300 focus:ring-red-500 focus:border-red-500"
               : "border-gray-300 focus:ring-blue-500 focus:border-blue-500",
@@ -85,7 +85,7 @@ export function ColorInput({
           onChange={(e) => onChange?.(e.target.value)}
           disabled={disabled}
           className={cn(
-            "w-10 h-10 border border-gray-300 rounded cursor-pointer flex-shrink-0",
+            "w-10 h-10 border border-gray-300 rounded cursor-pointer flex-shrink-0 transition-all duration-200 hover:scale-105 hover:border-gray-400",
             disabled && "opacity-50 cursor-not-allowed",
           )}
           aria-label="Color picker"
