@@ -147,6 +147,7 @@ export function useAnalytics() {
 
       analytics.pageView({
         path: pathname,
+        title: document.title || '',
         referrer: document.referrer || undefined,
         utmSource,
         utmMedium,

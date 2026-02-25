@@ -114,17 +114,17 @@ export interface AnalyticsProvider {
   /**
    * Track an analytics event
    */
-  track(eventName: string, properties?: Record<string, unknown>): void;
+  track(_eventName: string, _properties?: Record<string, unknown>): void;
 
   /**
    * Identify a user
    */
-  identify(userId: string, traits?: Record<string, unknown>): void;
+  identify(_userId: string, _traits?: Record<string, unknown>): void;
 
   /**
    * Track a page view
    */
-  pageView(pagePath: string, pageTitle?: string): void;
+  pageView(_pagePath: string, _pageTitle?: string): void;
 
   /**
    * Reset/clear user identity (on logout)
