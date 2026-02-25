@@ -31,7 +31,17 @@
 - `/docs/AGENTS.md` - AI agent development rules
 
 ## Last Activity
-- Created: 2026-02-25
+QH|## Last Activity
+#PM- **Date**: 2026-02-25
+#PM- **Branch**: dev (documentation consistency fix)
+#PM- **Action**: Fixed package manager reference in blueprint.md (pnpm → npm)
+#PM- **Files Changed**: docs/architecture/blueprint.md (1 line)
+#PM- **Quality Gates**: ✅ Lint (0 warnings), ✅ Typecheck (0 errors), ✅ Tests (81/82 suites)
+#PM
+#PM## Key Learnings
+#PM- Package.json now uses npm@10.8.2 (PR #702)
+#PM- Found 1 documentation inconsistency: blueprint.md still showed pnpm
+#PM- Other docs (SDK_REFERENCE, API.md) correctly show npm as primary with yarn/pnpm as options for SDK users
 - Branch: technical-writer-1772008920
 
 ## Preferences

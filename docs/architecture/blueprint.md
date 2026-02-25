@@ -10,7 +10,7 @@
 | ------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | **Project Name**    | The Architect Platform                                                                                           |
 | **Description**     | AI-driven SaaS that creates comprehensive software blueprints and deploys repositories from simple user prompts. |
-| **Package Manager** | `pnpm`                                                                                                           |
+QJ|| **Package Manager** | `npm`
 | **Version**         | 1.0.0                                                                                                            |
 | **License**         | MIT                                                                                                              |
 
