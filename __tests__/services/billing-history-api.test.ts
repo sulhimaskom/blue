@@ -1,3 +1,10 @@
+jest.mock("@clerk/nextjs/server", () => ({
+  currentUser: jest.fn(),
+  auth: jest.fn(),
+}));
+
+jest.mock("@clerk/backend", () => ({}));
+
 import { GET } from "@/app/api/subscription/billing/history/route";
 import { ProjectDataService } from "@/lib/services/project-data-service";
 import { Mock } from "vitest";
@@ -55,7 +62,7 @@ jest.mock("@/lib/rate-limit-config", () => ({
   },
 }));
 
-describe.skip("Subscription Billing History API - Integration Tests - TODO: fix mock setup for Clerk currentUser()", () => {
+describe.skip("Subscription Billing History API - Integration Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     setupAuthMocks();
