@@ -1,5 +1,5 @@
-import React, { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import React, { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 export interface TableCellProps {
   children: ReactNode;
@@ -10,17 +10,13 @@ export interface TableCellProps {
 /**
  * Atomic table cell component for consistent data rendering
  */
-export const TableCell: React.FC<TableCellProps> = ({
-  children,
-  className,
-  nowrap = true,
-}) => {
+export const TableCell: React.FC<TableCellProps> = ({ children, className, nowrap = true }) => {
   return (
     <td
       className={cn(
-        "px-6 py-4 text-sm",
-        nowrap && "whitespace-nowrap",
-        className,
+        'px-6 py-4 text-sm transition-colors duration-200 hover:bg-gray-50',
+        nowrap && 'whitespace-nowrap',
+        className
       )}
     >
       {children}
@@ -28,4 +24,4 @@ export const TableCell: React.FC<TableCellProps> = ({
   );
 };
 
-TableCell.displayName = "TableCell";
+TableCell.displayName = 'TableCell';
