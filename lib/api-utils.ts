@@ -4,6 +4,10 @@ import { redisManager } from "./redis";
 import { Timing } from "./utils/time-measurement";
 import { logger } from "./logger";
 
+// =============================================================================
+// VALIDATION MIDDLEWARE
+// =============================================================================
+
 // Validation middleware factory
 export function validateRequest<T>(
   schema: ZodSchema<T>,
@@ -47,9 +51,6 @@ export function validateRequest<T>(
 }
 
 // User-friendly direct validation function
-// This addresses BUG-003: validateRequest function not exported correctly
-// The original factory pattern was confusing and led to "is not a function" errors
-// Usage: const result = await validateRequestData(req, schema, "body");
 export async function validateRequestData<T>(
   req: NextRequest,
   schema: ZodSchema<T>,
@@ -58,7 +59,10 @@ export async function validateRequestData<T>(
   return await validateRequest(schema, source)(req);
 }
 
-// Sanitization utilities
+// =============================================================================
+// SANITIZATION UTILITIES
+// =============================================================================
+
 export const sanitize = {
   // Remove HTML tags and normalize whitespace
   text: (input: string): string => {
@@ -84,8 +88,18 @@ export const sanitize = {
   },
 };
 
-// Distributed rate limiting check using Redis
-export function RateLimiter(maxRequests: number, windowMs: number) {
+// =============================================================================
+// RATE LIMITING
+// =============================================================================
+
+/**
+ * RateLimiter function with fail-closed support for critical endpoints
+ *
+ * @param maxRequests - Maximum requests allowed in the time window
+ * @param windowMs - Time window in milliseconds
+ * @param failClosed - If true, deny requests when Redis fails (for critical endpoints)
+ */
+export function RateLimiter(maxRequests: number, windowMs: number, failClosed: boolean = false) {
   return async (
     identifier: string,
   ): Promise<{ allowed: boolean; resetTime?: number }> => {
@@ -122,14 +136,25 @@ export function RateLimiter(maxRequests: number, windowMs: number) {
 
           return { allowed: true };
         },
-        // Fallback to in-memory if Redis is unavailable
+        // Fallback behavior based on failClosed parameter
         async () => {
-          logger.warn("Redis unavailable, using fallback rate limiting", {
-            component: "RateLimitMiddleware",
-            action: "redisFallback",
-          });
-          // Simple fallback that allows requests but logs the issue
-          return { allowed: true, resetTime };
+          if (failClosed) {
+            // Critical endpoints: fail-closed - deny requests when Redis unavailable
+            logger.error("Redis unavailable, failing closed for critical endpoint", {
+              component: "RateLimitMiddleware",
+              action: "redisUnavailableFailClosed",
+              failClosed: true,
+            });
+            return { allowed: false, resetTime };
+          } else {
+            // Non-critical endpoints: fail-open - allow with warning
+            logger.warn("Redis unavailable, using fallback rate limiting", {
+              component: "RateLimitMiddleware",
+              action: "redisFallback",
+              failClosed: false,
+            });
+            return { allowed: true, resetTime };
+          }
         },
       );
     } catch (error) {
@@ -138,11 +163,19 @@ export function RateLimiter(maxRequests: number, windowMs: number) {
         component: "RateLimitMiddleware",
         action: "rateLimitError",
       });
+      // Fail behavior based on failClosed parameter
+      if (failClosed) {
+        return { allowed: false, resetTime };
+      }
       // Fail open - allow the request but log the error
       return { allowed: true, resetTime };
     }
   };
 }
+
+// =============================================================================
+// CORS UTILITIES
+// =============================================================================
 
 // Environment-aware CORS origin validation
 export function getAllowedOrigin(requestedOrigin?: string): string {
@@ -210,7 +243,10 @@ export function createCorsResponse(
   return response;
 }
 
-// Centralized error handler
+// =============================================================================
+// ERROR CLASSES
+// =============================================================================
+
 export class ValidationError extends Error {
   constructor(
     message: string,
@@ -219,7 +255,6 @@ export class ValidationError extends Error {
     super(message);
     this.name = "ValidationError";
     Object.setPrototypeOf(this, ValidationError.prototype);
-    // Use statusCode in error handling
     void statusCode;
   }
 }
@@ -256,16 +291,17 @@ export class NotFoundError extends Error {
 }
 
 export class RateLimitError extends Error {
-  constructor(
-    message: string = "Rate limit exceeded",
-    // eslint-disable-next-line no-unused-vars
-    public resetTime?: number,
-  ) {
+  // eslint-disable-next-line no-unused-vars
+  constructor(message: string = "Rate limit exceeded", _resetTime?: number) {
     super(message);
     this.name = "RateLimitError";
     Object.setPrototypeOf(this, RateLimitError.prototype);
   }
 }
+
+// =============================================================================
+// RESPONSE FORMATTERS
+// =============================================================================
 
 // Error response formatter
 export function formatErrorResponse(error: Error): NextResponse {
@@ -300,9 +336,12 @@ export function formatErrorResponse(error: Error): NextResponse {
     status,
   );
 
-  if (error instanceof RateLimitError && error.resetTime) {
-    const retryAfterSeconds = Math.ceil((error.resetTime - Date.now()) / 1000);
-    response.headers.set("Retry-After", String(retryAfterSeconds));
+  if (error instanceof RateLimitError && "resetTime" in error) {
+    const resetTime = (error as any).resetTime;
+    if (resetTime) {
+      const retryAfterSeconds = Math.ceil((resetTime - Date.now()) / 1000);
+      response.headers.set("Retry-After", String(retryAfterSeconds));
+    }
   }
 
   return response;
@@ -319,6 +358,10 @@ export function formatSuccessResponse<T>(
     ...(message && { message }),
   });
 }
+
+// =============================================================================
+// RATE LIMITING MIDDLEWARE
+// =============================================================================
 
 // Unified rate limiting middleware function
 // Encapsulates rate limit checking and 429 response generation

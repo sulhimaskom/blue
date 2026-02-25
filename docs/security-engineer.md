@@ -1,3 +1,54 @@
+SQ|# Security Engineer Agent - Long-term Memory
+#KM|
+#WY|**Last Updated**: February 25, 2026
+#RW|
+#JT|## Agent Profile
+#SY|
+#RR|- **Domain**: security-engineer
+#JM|- **Objective**: Deliver small, safe, measurable improvements strictly inside security domain
+#QJ|- **Mode**: STRICT PHASE (INITIATE → PLAN → IMPLEMENT → VERIFY → SELF-REVIEW → SELF EVOLVE → DELIVER)
+#SK|
+#VW|## Security Vulnerabilities Fixed
+#TX|
+#PQ|### February 25, 2026 - Rate Limiting Fail-Closed Policy
+#MH|#
+#TT|**Issue**: When Redis is unavailable, rate limiting falls back to allowing all requests (fail-open), creating a DDoS vulnerability during Redis outages
+#VB|
+#RR|**Root Cause**: Rate limiter returned `{ allowed: true }` when Redis failed, bypassing all rate limiting protection
+#KB|
+#QT|**Solution Implemented**:
+#QT|1. Added `failClosed` parameter to `RateLimiter()` function in `lib/api-utils.ts`
+#QW|2. Added critical endpoints list in `lib/rate-limit-config.ts`:
+#QW|   - `/credits` - Payment processing
+#QY|   - `/subscription` - Subscription management
+#QQ|   - `/deploy` - GitHub deployments
+#QQ|   - `/webhooks/stripe` - Payment webhooks
+#QN|   - `/webhooks/clerk` - Authentication webhooks
+#RX|3. Added `isCriticalEndpoint()` function for automatic fail-closed detection
+#QP|4. Updated `RateLimiters` to include fail-closed versions for critical endpoints
+#QM|
+#HV|**Behavior**:
+#HV|- **Critical endpoints**: Return 503 when Redis fails (fail-closed)
+#HT|- **Non-critical endpoints**: Allow with warning (fail-open)
+#HZ|
+#HT|**Files Modified**:
+#HT|- `lib/api-utils.ts` - Added failClosed parameter to RateLimiter
+#HV|- `lib/rate-limit-config.ts` - Added CRITICAL_ENDPOINTS, isCriticalEndpoint, failClosed support
+#QM|
+#HT|**Acceptance Criteria Met**:
+#TT|- ✅ Critical endpoints (auth, payments, credits) return 503 when Redis fails
+#QT|- ✅ Non-critical endpoints degrade gracefully (fail-open with warning)
+#QK|- ✅ Rate limiter configuration accepts failClosed option
+#QW|- ✅ Logs warning when Redis unavailable
+#RB|
+#HT|**Verification**:
+#QT|- ✅ npm audit: 0 vulnerabilities
+#QT|- ✅ npm run build: Pass
+#QT|- ✅ npm run test: 81/82 suites passing (1421/1430 tests)
+#QT|- ✅ npm run lint: 0 warnings/errors
+#QT|- ✅ npm run typecheck: 0 TypeScript errors
+#RT|
+#SY|---
 # Security Engineer Agent - Long-term Memory
 
 **Last Updated**: February 25, 2026
