@@ -1,8 +1,9 @@
-import { webhookQueueService } from "@/lib/services/webhook-queue-service";
-import { APIRouteHandler } from "@/lib/services/api-route-handler";
-import { RateLimiters } from "@/lib/rate-limit-config";
-import { logger } from "@/lib/logger";
-import { AuthorizationError } from "@/lib/api-utils";
+import { z } from 'zod';
+import { webhookQueueService } from '@/lib/services/webhook-queue-service';
+import { APIRouteHandler } from '@/lib/services/api-route-handler';
+import { RateLimiters } from '@/lib/rate-limit-config';
+import { logger } from '@/lib/logger';
+import { AuthorizationError } from '@/lib/api-utils';
 
 /**
  * GET /api/webhooks/monitor
@@ -25,15 +26,13 @@ export const GET = APIRouteHandler.createGETHandler({
         },
         deadLetterQueue: {
           size: stats.deadLetterQueueSize,
-          events: deadLetterEvents.map((event) => ({
+          events: deadLetterEvents.map(event => ({
             id: event.id,
             serviceName: event.serviceName,
             eventType: event.eventType,
             attemptCount: event.attemptCount,
             createdAt: new Date(event.createdAt).toISOString(),
-            processedAt: event.processedAt
-              ? new Date(event.processedAt).toISOString()
-              : null,
+            processedAt: event.processedAt ? new Date(event.processedAt).toISOString() : null,
           })),
         },
       },
@@ -48,29 +47,28 @@ export const GET = APIRouteHandler.createGETHandler({
  *
  * SECURITY: Requires authenticated admin user
  */
-export const POST = APIRouteHandler.createPOSTHandler({
+export const POST = APIRouteHandler.createPOSTHandler<Record<string, never>>({
   requireAuth: true,
+  schema: z.object({}),
   rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
   handler: async ({ user, context }) => {
     if (!user?.isAdmin) {
-      logger.security("Unauthorized webhook queue retry attempt", {
+      logger.security('Unauthorized webhook queue retry attempt', {
         requestId: context.requestId,
         userId: user?.clerkId,
         isAdmin: user?.isAdmin,
       });
-      throw new AuthorizationError(
-        "Admin access required to retry dead letter queue events",
-      );
+      throw new AuthorizationError('Admin access required to retry dead letter queue events');
     }
 
-    logger.userAction("Dead letter queue retry", user.clerkId, {
+    logger.userAction('Dead letter queue retry', user.clerkId, {
       requestId: context.requestId,
       isAdmin: true,
     });
 
     const result = await webhookQueueService.retryDeadLetterEvents();
 
-    logger.systemEvent("Dead letter queue retry completed", {
+    logger.systemEvent('Dead letter queue retry completed', {
       retried: result.retried,
       failed: result.failed,
       adminUserId: user.clerkId,
