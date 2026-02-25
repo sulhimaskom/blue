@@ -31,6 +31,26 @@
 - `/docs/AGENTS.md` - AI agent development rules
 
 ## Last Activity
+
+- **Date**: 2026-02-25
+- **Branch**: technical-writer-adr-consolidation-1772051625
+- **Action**: Consolidated ADR documentation - moved 5 foundational ADRs from stale /docs/adrs/ to canonical /docs/architecture/adr/
+- **Files Changed**: 
+  - docs/architecture/adr/README.md (updated index + categories)
+  - docs/architecture/adr/ADR-007-nextjs-app-router.md (new)
+  - docs/architecture/adr/ADR-008-service-layer-pattern.md (new)
+  - docs/architecture/adr/ADR-009-database-orm-choice.md (new)
+  - docs/architecture/adr/ADR-010-clerk-authentication.md (new)
+  - docs/architecture/adr/ADR-011-ai-integration.md (new)
+  - docs/adrs/* (deleted - stale directory removed)
+- **Quality Gates**: ✅ Lint (0 warnings), ✅ Typecheck (0 errors)
+
+## Key Learnings
+
+- Found ADR duplication in two locations: /docs/architecture/adr/ (canonical) and /docs/adrs/ (stale)
+- Consolidated 5 foundational tech stack ADRs into canonical location
+- Canonical ADR location is /docs/architecture/adr/ with proper README index
+- All 11 ADRs now in single location with proper categorization
 QH|## Last Activity
 #PM- **Date**: 2026-02-25
 #PM- **Branch**: dev (documentation consistency fix)
