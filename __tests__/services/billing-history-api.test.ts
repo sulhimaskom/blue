@@ -55,7 +55,7 @@ jest.mock("@/lib/rate-limit-config", () => ({
   },
 }));
 
-describe.skip("Subscription Billing History API - Integration Tests - TODO: fix mock setup for UserService", () => {
+describe.skip("Subscription Billing History API - Integration Tests - TODO: fix mock setup for Clerk currentUser()", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     setupAuthMocks();
