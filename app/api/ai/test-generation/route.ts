@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { APIRouteHandler } from '@/lib/services/api-route-handler';
 import { RateLimiters } from '@/lib/rate-limit-config';
 import { AITestGeneratorService } from '@/lib/services/ai-test-generator-service';
+import { ValidationError } from '@/lib/api-utils';
 
 // Request validation schema
 const generateTestSchema = z.object({
@@ -40,7 +41,7 @@ export const POST = APIRouteHandler.createPOSTHandler<z.infer<typeof generateTes
   rateLimiter: RateLimiters.moderate(),
   handler: async ({ data }) => {
     if (!data) {
-      throw new Error('Request body is required');
+      throw new ValidationError('Request body is required');
     }
 
     const generator = getTestGeneratorService();
