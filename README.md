@@ -590,9 +590,9 @@ architect-platform/
 | `npm run db:push`                | Push schema changes without migration         |
 | `npm run db:rollback`            | Rollback database migrations                  |
 | `npm run db:status`              | Check migration status                        |
-| `npm run infrastructure:check`   | Check infrastructure health                   |
-| `npm run infrastructure:recover` | Auto-recover from infrastructure issues       |
-| `npm run infrastructure:report`  | Generate infrastructure health report         |
+
+
+
 
 ---
 
