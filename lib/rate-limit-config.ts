@@ -153,6 +153,35 @@ export const ENDPOINT_RATE_LIMITS: Record<string, RateLimitCategory> = {
 };
 
 // =============================================================================
+// CRITICAL ENDPOINTS - FAIL-CLOSED WHEN REDIS UNAVAILABLE
+// =============================================================================
+
+/**
+ * Critical endpoints that should fail-closed when Redis is unavailable
+ * These endpoints handle sensitive operations: payments, authentication, deployments
+ * When Redis fails, these endpoints return 503 instead of allowing unlimited access
+ */
+export const CRITICAL_ENDPOINTS: string[] = [
+  "/credits", // Payment processing
+  "/subscription", // Subscription management
+  "/deploy", // GitHub deployments
+  "/webhooks/stripe", // Payment webhooks
+  "/webhooks/clerk", // Authentication webhooks
+];
+
+/**
+ * Check if an endpoint is critical (should fail-closed)
+ *
+ * @param endpoint - The endpoint path to check
+ * @returns true if the endpoint is critical
+ */
+export function isCriticalEndpoint(endpoint: string): boolean {
+  return CRITICAL_ENDPOINTS.some(
+    (critical) => endpoint.includes(critical) || endpoint.startsWith(critical)
+  );
+}
+
+// =============================================================================
 // RATE LIMITER FACTORY
 // =============================================================================
 
@@ -161,17 +190,19 @@ export const ENDPOINT_RATE_LIMITS: Record<string, RateLimitCategory> = {
  *
  * @param category - Rate limit category
  * @param subscriptionTier - User's subscription tier (optional)
+ * @param failClosed - If true, deny requests when Redis fails (for critical endpoints)
  * @returns Configured rate limiter function
  */
 export function getRateLimiter(
   category: RateLimitCategory,
   subscriptionTier: string = "free",
+  failClosed: boolean = false,
 ) {
   const policy = RATE_LIMIT_POLICIES[category];
   const multiplier = TIER_MULTIPLIERS[subscriptionTier] || 1;
   const adjustedMaxRequests = policy.maxRequests * multiplier;
 
-  return RateLimiter(adjustedMaxRequests, policy.windowMs);
+  return RateLimiter(adjustedMaxRequests, policy.windowMs, failClosed);
 }
 
 /**
@@ -179,14 +210,18 @@ export function getRateLimiter(
  *
  * @param endpoint - API endpoint (e.g., "POST /blueprints")
  * @param subscriptionTier - User's subscription tier (optional)
+ * @param failClosed - Override automatic critical endpoint detection
  * @returns Configured rate limiter function
  */
 export function getEndpointRateLimiter(
   endpoint: string,
   subscriptionTier: string = "free",
+  failClosed?: boolean,
 ) {
   const category = ENDPOINT_RATE_LIMITS[endpoint] || "standard";
-  return getRateLimiter(category, subscriptionTier);
+  // Auto-detect failClosed based on endpoint criticality if not explicitly set
+  const shouldFailClosed = failClosed ?? isCriticalEndpoint(endpoint);
+  return getRateLimiter(category, subscriptionTier, shouldFailClosed);
 }
 
 // =============================================================================
@@ -195,6 +230,7 @@ export function getEndpointRateLimiter(
 
 /**
  * Pre-configured rate limiters for common categories
+ * Includes fail-closed versions for critical endpoints
  */
 export const RateLimiters = {
   strict: () => getRateLimiter("strict"),
@@ -203,15 +239,19 @@ export const RateLimiters = {
   permissive: () => getRateLimiter("permissive"),
   webhook: () => getRateLimiter("webhook"),
 
+  // Fail-closed versions for critical endpoints
+  strictFailClosed: () => getRateLimiter("strict", "free", true),
+  moderateFailClosed: () => getRateLimiter("moderate", "free", true),
+
   // Tier-aware rate limiters - accepts subscription tier parameter
-  forTier: (tier: string = "free", category: RateLimitCategory = "standard") => 
+  forTier: (tier: string = "free", category: RateLimitCategory = "standard") =>
     getRateLimiter(category, tier),
 
   // Endpoint-specific limiters (free tier defaults)
   blueprintsPost: () => getRateLimiter("strict"),
   blueprintsGet: () => getRateLimiter("standard"),
-  deployPost: () => getRateLimiter("strict"),
-  creditsPost: () => getRateLimiter("moderate"),
+  deployPost: () => getRateLimiter("strict", "free", true), // Critical - fail-closed
+  creditsPost: () => getRateLimiter("moderate", "free", true), // Critical - fail-closed
   creditsGet: () => getRateLimiter("standard"),
   themesPost: () => getRateLimiter("moderate"),
   themesGet: () => getRateLimiter("standard"),
