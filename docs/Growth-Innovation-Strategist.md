@@ -79,6 +79,20 @@ Growth-Innovation-Strategist owns:
 
 ## Implementation Log
 
+### 2026-02-25 - Dashboard and Blueprints Analytics Re-implemented
+- **Issue Found**: PR #704 was reverted due to Next.js 15 useSearchParams() build failures
+- **Solution**: Used analytics service directly instead of useAnalytics hook to avoid Suspense boundary requirements
+- **Files Modified**:
+  - `app/dashboard/page.tsx` - Added button click tracking for `view-all-activity`
+  - `app/dashboard/blueprints/page.tsx` - Added button click tracking for `create-blueprint`
+- **Impact**: Now can measure:
+  - Dashboard activity feed clicks
+  - Blueprint creation from both project list and blueprint list
+
+---
+
+### 2026-02-25 - Analytics Instrumentation Complete (PR #704)
+
 ### 2026-02-25 - Analytics Instrumentation Complete (PR #704)
 - **Issue Found**: Analytics infrastructure existed but was NOT being used anywhere
 - **Solution**: Instrumented key pages with tracking hooks
@@ -128,6 +142,14 @@ Growth-Innovation-Strategist owns:
 - **Impact:** Enables funnel analysis and conversion optimization
 
 **Pages to Instrument Next:**
+1. ~~Credits page~~ - track credit purchases ✅ (Already done)
+2. ~~Subscription page~~ - track upgrade attempts ✅ (Already done)
+3. Settings page - track preference changes
+4. Project pages - track project creation/deployment
+
+**Pages Completed in This Session:**
+- Dashboard page - track activity feed clicks ✅
+- Blueprints page - track create blueprint clicks ✅
 1. Credits page - track credit purchases
 2. Subscription page - track upgrade attempts
 3. Settings page - track preference changes
