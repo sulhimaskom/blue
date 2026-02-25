@@ -81,4 +81,18 @@
 
 ---
 
+## PRs Created
+
+| PR | Date | Description |
+|----|------|-------------|
+| #685 | 2026-02-25 | Fix prompt README file references, add ai-agent-engineer.md memory |
+
+*Last Updated: 2026-02-25*
+
+1. Monitor Issue #609 for resolution
+2. Re-enable analyzer workflow when service restores
+3. Add ai-agent-engineer label to relevant issues/PRs
+
+---
+
 *Last Updated: 2026-02-25*
