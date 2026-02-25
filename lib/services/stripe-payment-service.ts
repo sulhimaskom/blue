@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { env } from "@/lib/env";
 import { retryService, RETRY_CONFIGS } from "./retry-service";
 import type { RequestContext } from "@/lib/services/user-service";
 import { DatabaseError, ValidationError } from "@/lib/api-utils";
@@ -141,7 +142,7 @@ export class StripePaymentService {
             automatic_payment_methods: {
               enabled: true,
             },
-            return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/credits/success`,
+            return_url: `${env.NEXT_PUBLIC_APP_URL}/credits/success`,
           });
           return intent;
         },

@@ -15,6 +15,7 @@
 
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import { ServiceError } from "./service-error-handler";
 
 // =============================================================================
 // OPENAPI SPECIFICATION STRUCTURE
@@ -415,6 +416,12 @@ export class OpenAPIGenerator {
       const yaml = require("js-yaml");
       return yaml.dump(this.generate(), { indent: 2 });
     } catch (error) {
+      throw ServiceError.validation(
+        "js-yaml package not installed. Install it to export YAML.",
+        "openapi-generator",
+        "toYAML",
+        { operation: "export-yaml", hint: "Run: npm install js-yaml" }
+      );
       throw new Error(
         "js-yaml package not installed. Install it to export YAML.",
       );
@@ -498,7 +505,7 @@ export function getOpenAPIGenerator(): OpenAPIGenerator {
     openAPIGeneratorInstance = new OpenAPIGenerator({
       title: "Architect Platform API",
       version: env.NPM_PACKAGE_VERSION || "1.0.0",
-      baseUrl: env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+      baseUrl: env.NEXT_PUBLIC_APP_URL,
     });
   }
   return openAPIGeneratorInstance;
