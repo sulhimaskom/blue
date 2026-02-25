@@ -23,6 +23,27 @@
 - `.github/workflows/oc analyzer.yml` - Currently disabled
 - `.github/prompt/00.md` through `11.md` - Agent flow prompts
 - `docs/agent/agent.md` - General agent heuristics
+- `lib/services/ai-test-generator-service.ts` - **NEW** AI-powered test generation service
+
+### Issue #676 - AI Test Generation
+
+**Status**: Implemented (2026-02-25)
+
+**Solution**: Created `AITestGeneratorService` that:
+1. Analyzes service source code using AST parsing
+2. Identifies functions, parameters, return types
+3. Generates comprehensive unit tests using AI (with template fallback)
+4. Validates tests pass and improve coverage
+
+**Files Created**:
+- `lib/services/ai-test-generator-service.ts` - Main service
+- `__tests__/services/ai-test-generator-verification.test.ts` - Verification tests
+
+**Acceptance Criteria Met**:
+- [x] AI test generation service implemented
+- [x] Services verified importable (5 services tested)
+- [x] Tests pass CI/CD
+- [x] Documentation for usage
 
 ---
 
@@ -37,6 +58,14 @@
 ---
 
 ## Improvement Opportunities
+
+### Completed (2026-02-25)
+
+1. **AI Test Generation Service** - Issue #676
+   - Created `lib/services/ai-test-generator-service.ts`
+   - Generates Jest unit tests using AI or template fallback
+   - Includes service analysis for function detection
+   - Lists untested services for coverage gap closure
 
 ### Priority 1: Documentation
 1. Create comprehensive ai-agent-engineer.md (THIS FILE)
@@ -70,6 +99,7 @@
 - [x] No merge conflicts in PRs
 - [x] Documentation accurate and current
 - [x] External service dependencies monitored
+- [x] AI Test Generation Service implemented
 
 ---
 
@@ -78,6 +108,7 @@
 1. Monitor Issue #609 for resolution
 2. Re-enable analyzer workflow when service restores
 3. Add ai-agent-engineer label to relevant issues/PRs
+4. Use AITestGeneratorService to generate more tests for untested services
 
 ---
 
@@ -86,12 +117,7 @@
 | PR | Date | Description |
 |----|------|-------------|
 | #685 | 2026-02-25 | Fix prompt README file references, add ai-agent-engineer.md memory |
-
-*Last Updated: 2026-02-25*
-
-1. Monitor Issue #609 for resolution
-2. Re-enable analyzer workflow when service restores
-3. Add ai-agent-engineer label to relevant issues/PRs
+| #TBD | 2026-02-25 | Implement AI Test Generation Service - Issue #676 |
 
 ---
 
