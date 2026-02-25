@@ -27,6 +27,7 @@ import {
   defaultAnalyticsConfig,
   getEventCategory,
 } from '@/lib/types/analytics';
+import { logger } from '@/lib/logger';
 
 /**
  * Generate a simple UUID-like string
@@ -52,25 +53,25 @@ class ConsoleAnalyticsProvider implements AnalyticsProvider {
 
   track(eventName: string, properties?: Record<string, unknown>): void {
     if (this.debug) {
-      console.log(`[Analytics] Track: ${eventName}`, properties);
+      logger.debug(`[Analytics] Track: ${eventName}`, { properties });
     }
   }
 
   identify(userId: string, traits?: Record<string, unknown>): void {
     if (this.debug) {
-      console.log(`[Analytics] Identify: ${userId}`, traits);
+      logger.debug(`[Analytics] Identify: ${userId}`, { traits });
     }
   }
 
   pageView(pagePath: string, pageTitle?: string): void {
     if (this.debug) {
-      console.log(`[Analytics] PageView: ${pagePath} - ${pageTitle}`);
+      logger.debug(`[Analytics] PageView: ${pagePath} - ${pageTitle}`);
     }
   }
 
   reset(): void {
     if (this.debug) {
-      console.log(`[Analytics] Reset`);
+      logger.debug('[Analytics] Reset');
     }
   }
 }
