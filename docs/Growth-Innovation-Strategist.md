@@ -26,12 +26,12 @@ Growth-Innovation-Strategist owns:
 - Advanced performance monitoring (6+ services, real-time + predictive)
 - Subscription/payment system (Stripe integration, credit system)
 - Notification system (multiple notification types)
+- Analytics instrumentation in UI (credits & subscription pages)
 
 **❌ Critical Gaps Identified:**
 
 | Gap | Risk Level | Impact |
 |-----|------------|--------|
-| No analytics instrumentation in UI | CRITICAL | Cannot measure any growth |
 | No A/B testing infrastructure | HIGH | Cannot run experiments |
 | No onboarding flows | HIGH | Poor first-time user experience |
 | No feature discovery mechanisms | MEDIUM | Low feature adoption |
@@ -46,12 +46,12 @@ Growth-Innovation-Strategist owns:
 1. **Event Tracking Hook** - ✅ COMPLETED (PR #692)
    - Created `lib/hooks/useAnalytics.ts`
    - Standardized event naming: `button_click`, `blueprint_created`, `signup_completed`
-   - Support: track(), identify(), pageView()
+   - Support: track(), identify(), pageView(), trackButton(), trackConversion()
 
-2. **Analytics Usage** - ✅ COMPLETED (PR #704)
-   - Instrumented dashboard page with page view tracking
-   - Instrumented blueprints page with page view tracking
-   - Added button click tracking for key interactions
+2. **Revenue Analytics** - ✅ COMPLETED (This Implementation)
+   - Instrumented credits page with purchase tracking
+   - Instrumented subscription dashboard with upgrade tracking
+   - Added conversion funnel tracking for revenue events
 
 3. **Select Analytics Platform**
    - PostHog (recommended - open source, self-hosted option)
@@ -79,23 +79,36 @@ Growth-Innovation-Strategist owns:
 
 ## Implementation Log
 
-### 2026-02-25 - Analytics Instrumentation Complete (PR #704)
-- **Issue Found**: Analytics infrastructure existed but was NOT being used anywhere
-- **Solution**: Instrumented key pages with tracking hooks
+### 2026-02-25 - Revenue Analytics Instrumentation (THIS PR)
+- **Issue Found**: Analytics infrastructure existed but was NOT being used anywhere in UI
+- **Solution**: Instrumented revenue-critical pages with conversion tracking
 - **Files Modified**:
-  - `app/dashboard/page.tsx` - Added page view + button click tracking
-  - `app/dashboard/blueprints/page.tsx` - Added page view + button click tracking
+  - `app/dashboard/credits/page.tsx` - Added full purchase funnel tracking
+  - `components/dashboard/usage/subscription-dashboard.tsx` - Added upgrade tracking
 
-**Impact**: Now can measure:
-- Dashboard page views
-- Activity feed engagement
-- Blueprint creation attempts
-- Navigation patterns
+**Events Tracked Now:**
+- Credit purchases:
+  - `select-package-{credits}` - Package selection (button click)
+  - `credit_purchase_attempt` - Purchase modal opened
+  - `credit_purchase_success` - Purchase completed
+  - `credit_purchase_failed` - Purchase failed
+- Subscription upgrades:
+  - `upgrade-to-pro` / `upgrade-to-enterprise` - Upgrade button clicks
+  - `subscription_upgrade_attempt` - Upgrade flow started
+  - `subscription_upgrade_initiated` - Redirect to Stripe
+  - `subscription_upgrade_failed` - Upgrade failed
 
-** TrWhat'sacked Now**:
-- `/dashboard` page views
-- `/dashboard/blueprints` page views
-- Button clicks: `view-all-activity`, `create-blueprint`
+**Impact**: Can now measure:
+- Credit purchase conversion rate
+- Package popularity (which packages are selected)
+- Subscription upgrade funnel
+- Failed purchase/upgrade reasons
+
+**Business Value**: Revenue-related analytics enable:
+- A/B test pricing packages
+- Optimize credit packages for conversion
+- Identify upgrade friction points
+- Calculate LTV from credit purchases
 
 ---
 
@@ -109,7 +122,6 @@ Growth-Innovation-Strategist owns:
 - Created `lib/types/analytics.ts` - Event type definitions and interfaces
 - Created `lib/services/analytics-service.ts` - Analytics service with providers
 - Created `lib/hooks/useAnalytics.ts` - React hooks for client-side tracking
-- Created `docs/Growth-Innovation-Strategist.md` - Agent long-term memory
 
 **Impact**: Foundation for measuring all growth initiatives
 - Can now track: button clicks, blueprint events, conversion funnels
@@ -128,9 +140,9 @@ Growth-Innovation-Strategist owns:
 - **Impact:** Enables funnel analysis and conversion optimization
 
 **Pages to Instrument Next:**
-1. Credits page - track credit purchases
-2. Subscription page - track upgrade attempts
+1. ~~Credits page - track credit purchases~~ ✅ DONE
+2. ~~Subscription page - track upgrade attempts~~ ✅ DONE
 3. Settings page - track preference changes
 4. Project pages - track project creation/deployment
 
-This continues the instrumentation work from PR #704, building a complete picture of user behavior.
+This continues the instrumentation work, building a complete picture of user behavior.

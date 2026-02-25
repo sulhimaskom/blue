@@ -20,6 +20,7 @@ import {
   CrownIcon,
   StarIcon
 } from "@/components/ui/icons";
+import { useAnalytics } from "@/lib/hooks/useAnalytics";
 
 interface SubscriptionTier {
   tier: string;
@@ -78,6 +79,9 @@ export function SubscriptionDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Analytics tracking
+  const { trackButton, trackConversion, trackError } = useAnalytics();
+
   useEffect(() => {
     fetchSubscriptionData();
   }, []);
@@ -101,6 +105,17 @@ export function SubscriptionDashboard() {
   };
 
   const handleUpgrade = async (tier: string) => {
+    // Track upgrade attempt
+    trackButton(`upgrade-to-${tier}`, "subscription-dashboard", {
+      currentTier: subscription?.tier,
+      targetTier: tier,
+    });
+
+    trackConversion("subscription_upgrade_attempt", {
+      currentTier: subscription?.tier,
+      targetTier: tier,
+    });
+
     try {
       const response = await fetch("/api/subscription/upgrade", {
         method: "POST",
@@ -119,9 +134,27 @@ export function SubscriptionDashboard() {
 
       const data = await response.json();
       
+      // Track successful upgrade initiation (redirect to Stripe)
+      trackConversion("subscription_upgrade_initiated", {
+        currentTier: subscription?.tier,
+        targetTier: tier,
+      });
+      
       // Redirect to Stripe checkout
       window.location.href = data.checkoutUrl;
     } catch (err) {
+      // Track upgrade failure
+      trackConversion("subscription_upgrade_failed", {
+        currentTier: subscription?.tier,
+        targetTier: tier,
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
+      
+      trackError("subscription_upgrade_error", {
+        tier,
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
+      
       setError(err instanceof Error ? err.message : "Upgrade failed");
     }
   };

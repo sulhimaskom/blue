@@ -8,12 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useCreditsData } from "@/lib/hooks/use-dashboard-data";
 import { PRICING_PACKAGES } from "@/lib/constants";
+import { useAnalytics } from "@/lib/hooks/useAnalytics";
 
 export default function CreditsPage() {
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<
     (typeof PRICING_PACKAGES)[number] | null
   >(null);
+
+  // Analytics tracking
+  const { trackButton, trackConversion } = useAnalytics();
 
   const {
     data: creditsData,
@@ -27,6 +31,13 @@ export default function CreditsPage() {
   const handlePurchase = async (
     packageData: (typeof PRICING_PACKAGES)[number],
   ) => {
+    // Track package selection
+    trackButton(
+      `select-package-${packageData.credits}`,
+      "credits-pricing",
+      { credits: packageData.credits, price: packageData.price }
+    );
+    
     setSelectedPackage(packageData);
     setPurchaseModalOpen(true);
   };
@@ -39,11 +50,31 @@ export default function CreditsPage() {
       const priceString = selectedPackage.price.replace(/[^0-9.]/g, "");
       const amount = Math.round(parseFloat(priceString) * 100);
 
+      // Track purchase attempt
+      trackConversion("credit_purchase_attempt", {
+        credits: selectedPackage.credits,
+        amount: amount,
+        packageId: selectedPackage.credits,
+      });
+
       await purchaseCredits(amount, "mock_payment_method", true);
+
+      // Track successful purchase
+      trackConversion("credit_purchase_success", {
+        credits: selectedPackage.credits,
+        amount: amount,
+        packageId: selectedPackage.credits,
+      });
 
       setPurchaseModalOpen(false);
       setSelectedPackage(null);
     } catch (err) {
+      // Track purchase failure
+      trackConversion("credit_purchase_failed", {
+        credits: selectedPackage?.credits,
+        amount: selectedPackage ? Math.round(parseFloat(selectedPackage.price.replace(/[^0-9.]/g, "")) * 100) : 0,
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
       // Error is handled by the hook
     }
   };
