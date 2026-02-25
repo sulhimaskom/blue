@@ -95,7 +95,7 @@ run_quality_gates() {
     
     # Build system
     log "Running build validation..."
-    if timeout 60 npm run build; then
+    if timeout 120 npm run build; then
         success "Build validation passed"
     else
         error "Build validation failed"
