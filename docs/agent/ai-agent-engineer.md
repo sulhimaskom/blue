@@ -1,3 +1,23 @@
+### Issue #715 - Intelligent Test Generation API
+
+**Status**: Implemented (2026-02-25)
+
+**Solution**: Added API endpoints to expose `AITestGeneratorService`:
+- `POST /api/ai/test-generation` - Generate tests for a service
+- `GET /api/ai/test-generation` - List untested services
+
+**Files Created**:
+- `app/api/ai/test-generation/route.ts` - API endpoints
+
+**Acceptance Criteria Met**:
+- [x] POST endpoint generates tests for services
+- [x] GET endpoint lists untested services
+- [x] Proper rate limiting configured (moderate for POST, standard for GET)
+- [x] Authentication required for both endpoints
+- [x] Follows existing API patterns
+
+---
+
 # AI Agent Engineer - Long-term Memory
 
 > **Domain**: ai-agent-engineer  
@@ -113,6 +133,13 @@
 ---
 
 ## PRs Created
+
+|| PR | Date | Description |
+||---|------|-------------|
+|| #730 | 2026-02-25 | Add API endpoint for AI test generation service |
+|| #685 | 2026-02-25 | Fix prompt README file references, add ai-agent-engineer.md memory |
+|| #721 | 2026-02-25 | Add tests for ai-cache-optimization-service.ts - 32 new tests |
+|| #706 | 2026-02-25 | Implement AI Test Generation Service - Issue #676 |
 
 | PR | Date | Description |
 |---|------|-------------|
