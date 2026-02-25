@@ -38,14 +38,10 @@ cd blue
 
 ### Step 2: Install Dependencies
 
-> **pnpm** is the recommended package manager (specified in blueprint.md)
+SZ|> **npm** is the required package manager (specified in package.json)
 
 ```bash
-# Install pnpm if not present
-npm install -g pnpm
-
-# Install project dependencies
-pnpm install
+npm install
 ```
 
 ### Step 3: Environment Configuration
@@ -117,13 +113,13 @@ Generate and run database migrations with Drizzle ORM:
 
 ```bash
 # Generate database schema
-pnpm run db:generate
+npm run db:generate
 
 # Run migrations to create tables
-pnpm run db:migrate
+npm run db:migrate
 
 # (Optional) Optimize database for production
-pnpm run optimize-db
+npm run optimize-db
 ```
 
 **Database Schema Created:**
@@ -163,7 +159,7 @@ REDIS_URL=redis://localhost:6379
 
 ```bash
 # Start development server
-pnpm run dev
+npm run dev
 
 # Verify health endpoint
 curl http://localhost:3000/api/health
@@ -176,10 +172,10 @@ curl http://localhost:3000/api/health?detailed=true
 
 ```bash
 # Build production application
-pnpm run build
+npm run build
 
 # Verify build success
-pnpm run start
+npm run start
 ```
 
 ---
@@ -217,7 +213,7 @@ vercel --prod
 1. **Build Settings:**
 
 ```
-Build command: pnpm run build
+Build command: npm run build
 Publish directory: .next
 ```
 
@@ -244,7 +240,7 @@ services:
     github:
       repo: your-org/architect-platform
       branch: main
-    run_command: pnpm start
+    run_command: npm start
     environment_slug: node-js
     instance_count: 1
     instance_size_slug: basic-xxs
@@ -292,7 +288,7 @@ GET https://your-domain.com/api/circuit-breakers/metrics
 
 ```bash
 # Database optimization (run periodically)
-pnpm run optimize-db
+npm run optimize-db
 
 # Monitor cache performance
 curl https://your-domain.com/api/cache/metrics
@@ -379,7 +375,7 @@ All logs use structured JSON format with correlation IDs:
 | **Redis Not Available**        | Slow responses, cache warnings | Configure `REDIS_URL`, check Redis service                |
 | **AI Service Unavailable**     | Blueprint generation failures  | Check IFlow/Tavily API keys, check circuit breakers       |
 | **Authentication Issues**      | 401 errors                     | Verify Clerk configuration, check JWT tokens              |
-| **Build Failures**             | Deployment errors              | Run `pnpm run build` locally, check environment variables |
+| **Build Failures**             | Deployment errors              | Run `npm run build` locally, check environment variables |
 
 ### Debugging Commands
 
@@ -404,7 +400,7 @@ curl -X POST https://your-domain.com/api/blueprints \
 
 ```bash
 # Database optimization
-pnpm run optimize-db
+npm run optimize-db
 
 # Cache performance check
 curl https://your-domain.com/api/cache/enhanced-metrics
