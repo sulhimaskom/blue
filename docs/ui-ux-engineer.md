@@ -34,6 +34,15 @@ Specialist focused on delivering small, safe, measurable UI/UX improvements.
 ## History of Changes
 
 ### 2026-02-25
+- **MetricCard hover enhancement**: Added subtle scale animation (hover:scale-[1.02]) with 200ms transition for tactile feedback
+- **Files modified**: components/ui/metric-card.tsx
+
+### 2026-02-25
+- **GradientCard hover enhancement**: Added subtle scale animation (hover:scale-[1.02]) with 200ms transition and shadow for interactive feedback
+- **Files modified**: components/ui/gradient-card.tsx
+
+
+### 2026-02-25
 - **Form input hover enhancement**: Added subtle hover transitions (transition-colors duration-200 hover:border-gray-400) to Input, Textarea, Select components
 - **Files modified**: components/ui/form-field.tsx (Input, Textarea, Select)
 

@@ -23,7 +23,7 @@ export const GradientCard: React.FC<GradientCardProps> = ({
   variant = "blue",
   padding = "lg",
 }) => {
-  const baseClasses = "text-center rounded-xl border";
+  const baseClasses = "text-center rounded-xl border transition-all duration-200 hover:shadow-md hover:scale-[1.02]";
 
   const variantClasses = GRADIENT_THEMES;
 
