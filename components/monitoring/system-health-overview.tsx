@@ -4,7 +4,6 @@ import React, { useMemo } from "react";
 import { ServerIcon } from "@/components/ui/icons";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { BaseCard } from "@/components/ui/base-card";
-import type { StatusType } from "@/lib/services/service-types";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { UI_TEXT } from "@/lib/constants/ui-text";
 import {
@@ -341,7 +340,7 @@ export const SystemHealthOverview = React.memo(
             {UI_TEXT.monitoring.systemHealth}
           </h2>
           <div className="ml-auto">
-            <StatusIndicator status={health.status as StatusType} size="md" />
+            <StatusIndicator status={health.status} size="md" />
           </div>
         </div>
 
