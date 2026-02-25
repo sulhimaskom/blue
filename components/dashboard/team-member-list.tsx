@@ -100,7 +100,7 @@ export const TeamMemberList = React.memo(
                 <select
                   id="role"
                   value={role}
-                  onChange={(e) => setRole(e.target.value as any)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRole(e.target.value as "admin" | "member" | "viewer")}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 >
                   <option value="member">Member</option>
