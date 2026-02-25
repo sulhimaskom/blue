@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   credits: integer("credits").default(0).notNull(),
   subscriptionTier: text("subscription_tier").default("free").notNull(),
+  isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
   deletedAt: timestamp("deleted_at"),

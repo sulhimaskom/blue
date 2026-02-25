@@ -84,7 +84,9 @@ export class UserService {
         throw new AuthenticationError("User not found");
       }
 
-      const isAdmin = userRecord.subscriptionTier === "enterprise" || userRecord.subscriptionTier === "admin";
+      // Use dedicated isAdmin field for authorization (SEC-003)
+      // Admin status is now independent of subscription tier
+      const isAdmin = userRecord.isAdmin ?? false;
       const customerId = isAdmin ? userRecord.email.split("@")[0] : undefined;
 
       return {
@@ -189,7 +191,9 @@ export class UserService {
         );
       }
 
-      const isAdmin = updatedUser.subscriptionTier === "enterprise" || updatedUser.subscriptionTier === "admin";
+      // Use dedicated isAdmin field for authorization (SEC-003)
+      // Admin status is now independent of subscription tier
+      const isAdmin = updatedUser.isAdmin ?? false;
       const customerId = isAdmin ? updatedUser.email.split("@")[0] : undefined;
 
       return {

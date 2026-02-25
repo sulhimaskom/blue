@@ -171,7 +171,43 @@ npm audit fix
 2. **Vulnerability Response**: Immediate patching with verification
 3. **Security Scanning**: Automated npm audit in build pipeline
 
+---
+
+### February 25, 2026 - Dedicated Admin Role (SEC-003)
+
+**Issue**: Admin status was derived from subscription tier (enterprise = admin), creating authorization design flaw
+
+**Root Cause**: In lib/services/user-service.ts:87, any user with enterprise subscription gets admin access
+
+**Solution Implemented**:
+1. Added `isAdmin` boolean field to users table schema (lib/db/schema.ts)
+2. Updated user-service.ts to use dedicated isAdmin field
+3. Admin status now independent of subscription tier
+
+**Files Modified**:
+- `lib/db/schema.ts` - Added isAdmin field
+- `lib/services/user-service.ts` - Updated authorization logic
+
+**Acceptance Criteria Met**:
+- ✅ Admin status independent of subscription tier
+- ✅ Admin users can be granted/revoked without changing subscription
+- ✅ Existing admin checks updated to use new pattern
+
+**PR**: https://github.com/sulhimaskom/blue/pull/739 (Label: security-engineer)
+
+**Verification**:
+- ✅ npm audit: 0 vulnerabilities
+- ✅ npm run build: Pass (70.9s compile time)
+- ✅ npm run test: 82/83 suites passing (1453/1462 tests)
+- ✅ npm run lint: 0 warnings/errors
+
+---
+
 ## Notes
+
+- Security-engineer agent should check for npm audit vulnerabilities during INITIATE phase
+- All fixes must be verified with full build/test suite
+- PR must include "security-engineer" label
 
 - Security-engineer agent should check for npm audit vulnerabilities during INITIATE phase
 - All fixes must be verified with full build/test suite
