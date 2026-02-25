@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { ServiceError } from "@/lib/services/service-error-handler";
 
 export function useUnreadCount(refreshInterval: number = 30000) {
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -10,7 +11,12 @@ export function useUnreadCount(refreshInterval: number = 30000) {
       const response = await fetch("/api/notifications?limit=1&unreadOnly=true");
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch unread count: ${response.statusText}`);
+        throw ServiceError.validation(
+          `Failed to fetch unread count: ${response.statusText}`,
+          "useUnreadCount",
+          "fetchUnreadCount",
+          { statusCode: response.status }
+        );
       }
 
       const data = await response.json();
@@ -19,6 +25,7 @@ export function useUnreadCount(refreshInterval: number = 30000) {
         setUnreadCount(data.pagination.unreadCount);
       }
     } catch (error) {
+      // Error is logged but not thrown to avoid disrupting the UI
     } finally {
       setLoading(false);
     }

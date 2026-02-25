@@ -14,6 +14,7 @@
  */
 
 import { z } from "zod";
+import { ServiceError } from "@/lib/services/service-error-handler";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 // =============================================================================
@@ -415,8 +416,11 @@ export class OpenAPIGenerator {
       const yaml = require("js-yaml");
       return yaml.dump(this.generate(), { indent: 2 });
     } catch (error) {
-      throw new Error(
+      throw ServiceError.validation(
         "js-yaml package not installed. Install it to export YAML.",
+        "OpenAPIGenerator",
+        "toYAML",
+        { operation: "yaml-export" }
       );
     }
   }
