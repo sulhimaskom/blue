@@ -1,6 +1,6 @@
-import React from "react";
-import { cn } from "@/lib/utils";
-import { getTextColor, getBackgroundColor } from "@/lib/constants/ui-themes";
+import React from 'react';
+import { cn } from '@/lib/utils';
+import { getTextColor, getBackgroundColor } from '@/lib/constants/ui-themes';
 
 export interface TableColumn {
   key: string;
@@ -16,20 +16,17 @@ export interface TableHeaderProps {
 /**
  * Atomic table header component for consistent column rendering
  */
-export const TableHeader: React.FC<TableHeaderProps> = ({
-  columns,
-  className,
-}) => {
+export const TableHeader: React.FC<TableHeaderProps> = ({ columns, className }) => {
   return (
-    <thead className={cn(getBackgroundColor("subtle"), className)}>
+    <thead className={cn(getBackgroundColor('subtle'), className)}>
       <tr>
-        {columns.map((column) => (
+        {columns.map(column => (
           <th
             key={column.key}
             className={cn(
-              "px-6 py-3 text-left text-xs font-medium uppercase tracking-wider",
-              getTextColor("muted"),
-              column.className,
+              'px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors duration-200 hover:bg-gray-100',
+              getTextColor('muted'),
+              column.className
             )}
           >
             {column.label}
@@ -40,4 +37,4 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
   );
 };
 
-TableHeader.displayName = "TableHeader";
+TableHeader.displayName = 'TableHeader';
