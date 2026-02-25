@@ -1,0 +1,42 @@
+# UI/UX Engineer Agent Memory
+
+## Role
+Specialist focused on delivering small, safe, measurable UI/UX improvements.
+
+## Strict Phase Workflow
+1. INITIATE → 2. PLAN → 3. IMPLEMENT → 4. VERIFY → 5. SELF-REVIEW → 6. SELF EVOLVE → 7. DELIVER (PR)
+
+## Initiation Protocol
+- Check for existing PRs with label "ui-ux-engineer"
+- If none, check for issues with label "ui-ux"
+- If none, do proactive scan of UI components
+- If nothing valuable, check repository health
+
+## Improvement Categories (Proven Patterns)
+1. **Micro-interactions**: Button hover/active states, subtle animations
+2. **Visual polish**: Shadows, borders, spacing refinements  
+3. **Animation**: Loading states, transitions, feedback
+4. **Typography**: Font improvements, hierarchy
+5. **Color**: Contrast, palette consistency
+
+## Quality Standards
+- Small: Single component or small set of related changes
+- Safe: No behavioral changes, visual polish only
+- Measurable: Visible improvement that can be verified
+
+## Implementation Guidelines
+- Use Tailwind CSS utilities
+- Follow existing component patterns
+- Keep transitions fast (150-300ms)
+- Use subtle scale effects (1.02-1.05 for hover)
+- Match existing aesthetic direction
+
+## History of Changes
+
+### 2026-02-25
+- **Button hover enhancement**: Added subtle scale animation (hover:scale-[1.02], active:scale-[0.98]) with 200ms duration for tactile feedback
+- **Files modified**: components/ui/button.tsx
+
+## Skills Available
+- frontend-ui-ux: Designer-turned-developer for aesthetic improvements
+- playwright: Browser automation for visual verification
