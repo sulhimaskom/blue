@@ -9,7 +9,6 @@ import { useActivityData } from "@/lib/hooks/use-activity-data";
 import { DashboardDataService } from "@/lib/services/dashboard-data-service";
 import { logger } from "@/lib/logger";
 import { useRouter } from "next/navigation";
-import { useAnalytics } from "@/lib/hooks/useAnalytics";
 
 interface UserCredits {
   credits: number;
@@ -54,7 +53,6 @@ function useUserSafe() {
 export default function DashboardPage() {
   const router = useRouter();
   const { isSignedIn, user } = useUserSafe();
-  const { pageView, trackButton } = useAnalytics();
   const [userCredits, setUserCredits] = useState<UserCredits>({
     credits: 0,
     subscriptionTier: "free",
@@ -87,13 +85,7 @@ export default function DashboardPage() {
     }
   }, [isSignedIn, user]);
 
-  // Track dashboard page view
-  useEffect(() => {
-    if (isSignedIn) {
-      pageView({ path: '/dashboard', title: 'Dashboard' });
-    }
-  }, [isSignedIn, pageView]);
-
+  // ... rest of the component remains the same ...
   const stats = [
     {
       key: "credits",
@@ -176,10 +168,7 @@ export default function DashboardPage() {
             <MiniActivityFeed
               activities={activities}
               limit={10}
-              onViewAll={() => {
-                trackButton('view-all-activity', 'dashboard');
-                router.push("/dashboard/activity");
-              }}
+              onViewAll={() => router.push("/dashboard/activity")}
             />
           </div>
         </div>
