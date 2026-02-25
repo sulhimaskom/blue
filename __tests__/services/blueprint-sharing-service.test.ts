@@ -147,7 +147,7 @@ describe("BlueprintSharingService - In-App Notifications", () => {
       }
     });
 
-    it.skip("should handle different permission levels - TODO: fix test logic", async () => {
+    it("should handle different permission levels - TODO: fix test logic", async () => {
       const mockNotification = jest
         .spyOn(NotificationService, "dispatch")
         .mockResolvedValue({} as any);
@@ -170,7 +170,43 @@ describe("BlueprintSharingService - In-App Notifications", () => {
           );
         }
 
-        expect(mockNotification).toHaveBeenCalledTimes(2);
+        expect(mockNotification).toHaveBeenCalledTimes(4);
+        expect(mockNotification).toHaveBeenNthCalledWith(
+          1,
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.stringContaining("view"),
+          expect.any(Object),
+          expect.any(String),
+        );
+        expect(mockNotification).toHaveBeenNthCalledWith(
+          2,
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.stringContaining("edit"),
+          expect.any(Object),
+          expect.any(String),
+        );
+        expect(mockNotification).toHaveBeenNthCalledWith(
+          3,
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.stringContaining("fork"),
+          expect.any(Object),
+          expect.any(String),
+        );
+        expect(mockNotification).toHaveBeenNthCalledWith(
+          4,
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.stringContaining("admin"),
+          expect.any(Object),
+          expect.any(String),
+        );
         expect(mockNotification).toHaveBeenNthCalledWith(
           1,
           expect.any(String),
