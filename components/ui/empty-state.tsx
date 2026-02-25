@@ -93,7 +93,7 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
           </p>
         )}
 
-        {action && <div className="mt-4">{action}</div>}
+        {action && <div className="mt-4 transition-transform duration-200 hover:scale-105">{action}</div>}
       </div>
     );
   },

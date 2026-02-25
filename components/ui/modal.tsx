@@ -130,7 +130,7 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
               <button
                 ref={closeButtonRef}
                 onClick={onClose}
-                className="p-1 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                className="p-1 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all"
                 aria-label={getUIText("common", "close")}
               >
                 <XIcon aria-hidden="true" />
