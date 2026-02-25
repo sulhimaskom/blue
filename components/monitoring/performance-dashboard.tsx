@@ -245,9 +245,9 @@ export const PerformanceDashboard = memo(
     };
 
     // Calculate performance status using optimized metrics
-    const performanceStatus = useMemo((): StatusType => {
+  const performanceStatus = useMemo((): StatusType => {
       const status = getPerformanceStatus(metrics?.performanceScore);
-      return status as StatusType;
+      return status;
     }, [metrics?.performanceScore]);
 
     if (loading && !performanceData) {
@@ -277,7 +277,7 @@ export const PerformanceDashboard = memo(
               Performance Monitoring
             </h2>
             <StatusIndicator
-              status={performanceStatus as StatusType}
+            status={performanceStatus}
               size="md"
             />
           </div>
@@ -299,7 +299,7 @@ export const PerformanceDashboard = memo(
             compressionRate={metrics.compressionRate}
             bandwidthSavedKB={metrics.bandwidthSavedKB}
             alertCount={metrics.alertCount}
-            performanceStatus={performanceStatus as StatusType}
+            performanceStatus={performanceStatus}
           />
         )}
 
