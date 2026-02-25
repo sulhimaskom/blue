@@ -32,6 +32,20 @@ Specialist focused on delivering small, safe, measurable UI/UX improvements.
 - Match existing aesthetic direction
 
 ## History of Changes
+
+### 2026-02-25
+- **Form input hover enhancement**: Added subtle hover transitions (transition-colors duration-200 hover:border-gray-400) to Input, Textarea, Select components
+- **Files modified**: components/ui/form-field.tsx (Input, Textarea, Select)
+
+### 2026-02-25
+- **FormSelect hover enhancement**: Added subtle hover transition (hover:border-gray-400 duration-200) to FormSelect component
+- **Files modified**: components/ui/forms/form-select.tsx
+
+### 2026-02-25
+- **ColorInput hover enhancement**: Added subtle hover transitions to color picker (hover:scale-105 hover:border-gray-400) and hex input (hover:border-gray-400)
+- **Files modified**: components/ui/forms/color-input.tsx
+
+### 2026-02-25
 TX|
 VB|### 2026-02-25
 WM|- **Modal, Alert, EmptyState, Navigation hover enhancement**: Added subtle scale animation (hover:scale-105) with 200ms transition to interactive components

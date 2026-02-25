@@ -56,7 +56,7 @@ export function FormSelect({
       <select
         id={selectId}
         className={cn(
-          "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors bg-white",
+          "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors bg-white hover:border-gray-400 duration-200",
           error
             ? "border-red-300 focus:ring-red-500 focus:border-red-500"
             : "border-gray-300 focus:ring-blue-500 focus:border-blue-500",
