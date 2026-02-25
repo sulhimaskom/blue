@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { BaseCard } from "@/components/ui/base-card";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { Button } from "@/components/ui/button";
-import type { StatusType } from "@/lib/services/service-types";
+
 import { CpuIcon } from "@/components/ui/icons";
 import { cn, getTextColor } from "@/lib/constants/ui-themes";
 import { useInterval, STANDARD_INTERVALS } from "@/lib/hooks/use-interval";
@@ -358,7 +358,7 @@ export const AdvancedPerformanceDashboard: React.FC<
           <h2 className={cn("text-xl font-semibold", getTextColor("heading"))}>
             Advanced Performance Analytics
           </h2>
-          <StatusIndicator status={"success" as StatusType} size="sm" />
+          <StatusIndicator status={"healthy"} size="sm" />
         </div>
 
         <DashboardControls
