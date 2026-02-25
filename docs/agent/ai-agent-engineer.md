@@ -132,7 +132,15 @@
 
 ---
 
-## PRs Created
+PY|## PRs Created
+NQ|
+ZR||| PR | Date | Description |
+KB|||---|------|-------------|
+QS||| #TBD | 2026-02-25 | Add tests for retry-service.ts - 113 new tests |
+BX|| #730 | 2026-02-25 | Add API endpoint for AI test generation service |
+YW|| #685 | 2026-02-25 | Fix prompt README file references, add ai-agent-engineer.md memory |
+JM|| #721 | 2026-02-25 | Add tests for ai-cache-optimization-service.ts - 32 new tests |
+ZM|| #706 | 2026-02-25 | Implement AI Test Generation Service - Issue #676 |
 
 || PR | Date | Description |
 ||---|------|-------------|
@@ -168,7 +176,22 @@
 - ai/ai-provider-strategy.ts
 - ai/strategies/iflow-strategy.ts, openai-strategy.ts
 
-**Still Needs Tests (Lower Priority):**
+HW|**Still Needs Tests (Lower Priority):**
+TX|- performance/ai-memory-optimization-service.ts
+WM|- usage-analytics-service.ts
+TB|- market-research-service.ts
+HQ|- blueprint-refinement-service.ts
+
+**Tests Added (2026-02-25):**
+QW|- `__tests__/services/retry-service.test.ts` - 113 new tests covering:
+  - RETRY_CONFIGS presets (FAST, STANDARD, SLOW, NETWORK_SENSITIVE)
+  - executeWithRetry success cases
+  - executeWithRetry non-retryable error handling
+  - executeWithRetrySafe result object
+  - isRetryableError classification (network, 5xx, 429, 4xx, validation)
+  - createErrorFilter custom patterns
+  - Custom retry options and context
+  - Edge cases (null, undefined, non-Error objects)
 - performance/ai-memory-optimization-service.ts
 - usage-analytics-service.ts
 - market-research-service.ts
