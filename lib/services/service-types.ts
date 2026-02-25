@@ -94,7 +94,7 @@ export interface FormattedServiceData {
   value: string | number;
   unit?: string;
   badge?: string;
-  status?: string;
+  status?: StatusType;
 }
 
 // =============================================================================

@@ -15,6 +15,7 @@
 
 import { z } from "zod";
 import { ServiceError } from "@/lib/services/service-error-handler";
+import { EnvironmentError } from "@/lib/env";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 // =============================================================================
@@ -499,10 +500,24 @@ let openAPIGeneratorInstance: OpenAPIGenerator | null = null;
 export function getOpenAPIGenerator(): OpenAPIGenerator {
   if (!openAPIGeneratorInstance) {
     const { env } = require("@/lib/env");
+
+    // Validate NEXT_PUBLIC_APP_URL - throw error in production if not configured
+    if (!env.NEXT_PUBLIC_APP_URL) {
+      const isProduction = process.env.NODE_ENV === "production";
+      if (isProduction) {
+        throw new EnvironmentError(
+          "NEXT_PUBLIC_APP_URL is not configured. Please set this environment variable in production."
+        );
+      }
+      // In development/test, use localhost but log warning
+      // eslint-disable-next-line no-console
+      console.warn("WARNING: NEXT_PUBLIC_APP_URL not configured, using localhost for development");
+    }
+
     openAPIGeneratorInstance = new OpenAPIGenerator({
       title: "Architect Platform API",
       version: env.NPM_PACKAGE_VERSION || "1.0.0",
-      baseUrl: env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+      baseUrl: env.NEXT_PUBLIC_APP_URL,
     });
   }
   return openAPIGeneratorInstance;
