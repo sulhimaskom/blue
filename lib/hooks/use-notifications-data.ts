@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { ServiceError } from "@/lib/services/service-error-handler";
 import { NotificationType, NotificationMetadata } from "@/lib/services/notification-service";
 
 export interface Notification {
@@ -63,7 +64,12 @@ export function useNotificationsData(
       const response = await fetch(`/api/notifications?${queryParams.toString()}`);
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch notifications: ${response.statusText}`);
+        throw ServiceError.validation(
+          `Failed to fetch notifications: ${response.statusText}`,
+          "useNotificationsData",
+          "fetchNotifications",
+          { statusCode: response.status, page, limit }
+        );
       }
 
       const data = await response.json();
@@ -76,7 +82,12 @@ export function useNotificationsData(
         })));
         setPagination(data.pagination);
       } else {
-        throw new Error(data.error || "Failed to fetch notifications");
+        throw ServiceError.validation(
+          data.error || "Failed to fetch notifications",
+          "useNotificationsData",
+          "fetchNotifications",
+          { page, limit, unreadOnly, type }
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -94,7 +105,12 @@ export function useNotificationsData(
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to mark notification as read: ${response.statusText}`);
+        throw ServiceError.validation(
+          `Failed to mark notification as read: ${response.statusText}`,
+          "useNotificationsData",
+          "markAsRead",
+          { notificationId, statusCode: response.status }
+        );
       }
 
       const data = await response.json();
@@ -111,7 +127,12 @@ export function useNotificationsData(
           prev ? { ...prev, unreadCount: data.unreadCount } : null
         );
       } else {
-        throw new Error(data.error || "Failed to mark notification as read");
+        throw ServiceError.validation(
+          data.error || "Failed to mark notification as read",
+          "useNotificationsData",
+          "markAsRead",
+          { notificationId }
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -125,7 +146,12 @@ export function useNotificationsData(
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to mark all notifications as read: ${response.statusText}`);
+        throw ServiceError.validation(
+          `Failed to mark all notifications as read: ${response.statusText}`,
+          "useNotificationsData",
+          "markAllAsRead",
+          { statusCode: response.status }
+        );
       }
 
       const data = await response.json();
@@ -138,7 +164,12 @@ export function useNotificationsData(
           prev ? { ...prev, unreadCount: 0 } : null
         );
       } else {
-        throw new Error(data.error || "Failed to mark all notifications as read");
+        throw ServiceError.validation(
+          data.error || "Failed to mark all notifications as read",
+          "useNotificationsData",
+          "markAllAsRead",
+          {}
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");

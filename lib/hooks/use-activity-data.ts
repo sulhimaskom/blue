@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { logger } from "@/lib/logger";
+import { ServiceError } from "@/lib/services/service-error-handler";
 
 export interface ActivityItem {
   id: string;
@@ -53,14 +54,24 @@ export function useActivityData(options?: UseActivityDataOptions) {
         });
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch activity feed: ${response.statusText}`);
+          throw ServiceError.validation(
+            `Failed to fetch activity feed: ${response.statusText}`,
+            "useActivityData",
+            "fetchActivityData",
+            { statusCode: response.status, ...options }
+          );
         }
 
         const data = await response.json();
         if (data.success) {
           setActivities(data.data.activity || []);
         } else {
-          throw new Error(data.error || "Failed to fetch activity feed");
+          throw ServiceError.validation(
+            data.error || "Failed to fetch activity feed",
+            "useActivityData",
+            "fetchActivityData",
+            { ...options }
+          );
         }
 
         const summaryResponse = await fetch("/api/activity/summary", {
@@ -68,14 +79,24 @@ export function useActivityData(options?: UseActivityDataOptions) {
         });
 
         if (!summaryResponse.ok) {
-          throw new Error(`Failed to fetch activity summary: ${summaryResponse.statusText}`);
+          throw ServiceError.validation(
+            `Failed to fetch activity summary: ${summaryResponse.statusText}`,
+            "useActivityData",
+            "fetchActivityData",
+            { statusCode: summaryResponse.status, ...options }
+          );
         }
 
         const summaryData = await summaryResponse.json();
         if (summaryData.success) {
           setSummary(summaryData.data.summary);
         } else {
-          throw new Error(summaryData.error || "Failed to fetch activity summary");
+          throw ServiceError.validation(
+            summaryData.error || "Failed to fetch activity summary",
+            "useActivityData",
+            "fetchActivityData",
+            { ...options }
+          );
         }
 
       } catch (err) {

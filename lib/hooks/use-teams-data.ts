@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { ServiceError } from "@/lib/services/service-error-handler";
 
 export interface Team {
   id: string;
@@ -95,7 +96,12 @@ export function useTeamsData() {
           return result.data;
         } else {
           setError(result.error || "Failed to create team");
-          throw new Error(result.error || "Failed to create team");
+          throw ServiceError.validation(
+            result.error || "Failed to create team",
+            "useTeamsData",
+            "createTeam",
+            { formData }
+          );
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Failed to create team";
@@ -120,7 +126,12 @@ export function useTeamsData() {
           await fetchTeams();
         } else {
           setError(result.error || "Failed to delete team");
-          throw new Error(result.error || "Failed to delete team");
+          throw ServiceError.validation(
+            result.error || "Failed to delete team",
+            "useTeamsData",
+            "deleteTeam",
+            { teamId }
+          );
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to delete team");
@@ -146,7 +157,12 @@ export function useTeamsData() {
           await fetchTeamMembers(teamId);
         } else {
           setError(result.error || "Failed to add team member");
-          throw new Error(result.error || "Failed to add team member");
+          throw ServiceError.validation(
+            result.error || "Failed to add team member",
+            "useTeamsData",
+            "addTeamMember",
+            { teamId, email, role }
+          );
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to add team member");
@@ -171,7 +187,12 @@ export function useTeamsData() {
           await fetchTeamMembers(teamId);
         } else {
           setError(result.error || "Failed to remove team member");
-          throw new Error(result.error || "Failed to remove team member");
+          throw ServiceError.validation(
+            result.error || "Failed to remove team member",
+            "useTeamsData",
+            "removeTeamMember",
+            { teamId, userId }
+          );
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to remove team member");
