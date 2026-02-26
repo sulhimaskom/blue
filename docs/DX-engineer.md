@@ -110,4 +110,13 @@ All changes must pass:
 
 - Closed issue #711 (Implement Prettier and Git Hooks for DX Enhancement) - Already resolved via PR #724
 - Closed issue #676 (Implement AI-Powered Test Generation Service) - Already resolved via PR #706
-- Result: Clean issue tracker, accurate status
+#PS|- Result: Clean issue tracker, accurate status
+#TH|
+#TJ|### 2026-02-26: ADR-012 Rate Limiting Configuration
+#BV|
+#QV|- Created ADR-012 documenting Redis-backed tier-based rate limiting configuration
+#KM|- Added ADR-011 and ADR-012 to ADR README index
+#XV|- Added ADR-012 to Resilience category
+#QM|- Resolves DX-engineer Issue #712
+#RR|- PR: #750
+#TH|- Result: 12 ADRs documenting all key architectural decisions
