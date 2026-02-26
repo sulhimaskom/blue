@@ -33,6 +33,7 @@ Each ADR follows the standard format:
 | [ADR-009](ADR-009-database-orm-choice.md)            | Database ORM Choice            | Accepted | 2026-02-25 |
 | [ADR-010](ADR-010-clerk-authentication.md)           | Clerk Authentication           | Accepted | 2026-02-25 |
 | [ADR-011](ADR-011-ai-integration.md)                 | AI Integration                 | Accepted | 2026-02-25 |
+| [ADR-012](ADR-012-rate-limiting-configuration.md)      | Rate Limiting Configuration     | Accepted | 2026-02-26 |
 
 ## Decision Categories
 
@@ -47,7 +48,7 @@ Each ADR follows the standard format:
 ### Resilience
 
 - **ADR-003**: Circuit Breaker Implementation - Fault tolerance
-- **ADR-006**: Webhook Reliability Pattern - Event processing reliability
+- **ADR-012**: Rate Limiting Configuration - Redis-backed tier-based protection
 
 ### Performance
 
