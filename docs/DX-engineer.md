@@ -137,3 +137,12 @@ All changes must pass:
 - Closed completed Issue #712 - 12 ADRs exist (exceeds 5 required)
 - Verified all quality gates pass: audit (0), typecheck (0), lint (0), tests (94/95)
 - Result: Clean DX-engineer queue, repository health verified
+
+### 2026-02-26: Bundle Analyzer Dependency Fix
+
+- Fixed build failure caused by missing `@next/bundle-analyzer` package
+- Issue: Module not found error when running `npm run build`
+- Fix: Ran `npm install` to install missing dev dependency
+- Verified: Build now passes (75.5s, 71 static pages)
+- Result: All quality gates pass - audit (0), typecheck (0), lint (0), tests (95/96)
+- Note: Ensure `npm install` is run after pulling changes to avoid similar issues
