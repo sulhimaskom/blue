@@ -1,3 +1,4 @@
+import { env } from "@/lib/env";
 import { NextRequest, NextResponse } from "next/server";
 import {
   formatSuccessResponse,
@@ -40,7 +41,7 @@ export class WebhookService {
     error?: string,
   ): NextResponse | Response {
     // Handle test environment differently
-    if (process.env.NODE_ENV === "test") {
+    if (env.NODE_ENV === "test") {
       return new NextResponse(
         JSON.stringify({
           success,
@@ -165,7 +166,7 @@ static createStandardizedWebhookResponse<T = Record<string, unknown>>(
   service?: string,
 ): NextResponse | Response {
   // Handle test environment differently for backward compatibility
-  if (process.env.NODE_ENV === "test") {
+  if (env.NODE_ENV === "test") {
     return new NextResponse(
       JSON.stringify({
         success,

@@ -17,6 +17,8 @@
  *   import { analytics } from '@/lib/services/analytics-service';
  *   analytics.track('button_clicked', { buttonId: 'create-blueprint' });
  */
+import { env } from "@/lib/env";
+
 
 import {
   AnalyticsProvider,
@@ -362,8 +364,8 @@ class AnalyticsService {
 
 // Create singleton instance with config from environment
 const analyticsConfig: AnalyticsConfig = {
-  enabled: process.env.NODE_ENV === 'production',
-  debug: process.env.NODE_ENV !== 'production',
+  enabled: env.NODE_ENV === 'production',
+  debug: env.NODE_ENV !== 'production',
   provider: (process.env.ANALYTICS_PROVIDER as AnalyticsConfig['provider']) || 'noop',
   sampleRate: parseFloat(process.env.ANALYTICS_SAMPLE_RATE || '1.0'),
 };
