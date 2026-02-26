@@ -7,7 +7,7 @@ jest.mock("@clerk/backend", () => ({}));
 
 import { GET } from "@/app/api/subscription/billing/history/route";
 import { ProjectDataService } from "@/lib/services/project-data-service";
-import { Mock } from "vitest";
+
 import { setupAuthMocks } from "@/__tests__/setup/auth-setup";
 
 jest.mock("@/lib/services/user-service", () => ({
