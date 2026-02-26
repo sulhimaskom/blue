@@ -78,7 +78,7 @@ export const GET = APIRouteHandler.createCachedGETHandler({
   varyBy: ["userId"],
 });
 
-export const PUT = APIRouteHandler.createPOSTHandler({
+export const PUT = APIRouteHandler.createPOSTHandler<z.infer<typeof notificationPreferencesSchema>>({
   schema: notificationPreferencesSchema,
   requireAuth: true,
   rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
@@ -118,7 +118,7 @@ export const PUT = APIRouteHandler.createPOSTHandler({
     if (categories) {
       await NotificationPreferencesService.updateCategories(
         user!.id,
-        categories as any,
+        categories,
         user!.clerkId,
       );
     }
