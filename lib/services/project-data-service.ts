@@ -201,6 +201,8 @@ export class ProjectDataService {
       .set({ status })
       .where(and(eq(projects.id, projectId), isNull(projects.deletedAt)))
       .returning();
+    // Invalidate cache after status update
+    await UnifiedCacheManager.invalidateByTag("projects");
 
     return updatedProject;
   }
@@ -220,6 +222,8 @@ export class ProjectDataService {
       })
       .where(and(eq(projects.id, projectId), isNull(projects.deletedAt)))
       .returning();
+    // Invalidate cache after deployment update
+    await UnifiedCacheManager.invalidateByTag("projects");
 
     return updatedProject;
   }
