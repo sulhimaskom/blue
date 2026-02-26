@@ -225,3 +225,62 @@ QW|- `__tests__/services/retry-service.test.ts` - 113 new tests covering:
 ---
 
 *Last Updated: 2026-02-25*
+
+## Cross-Agent Insights (2026-02-26)
+
+### From agent.md - Agent Memory & Heuristics
+
+**Entry 2024-07-26-A - Build Dependencies**
+- **Pattern**: Build may fail due to missing devDependencies even when package.json seems complete
+- **Scope**: Project build and dependency verification
+- **Evidence**: `npm run build` failed with `@next/bundle-analyzer` module not found
+- **Resolution**: Run `npm install` to ensure all dependencies are present
+
+**Entry 2024-07-26-B - Test Path portability**
+- **Pattern**: Tests using absolute file paths fail in different environments
+- **Scope**: Test suite execution and environment portability
+- **Evidence**: Tests in `__tests__/bug-010-*` failed with hardcoded `/home/runner/work/blue/blue/...` paths
+- **Resolution**: Always use relative paths in tests (e.g., `app/api/stripe/webhook/route.ts`)
+
+**Entry 2024-07-26-C - Task Documentation Format**
+- **Pattern**: `docs/task.md` requires verbose, multi-line format
+- **Scope**: Canonical artifact updates
+- **Evidence**: Concise summaries were rejected in review
+- **Resolution**: Include "Task Selected," "Rationale," "Work Performed," and "Outcome" sections
+
+**Entry 2024-07-26-D - Verify Before Creating**
+- **Pattern**: Don't assume files don't exist - verify first
+- **Scope**: Phase 0: Initialization
+- **Evidence**: Agent assumed files needed creation when they already existed with content
+- **Resolution**: Always exhaustively verify existence and content of high-authority artifacts
+
+---
+
+## PR #754 - Usage Analytics Service Tests
+
+**Status**: READY TO MERGE (2026-02-26)
+
+**Verification Results**:
+| Quality Gate | Status | Details |
+|--------------|--------|---------|
+| Security Audit | ✅ PASS | 0 vulnerabilities |
+| Build | ✅ PASS | 76.1s, 71 static pages |
+| Lint | ✅ PASS | 0 warnings/errors |
+| Typecheck | ✅ PASS | 0 errors |
+| Tests | ✅ PASS | 94/95 suites (1 skipped), 1630 tests |
+
+**Test Coverage Added**:
+- `__tests__/services/usage-analytics-service.test.ts` - 13 new tests
+- getUsageAnalytics() with cache stats
+- Pattern distribution calculations
+- Error handling for Redis failures
+- getWarmingRecommendations() logic
+- analyzeRecentPatterns() detection
+
+**Files Changed**:
+- `__tests__/services/usage-analytics-service.test.ts` (384 lines added)
+- `docs/agent/ai-agent-engineer.md` (updated)
+
+---
+
+*Last Updated: 2026-02-26*
