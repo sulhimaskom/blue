@@ -1,11 +1,12 @@
 import { logger } from "./logger";
+import { env } from "./env";
 
 /**
  * Redis configuration validator and utility functions
  */
 export class RedisConfig {
   static isRedisConfigured(): boolean {
-    return !!(process.env.REDIS_URL && process.env.REDIS_URL.trim() !== "");
+    return !!(env.REDIS_URL && env.REDIS_URL.trim() !== "");
   }
 
   static getRedisConfig(): {
@@ -16,9 +17,9 @@ export class RedisConfig {
     recommendations: string[];
   } {
     const recommendations: string[] = [];
-    const redisUrl = process.env.REDIS_URL;
-    const redisPassword = process.env.REDIS_PASSWORD;
-    const environment = process.env.NODE_ENV || "development";
+    const redisUrl = env.REDIS_URL;
+    const redisPassword = env.REDIS_PASSWORD;
+    const environment = env.NODE_ENV || "development";
 
     if (!redisUrl) {
       recommendations.push(
@@ -121,8 +122,8 @@ export class RedisConfig {
     performanceMode: boolean;
   } {
     const isConfigured = this.isRedisConfigured();
-    const isProduction = process.env.NODE_ENV === "production";
-    const isTest = process.env.NODE_ENV === "test";
+    const isProduction = env.NODE_ENV === "production";
+    const isTest = env.NODE_ENV === "test";
 
     return {
       shouldConnect: isConfigured || isProduction, // Always try in production
