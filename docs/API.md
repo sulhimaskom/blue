@@ -2667,6 +2667,105 @@ Content-Type: application/json
 
 ---
 
+## 📖 OpenAPI Documentation
+
+### GET /openapi
+
+Get API documentation metadata including OpenAPI specification access points.
+
+**Request:**
+
+```http
+GET /api/openapi
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "specification": {
+      "openapi": "3.0.3",
+      "info": {
+        "title": "The Architect Platform API",
+        "version": "1.0.0"
+      },
+      "servers": [
+        {
+          "url": "https://api.example.com",
+          "description": "Production server"
+        }
+      ]
+    },
+    "docsUrl": "/api/docs",
+    "swaggerUrl": "/api/docs/swagger"
+  }
+}
+```
+
+**Error Responses:**
+
+- `500 Internal Server Error` - Failed to generate specification
+
+---
+
+### GET /openapi/spec
+
+Get raw OpenAPI 3.0.3 specification in JSON format. Useful for Swagger UI, Postman, or automated client generation.
+
+**Request:**
+
+```http
+GET /api/openapi/spec
+```
+
+**Response:**
+
+Returns complete OpenAPI specification as JSON with `Content-Type: application/json`.
+
+**Response Headers:**
+
+- `Cache-Control: public, max-age=3600` - Cached for 1 hour
+
+**Error Responses:**
+
+- `500 Internal Server Error` - Failed to generate specification
+
+---
+
+**Use Cases:**
+
+- Integrate with [Swagger UI](https://swagger.io/tools/swagger-ui/) for interactive API documentation
+- Generate client SDKs using [OpenAPI Generator](https://openapi-generator.tech/)
+- Import into Postman for API testing
+- Enable IDE plugins for API intellisense
+
+**Example - Swagger UI Integration:**
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>API Documentation</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+  <script>
+    SwaggerUI({
+      url: '/api/openapi/spec',
+      dom_id: '#swagger-ui'
+    });
+  </script>
+</body>
+</html>
+```
+
+---
+
+
 ## 🏥 System Health
 
 ### GET /health

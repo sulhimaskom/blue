@@ -80,3 +80,15 @@ QH|## Last Activity
 #HB|- Prioritize consistency in documentation
 #HZ|- Fix formatting/typos when found
 #YQ|- Ensure code examples work and are up-to-date
+#XV|- **Date**: 2026-02-26
+#ZR|- **Branch**: technical-writer-1772138492
+#WB|- **Action**: Added OpenAPI documentation endpoints to API.md - documented /api/openapi (GET) and /api/openapi/spec (GET) endpoints
+#WX|- **Files Changed**: docs/API.md (+99 lines)
+#XK|- **Quality Gates**: ✅ Lint (0 warnings), ✅ Typecheck (0 errors), ✅ Build (66.7s), ✅ Tests (96/97 suites, 1682/1691 tests)
+#YQ|- **PR**: #811 - https://github.com/sulhimaskom/blue/pull/811
+#ZR|
+#ZQ|## Key Learnings
+#ZR|- Found undocumented OpenAPI endpoints in app/api/openapi/
+#ZQ|- /api/openapi returns API documentation metadata
+#ZQ|- /api/openapi/spec returns raw OpenAPI 3.0.3 JSON spec
+#ZQ|- Added Swagger UI integration example for developer convenience
