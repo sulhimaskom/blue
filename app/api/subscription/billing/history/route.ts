@@ -43,7 +43,7 @@ export interface BillingHistoryResponse {
  */
 export const GET = APIRouteHandler.createSimpleCachedGETHandler(
   async (req) => {
-    const user = await UserService.getAuthenticatedUser({ requestId: "test" } as any);
+    const user = await UserService.getAuthenticatedUser({ requestId: crypto.randomUUID() });
     const url = new URL(req.url);
     let result: z.infer<typeof billingHistoryQuerySchema>;
 

@@ -39,14 +39,14 @@ export const GET = APIRouteHandler.createCachedGETHandler({
   varyBy: [],
 });
 
-export const PUT = APIRouteHandler.createPOSTHandler({
+export const PUT = APIRouteHandler.createPOSTHandler<z.infer<typeof updateCategoriesSchema>>({
   schema: updateCategoriesSchema,
   requireAuth: true,
   rateLimiter: (identifier: string) => RateLimiters.moderate()(identifier),
   handler: async ({ context, user, data }) => {
     const updatedCategories = await NotificationPreferencesService.updateCategories(
       user!.id,
-      data! as any,
+      data!,
       user!.clerkId,
     );
 
