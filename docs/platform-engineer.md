@@ -30,6 +30,24 @@ The platform-engineer domain focuses on infrastructure, DevOps, CI/CD, build sys
 
 ## Cleanup History
 
+### 2026-02-26: .gitignore Enhancement
+
+**Issue**: Infrastructure health reports and test performance metrics were being generated in the repository root during development, potentially being accidentally committed.
+
+**Action Taken**:
+
+- Added `infrastructure-health-*.json` to .gitignore
+- Added `test-performance-metrics.json` to .gitignore
+
+**Verification**:
+
+- npm run lint: ✅ PASS (0 warnings/errors)
+- npm run typecheck: ✅ PASS (0 errors)
+
+---
+
+### 2026-02-26: Missing NPM Scripts Exposed
+
 ### 2026-02-26: Missing NPM Scripts Exposed
 
 **Issue**: Documentation referenced `infrastructure:recover` and `infrastructure:report` npm scripts that weren't exposed in package.json, even though the functionality existed in `infrastructure-health-monitor.sh`.
