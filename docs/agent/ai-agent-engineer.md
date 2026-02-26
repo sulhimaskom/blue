@@ -142,6 +142,9 @@ YW|| #685 | 2026-02-25 | Fix prompt README file references, add ai-agent-enginee
 JM|| #721 | 2026-02-25 | Add tests for ai-cache-optimization-service.ts - 32 new tests |
 ZM|| #706 | 2026-02-25 | Implement AI Test Generation Service - Issue #676 |
 
+#QV|| PR | Date | Description |
+#WY|NQ|---|------|-------------|
+#MW|ZR|| #754 | 2026-02-26 | Add tests for usage-analytics-service.ts - 13 new tests |
 || PR | Date | Description |
 ||---|------|-------------|
 || #730 | 2026-02-25 | Add API endpoint for AI test generation service |
@@ -176,13 +179,26 @@ ZM|| #706 | 2026-02-25 | Implement AI Test Generation Service - Issue #676 |
 - ai/ai-provider-strategy.ts
 - ai/strategies/iflow-strategy.ts, openai-strategy.ts
 
-HW|**Still Needs Tests (Lower Priority):**
-TX|- performance/ai-memory-optimization-service.ts
+**Still Needs Tests (Lower Priority):**
+- performance/ai-memory-optimization-service.ts
+- ~~usage-analytics-service.ts~~ ✅
+- market-research-service.ts
+- blueprint-refinement-service.ts
+#XZ|TX|- performance/ai-memory-optimization-service.ts
+#HK|WM|- ~~usage-analytics-service.ts~~ ✅ (2026-02-26)
 WM|- usage-analytics-service.ts
 TB|- market-research-service.ts
 HQ|- blueprint-refinement-service.ts
 
-**Tests Added (2026-02-25):**
+#BJ|**Tests Added (2026-02-26):**
+#SB|NQ|- `__tests__/services/usage-analytics-service.test.ts` - 13 new tests covering:
+#HQ|YQ|  - getUsageAnalytics() with cache stats
+#HZ|TX|  - Pattern distribution calculations
+#QT|TB|  - Error handling for Redis failures
+#BR|TY|  - getWarmingRecommendations() logic
+#SY|HW|  - analyzeRecentPatterns() detection
+#QM|
+#BJ|**Tests Added (2026-02-25):**
 QW|- `__tests__/services/retry-service.test.ts` - 113 new tests covering:
   - RETRY_CONFIGS presets (FAST, STANDARD, SLOW, NETWORK_SENSITIVE)
   - executeWithRetry success cases
@@ -199,7 +215,7 @@ QW|- `__tests__/services/retry-service.test.ts` - 113 new tests covering:
 
 ---
 
-*Last Updated: 2026-02-25*
+*Last Updated: 2026-02-26*
 
 | PR | Date | Description |
 |----|------|-------------|
