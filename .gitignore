@@ -35,3 +35,7 @@ next-env.d.ts
 *.log
 build.log
 lint.log
+
+# infrastructure reports
+infrastructure-health-*.json
+test-performance-metrics.json
