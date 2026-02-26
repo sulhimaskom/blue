@@ -16,7 +16,7 @@ export const MiniActivityFeed = React.memo(
     const [isExpanded, setIsExpanded] = useState(true);
 
     const recentActivities = activities
-      .filter((activity) => MAJOR_ACTIVITY_TYPES.includes((MAJOR_ACTIVITY_TYPES as readonly string[]).includes(activity.eventType)))
+      .filter((activity) => (MAJOR_ACTIVITY_TYPES as readonly string[]).includes(activity.eventType))
       .slice(0, limit);
 
     const getEventIcon = (eventType: string) => {

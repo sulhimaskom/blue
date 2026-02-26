@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { WebhookConfiguration } from "@/lib/services/webhook-management-service";
-import type { WebhookEventType } from "@/lib/schemas/webhook-schema";
+
 import { WEBHOOK_EVENT_TYPES } from "@/lib/schemas/webhook-schema";
 
 interface WebhookCardProps {

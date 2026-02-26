@@ -285,7 +285,7 @@ const ServiceDetailPanel = React.memo(function ServiceDetailPanelComponent({
               </span>
               {detail.status ? (
             <StatusIndicator
-              status={['healthy', 'degraded', 'unhealthy', 'unknown'].includes(detail.status) ? detail.status : 'unknown'}
+              status={(['healthy', 'degraded', 'unhealthy', 'unknown'].includes(detail.status) ? detail.status : 'unknown') as StatusType}
                   size="sm"
                   showIcon={false}
                   className="px-2 py-1 rounded text-xs font-medium"
