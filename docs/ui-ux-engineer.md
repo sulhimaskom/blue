@@ -41,6 +41,19 @@ Specialist focused on delivering small, safe, measurable UI/UX improvements.
 
 ### 2026-02-26
 
+### 2026-02-26
+
+- **ValidationFeedback & ErrorBoundary hover enhancement**: Added subtle hover scale animations to validation-feedback suggestions box (hover:scale-[1.01]) and error-boundary error card (hover:scale-[1.01] hover:shadow-xl)
+- **Files modified**: components/ui/validation-feedback.tsx, components/ui/error-boundary.tsx
+- **PR**: #812
+
+### 2026-02-26
+
+- **FormInput hover enhancement**: Added subtle hover transitions (transition-colors duration-200 hover:border-gray-400) to FormInput and FormTextarea components for consistency with form-field.tsx
+- **Files modified**: components/ui/forms/form-input.tsx
+
+### 2026-02-25
+
 - **FormInput hover enhancement**: Added subtle hover transitions (transition-colors duration-200 hover:border-gray-400) to FormInput and FormTextarea components for consistency with form-field.tsx
 - **Files modified**: components/ui/forms/form-input.tsx
 

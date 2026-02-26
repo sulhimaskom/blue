@@ -74,7 +74,7 @@ export class ErrorBoundary extends React.Component<
       // Default error UI
       return (
         <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center transition-all duration-200 hover:scale-[1.01] hover:shadow-xl">
             <div className="flex justify-center mb-4">
               <div
                 className={cn("p-3 rounded-full", getBackgroundColor("subtle"))}

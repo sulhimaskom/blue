@@ -328,7 +328,7 @@ export function ValidationFeedback({
       {/* Suggestions */}
       {showSuggestions && suggestions.length > 0 && !error && (
         <div
-          className="rounded-md bg-blue-50 p-3"
+          className="rounded-md bg-blue-50 p-3 transition-all duration-200 hover:scale-[1.01]"
           role="complementary"
           aria-label="Form suggestions"
         >
