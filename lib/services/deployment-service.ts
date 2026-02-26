@@ -90,6 +90,9 @@ export class DeploymentService {
 
   /**
    * Create deployment record
+   * @param record - Deployment record details
+   * @returns Created deployment ID
+   * @throws DatabaseError if database operation fails
    */
   static async createDeploymentRecord(record: {
     projectId: string;

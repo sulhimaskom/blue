@@ -18,6 +18,10 @@ import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 export class ProjectDataService {
   /**
    * Verify project ownership by clerk ID
+   * @param projectId - The project ID to verify
+   * @param clerkId - The Clerk user ID to verify ownership against
+   * @returns Project details with user information if ownership verified
+   * @throws ValidationError if project not found or access denied
    * Used by: /api/blueprints/[id], /api/deploy/[id]
    */
   static async verifyProjectOwnership(projectId: string, clerkId: string) {
@@ -49,6 +53,10 @@ export class ProjectDataService {
 
   /**
    * Get blueprint with project and verify ownership
+   * @param blueprintId - The blueprint ID to retrieve
+   * @param clerkId - The Clerk user ID for ownership verification
+   * @returns Blueprint details with project and user information
+   * @throws ValidationError if blueprint not found or access denied
    * Used by: /api/blueprints/[id] (PUT, GET)
    */
   static async getBlueprintWithProject(blueprintId: string, clerkId: string) {
