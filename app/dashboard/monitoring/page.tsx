@@ -9,6 +9,8 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { BaseCard } from "@/components/ui/base-card";
 import { useEffect, useRef, lazy, Suspense } from "react";
 
+import { analytics } from "@/lib/services/analytics-service";
+
 const SystemHealthOverview = lazy(() =>
   import("@/components/monitoring/system-health-overview").then(
     (module) => ({ default: module.SystemHealthOverview }),
@@ -82,8 +84,20 @@ export default function MonitoringDashboard() {
           <DashboardHeader
             autoRefresh={autoRefresh}
             loading={loading}
-            onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
-            onManualRefresh={refreshData}
+            onToggleAutoRefresh={() => {
+              analytics.trackButtonClick(
+                autoRefresh ? "auto-refresh-disabled" : "auto-refresh-enabled",
+                "monitoring",
+                { autoRefresh: !autoRefresh }
+              );
+              setAutoRefresh(!autoRefresh);
+            }}
+            onManualRefresh={() => {
+              analytics.trackButtonClick("manual-refresh", "monitoring", {
+                timestamp: Date.now(),
+              });
+              refreshData();
+            }}
           />
         </div>
 
@@ -126,12 +140,19 @@ export default function MonitoringDashboard() {
               Advanced Monitoring Tools
             </h4>
             <div className="flex flex-wrap gap-2">
-              <a
-                href="/dashboard/circuit-breakers"
+              <button
+                onClick={() => {
+                  analytics.trackButtonClick(
+                    "navigate-to-circuit-breakers",
+                    "monitoring",
+                    {}
+                  );
+                  window.location.href = "/dashboard/circuit-breakers";
+                }}
                 className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
               >
                 ⚡ Circuit Breakers
-              </a>
+              </button>
               <button
                 className="inline-flex items-center px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 transition-colors cursor-not-allowed opacity-60"
                 disabled
