@@ -82,6 +82,24 @@ Growth-Innovation-Strategist owns:
 
 ## Implementation Log
 
+### 2026-02-26 - Activity & Notifications Pages Analytics Instrumentation
+- **Scope**: Instrumented Activity and Notifications pages with analytics tracking
+- **Files Modified**:
+  - `app/dashboard/activity/page.tsx` - Added tracking for: export-csv, export-json, load-more-activity, activity-filter-changed
+  - `app/dashboard/notifications/page.tsx` - Added tracking for: mark-as-read, mark-all-as-read, notification-filter-changed, load-more-notifications
+- **Impact**: Now can measure:
+  - Activity export usage (CSV/JSON formats)
+  - Activity feed pagination behavior
+  - Activity filter usage patterns
+  - Notification engagement (mark as read)
+  - Notification filter preferences
+
+---
+
+### 2026-02-26 - Credits Page Analytics Instrumentation (PR #758)
+
+## Implementation Log
+
 ### 2026-02-26 - Credits Page Analytics Instrumentation (PR #758)
 - **Scope**: Instrumented Credits page with analytics tracking
 - **Files Modified**:
@@ -179,10 +197,24 @@ Growth-Innovation-Strategist owns:
 2. ~~Subscription page~~ - track upgrade attempts ✅ (Already done)
 3. ~~Settings page~~ - track preference changes ✅ (Done - PR #743)
 4. ~~Project pages~~ - track project creation/deployment ✅ (Done - PR #743)
+5. ~~Activity page~~ - track export and load more ✅ (Done)
+6. ~~Notifications page~~ - track filters and mark as read ✅ (Done)
+1. ~~Credits page~~ - track credit purchases ✅ (Done - PR #758)
+2. ~~Subscription page~~ - track upgrade attempts ✅ (Already done)
+3. ~~Settings page~~ - track preference changes ✅ (Done - PR #743)
+4. ~~Project pages~~ - track project creation/deployment ✅ (Done - PR #743)
 5. Activity page - track export and load more
 6. Notifications page - track filters and mark as read
 
 **Pages Completed in This Session:**
+- Dashboard page - track activity feed clicks ✅
+- Blueprints page - track create blueprint clicks ✅
+- Credits page - track credit purchases ✅ (PR #758)
+- Subscription page - track upgrade attempts ✅
+- Settings page - track preference changes ✅ (PR #743)
+- Project pages - track project creation/deployment ✅ (PR #743)
+- Activity page - track export/load more/filter changes ✅ (This PR)
+- Notifications page - track mark as read/filter changes ✅ (This PR)
 - Dashboard page - track activity feed clicks ✅
 - Blueprints page - track create blueprint clicks ✅
 - Credits page - track credit purchases ✅ (PR #758)
