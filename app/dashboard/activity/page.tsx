@@ -1,22 +1,23 @@
-"use client";
+'use client';
 
-import { useState, lazy, Suspense } from "react";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { useActivityData } from "@/lib/hooks/use-activity-data";
-import { Button } from "@/components/ui/button";
-import { DashboardSkeleton } from "@/components/ui/skeleton";
-import type { ActivityFilterOptions } from "@/components/activity/activity-filters";
+import { useState, lazy, Suspense } from 'react';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { useActivityData } from '@/lib/hooks/use-activity-data';
+import { Button } from '@/components/ui/button';
+import { DashboardSkeleton } from '@/components/ui/skeleton';
+import type { ActivityFilterOptions } from '@/components/activity/activity-filters';
+import { analytics } from '@/lib/services/analytics-service';
 
 const ActivityFeed = lazy(() =>
-  import("@/components/dashboard/activity-feed").then((module) => ({
+  import('@/components/dashboard/activity-feed').then(module => ({
     default: module.ActivityFeed,
-  })),
+  }))
 );
 
 const ActivityFilters = lazy(() =>
-  import("@/components/activity/activity-filters").then((module) => ({
+  import('@/components/activity/activity-filters').then(module => ({
     default: module.ActivityFilters,
-  })),
+  }))
 );
 
 export default function ActivityPage() {
@@ -27,18 +28,20 @@ export default function ActivityPage() {
 
   const { activities, summary, loading, error } = useActivityData({
     limit,
-    eventTypes: filters.eventTypes.length > 0 ? filters.eventTypes.join(",") : undefined,
+    eventTypes: filters.eventTypes.length > 0 ? filters.eventTypes.join(',') : undefined,
     startDate: filters.startDate,
     endDate: filters.endDate,
   });
 
   const handleLoadMore = () => {
-    setLimit((prev) => prev + 50);
+    analytics.trackButtonClick('load-more-activity', 'activity', { limit });
+    setLimit(prev => prev + 50);
   };
 
   const handleExportCSV = () => {
-    const headers = ["Timestamp", "Event Type", "Entity Type", "Entity ID", "Event Data"];
-    const rows = activities.map((activity) => [
+    analytics.trackButtonClick('export-csv', 'activity', { activityCount: activities.length });
+    const headers = ['Timestamp', 'Event Type', 'Entity Type', 'Entity ID', 'Event Data'];
+    const rows = activities.map(activity => [
       activity.timestamp,
       activity.eventType,
       activity.entityType,
@@ -47,24 +50,30 @@ export default function ActivityPage() {
     ]);
 
     const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
-    ].join("\n");
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `activity-export-${new Date().toISOString().split("T")[0]}.csv`;
+    link.download = `activity-export-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
 
   const handleExportJSON = () => {
+    analytics.trackButtonClick('export-json', 'activity', { activityCount: activities.length });
     const jsonContent = JSON.stringify(activities, null, 2);
-    const blob = new Blob([jsonContent], { type: "application/json;charset=utf-8;" });
-    const link = document.createElement("a");
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `activity-export-${new Date().toISOString().split("T")[0]}.json`;
+    link.download = `activity-export-${new Date().toISOString().split('T')[0]}.json`;
     link.click();
+  };
+
+  const handleFilterChange = (newFilters: ActivityFilterOptions) => {
+    analytics.track('activity-filter-changed', { filters: newFilters });
+    setFilters(newFilters);
   };
 
   return (
@@ -74,7 +83,8 @@ export default function ActivityPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Activity Feed</h1>
             <p className="text-gray-600 mt-2">
-              Track all your platform activities including projects, blueprints, deployments, and team events.
+              Track all your platform activities including projects, blueprints, deployments, and
+              team events.
             </p>
           </div>
           <div className="flex gap-2">
@@ -90,10 +100,7 @@ export default function ActivityPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-1">
             <Suspense fallback={<DashboardSkeleton />}>
-              <ActivityFilters
-                filters={filters}
-                onFiltersChange={setFilters}
-              />
+              <ActivityFilters filters={filters} onFiltersChange={handleFilterChange} />
             </Suspense>
           </div>
           <div className="lg:col-span-3">
