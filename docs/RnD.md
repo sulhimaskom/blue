@@ -1,3 +1,29 @@
+### 2026-02-26: Build Dependency Fix (Recurring Issue - 4th Occurrence)
+
+**Issue**: Build failing with `MODULE_NOT_FOUND` error for `@next/bundle-analyzer`
+
+**Root Cause**: 
+- Package declared in `package.json` devDependencies but not installed in `node_modules`
+- This is a recurring issue - same as PR #736, #765 (fixed multiple times before)
+
+**Fix Applied**:
+1. Installed `@next/bundle-analyzer` via `npm install --save-dev @next/bundle-analyzer`
+2. Ensured all devDependencies are properly populated in node_modules
+
+**Quality Gates Verified**:
+- Build: PASS (72.0s, 71 static pages)
+- Lint: PASS (0 warnings)
+- Typecheck: PASS (0 errors)
+- Tests: PASS (95/96 suites, 1648/1657 tests)
+- Security: PASS (0 vulnerabilities)
+
+**PR**: [To be created]
+
+**Note**: This is the same recurring issue documented in docs/RnD.md - packages declared in package.json but not properly installed in node_modules. This is the 4th occurrence. Investigating why node_modules isn't being properly populated across environments.
+
+---
+
+
 ### 2026-02-26: Build Dependency Fix (Recurring Issue - 3rd Occurrence)
 
 **Issue**: Build failing with `MODULE_NOT_FOUND` error for `@next/bundle-analyzer` + TypeScript type errors
