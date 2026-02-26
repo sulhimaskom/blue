@@ -116,11 +116,12 @@ Domain-specific tags for issue tracking:
 
 ## Recent Work
 
-| Date       | PR   | Description                                                   | Status      |
-| ---------- | ---- | ------------------------------------------------------------- | ----------- |
-| 2026-02-25 | #687 | Remove hardcoded localhost fallback in OpenAPI generator      | ✅ Closed   |
-| 2026-02-26 | N/A  | Proactive scan - Repository in excellent state (99% tests)    | ✅ Complete |
-| 2026-02-26 | #752 | Update Product-Architect.md verification state (closed stale) | ✅ Closed   |
+| Date       | PR   | Description                                                | Status      |
+| ---------- | ---- | ---------------------------------------------------------- | ----------- |
+| 2026-02-25 | #687 | Remove hardcoded localhost fallback in OpenAPI generator   | ✅ Closed   |
+| 2026-02-26 | N/A  | Proactive scan - Repository in excellent state (99% tests) | ✅ Complete |
+| 2026-02-26 | #752 | Update Product-Architect.md verification state             | ✅ Closed   |
+| 2026-02-26 | #780 | Fix type safety - eliminate as any in API routes (3 files) | ✅ Merged   |
 
 ## Notes
 
