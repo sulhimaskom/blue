@@ -39,6 +39,13 @@ Specialist focused on delivering small, safe, measurable UI/UX improvements.
 
 ## History of Changes
 
+### 2026-02-26
+
+- **FormInput hover enhancement**: Added subtle hover transitions (transition-colors duration-200 hover:border-gray-400) to FormInput and FormTextarea components for consistency with form-field.tsx
+- **Files modified**: components/ui/forms/form-input.tsx
+
+### 2026-02-25
+
 ### 2026-02-25
 
 - **Table header/cell hover enhancement**: Added subtle hover transitions (transition-colors duration-200 hover:bg-gray-100 for header, hover:bg-gray-50 for cells) for improved interactivity

@@ -50,7 +50,7 @@ export function FormInput({
       <input
         id={inputId}
         className={cn(
-          "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors",
+          "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors duration-200 hover:border-gray-400",
           error
             ? "border-red-300 focus:ring-red-500 focus:border-red-500"
             : "border-gray-300 focus:ring-blue-500 focus:border-blue-500",
@@ -119,7 +119,7 @@ export function FormTextarea({
       <textarea
         id={inputId}
         className={cn(
-          "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors resize-vertical",
+          "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors duration-200 hover:border-gray-400 resize-vertical",
           error
             ? "border-red-300 focus:ring-red-500 focus:border-red-500"
             : "border-gray-300 focus:ring-blue-500 focus:border-blue-500",
