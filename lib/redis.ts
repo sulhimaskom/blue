@@ -1,4 +1,5 @@
 import { createClient, type RedisClientType } from "redis";
+import { env } from "./env";
 import { logger } from "./logger";
 import { RedisConfig } from "./redis-config";
 import {
@@ -240,8 +241,8 @@ class RedisManager {
    * Create new Redis connection with optimized settings
    */
   private async createNewConnection(): Promise<RedisClientType> {
-    const redisUrl = process.env.REDIS_URL;
-    const redisPassword = process.env.REDIS_PASSWORD;
+    const redisUrl = env.REDIS_URL;
+    const redisPassword = env.REDIS_PASSWORD;
 
     if (!redisUrl) {
       throw new RedisError("REDIS_URL environment variable is required");
@@ -595,7 +596,7 @@ const redisManager = new RedisManager();
 
 // Graceful shutdown - only register in production/development, skip in tests
 // to avoid MaxListenersExceededWarning during Jest test execution
-if (process.env.NODE_ENV !== "test") {
+if (env.NODE_ENV !== "test") {
   process.on("SIGINT", async () => {
     await redisManager.disconnect();
     process.exit(0);

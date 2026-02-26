@@ -81,8 +81,8 @@ class RuntimeServiceInitializer {
       // Only start cache warming in production with proper environment
       if (this.shouldStartCacheWarming()) {
         logger.info("Initializing runtime services", {
-          environment: process.env.NODE_ENV,
-          hasRedis: !!process.env.REDIS_URL,
+          environment: env.NODE_ENV,
+          hasRedis: !!env.REDIS_URL,
           port: process.env.PORT,
         });
 
@@ -96,9 +96,9 @@ class RuntimeServiceInitializer {
         logger.debug(
           "Cache warming service not required in current environment",
           {
-            environment: process.env.NODE_ENV,
-            hasRedis: !!process.env.REDIS_URL,
-            isProduction: process.env.NODE_ENV === "production",
+            environment: env.NODE_ENV,
+            hasRedis: !!env.REDIS_URL,
+            isProduction: env.NODE_ENV === "production",
           },
         );
 
@@ -107,7 +107,7 @@ class RuntimeServiceInitializer {
     } catch (error) {
       logger.error("Failed to initialize runtime services", {
         error: error instanceof Error ? error.message : "Unknown error",
-        environment: process.env.NODE_ENV,
+        environment: env.NODE_ENV,
       });
 
       // Don't throw to prevent application startup failure
@@ -119,8 +119,8 @@ class RuntimeServiceInitializer {
    * Determine if cache warming should be started
    */
   private static shouldStartCacheWarming(): boolean {
-    const isProduction = process.env.NODE_ENV === "production";
-    const hasRedis = !!process.env.REDIS_URL;
+    const isProduction = env.NODE_ENV === "production";
+    const hasRedis = !!env.REDIS_URL;
     const hasServer = this.hasServerRuntime();
     const isVercel = process.env.VERCEL === "1";
 
@@ -144,7 +144,7 @@ class RuntimeServiceInitializer {
     return {
       isInitialized: this.isInitialized,
       isBuildTime: this.isBuildTime(),
-      environment: process.env.NODE_ENV || "unknown",
+      environment: env.NODE_ENV || "unknown",
       shouldStartCacheWarming: this.shouldStartCacheWarming(),
     };
   }
