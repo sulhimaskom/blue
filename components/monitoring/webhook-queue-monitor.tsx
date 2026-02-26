@@ -23,7 +23,6 @@ export function WebhookQueueMonitor({
   onEventsUpdate,
 }: WebhookQueueMonitorProps) {
   const [stats, setStats] = useState<WebhookQueueStats | null>(null);
-  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -73,6 +72,16 @@ export function WebhookQueueMonitor({
           </button>
         </div>
       </div>
+
+      {/* Loading State */}
+      {loading && !stats && !error && (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center space-x-2 text-gray-500">
+            <div className="w-4 h-4 bg-blue-600 rounded-full animate-pulse" />
+            <span className="text-sm">Loading webhook stats...</span>
+          </div>
+        </div>
+      )}
 
       {/* Error State */}
       {error && (
