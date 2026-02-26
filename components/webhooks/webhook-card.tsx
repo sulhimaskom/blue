@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { WebhookConfiguration } from "@/lib/services/webhook-management-service";
-import type { WebhookEventType } from "@/lib/schemas/webhook-schema";
+
 import { WEBHOOK_EVENT_TYPES } from "@/lib/schemas/webhook-schema";
 
 interface WebhookCardProps {
@@ -61,7 +61,7 @@ export function WebhookCard({
                 <span className="font-medium">Events:</span>{" "}
                 {webhook.eventTypes.length === WEBHOOK_EVENT_TYPES.length
                   ? "All events"
-                  : (webhook.eventTypes as WebhookEventType[]).join(", ")}
+                  : (webhook.eventTypes.filter((et) => (WEBHOOK_EVENT_TYPES as readonly string[]).includes(et))).join(", ")}
               </div>
 
               <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs sm:text-sm">

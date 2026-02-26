@@ -36,7 +36,7 @@ export const NotificationFilters = React.memo(
 
     const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
       const type = e.target.value || undefined;
-      onFiltersChange({ ...filters, type: type as NotificationType | undefined });
+      onFiltersChange({ ...filters, type: NOTIFICATION_TYPES.some(nt => nt.value === type) ? type as NotificationType : undefined });
     };
 
     const handleClearFilters = () => {
