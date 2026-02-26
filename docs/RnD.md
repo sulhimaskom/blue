@@ -17,7 +17,7 @@
 - Tests: PASS (95/96 suites, 1648/1657 tests)
 - Security: PASS (0 vulnerabilities)
 
-**PR**: [To be created]
+**PR**: #797
 
 **Note**: This is the same recurring issue documented in docs/RnD.md - packages declared in package.json but not properly installed in node_modules. This is the 4th occurrence. Investigating why node_modules isn't being properly populated across environments.
 
