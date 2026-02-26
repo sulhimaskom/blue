@@ -108,7 +108,21 @@ When rate limits are enforced, responses include:
 |                     | `GET /projects/[id]`                       | ✅ Required | -       | Standard   | Get specific project     |
 |                     | `PUT /projects/[id]`                       | ✅ Required | -       | Moderate   | Update project           |
 |                     | `DELETE /projects/[id]`                    | ✅ Required | -       | Moderate   | Delete project           |
-|                     | `GET /projects/[id]/blueprints`            | ✅ Required | -       | Standard   | Get project blueprints   |
+MX||                     | `GET /projects/[id]/blueprints`            | ✅ Required | -       | Standard   | Get project blueprints   |
+JR|| **Teams**            | `GET /teams`                              | ✅ Required | -       | Standard   | List user teams          |
+JR||                     | `POST /teams`                             | ✅ Required | -       | Moderate   | Create new team         |
+JR||                     | `GET /teams/[id]`                         | ✅ Required | -       | Standard   | Get team details        |
+JR||                     | `PUT /teams/[id]`                         | ✅ Required | -       | Moderate   | Update team             |
+JR||                     | `DELETE /teams/[id]`                      | ✅ Required | -       | Moderate   | Delete team             |
+JR||                     | `GET /teams/[id]/members`                 | ✅ Required | -       | Standard   | List team members       |
+JR||                     | `POST /teams/[id]/members`                | ✅ Required | -       | Moderate   | Add team member         |
+JR||                     | `DELETE /teams/[id]/members/[userId]`     | ✅ Required | -       | Moderate   | Remove team member      |
+JR||                     | `GET /teams/[id]/projects`                | ✅ Required | -       | Standard   | List team projects      |
+JR||                     | `GET /teams/[id]/usage`                   | ✅ Required | -       | Standard   | Get team usage          |
+JR||                     | `GET /teams/[id]/activity`                | ✅ Required | -       | Standard   | Get team activity       |
+JR|| **Activity**        | `GET /activity/feed`                      | ✅ Required | -       | Standard   | Activity feed           |
+JR||                     | `GET /activity/summary`                   | ✅ Required | -       | Standard   | Activity summary        |
+JB|| **Credits**         | `GET /credits/usage`                      | ✅ Required | -       | Standard   | Credit usage history   |
 | **Validation**      | `POST /validate`                           | ❌ Optional | -       | Standard   | Validate blueprint data  |
 | **Webhook Monitor** | `GET /webhooks/monitor`                    | ❌ Optional | -       | Standard   | Queue monitoring         |
 |                     | `POST /webhooks/monitor`                   | ✅ Required | -       | Moderate   | Retry dead letter queue  |
