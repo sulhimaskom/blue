@@ -1,3 +1,17 @@
+/**
+ * Health Check API
+ *
+ * SECURITY: This endpoint is intentionally public (requireAuth: false).
+ *
+ * RATIONALE: Health checks must be publicly accessible for:
+ * - Load balancer health probes
+ * - Kubernetes readiness/liveness probes
+ * - External monitoring systems
+ * - CDN origin health verification
+ *
+ * The endpoint only exposes non-sensitive system status information
+ * (uptime, version, environment) that is safe to disclose publicly.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { APIRouteHandler } from "@/lib/services/api-route-handler";
 import { monitoringService } from "@/lib/monitoring";
