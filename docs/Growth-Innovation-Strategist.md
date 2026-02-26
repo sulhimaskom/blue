@@ -1,5 +1,8 @@
 # Growth-Innovation-Strategist - Long-term Memory
 
+**Last Updated:** 2026-02-26
+**Agent:** Growth-Innovation-Strategist Specialist
+
 **Last Updated:** 2026-02-25
 **Agent:** Growth-Innovation-Strategist Specialist
 
@@ -78,6 +81,20 @@ Growth-Innovation-Strategist owns:
 ---
 
 ## Implementation Log
+
+### 2026-02-26 - Credits Page Analytics Instrumentation (PR #758)
+- **Scope**: Instrumented Credits page with analytics tracking
+- **Files Modified**:
+  - `app/dashboard/credits/page.tsx` - Added tracking for: select-credit-package, credits_purchased, credit_purchase_failed, refresh-transactions
+- **Impact**: Now can measure:
+  - Credit package selection behavior
+  - Credit purchase completion rates
+  - Purchase error rates for debugging
+  - Transaction history engagement
+
+---
+
+### 2026-02-25 - Settings and Projects Analytics Instrumentation (PR #743)
 
 ### 2026-02-25 - Settings and Projects Analytics Instrumentation (PR #743)
 - **Scope**: Instrumented Settings and Projects pages with analytics tracking
@@ -158,6 +175,20 @@ Growth-Innovation-Strategist owns:
 - **Impact:** Enables funnel analysis and conversion optimization
 
 **Pages to Instrument Next:**
+1. ~~Credits page~~ - track credit purchases ✅ (Done - PR #758)
+2. ~~Subscription page~~ - track upgrade attempts ✅ (Already done)
+3. ~~Settings page~~ - track preference changes ✅ (Done - PR #743)
+4. ~~Project pages~~ - track project creation/deployment ✅ (Done - PR #743)
+5. Activity page - track export and load more
+6. Notifications page - track filters and mark as read
+
+**Pages Completed in This Session:**
+- Dashboard page - track activity feed clicks ✅
+- Blueprints page - track create blueprint clicks ✅
+- Credits page - track credit purchases ✅ (PR #758)
+- Subscription page - track upgrade attempts ✅
+- Settings page - track preference changes ✅ (PR #743)
+- Project pages - track project creation/deployment ✅ (PR #743)
 1. ~~Credits page~~ - track credit purchases ✅ (Already done)
 2. ~~Subscription page~~ - track upgrade attempts ✅ (Already done)
 3. ~~Settings page~~ - track preference changes ✅ (Done - PR #743)
