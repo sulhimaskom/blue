@@ -35,7 +35,7 @@ export interface TechStackConfig {
   auth: string;
   payments?: string | string[];
   deployment: string;
-  realTime?: string;
+  realTime?: string | string[];
   blockchain?: string[];
   video?: string[];
   content?: string[];
