@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
-import { useCreditsData } from "@/lib/hooks/use-dashboard-data";
-import { PRICING_PACKAGES } from "@/lib/constants";
+import { useState } from 'react';
+import Link from 'next/link';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { useCreditsData } from '@/lib/hooks/use-dashboard-data';
+import { PRICING_PACKAGES } from '@/lib/constants';
+import { analytics } from '@/lib/services/analytics-service';
 
 export default function CreditsPage() {
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState<
-    (typeof PRICING_PACKAGES)[number] | null
-  >(null);
+  const [selectedPackage, setSelectedPackage] = useState<(typeof PRICING_PACKAGES)[number] | null>(
+    null
+  );
 
   const {
     data: creditsData,
@@ -24,11 +24,13 @@ export default function CreditsPage() {
     purchaseCredits,
   } = useCreditsData();
 
-  const handlePurchase = async (
-    packageData: (typeof PRICING_PACKAGES)[number],
-  ) => {
+  const handlePurchase = async (packageData: (typeof PRICING_PACKAGES)[number]) => {
     setSelectedPackage(packageData);
     setPurchaseModalOpen(true);
+    analytics.trackButtonClick('select-credit-package', 'credits', {
+      credits: packageData.credits,
+      price: packageData.price,
+    });
   };
 
   const confirmPurchase = async () => {
@@ -36,15 +38,23 @@ export default function CreditsPage() {
 
     try {
       // Convert price string to cents amount
-      const priceString = selectedPackage.price.replace(/[^0-9.]/g, "");
+      const priceString = selectedPackage.price.replace(/[^0-9.]/g, '');
       const amount = Math.round(parseFloat(priceString) * 100);
 
-      await purchaseCredits(amount, "mock_payment_method", true);
+      await purchaseCredits(amount, 'mock_payment_method', true);
+      analytics.track('credits_purchased', {
+        credits: selectedPackage.credits,
+        amount,
+        price: selectedPackage.price,
+      });
 
       setPurchaseModalOpen(false);
       setSelectedPackage(null);
     } catch (err) {
-      // Error is handled by the hook
+      analytics.trackError('credit_purchase_failed', {
+        credits: selectedPackage?.credits,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
     }
   };
 
@@ -72,9 +82,7 @@ export default function CreditsPage() {
         <div className="max-w-7xl mx-auto">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6">
             <h2 className="text-red-800 font-semibold mb-2">Error</h2>
-            <p className="text-red-600">
-              {error || "Unable to load credits data"}
-            </p>
+            <p className="text-red-600">{error || 'Unable to load credits data'}</p>
             <Button onClick={refetch} className="mt-4">
               Try Again
             </Button>
@@ -88,27 +96,20 @@ export default function CreditsPage() {
     <DashboardLayout>
       <div className="max-w-7xl mx-auto">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Credits Management
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Credits Management</h1>
           <p className="mt-2 text-gray-600">
-            Manage your credits, view transaction history, and purchase
-            additional credits.
+            Manage your credits, view transaction history, and purchase additional credits.
           </p>
         </header>
 
         {/* Current Balance Section */}
         <section className="mb-8">
           <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Current Balance
-            </h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Current Balance</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Available Credits</p>
-                <p className="text-3xl font-bold text-blue-600">
-                  {creditsData.credits}
-                </p>
+                <p className="text-3xl font-bold text-blue-600">{creditsData.credits}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Subscription Tier</p>
@@ -134,32 +135,24 @@ export default function CreditsPage() {
 
         {/* Pricing Packages */}
         <section className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Purchase Credits
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Purchase Credits</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {PRICING_PACKAGES.map((pkg, index) => (
               <div
                 key={index}
                 className="bg-white p-6 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
               >
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {pkg.credits} Credits
-                </h3>
-                <p className="text-2xl font-bold text-blue-600 mb-4">
-                  {pkg.price}
-                </p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{pkg.credits} Credits</h3>
+                <p className="text-2xl font-bold text-blue-600 mb-4">{pkg.price}</p>
                 <Button
                   onClick={() => handlePurchase(pkg)}
                   className="w-full"
-                  variant={pkg.credits >= 500 ? "default" : "secondary"}
+                  variant={pkg.credits >= 500 ? 'default' : 'secondary'}
                 >
-                  {pkg.credits >= 500 ? "Get Pro" : "Purchase"}
+                  {pkg.credits >= 500 ? 'Get Pro' : 'Purchase'}
                 </Button>
                 {pkg.credits >= 500 && (
-                  <p className="text-xs text-green-600 mt-2">
-                    Includes Pro tier
-                  </p>
+                  <p className="text-xs text-green-600 mt-2">Includes Pro tier</p>
                 )}
               </div>
             ))}
@@ -169,10 +162,15 @@ export default function CreditsPage() {
         {/* Transaction History */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Transaction History
-            </h2>
-            <Button onClick={refetch} variant="outline" size="sm">
+            <h2 className="text-xl font-semibold text-gray-900">Transaction History</h2>
+            <Button
+              onClick={() => {
+                analytics.trackButtonClick('refresh-transactions', 'credits');
+                refetch();
+              }}
+              variant="outline"
+              size="sm"
+            >
               Refresh
             </Button>
           </div>
@@ -205,7 +203,7 @@ export default function CreditsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {creditsData.transactions.map((transaction) => (
+                    {creditsData.transactions.map(transaction => (
                       <tr key={transaction.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {new Date(transaction.createdAt).toLocaleDateString()}
@@ -244,32 +242,25 @@ export default function CreditsPage() {
               <div>
                 <p className="text-gray-600">You are about to purchase:</p>
                 <div className="mt-2 p-4 bg-gray-50 rounded-lg">
-                  <p className="font-semibold">
-                    {selectedPackage.credits} Credits
-                  </p>
-                  <p className="text-lg font-bold text-blue-600">
-                    {selectedPackage.price}
-                  </p>
+                  <p className="font-semibold">{selectedPackage.credits} Credits</p>
+                  <p className="text-lg font-bold text-blue-600">{selectedPackage.price}</p>
                 </div>
               </div>
             )}
-
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-red-600">{error}</p>
               </div>
             )}
-
             {!creditsData.stripeConfig.configured && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <p className="text-yellow-600">
-                  Note: Stripe is not configured. This will use a mock payment
-                  method for development.
+                  Note: Stripe is not configured. This will use a mock payment method for
+                  development.
                 </p>
               </div>
             )}
           </div>
-
           <div className="mt-6 flex justify-end gap-3">
             <Button
               variant="outline"
@@ -282,7 +273,7 @@ export default function CreditsPage() {
               Cancel
             </Button>
             <Button onClick={confirmPurchase} disabled={purchaseLoading}>
-              {purchaseLoading ? "Processing..." : "Confirm Purchase"}
+              {purchaseLoading ? 'Processing...' : 'Confirm Purchase'}
             </Button>
           </div>
         </Modal>
