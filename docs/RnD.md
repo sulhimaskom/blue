@@ -1,3 +1,30 @@
+### 2026-02-26: Build Dependency Fix (Recurring Issue - 3rd Occurrence)
+
+**Issue**: Build failing with `MODULE_NOT_FOUND` error for `@next/bundle-analyzer` + TypeScript type errors
+
+**Root Cause**: 
+- Package declared in `package.json` devDependencies but not installed in `node_modules`
+- This is a recurring issue - same as PR #736 (fixed twice before)
+- Missing TypeScript type definitions (@types/jest, @types/node) causing typecheck failures
+
+**Fix Applied**:
+1. Installed `@next/bundle-analyzer` via `npm install --save-dev @next/bundle-analyzer`
+2. Installed `@types/jest` and `@types/node` to fix TypeScript type errors
+3. Ensured all devDependencies are properly populated in node_modules
+
+**Quality Gates Verified**:
+- Build: PASS (66.5s, 71 static pages)
+- Lint: PASS (0 warnings)
+- Typecheck: PASS (0 errors)
+- Tests: PASS (94/95 suites, 1630/1639 tests)
+- Security: PASS (0 vulnerabilities)
+
+**PR**: https://github.com/sulhimaskom/blue/pull/765
+
+**Note**: This is the same recurring issue documented in docs/RnD.md - packages declared in package.json but not properly installed in node_modules. This is the 3rd occurrence. Consider investigating why node_modules isn't being properly populated across environments.
+
+---
+
 ## Session Log
 
 ### 2026-02-25: Build Dependency Fix (Recurring Issue)
