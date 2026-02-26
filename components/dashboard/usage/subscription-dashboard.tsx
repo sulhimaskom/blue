@@ -1,12 +1,13 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { PredictiveAnalytics } from "@/components/dashboard/usage/predictive-analytics";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PredictiveAnalytics } from '@/components/dashboard/usage/predictive-analytics';
+import { analytics } from '@/lib/services/analytics-service';
 import {
   CreditCardIcon,
   UsersIcon,
@@ -18,8 +19,8 @@ import {
   AlertCircleIcon,
   ZapIcon,
   CrownIcon,
-  StarIcon
-} from "@/components/ui/icons";
+  StarIcon,
+} from '@/components/ui/icons';
 
 interface SubscriptionTier {
   tier: string;
@@ -80,62 +81,70 @@ export function SubscriptionDashboard() {
 
   useEffect(() => {
     fetchSubscriptionData();
+    analytics.pageView({ path: '/dashboard/subscription', title: 'Subscription Page' });
   }, []);
 
   const fetchSubscriptionData = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/subscription/current");
-      
+      const response = await fetch('/api/subscription/current');
+
       if (!response.ok) {
-        throw new Error("Failed to fetch subscription data");
+        throw new Error('Failed to fetch subscription data');
       }
-      
+
       const data = await response.json();
       setSubscription(data.data.subscription);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
   };
 
   const handleUpgrade = async (tier: string) => {
+    analytics.trackButtonClick(`subscription_upgrade_clicked`, 'subscription', {
+      tier,
+      currentTier: subscription?.tier || 'unknown',
+    });
     try {
-      const response = await fetch("/api/subscription/upgrade", {
-        method: "POST",
+      const response = await fetch('/api/subscription/upgrade', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           tier,
-          billingCycle: "monthly",
+          billingCycle: 'monthly',
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to initiate upgrade");
+        throw new Error('Failed to initiate upgrade');
       }
 
       const data = await response.json();
-      
+
       // Redirect to Stripe checkout
       window.location.href = data.checkoutUrl;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upgrade failed");
+      setError(err instanceof Error ? err.message : 'Upgrade failed');
     }
   };
 
   if (loading) {
     return (
-      <div 
+      <div
         className="flex items-center justify-center h-64"
         role="status"
         aria-live="polite"
         aria-busy="true"
         aria-label="Loading subscription data"
       >
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" aria-hidden="true"></div>
+        <div
+          className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+          aria-hidden="true"
+        ></div>
       </div>
     );
   }
@@ -167,17 +176,21 @@ export function SubscriptionDashboard() {
         <Card>
           <CardHeader>
             <CardTitle id="current-plan-heading" className="flex items-center gap-2">
-              {tier === "enterprise" ? <CrownIcon className="h-5 w-5 text-yellow-500" aria-hidden="true" /> :
-               tier === "pro" ? <StarIcon className="h-5 w-5 text-blue-500" aria-hidden="true" /> :
-               <CreditCardIcon className="h-5 w-5 text-gray-500" aria-hidden="true" />}
+              {tier === 'enterprise' ? (
+                <CrownIcon className="h-5 w-5 text-yellow-500" aria-hidden="true" />
+              ) : tier === 'pro' ? (
+                <StarIcon className="h-5 w-5 text-blue-500" aria-hidden="true" />
+              ) : (
+                <CreditCardIcon className="h-5 w-5 text-gray-500" aria-hidden="true" />
+              )}
               Current Plan: {tier.charAt(0).toUpperCase() + tier.slice(1)}
-              <Badge variant={tier === "free" ? "secondary" : "default"}>
-                {tier === "free" ? "Free" : tier === "pro" ? "Pro" : "Enterprise"}
+              <Badge variant={tier === 'free' ? 'secondary' : 'default'}>
+                {tier === 'free' ? 'Free' : tier === 'pro' ? 'Pro' : 'Enterprise'}
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div 
+            <div
               className="grid grid-cols-2 md:grid-cols-4 gap-4"
               aria-live="polite"
               aria-atomic="true"
@@ -229,7 +242,8 @@ export function SubscriptionDashboard() {
                   Credits
                 </span>
                 <span aria-live="polite">
-                  {usage?.currentUsage.credits || 0} / {limits.maxCredits === -1 ? "∞" : limits.maxCredits}
+                  {usage?.currentUsage.credits || 0} /{' '}
+                  {limits.maxCredits === -1 ? '∞' : limits.maxCredits}
                 </span>
               </div>
               {limits.maxCredits !== -1 && usage && (
@@ -252,7 +266,8 @@ export function SubscriptionDashboard() {
                   Projects
                 </span>
                 <span aria-live="polite">
-                  {usage?.currentUsage.projects || 0} / {limits.maxProjects === -1 ? "∞" : limits.maxProjects}
+                  {usage?.currentUsage.projects || 0} /{' '}
+                  {limits.maxProjects === -1 ? '∞' : limits.maxProjects}
                 </span>
               </div>
               {limits.maxProjects !== -1 && usage && (
@@ -275,7 +290,8 @@ export function SubscriptionDashboard() {
                   Teams
                 </span>
                 <span aria-live="polite">
-                  {usage?.currentUsage.teams || 0} / {limits.maxTeams === -1 ? "∞" : limits.maxTeams}
+                  {usage?.currentUsage.teams || 0} /{' '}
+                  {limits.maxTeams === -1 ? '∞' : limits.maxTeams}
                 </span>
               </div>
               {limits.maxTeams !== -1 && usage && (
@@ -298,7 +314,8 @@ export function SubscriptionDashboard() {
                   Webhooks
                 </span>
                 <span aria-live="polite">
-                  {usage?.currentUsage.webhooks || 0} / {limits.maxWebhooks === -1 ? "∞" : limits.maxWebhooks}
+                  {usage?.currentUsage.webhooks || 0} /{' '}
+                  {limits.maxWebhooks === -1 ? '∞' : limits.maxWebhooks}
                 </span>
               </div>
               {limits.maxWebhooks !== -1 && usage && (
@@ -341,10 +358,10 @@ export function SubscriptionDashboard() {
                   ) : (
                     <LockIcon className="h-4 w-4 text-gray-400" aria-hidden="true" />
                   )}
-                  <span className={`text-sm ${enabled ? "" : "text-gray-500"}`}>
-                    {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+                  <span className={`text-sm ${enabled ? '' : 'text-gray-500'}`}>
+                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
                   </span>
-                  {!enabled && tier !== "enterprise" && (
+                  {!enabled && tier !== 'enterprise' && (
                     <Badge variant="outline" className="text-xs">
                       Upgrade
                     </Badge>
@@ -357,7 +374,7 @@ export function SubscriptionDashboard() {
       </section>
 
       {/* Upgrade Options */}
-      {tier !== "enterprise" && (
+      {tier !== 'enterprise' && (
         <section aria-labelledby="upgrade-heading">
           <Card>
             <CardHeader>
@@ -369,13 +386,16 @@ export function SubscriptionDashboard() {
                 role="list"
                 aria-label="Available upgrade plans"
               >
-                {tier === "free" && (
+                {tier === 'free' && (
                   <article className="border rounded-lg p-4 space-y-3" role="listitem">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold">Pro</h3>
                       <Badge>Popular</Badge>
                     </div>
-                    <div className="text-2xl font-bold" aria-label={`Pro plan: $${(29 / 100).toFixed(2)} per month`}>
+                    <div
+                      className="text-2xl font-bold"
+                      aria-label={`Pro plan: $${(29 / 100).toFixed(2)} per month`}
+                    >
                       ${29 / 100}
                       <span className="text-sm text-gray-500">/month</span>
                     </div>
@@ -387,7 +407,7 @@ export function SubscriptionDashboard() {
                       <li>• Priority support</li>
                     </ul>
                     <Button
-                      onClick={() => handleUpgrade("pro")}
+                      onClick={() => handleUpgrade('pro')}
                       className="w-full"
                       aria-label={`Upgrade to Pro plan for $${(29 / 100).toFixed(2)} per month`}
                     >
@@ -396,14 +416,20 @@ export function SubscriptionDashboard() {
                   </article>
                 )}
 
-                <article className={`border rounded-lg p-4 space-y-3 ${tier === "free" ? "md:col-span-2 lg:col-span-1" : ""}`} role="listitem">
+                <article
+                  className={`border rounded-lg p-4 space-y-3 ${tier === 'free' ? 'md:col-span-2 lg:col-span-1' : ''}`}
+                  role="listitem"
+                >
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold flex items-center gap-2">
                       Enterprise
                       <CrownIcon className="h-4 w-4 text-yellow-500" aria-hidden="true" />
                     </h3>
                   </div>
-                  <div className="text-2xl font-bold" aria-label={`Enterprise plan: $${(99 / 100).toFixed(2)} per month`}>
+                  <div
+                    className="text-2xl font-bold"
+                    aria-label={`Enterprise plan: $${(99 / 100).toFixed(2)} per month`}
+                  >
                     ${99 / 100}
                     <span className="text-sm text-gray-500">/month</span>
                   </div>
@@ -415,7 +441,7 @@ export function SubscriptionDashboard() {
                     <li>• Custom themes</li>
                   </ul>
                   <Button
-                    onClick={() => handleUpgrade("enterprise")}
+                    onClick={() => handleUpgrade('enterprise')}
                     variant="default"
                     className="w-full"
                     aria-label={`Upgrade to Enterprise plan for $${(99 / 100).toFixed(2)} per month`}
