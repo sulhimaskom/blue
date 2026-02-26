@@ -212,3 +212,48 @@ npm audit fix
 - Security-engineer agent should check for npm audit vulnerabilities during INITIATE phase
 - All fixes must be verified with full build/test suite
 - PR must include "security-engineer" label
+
+---
+
+### February 26, 2026 - Complete Environment Validation Coverage (SEC-003)
+
+**Issue**: Direct `process.env` usage bypassed centralized Zod validation in multiple files, creating security vulnerabilities
+
+**Root Cause**: 
+- `lib/db/index.ts` used `process.env.DATABASE_URL` directly
+- `lib/redis-config.ts` used `process.env.REDIS_VERBOSE_LOGGING` directly
+- `REDIS_VERBOSE_LOGGING` not defined in centralized env schema
+
+**Solution Implemented**:
+1. Added `REDIS_VERBOSE_LOGGING` to centralized env schema in `lib/env.ts`
+2. Added fallback values for build-time and test-time environments
+3. Updated `lib/db/index.ts` to use `env.DATABASE_URL` instead of `process.env.DATABASE_URL`
+4. Updated `lib/redis-config.ts` to use `env.REDIS_VERBOSE_LOGGING`
+
+**Files Modified**:
+- `lib/env.ts` - Added REDIS_VERBOSE_LOGGING to Zod schema (+3 lines)
+- `lib/db/index.ts` - Changed process.env.DATABASE_URL → env.DATABASE_URL (+3/-2 lines)
+- `lib/redis-config.ts` - Changed process.env.REDIS_VERBOSE_LOGGING → env.REDIS_VERBOSE_LOGGING (+1/-1 lines)
+
+**PR**: https://github.com/sulhimaskom/blue/pull/773 (Label: security-engineer)
+
+**Acceptance Criteria Met**:
+- ✅ All DATABASE_URL access goes through centralized validation
+- ✅ REDIS_VERBOSE_LOGGING added to schema with proper fallbacks
+- ✅ Zero process.env access for sensitive variables outside env.ts
+
+**Verification**:
+- ✅ npm audit: 0 vulnerabilities
+- ✅ npm run build: Pass (64.7s)
+- ✅ npm run test: 94/95 suites passing (1630/1639 tests)
+- ✅ npm run lint: 0 warnings/errors
+- ✅ npm run typecheck: 0 TypeScript errors
+
+---
+
+## Notes
+
+- Security-engineer agent should check for npm audit vulnerabilities during INITIATE phase
+- All fixes must be verified with full build/test suite
+- PR must include "security-engineer" label
+- Proactively scan for direct process.env usage that bypasses centralized env module
