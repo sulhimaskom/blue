@@ -53,6 +53,7 @@ const envSchema = z.object({
   // Redis (Optional - will fall back to in-memory if not provided)
   REDIS_URL: z.string().url().optional(),
   REDIS_PASSWORD: z.string().optional(),
+  REDIS_VERBOSE_LOGGING: z.string().optional(),
 
   // Email Service (Optional - Resend for transactional emails)
   RESEND_API_KEY: z.string().optional(),
@@ -96,6 +97,7 @@ function validateEnv(): Env {
       NEXT_PUBLIC_APP_NAME: "Architect Platform",
       OPENAI_API_KEY: "",
       ALLOWED_ORIGINS: "",
+      REDIS_VERBOSE_LOGGING: "",
     } as Env;
   }
 
@@ -132,6 +134,7 @@ function validateEnv(): Env {
       NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || "Architect Platform",
       OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
       ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || "",
+      REDIS_VERBOSE_LOGGING: process.env.REDIS_VERBOSE_LOGGING || "",
     } as Env;
   }
 
