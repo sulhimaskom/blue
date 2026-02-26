@@ -177,6 +177,16 @@ await DatabaseIndexer.createAllIndexes();
 - TODO/FIXME: 2 low-priority placeholders in fallback test generation
 - Quality gates: All passing (npm audit 0, typecheck 0, lint 0, tests 83/84)
 - No code changes required - backend domain is clean
+### 2026-02-26 (Cache Invalidation Fix)
+
+- Issue #759: Implement Cache Invalidation Consistency - PARTIALLY RESOLVED
+- Added cache invalidation to `updateProjectStatus` method
+- Added cache invalidation to `updateProjectDeployment` method
+- Team mutations already had proper cache invalidation (verified)
+- Quality gates: All passing (typecheck 0, lint 0, tests 95/95)
+- Created PR #787 with backend-engineer label
+
+
 QW|## Session Log
 #WS|
 #YR|### 2026-02-26 (Security Fix)
