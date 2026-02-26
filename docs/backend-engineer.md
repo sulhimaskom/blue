@@ -1,17 +1,55 @@
-#RN|# Backend Engineer - Long Term Memory
-#KM|
-#RQ|**Last Updated**: 2026-02-26
-#NR|**Agent**: backend-engineer
-#BT|
-#YP|## Current Status
-#HN|
-#ZK|### Quality Gates
-#JT|
-#PV|- ✅ TypeScript: Passing (0 errors)
-#VN|- ✅ ESLint: Passing (0 warnings/errors)
-#XN|- ✅ Tests: 94/95 suites passing, 1630 tests passing
-#QQ|- ✅ Build: Passing (61.3s compile time)
-#BY|
+# Backend Engineer - Long Term Memory
+
+**Last Updated**: 2026-02-26
+**Agent**: backend-engineer
+
+## Current Status
+
+### Quality Gates
+
+- ✅ TypeScript: Passing (0 errors)
+- ✅ ESLint: Passing (0 warnings/errors)
+- ✅ Tests: 96/97 suites passing, 1682 tests passing
+- ✅ Build: Passing (64.4s compile time, 72 static pages)
+
+### 2026-02-26 (Issue #794 - Service Layer Extraction)
+
+- **Issue**: Extract Business Logic from API Routes Following blueprint.md:208-209
+- **Status**: ✅ RESOLVED
+
+**Changes Made**:
+
+1. **Created `lib/services/blueprint-stats-service.ts`** (159 lines)
+   - New service for blueprint statistics and data enrichment
+   - Method: `BlueprintStatsService.getUserBlueprintStats(userId, clerkId, context)`
+   - Encapsulates: cache logic, stats calculation, performance metrics
+
+2. **Refactored `app/api/blueprints/route.ts`** (174 → 85 lines)
+   - Reduced by 51% (89 lines removed)
+   - Now delegates 100% to `BlueprintStatsService`
+   - Route is thin wrapper following blueprint.md:208-209
+
+3. **Created `lib/services/credit-processing-service.ts`** (207 lines)
+   - New service for credit purchase processing
+   - Method: `CreditProcessingService.processCreditPurchase(userId, clerkId, request, context)`
+   - Encapsulates: credit calculation, mock/Stripe payment branching, transaction creation
+
+4. **Refactored `app/api/credits/route.ts`** (184 → 83 lines)
+   - Reduced by 55% (101 lines removed)
+   - Now delegates 100% to `CreditProcessingService`
+   - Route is thin wrapper following blueprint.md:208-209
+
+**Quality Gates**:
+- ✅ Build: 64.4s, 72 static pages
+- ✅ Typecheck: 0 errors
+- ✅ Lint: 0 warnings
+- ✅ Tests: 96/97 suites, 1682/1691 tests passing
+
+**Files Modified**:
+- Created: `lib/services/blueprint-stats-service.ts`
+- Created: `lib/services/credit-processing-service.ts`
+- Updated: `app/api/blueprints/route.ts` (174 → 85 lines)
+- Updated: `app/api/credits/route.ts` (184 → 83 lines)
 
 **Last Updated**: 2026-02-26
 **Agent**: backend-engineer
