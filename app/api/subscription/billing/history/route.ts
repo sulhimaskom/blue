@@ -1,13 +1,19 @@
-import { APIRouteHandler } from "@/lib/services/api-route-handler";
-import { ProjectDataService } from "@/lib/services/project-data-service";
-import { ValidationError } from "@/lib/api-utils";
-import { z } from "zod";
-import { logger } from "@/lib/logger";
-import { UserService } from "@/lib/services/user-service";
+import { APIRouteHandler } from '@/lib/services/api-route-handler';
+import { ProjectDataService } from '@/lib/services/project-data-service';
+import { ValidationError } from '@/lib/api-utils';
+import { z } from 'zod';
+import { logger } from '@/lib/logger';
+import { RateLimiters } from '@/lib/rate-limit-config';
 
 const billingHistoryQuerySchema = z.object({
-  limit: z.string().optional().transform((val) => (val ? parseInt(val, 10) : undefined)),
-  offset: z.string().optional().transform((val) => (val ? parseInt(val, 10) : undefined)),
+  limit: z
+    .string()
+    .optional()
+    .transform(val => (val ? parseInt(val, 10) : undefined)),
+  offset: z
+    .string()
+    .optional()
+    .transform(val => (val ? parseInt(val, 10) : undefined)),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
 });
@@ -41,45 +47,51 @@ export interface BillingHistoryResponse {
  * Rate Limit: 30 requests/minute (standard - authenticated with caching)
  * Cache: 5 minutes (billing data changes infrequently)
  */
-export const GET = APIRouteHandler.createSimpleCachedGETHandler(
-  async (req) => {
-    const user = await UserService.getAuthenticatedUser({ requestId: crypto.randomUUID() });
-    const url = new URL(req.url);
-    let result: z.infer<typeof billingHistoryQuerySchema>;
+export const GET = APIRouteHandler.createCachedGETHandler(
+  {
+    requireAuth: true,
+    rateLimiter: (identifier: string) => RateLimiters.standard()(identifier),
+    handler: async ({ req, user }) => {
+      const url = new URL(req.url);
+      let result: z.infer<typeof billingHistoryQuerySchema>;
 
-    try {
-      result = billingHistoryQuerySchema.parse({
-        limit: url.searchParams.get("limit"),
-        offset: url.searchParams.get("offset"),
-        startDate: url.searchParams.get("startDate"),
-        endDate: url.searchParams.get("endDate"),
-      });
-    } catch (error) {
-      throw new ValidationError("Invalid query parameters");
-    }
+      try {
+        result = billingHistoryQuerySchema.parse({
+          limit: url.searchParams.get('limit'),
+          offset: url.searchParams.get('offset'),
+          startDate: url.searchParams.get('startDate'),
+          endDate: url.searchParams.get('endDate'),
+        });
+      } catch (error) {
+        throw new ValidationError('Invalid query parameters');
+      }
 
-    const userId = user.id;
-    const transactionsResult = await ProjectDataService.getUserTransactions(userId);
+      if (!user) {
+        throw new ValidationError('Authentication required');
+      }
+
+      const userId = user.id;
+      const transactionsResult = await ProjectDataService.getUserTransactions(userId);
 
       let filteredTransactions = transactionsResult;
 
       if (result.startDate) {
         const startDate = new Date(result.startDate);
         if (isNaN(startDate.getTime())) {
-          throw new ValidationError("Invalid startDate format");
+          throw new ValidationError('Invalid startDate format');
         }
         filteredTransactions = filteredTransactions.filter(
-          (t: { createdAt: Date | string }) => new Date(t.createdAt) >= startDate,
+          (t: { createdAt: Date | string }) => new Date(t.createdAt) >= startDate
         );
       }
 
       if (result.endDate) {
         const endDate = new Date(result.endDate);
         if (isNaN(endDate.getTime())) {
-          throw new ValidationError("Invalid endDate format");
+          throw new ValidationError('Invalid endDate format');
         }
         filteredTransactions = filteredTransactions.filter(
-          (t: { createdAt: Date | string }) => new Date(t.createdAt) <= endDate,
+          (t: { createdAt: Date | string }) => new Date(t.createdAt) <= endDate
         );
       }
 
@@ -102,14 +114,11 @@ export const GET = APIRouteHandler.createSimpleCachedGETHandler(
           amount: t.amount,
           creditsAdded: t.creditsAdded,
           stripePaymentId: t.stripePaymentId,
-          createdAt:
-            typeof t.createdAt === "string"
-              ? t.createdAt
-              : t.createdAt.toISOString(),
-        }),
+          createdAt: typeof t.createdAt === 'string' ? t.createdAt : t.createdAt.toISOString(),
+        })
       );
 
-      logger.userAction("Billing history retrieved", String(userId), {
+      logger.userAction('Billing history retrieved', String(userId), {
         transactionCount: totalCount,
         limit,
         offset,
@@ -121,11 +130,12 @@ export const GET = APIRouteHandler.createSimpleCachedGETHandler(
         limit,
         offset,
       };
+    },
   },
   {
     ttl: 300,
-    tags: ["subscription:billing"],
+    tags: ['subscription:billing'],
     varyBy: [],
     initializeServices: false,
-  },
+  }
 );

@@ -257,3 +257,34 @@ npm audit fix
 - All fixes must be verified with full build/test suite
 - PR must include "security-engineer" label
 - Proactively scan for direct process.env usage that bypasses centralized env module
+
+---
+
+### February 26, 2026 - Authentication Bypass in Cached GET Handlers (SEC-004)
+
+**Issue**: Issue #760 - `createSimpleCachedGETHandler` bypasses authentication on protected endpoints
+
+**Root Cause**: The `createSimpleCachedGETHandler` factory method hardcodes `requireAuth: false`, which was incorrectly applied to the billing history endpoint that requires authentication.
+
+**Solution Implemented**:
+1. Migrated `/api/subscription/billing/history` from `createSimpleCachedGETHandler` to `createCachedGETHandler`
+2. Added explicit `requireAuth: true` for proper authentication enforcement
+3. Added explicit rate limiter configuration (`RateLimiters.standard()`)
+4. Added user presence guard for type safety
+
+**Files Modified**:
+- `app/api/subscription/billing/history/route.ts` - Fixed authentication bypass
+
+**Routes Verified**:
+- `/api/performance/predictive-optimization` - OK as public (system data only)
+- `/api/performance/optimization` - OK as public (system data only)
+- `/api/health` - OK as public (standard health check)
+- `/api/metrics` - OK as public (system metrics)
+- `/api/subscription/billing/history` - FIXED (user billing data)
+
+**Verification**:
+- ✅ npm audit: 0 vulnerabilities
+- ✅ npm run build: Pass (59.6s)
+- ✅ npm run test: 94/95 suites passing (1630/1639 tests)
+- ✅ npm run lint: 0 warnings/errors
+- ✅ npm run typecheck: 0 TypeScript errors
