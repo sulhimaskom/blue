@@ -43,6 +43,8 @@
     "test:build-performance": "node scripts/build-performance-monitor.js",
     "optimize-db": "node scripts/optimize-database.ts",
     "infrastructure:check": "./scripts/infrastructure-health-monitor.sh",
+    "infrastructure:recover": "./scripts/infrastructure-health-monitor.sh install",
+    "infrastructure:report": "./scripts/infrastructure-health-monitor.sh report",
     "migrate:up": "npx tsx migrations/0001_add_data_integrity_constraints.ts",
     "migrate:down": "npx tsx migrations/0001_add_data_integrity_constraints.ts down",
     "migrate:unique:up": "npx tsx migrations/0005_add_unique_constraints.ts",
