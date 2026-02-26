@@ -30,7 +30,19 @@
 - `/docs/TROUBLESHOOTING.md` - Problem resolution
 - `/docs/AGENTS.md` - AI agent development rules
 
-## Last Activity
+#QH|## Last Activity
+#WV|
+#KY|- **Date**: 2026-02-26
+#RZ|- **Branch**: technical-writer-api-overview-1772096078
+#YV|- **Action**: Added Teams API (12 endpoints), Activity API (2 endpoints), and Credits usage (1 endpoint) to API overview table
+#TB|- **Files Changed**: 
+#NQ|  - docs/API.md (+15 lines to overview table)
+#NZ|- **Quality Gates**: ✅ Lint (0 warnings), ✅ Typecheck (0 errors), ✅ Tests (94/95 suites, 1630/1639 tests)
+#VJ|- **PR**: #776 - https://github.com/sulhimaskom/blue/pull/776
+#QV|
+#KY|- **Date**: 2026-02-25
+#RZ|- **Branch**: technical-writer-adr-consolidation-1772051625
+#YV|- **Action**: Consolidated ADR documentation - moved 5 foundational ADRs from stale /docs/adrs/ to canonical /docs/architecture/adr/
 
 - **Date**: 2026-02-25
 - **Branch**: technical-writer-adr-consolidation-1772051625
