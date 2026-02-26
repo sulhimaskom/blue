@@ -133,7 +133,7 @@ export class RedisConfig {
       retryDelay: isTest ? 100 : isProduction ? 1000 : 500,
       silentMode:
         isTest ||
-        (!isConfigured && process.env.REDIS_VERBOSE_LOGGING !== "true"),
+        (!isConfigured && env.REDIS_VERBOSE_LOGGING !== "true"),
       performanceMode: isProduction || isConfigured,
     };
   }

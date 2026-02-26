@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { sql } from "drizzle-orm";
+import { env } from "../env";
 import * as schema from "./schema";
 import { logger } from "../logger";
 import { DatabaseError, DatabaseConnectionError } from "./errors";
@@ -24,16 +25,15 @@ let _db: ReturnType<typeof drizzle>;
 let _sql: ReturnType<typeof neon>;
 
 export function getDb() {
-  // Skip database connection during build time
   if (
     process.env.NEXT_PHASE === "phase-production-build" ||
-    (process.env.NODE_ENV === "development" && !process.env.DATABASE_URL)
+    (process.env.NODE_ENV === "development" && !env.DATABASE_URL)
   ) {
     throw new DatabaseError("Database unavailable during build time");
   }
 
   if (!_db) {
-    const databaseUrl = process.env.DATABASE_URL;
+    const databaseUrl = env.DATABASE_URL;
     if (!databaseUrl) {
       throw new DatabaseConnectionError("DATABASE_URL is not set in the environment");
     }
