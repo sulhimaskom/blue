@@ -11,7 +11,7 @@ The platform-engineer domain focuses on infrastructure, DevOps, CI/CD, build sys
 
 ---
 
-## Active Scripts (9)
+## Active Scripts (11)
 
 | Script                                     | Purpose                      | Status |
 | ------------------------------------------ | ---------------------------- | ------ |
@@ -29,6 +29,26 @@ The platform-engineer domain focuses on infrastructure, DevOps, CI/CD, build sys
 ---
 
 ## Cleanup History
+
+### 2026-02-26: Missing NPM Scripts Exposed
+
+**Issue**: Documentation referenced `infrastructure:recover` and `infrastructure:report` npm scripts that weren't exposed in package.json, even though the functionality existed in `infrastructure-health-monitor.sh`.
+
+**Action Taken**:
+
+- Added `infrastructure:recover` npm script to package.json (runs `install` subcommand)
+- Added `infrastructure:report` npm script to package.json (runs `report` subcommand)
+- Cleaned up scripts/README.md (removed duplicate content, fixed pre-commit instructions)
+
+**Verification**:
+
+- npm run infrastructure:report: ✅ PASS (generates health report)
+- npm run lint: ✅ PASS (0 warnings/errors)
+- npm run typecheck: ✅ PASS (0 errors)
+
+---
+
+### 2026-02-26: Dead Scripts Cleanup
 
 ### 2026-02-26: Dead Scripts Cleanup
 
