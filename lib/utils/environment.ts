@@ -8,7 +8,7 @@
  * @returns boolean indicating development mode
  */
 export function isDevelopment(): boolean {
-  return process.env.NODE_ENV === "development";
+  return process.env.NODE_ENV === 'development';
 }
 
 /**
@@ -16,7 +16,7 @@ export function isDevelopment(): boolean {
  * @returns boolean indicating production mode
  */
 export function isProduction(): boolean {
-  return process.env.NODE_ENV === "production";
+  return process.env.NODE_ENV === 'production';
 }
 
 /**
@@ -24,7 +24,7 @@ export function isProduction(): boolean {
  * @returns boolean indicating test mode
  */
 export function isTest(): boolean {
-  return process.env.NODE_ENV === "test";
+  return process.env.NODE_ENV === 'test';
 }
 
 /**
@@ -32,7 +32,7 @@ export function isTest(): boolean {
  * @returns string of current environment
  */
 export function getEnvironmentName(): string {
-  return process.env.NODE_ENV || "unknown";
+  return process.env.NODE_ENV || 'unknown';
 }
 
 /**
@@ -63,4 +63,10 @@ export const Features = {
    * Enable production optimizations
    */
   enableProductionOptimizations: isProduction(),
+
+  /**
+   * Enable predictive cache warming based on user behavior patterns
+   * Feature: Issue #763 - Predictive Cache Warming
+   */
+  predictiveCacheWarming: isProduction() || isDevelopment(),
 } as const;
