@@ -86,32 +86,23 @@ Create PR with:
 
 ## Quality Gates (Non-Negotiable)
 
-```
-| Gate        | Command              | Success Criteria      |
-|-------------|---------------------|----------------------|
-| TypeScript  | npm run typecheck   | 0 errors             |
-| ESLint      | npm run lint         | 0 warnings/errors    |
-| Build       | npm run build        | Exit code 0          |
-| Tests       | npm test --silent    | All tests pass       |
-```
+| Gate       | Command           | Success Criteria  |
+| ---------- | ----------------- | ----------------- |
+| TypeScript | npm run typecheck | 0 errors          |
+| ESLint     | npm run lint      | 0 warnings/errors |
+| Build      | npm run build     | Exit code 0       |
+| Tests      | npm test --silent | All tests pass    |
 
 ## Current Repository State
 
 **Last Verified**: 2026-02-26
 
-| Metric     | Status               |
-| ---------- | -------------------- |
-| TypeScript | ✅ Pass              |
-| ESLint     | ✅ Pass (0 warnings) |
-| Build      | ✅ Pass (68.7s)      |
-| Tests      | ✅ 83/84 suites (99%) |
-
-| Metric     | Status               |
-| ---------- | -------------------- |
-| TypeScript | ✅ Pass              |
-| ESLint     | ✅ Pass (0 warnings) |
-| Build      | ✅ Pass (76.6s)      |
-| Tests      | ✅ Passing           |
+| Metric     | Status                |
+| ---------- | --------------------- |
+| TypeScript | ✅ Pass               |
+| ESLint     | ✅ Pass (0 warnings)  |
+| Build      | ✅ Pass (78.7s)       |
+| Tests      | ✅ 94/95 suites (99%) |
 
 ## Issue Tags
 
@@ -125,10 +116,11 @@ Domain-specific tags for issue tracking:
 
 ## Recent Work
 
-| Date       | PR   | Description                                              | Status    |
-| ---------- | ---- | -------------------------------------------------------- | --------- |
-YH|| 2026-02-25 | #687 | Remove hardcoded localhost fallback in OpenAPI generator | ✅ Closed |
-YM|| 2026-02-26 | N/A  | Proactive scan - Repository in excellent state (99% tests) | ✅ Complete |
+| Date       | PR   | Description                                                   | Status      |
+| ---------- | ---- | ------------------------------------------------------------- | ----------- |
+| 2026-02-25 | #687 | Remove hardcoded localhost fallback in OpenAPI generator      | ✅ Closed   |
+| 2026-02-26 | N/A  | Proactive scan - Repository in excellent state (99% tests)    | ✅ Complete |
+| 2026-02-26 | #752 | Update Product-Architect.md verification state (closed stale) | ✅ Closed   |
 
 ## Notes
 
