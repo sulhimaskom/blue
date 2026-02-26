@@ -1946,6 +1946,207 @@ Authorization: Bearer <token>
 
 ---
 
+## 👥 Team Management
+
+### GET /teams
+
+List all teams the authenticated user is a member of.
+
+**Request:**
+
+```http
+GET /api/teams?limit=100&offset=0&search=myteam
+Authorization: Bearer <token>
+```
+
+**Query Parameters:**
+
+- `limit` (integer, optional) - Maximum items to return (default: 100, max: 1000)
+- `offset` (integer, optional) - Number of items to skip (default: 0)
+- `search` (string, optional) - Search teams by name (max: 100 chars)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "team_uuid",
+      "name": "My Team",
+      "subscriptionTier": "pro",
+      "ownerId": "user_uuid",
+      "createdAt": "2026-01-14T16:00:00Z",
+      "updatedAt": "2026-01-14T16:00:00Z"
+    }
+  ],
+  "message": "Teams retrieved successfully"
+}
+```
+
+### POST /teams
+
+Create a new team.
+
+**Request:**
+
+```http
+POST /api/teams
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "New Team",
+  "subscriptionTier": "pro"
+}
+```
+
+**Body Parameters:**
+
+- `name` (string, required) - Team name (1-100 characters)
+- `subscriptionTier` (string, optional) - Tier: "free", "pro", or "enterprise"
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "team_uuid",
+    "name": "New Team",
+    "subscriptionTier": "pro",
+    "ownerId": "user_uuid",
+    "createdAt": "2026-01-14T16:00:00Z"
+  },
+  "message": "Team created successfully"
+}
+```
+
+**Credit Cost:** Team creation costs 50 credits.
+
+### GET /teams/[id]
+
+Get a specific team by ID.
+
+### PUT /teams/[id]
+
+Update team details (owner only).
+
+### DELETE /teams/[id]
+
+Delete a team (owner only).
+
+### GET /teams/[id]/members
+
+List all members of a team.
+
+### POST /teams/[id]/members
+
+Invite a new member to a team.
+
+### DELETE /teams/[id]/members/[userId]
+
+Remove a member from a team.
+
+### GET /teams/[id]/projects
+
+List all projects in a team.
+
+### GET /teams/[id]/usage
+
+Get team usage metrics and quotas.
+
+### GET /teams/[id]/activity
+
+Get activity history for a team.
+
+---
+
+## 📊 Activity Feed
+
+### GET /activity/feed
+
+Retrieve the user's activity feed with filtering and pagination.
+
+**Request:**
+
+```http
+GET /api/activity/feed?limit=50&offset=0&startDate=2026-01-01T00:00:00Z&endDate=2026-01-31T23:59:59Z&eventTypes=blueprint_create,project_create
+Authorization: Bearer <token>
+```
+
+**Query Parameters:**
+
+- `limit` (integer, optional) - Items per page (default: 50, max: 100)
+- `offset` (integer, optional) - Number of items to skip (default: 0)
+- `startDate` (ISO 8601, optional) - Filter activities from this date
+- `endDate` (ISO 8601, optional) - Filter activities until this date
+- `eventTypes` (string, optional) - Comma-separated event types to filter
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "activity_uuid",
+      "userId": "user_uuid",
+      "entityType": "blueprint",
+      "entityId": "blueprint_uuid",
+      "action": "create",
+      "metadata": {
+        "name": "My Blueprint",
+        "projectName": "My Project"
+      },
+      "createdAt": "2026-01-14T16:00:00Z"
+    }
+  ],
+  "message": "Activity feed retrieved successfully"
+}
+```
+
+### GET /activity/summary
+
+Get aggregated activity summary for analytics.
+
+**Request:**
+
+```http
+GET /api/activity/summary?entityType=project&entityId=project_uuid
+Authorization: Bearer <token>
+```
+
+**Query Parameters:**
+
+- `entityType` (string, optional) - Filter by entity: "project", "team", "user", "blueprint", "deployment"
+- `entityId` (string, optional) - Filter by specific entity ID
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "totalActivities": 150,
+    "byType": {
+      "blueprint_create": 50,
+      "project_create": 30,
+      "deployment_complete": 70
+    },
+    "byDate": [
+      {
+        "date": "2026-01-14",
+        "count": 25
+      }
+    ]
+  },
+  "message": "Activity summary retrieved successfully"
+}
+```
+
+---
+
 ## 🔔 Notifications
 
 ### GET /notifications
