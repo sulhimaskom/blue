@@ -249,7 +249,40 @@ npm audit fix
 - ✅ npm run lint: 0 warnings/errors
 - ✅ npm run typecheck: 0 TypeScript errors
 
+### February 26, 2026 - CreateSimpleCachedGETHandler Authentication Bypass (SEC-004)
+
+**Issue**: Issue #760 - CreateSimpleCachedGETHandler bypasses authentication on protected endpoints
+
+**Audit Results**:
+All 5 routes mentioned in the issue were audited:
+
+| Route | Handler | Auth | Status |
+|-------|---------|------|--------|
+| `/api/subscription/billing/history` | `createCachedGETHandler` | `requireAuth: true` | ✅ FIXED |
+| `/api/performance/predictive-optimization` | `createCachedGETHandler` | `requireAuth: true` | ✅ FIXED |
+| `/api/performance/optimization` | `createCachedGETHandler` | `requireAuth: true` | ✅ FIXED |
+| `/api/metrics` | `createCachedGETHandler` | `requireAuth: true` | ✅ FIXED |
+| `/api/health` | `createSimpleCachedGETHandler` | Intentional public | ✅ CORRECT |
+
+**Notes**:
+- The `/api/health` endpoint correctly uses `createSimpleCachedGETHandler` with documented security rationale (load balancer probes, Kubernetes readiness/liveness, external monitoring)
+- All protected endpoints now use `createCachedGETHandler` with explicit `requireAuth: true`
+- Issue #760 closed as resolved
+
+**Verification**:
+- ✅ npm audit: 0 vulnerabilities
+- ✅ npm run lint: 0 warnings/errors
+- ✅ npm run typecheck: 0 TypeScript errors
+- ✅ npm run build: Success
+
 ---
+
+## Notes
+
+- Security-engineer agent should check for npm audit vulnerabilities during INITIATE phase
+- All fixes must be verified with full build/test suite
+- PR must include "security-engineer" label
+- Proactively scan for direct process.env usage that bypasses centralized env module
 
 ## Notes
 
