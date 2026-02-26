@@ -1,6 +1,6 @@
 # Platform Engineer - Long-term Memory
 
-**Last Updated**: 2026-02-25
+**Last Updated**: 2026-02-26
 **Agent**: platform-engineer
 
 ---
@@ -24,10 +24,30 @@ The platform-engineer domain focuses on infrastructure, DevOps, CI/CD, build sys
 | `scripts/build-performance-monitor.js`     | Build performance tracking   | Active |
 | `scripts/optimize-database.ts`             | Database optimization        | Active |
 | `scripts/infrastructure-health-monitor.sh` | Infrastructure health checks | Active |
+| `scripts/empty.js`                         | SSR self polyfill            | Active |
 
 ---
 
 ## Cleanup History
+
+### 2026-02-26: Dead Scripts Cleanup
+
+**Issue**: Unused scripts identified in proactive platform-engineer scan.
+
+**Action Taken**:
+
+- Removed `scripts/ultra-build-optimizer-v3.js` (duplicate of ultra-fast-build-optimizer-v3.js)
+- Removed `scripts/dev-performance-setup.sh` (only referenced in old documentation)
+- Removed `scripts/pre-commit-hook.sh` (optional manual setup, not used in package.json)
+
+**Verification**:
+
+- npm audit: ✅ PASS (0 vulnerabilities)
+- npm run lint: ✅ PASS (0 warnings/errors)
+- npm run typecheck: ✅ PASS (0 errors)
+- npm run test: ✅ PASS (83/84 suites, 1506/1515 tests)
+
+---
 
 ### 2026-02-25: Infrastructure Health Monitor Fix
 
