@@ -39,7 +39,7 @@ export const TeamList = React.memo(
                 <div
                   key={_team.id}
                   className={cn(
-                    "p-4 cursor-pointer hover:bg-gray-50",
+                    "p-4 cursor-pointer hover:bg-gray-50 hover:scale-[1.01] transition-all duration-200",
                     selectedTeam?.id === _team.id ? "bg-blue-50" : "",
                   )}
                   onClick={() => onTeamSelect(_team)}
