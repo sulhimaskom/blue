@@ -520,7 +520,528 @@ POST /credits
 - Development mode: Credits added immediately without payment
 - Production mode: Stripe payment processing required
 
+KR|---
+#MZ|
+### Teams
+
+#### Get All Teams
+
+Retrieve all teams for the authenticated user.
+
+```http
+GET /teams
+```
+
+**Authentication**: Required  
+**Rate Limit**: Standard (30/min)  
+**Subscription Multipliers**: Pro (150/min), Enterprise (300/min)
+
+**Query Parameters**:
+- `limit`: Maximum number of teams to return (default: 100, max: 1000)
+- `offset`: Number of teams to skip for pagination
+- `search`: Filter teams by name (max 100 characters)
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "teams": [
+      {
+        "id": "660e8400-e29b-41d4-a716-446655440000",
+        "name": "Engineering Team",
+        "subscriptionTier": "pro",
+        "ownerId": "user_abc123",
+        "memberCount": 5,
+        "projectCount": 12,
+        "createdAt": "2026-01-15T10:00:00Z",
+        "updatedAt": "2026-01-15T10:00:00Z"
+      }
+    ],
+    "total": 10,
+    "limit": 100,
+    "offset": 0
+  },
+  "message": "Teams retrieved successfully"
+}
+```
+
 ---
+
+#### Create Team
+
+Create a new team.
+
+```http
+POST /teams
+```
+
+**Authentication**: Required  
+**Rate Limit**: Standard (30/min)  
+**Subscription Multipliers**: Pro (150/min), Enterprise (300/min)
+**Credits Required**: 50 credits
+
+**Request Body**:
+```json
+{
+  "name": "Engineering Team",
+  "subscriptionTier": "pro"
+}
+```
+
+**Validation**:
+- `name`: 1-100 characters required
+- `subscriptionTier`: Optional - "free", "pro", or "enterprise"
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "team": {
+      "id": "660e8400-e29b-41d4-a716-446655440000",
+      "name": "Engineering Team",
+      "subscriptionTier": "pro",
+      "ownerId": "user_abc123",
+      "memberCount": 1,
+      "projectCount": 0,
+      "createdAt": "2026-01-15T10:30:00Z",
+      "updatedAt": "2026-01-15T10:30:00Z"
+    },
+    "message": "Team created successfully"
+  }
+}
+```
+
+---
+
+#### Get Team Details
+
+Retrieve detailed information about a specific team.
+
+```http
+GET /teams/{id}
+```
+
+**Authentication**: Required  
+**Rate Limit**: Standard (30/min)  
+**Subscription Multipliers**: Pro (150/min), Enterprise (300/min)
+
+**Path Parameters**:
+- `id`: Team UUID
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "660e8400-e29b-41d4-a716-446655440000",
+    "name": "Engineering Team",
+    "subscriptionTier": "pro",
+    "ownerId": "user_abc123",
+    "members": [
+      {
+        "id": 1,
+        "userId": "user_abc123",
+        "email": "john@example.com",
+        "name": "John Doe",
+        "role": "admin",
+        "joinedAt": "2026-01-15T10:00:00Z"
+      }
+    ],
+    "memberCount": 5,
+    "projectCount": 12,
+    "createdAt": "2026-01-15T10:00:00Z",
+    "updatedAt": "2026-01-15T10:00:00Z"
+  },
+  "message": "Team details retrieved successfully"
+}
+```
+
+---
+
+#### Update Team
+
+Update team settings.
+
+```http
+PUT /teams/{id}
+```
+
+**Authentication**: Required  
+**Rate Limit**: Standard (30/min)  
+**Subscription Multipliers**: Pro (150/min), Enterprise (300/min)
+
+**Path Parameters**:
+- `id`: Team UUID
+
+**Request Body**:
+```json
+{
+  "name": "Engineering Team Updated"
+}
+```
+
+**Validation**:
+- `name`: 1-100 characters required
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "team": {
+      "id": "660e8400-e29b-41d4-a716-446655440000",
+      "name": "Engineering Team Updated",
+      "subscriptionTier": "pro",
+      "ownerId": "user_abc123",
+      "memberCount": 5,
+      "projectCount": 12,
+      "createdAt": "2026-01-15T10:00:00Z",
+      "updatedAt": "2026-01-15T11:00:00Z"
+    },
+    "message": "Team updated successfully"
+  }
+}
+```
+
+---
+
+#### Delete Team
+
+Delete a team. Only the team owner can delete the team.
+
+```http
+DELETE /teams/{id}
+```
+
+**Authentication**: Required  
+**Rate Limit**: Moderate (10/min)  
+**Subscription Multipliers**: Pro (50/min), Enterprise (100/min)
+
+**Path Parameters**:
+- `id`: Team UUID
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Team deleted successfully"
+}
+```
+
+---
+
+#### Get Team Members
+
+Retrieve all members of a team.
+
+```http
+GET /teams/{id}/members
+```
+
+**Authentication**: Required  
+**Rate Limit**: Standard (30/min)  
+**Subscription Multipliers**: Pro (150/min), Enterprise (300/min)
+
+**Path Parameters**:
+- `id`: Team UUID
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "members": [
+      {
+        "id": 1,
+        "userId": "user_abc123",
+        "email": "john@example.com",
+        "name": "John Doe",
+        "role": "admin",
+        "joinedAt": "2026-01-15T10:00:00Z"
+      },
+      {
+        "id": 2,
+        "userId": "user_def456",
+        "email": "jane@example.com",
+        "name": "Jane Smith",
+        "role": "member",
+        "joinedAt": "2026-01-16T09:00:00Z"
+      }
+    ],
+    "total": 2
+  },
+  "message": "Team members retrieved successfully"
+}
+```
+
+---
+
+#### Invite Team Member
+
+Invite a new member to join the team.
+
+```http
+POST /teams/{id}/members
+```
+
+**Authentication**: Required  
+**Rate Limit**: Moderate (10/min)  
+**Subscription Multipliers**: Pro (50/min), Enterprise (100/min)
+**Credits Required**: 10 credits
+
+**Path Parameters**:
+- `id`: Team UUID
+
+**Request Body**:
+```json
+{
+  "email": "jane@example.com",
+  "role": "member"
+}
+```
+
+**Validation**:
+- `email`: Valid email address required
+- `role`: One of "admin", "member", or "viewer"
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "member": {
+      "id": 3,
+      "userId": null,
+      "email": "jane@example.com",
+      "name": null,
+      "role": "member",
+      "joinedAt": null,
+      "pending": true
+    }
+  },
+  "message": "Team member invited successfully"
+}
+```
+
+**Notes**:
+- Invitation is subject to subscription team member limits
+- Credits are deducted upon successful invitation
+
+---
+
+#### Update Member Role
+
+Update a team member's role.
+
+```http
+PUT /teams/{id}/members/{userId}
+```
+
+**Authentication**: Required  
+**Rate Limit**: Moderate (10/min)  
+**Subscription Multipliers**: Pro (50/min), Enterprise (100/min)
+
+**Path Parameters**:
+- `id`: Team UUID
+- `userId`: Member ID (numeric)
+
+**Request Body**:
+```json
+{
+  "role": "admin"
+}
+```
+
+**Validation**:
+- `role`: One of "admin", "member", or "viewer"
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "member": {
+      "id": 2,
+      "userId": "user_def456",
+      "email": "jane@example.com",
+      "name": "Jane Smith",
+      "role": "admin",
+      "joinedAt": "2026-01-16T09:00:00Z"
+    }
+  },
+  "message": "Team member role updated successfully"
+}
+```
+
+---
+
+#### Remove Team Member
+
+Remove a member from the team.
+
+```http
+DELETE /teams/{id}/members/{userId}
+```
+
+**Authentication**: Required  
+**Rate Limit**: Moderate (10/min)  
+**Subscription Multipliers**: Pro (50/min), Enterprise (100/min)
+
+**Path Parameters**:
+- `id`: Team UUID
+- `userId`: Member ID (numeric)
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Team member removed successfully"
+}
+```
+
+---
+
+#### Get Team Projects
+
+Retrieve all projects shared with the team.
+
+```http
+GET /teams/{id}/projects
+```
+
+**Authentication**: Required  
+**Rate Limit**: Standard (30/min)  
+**Subscription Multipliers**: Pro (150/min), Enterprise (300/min)
+
+**Path Parameters**:
+- `id`: Team UUID
+
+**Query Parameters**:
+- `limit`: Maximum number of projects to return
+- `offset`: Number of projects to skip for pagination
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "projects": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "E-commerce Platform",
+        "description": "Modern e-commerce platform",
+        "status": "active",
+        "role": "admin",
+        "addedAt": "2026-01-15T10:00:00Z"
+      }
+    ],
+    "total": 10,
+    "limit": 100,
+    "offset": 0
+  },
+  "message": "Team projects retrieved successfully"
+}
+```
+
+---
+
+#### Add Project to Team
+
+Share a project with the team.
+
+```http
+POST /teams/{id}/projects
+```
+
+**Authentication**: Required  
+**Rate Limit**: Moderate (10/min)  
+**Subscription Multipliers**: Pro (50/min), Enterprise (100/min)
+**Credits Required**: 5 credits
+
+**Path Parameters**:
+- `id`: Team UUID
+
+**Request Body**:
+```json
+{
+  "projectId": "550e8400-e29b-41d4-a716-446655440000",
+  "role": "member"
+}
+```
+
+**Validation**:
+- `projectId`: Valid UUID required
+- `role`: Optional - "admin", "member", or "viewer" (default: "member")
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "teamProject": {
+      "id": 1,
+      "teamId": "660e8400-e29b-41d4-a716-446655440000",
+      "projectId": "550e8400-e29b-41d4-a716-446655440000",
+      "role": "member",
+      "addedAt": "2026-01-15T10:30:00Z"
+    }
+  },
+  "message": "Project added to team successfully"
+}
+```
+
+---
+
+#### Get Team Usage Analytics
+
+Retrieve usage analytics for the team.
+
+```http
+GET /teams/{id}/usage
+```
+
+**Authentication**: Required  
+**Rate Limit**: Standard (30/min)  
+**Subscription Multipliers**: Pro (150/min), Enterprise (300/min)
+
+**Path Parameters**:
+- `id`: Team UUID
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "totalProjects": 12,
+    "totalBlueprints": 45,
+    "activeMembers": 5,
+    "creditsUsed": 150,
+    "creditsRemaining": 350,
+    "monthlyUsage": {
+      "projects": 3,
+      "blueprints": 8,
+      "deployments": 2
+    },
+    "memberActivity": [
+      {
+        "userId": "user_abc123",
+        "name": "John Doe",
+        "projectsCreated": 5,
+        "blueprintsGenerated": 15
+      }
+    ]
+  },
+  "message": "Team usage analytics retrieved successfully"
+}
+```
+
+---
+
+#HM|### Performance & Monitoring
 
 ### Performance & Monitoring
 
