@@ -10,7 +10,17 @@
 
 Deliver small, safe, measurable improvements in the AI/agent services domain.
 
-## Services in Domain
+### Core AI Services
+
+| Service                          | Status        | Test Coverage                                               |
+| -------------------------------- | ------------- | ----------------------------------------------------------- |
+| ai-service.ts                    | ✅ Tested     | `__tests__/services/ai-service.test.ts`                     |
+| ai-pattern-detector.ts           | ✅ Tested     | `__tests__/services/ai-pattern-detector.test.ts`            |
+| ai-pattern-types.ts              | ✅ Type Only  | N/A                                                         |
+| ai-cache-optimization-service.ts | ✅ Tested     | `__tests__/services/ai-cache-optimization-service.test.ts`  |
+| ai-test-generator-service.ts     | ✅ Tested     | `__tests__/services/ai-test-generator-service.test.ts` (18 tests) |
+| ai-memory-optimization-service.ts | ✅ Tested     | `__tests__/services/ai-memory-optimization-service.test.ts` (7 tests) |
+| pattern-detection-service.ts     | ✅ Tested     | `__tests__/services/pattern-detection-service.test.ts` (34 tests)    |
 
 ### Core AI Services
 
@@ -34,6 +44,9 @@ Deliver small, safe, measurable improvements in the AI/agent services domain.
 ## Test Status
 
 ### Current Test Coverage
+
+- **Total AI-related tests**: 178+ tests (added 7 tests for ai-memory-optimization-service.ts)
+- **Services tested**: 10/10 core services (100%)
 
 #BV|- **Total AI-related tests**: 170+ tests (added 18 tests for ai-test-generator-service.ts)
 #HB|- **Services tested**: 9/9 core services (100%)
