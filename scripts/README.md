@@ -56,4 +56,41 @@ Husky is already configured via the `prepare` script in package.json. To add inf
 npm run infrastructure:check
 ```
 
-The system provides enterprise-grade reliability for development infrastructure.
+ZM|The system provides enterprise-grade reliability for development infrastructure.
+
+---
+
+## Database Index Verification
+
+### Quick Commands
+
+```bash
+# Verify database indexes status
+npm run verify-indexes
+
+# Apply missing indexes
+npm run verify-indexes:apply
+```
+
+### Description
+
+The verify-indexes script checks which recommended database indexes are applied and can apply missing ones.
+
+**Features:**
+- Verifies index status against recommended indexes
+- Shows which indexes are missing
+- Can apply missing indexes automatically
+- Supports both basic and advanced index sets
+
+**Required Environment Variable:**
+- `DATABASE_URL` - PostgreSQL connection string
+
+### Usage Examples
+
+```bash
+# Check index status
+npm run verify-indexes
+
+# Apply missing indexes
+npm run verify-indexes:apply
+```
