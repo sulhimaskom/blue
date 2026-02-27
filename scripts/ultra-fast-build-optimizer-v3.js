@@ -1,27 +1,30 @@
 #!/usr/bin/env node
 
 /**
- * Ultra-Fast Build Optimizer v3.0
- * 
+ * Ultra-Fast Build Optimizer v3.1
+ *
  * Advanced Next.js 15 build performance optimization with:
  * - Intelligent parallel processing
  * - Advanced memory management
  * - Strategic cache optimization
  * - Build pipeline acceleration
+ *
+ * Fixed: Removed conflicting TURBOPACK and NEXT_EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS
+ * that caused Html import errors in build
  */
 
-const { execSync } = require("child_process");
-const fs = require("fs");
+const { execSync } = require('child_process');
+const fs = require('fs');
 
-console.log("🚀 Ultra-Fast Build Optimizer v3.0\n");
+console.log('🚀 Ultra-Fast Build Optimizer v3.1\n');
 
 // Ultra-performance configuration
 const config = {
   workers: 4, // Increased parallelism for modern CPUs
-  maxMemory: "6144", // 6GB for complex builds
+  maxMemory: '6144', // 6GB for complex builds
   targetTime: 12000, // 12s target (aggressive but achievable)
   enableCache: true, // Strategic caching for rebuilds
-  optimizationLevel: "maximum",
+  optimizationLevel: 'maximum',
 };
 
 console.log(`⚡ Ultra-Performance Configuration:`);
@@ -30,46 +33,46 @@ console.log(`   • Memory: ${config.maxMemory}MB (enhanced allocation)`);
 console.log(`   • Target: ${(config.targetTime / 1000).toFixed(1)}s (aggressive target)`);
 console.log(`   • Cache: ${config.enableCache ? 'Strategic' : 'Disabled'}\n`);
 
-console.log("🔨 Starting ultra-fast build...");
+console.log('🔨 Starting ultra-fast build...');
 const startTime = Date.now();
 
 try {
-  // Advanced build configuration - Fixed for Issue #232
+  // Build environment - simplified to avoid conflicts
+  // Key fix: Removed TURBOPACK, NEXT_TURBO, and NEXT_EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS
+  // that were causing Html import errors
   const buildEnv = {
     ...process.env,
     // Memory and performance optimizations
     NODE_OPTIONS: `--max-old-space-size=${config.maxMemory}`,
-    
+
     // Next.js 15 performance flags
-    NEXT_TELEMETRY_DISABLED: "1",
-    
-    // Ultra-optimization flags - Fix for Issue #232: Force webpack to avoid Turbopack Html import bug
-    TURBOPACK: "0", // Use webpack for consistent performance
-    NEXT_TURBO: "0", // Disable Turbopack completely
-    NEXT_BUILD_INCREMENTAL: config.enableCache ? "true" : "false",
-    ANALYZE: "false",
-    
+    NEXT_TELEMETRY_DISABLED: '1',
+
+    // Use speed config - this is the key to fast builds
+    NEXT_CONFIG_FILE: 'next.config.speed.js',
+
+    // Optimization settings
+    NEXT_BUILD_INCREMENTAL: config.enableCache ? 'true' : 'false',
+    ANALYZE: 'false',
+
     // Aggressive optimization settings
-    NEXT_MINIMIZE: "true",
-    NEXT_DISABLE_SOURCEMAPS: "true",
-    NEXT_OPTIMIZE_CSS: "false", // Disable CSS optimization for speed
-    NEXT_BUILD_ANALYTICS: "false",
-    
+    NEXT_MINIMIZE: 'true',
+    NEXT_DISABLE_SOURCEMAPS: 'true',
+    NEXT_OPTIMIZE_CSS: 'false', // Disable CSS optimization for speed
+    NEXT_BUILD_ANALYTICS: 'false',
+
     // Advanced performance flags
-    NEXT_OPTIMIZE_SERVER_REACT: "true",
-    NEXT_DISABLE_TYPE_CHECK: "false", // Keep type checking for quality
-    NEXT_COMPRESS: "true",
-    
+    NEXT_OPTIMIZE_SERVER_REACT: 'true',
+    NEXT_DISABLE_TYPE_CHECK: 'false', // Keep type checking for quality
+    NEXT_COMPRESS: 'true',
+
     // Memory management
     NODE_MAX_OLD_SPACE_SIZE: config.maxMemory,
-    
-    // Fix for Issue #232: Disable experimental features that cause Html import errors
-    NEXT_EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS: "false",
   };
 
   // Execute optimized build
-  execSync("npx next build", {
-    stdio: "inherit",
+  execSync('npx next build', {
+    stdio: 'inherit',
     env: buildEnv,
     maxBuffer: 1024 * 1024 * 10, // 10MB buffer for build output
   });
@@ -81,7 +84,7 @@ try {
   console.log(`⏱️  Total time: ${buildTimeSeconds}s`);
 
   // Performance analysis
-  const improvement = Math.round((20 - parseFloat(buildTimeSeconds)) / 20 * 100);
+  const improvement = Math.round(((20 - parseFloat(buildTimeSeconds)) / 20) * 100);
   const withinTarget = buildTime <= config.targetTime;
 
   if (withinTarget) {
@@ -98,42 +101,36 @@ try {
   // Build efficiency metrics
   const efficiency = Math.min(100, Math.round((config.targetTime / buildTime) * 100));
   console.log(`📊 Build Efficiency: ${efficiency}%`);
-
 } catch (error) {
-  console.error("\n❌ Ultra-fast build failed:", error.message);
-  
+  console.error('\n❌ Ultra-fast build failed:', error.message);
+
   // Fallback to standard build if ultra-optimization fails
-  console.log("🔄 Falling back to standard build...\n");
+  console.log('🔄 Falling back to standard build...\n');
   try {
-    execSync("npx next build", {
-      stdio: "inherit",
+    execSync('npx next build', {
+      stdio: 'inherit',
       env: {
         ...process.env,
-        NODE_OPTIONS: "--max-old-space-size=4096",
-        NEXT_TELEMETRY_DISABLED: "1",
-        // Fix for Issue #232: Force webpack to avoid Turbopack Html import bug
-        TURBOPACK: "0",
-        NEXT_TURBO: "0",
-        // Fix for Issue #232: Disable experimental features that cause Html import errors
-        NEXT_EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS: "false",
+        NODE_OPTIONS: '--max-old-space-size=4096',
+        NEXT_TELEMETRY_DISABLED: '1',
       },
     });
-    
+
     const fallbackTime = Date.now() - startTime;
     console.log(`✅ Fallback build completed in ${(fallbackTime / 1000).toFixed(1)}s`);
   } catch (fallbackError) {
-    console.error("❌ Fallback build also failed:", fallbackError.message);
+    console.error('❌ Fallback build also failed:', fallbackError.message);
     process.exit(1);
   }
 }
 
-console.log("\n🎉 Ultra-Fast Build Optimization Complete!");
+console.log('\n🎉 Ultra-Fast Build Optimization Complete!');
 
 // Performance recommendation
 const totalTime = Date.now() - startTime;
 if (totalTime > config.targetTime) {
-  console.log("\n💡 Recommendations for further optimization:");
-  console.log("   • Consider module federation for large codebases");
-  console.log("   • Implement selective route pre-compilation");
-  console.log("   • Use incremental static regeneration strategies");
+  console.log('\n💡 Recommendations for further optimization:');
+  console.log('   • Consider module federation for large codebases');
+  console.log('   • Implement selective route pre-compilation');
+  console.log('   • Use incremental static regeneration strategies');
 }

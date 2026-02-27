@@ -9,8 +9,7 @@ const nextConfig = {
 
   // Essential experimental features only
   experimental: {
-    // Minimal package optimization
-    optimizePackageImports: ["lucide-react"],
+    // REMOVED: optimizePackageImports - conflicts with NEXT_EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS=false in build script
     // Disable all expensive features
     optimizeCss: false,
     optimizeServerReact: false,
