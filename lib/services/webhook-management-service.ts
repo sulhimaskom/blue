@@ -1,5 +1,6 @@
 import type { WebhookConfigurationInput } from "@/lib/schemas/webhook-schema";
 import { ServiceError } from "./service-error-handler";
+import { UnifiedCacheManager } from "./cache-orchestrator";
 
 export interface WebhookConfiguration {
   id: string;
@@ -138,6 +139,8 @@ export class WebhookManagementService {
 
       if (result.success && result.data) {
         this.state.webhooks.set(result.data.id, result.data);
+        // Invalidate cache after webhook creation
+        await UnifiedCacheManager.invalidateByTag("webhooks");
         return result.data;
       }
 
@@ -170,6 +173,8 @@ export class WebhookManagementService {
 
       if (result.success && result.data) {
         this.state.webhooks.set(result.data.id, result.data);
+        // Invalidate cache after webhook update
+        await UnifiedCacheManager.invalidateByTag("webhooks");
         return result.data;
       }
 
@@ -195,6 +200,8 @@ export class WebhookManagementService {
 
       if (result.success) {
         this.state.webhooks.delete(id);
+        // Invalidate cache after webhook deletion
+        await UnifiedCacheManager.invalidateByTag("webhooks");
       } else {
         throw ServiceError.database(
           result.error || "Failed to delete webhook",
