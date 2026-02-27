@@ -332,3 +332,35 @@ All 5 routes mentioned in the issue were audited:
 - All fixes must be verified with full build/test suite
 - PR must include "security-engineer" label
 - Proactively scan for direct process.env usage that bypasses centralized env module
+
+---
+
+### February 27, 2026 - Remaining process.env Bypasses (SEC-007)
+
+**Issue**: Services used `process.env` directly instead of centralized `env` module, bypassing Zod validation
+
+**Root Cause**: 
+- `lib/services/stripe-payment-service.ts` used `process.env.NEXT_PUBLIC_APP_URL`
+- `lib/services/analytics-service.ts` used `process.env.ANALYTICS_PROVIDER` and `process.env.ANALYTICS_SAMPLE_RATE`
+
+**Solution Implemented**:
+1. Changed stripe-payment-service.ts to use `env.NEXT_PUBLIC_APP_URL`
+2. Changed analytics-service.ts to use `env.ANALYTICS_PROVIDER` and `env.ANALYTICS_SAMPLE_RATE`
+
+**Files Modified**:
+- `lib/services/stripe-payment-service.ts` - Changed process.env.NEXT_PUBLIC_APP_URL → env.NEXT_PUBLIC_APP_URL
+- `lib/services/analytics-service.ts` - Changed process.env.ANALYTICS_PROVIDER/SAMPLE_RATE → env.*
+
+**Security Impact**:
+- All environment variables now go through centralized Zod validation
+- Configuration errors caught at startup rather than runtime
+- Eliminates potential security bypass through direct process.env access
+
+**PR**: https://github.com/sulhimaskom/blue/pull/862 (Label: security-engineer)
+
+**Verification**:
+- ✅ npm audit: 0 vulnerabilities
+- ✅ npm run build: Pass (71.6s)
+- ✅ npm run lint: 0 warnings/errors
+- ✅ npm run typecheck: 0 TypeScript errors
+
