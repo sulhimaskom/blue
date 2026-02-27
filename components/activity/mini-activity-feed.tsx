@@ -84,8 +84,7 @@ export const MiniActivityFeed = React.memo(
             {recentActivities.map((activity) => (
               <div
                 key={activity.id}
-                className="p-4 hover:bg-gray-50 transition-colors"
-              >
+                className="p-4 hover:bg-gray-50 transition-all duration-200 hover:scale-[1.01]">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 text-2xl">
                     {getEventIcon(activity.eventType)}
