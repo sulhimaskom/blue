@@ -51,6 +51,17 @@ jest.mock("@/lib/constants", () => ({
   },
 }));
 
+// Mock env module
+jest.mock("@/lib/env", () => ({
+  env: {
+    STRIPE_SECRET_KEY: "sk_test_mock_key",
+    STRIPE_WEBHOOK_SECRET: "whsec_mock_secret",
+    NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_mock_key",
+    NODE_ENV: "test",
+  },
+}));
+
 describe("StripePaymentService", () => {
   let service: StripePaymentService;
   let mockStripe: any;
