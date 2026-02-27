@@ -275,7 +275,7 @@ export function CircuitBreakerStatusPanel({
             {Object.entries(metrics.circuitBreakers).map(([name, data]) => (
               <div
                 key={name}
-                className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200 hover:scale-[1.01]"
               >
                 <div className="flex items-center space-x-3">
                   <StatusIndicator

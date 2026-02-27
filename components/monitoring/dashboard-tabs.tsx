@@ -32,7 +32,7 @@ export const DashboardTabs: React.FC<DashboardTabsProps> = ({
         id="overview-tab"
         onClick={() => onTabChange("overview")}
         className={cn(
-          "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+          "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
           activeTab === "overview"
             ? "bg-white text-gray-900 shadow-sm"
             : "text-gray-600 hover:text-gray-900",
@@ -48,7 +48,7 @@ export const DashboardTabs: React.FC<DashboardTabsProps> = ({
         id="ai-tab"
         onClick={() => onTabChange("ai")}
         className={cn(
-          "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+          "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
           activeTab === "ai"
             ? "bg-white text-gray-900 shadow-sm"
             : "text-gray-600 hover:text-gray-900",
@@ -64,7 +64,7 @@ export const DashboardTabs: React.FC<DashboardTabsProps> = ({
         id="predictive-tab"
         onClick={() => onTabChange("predictive")}
         className={cn(
-          "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+          "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
           activeTab === "predictive"
             ? "bg-white text-gray-900 shadow-sm"
             : "text-gray-600 hover:text-gray-900",
