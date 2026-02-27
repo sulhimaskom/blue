@@ -240,25 +240,25 @@ export class StripePaymentService {
 
       switch (event.type) {
         case "payment_intent.succeeded":
-          await this.handlePaymentSucceeded(event as any, context);
+          await this.handlePaymentSucceeded(event as unknown as WebhookEvent, context);
           break;
         case "payment_intent.payment_failed":
-          await this.handlePaymentFailed(event as any, context);
+          await this.handlePaymentFailed(event as unknown as WebhookEvent, context);
           break;
         case "payment_intent.canceled":
-          await this.handlePaymentCanceled(event as any, context);
+          await this.handlePaymentCanceled(event as unknown as WebhookEvent, context);
           break;
         case "checkout.session.completed":
-          await this.handleCheckoutSessionCompleted(event as any, context);
+          await this.handleCheckoutSessionCompleted(event as unknown as WebhookEvent, context);
           break;
         case "invoice.payment_succeeded":
-          await this.handleInvoicePaymentSucceeded(event as any, context);
+          await this.handleInvoicePaymentSucceeded(event as unknown as WebhookEvent, context);
           break;
         case "invoice.payment_failed":
-          await this.handleInvoicePaymentFailed(event as any, context);
+          await this.handleInvoicePaymentFailed(event as unknown as WebhookEvent, context);
           break;
         case "customer.subscription.deleted":
-          await this.handleSubscriptionCancelled(event as any, context);
+          await this.handleSubscriptionCancelled(event as unknown as WebhookEvent, context);
           break;
         default:
           logger.systemEvent("Unhandled webhook event type", {
