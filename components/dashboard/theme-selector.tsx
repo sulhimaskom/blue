@@ -83,7 +83,7 @@ export const ThemeSelector = React.memo(function ThemeSelectorComponent({
             onClick={() => setSelectedTheme(theme.value)}
             disabled={disabled || loading}
             className={cn(
-              'relative flex flex-col items-start p-4 border-2 rounded-lg transition-all',
+              'relative flex flex-col items-start p-4 border-2 rounded-lg transition-all hover:scale-[1.01]',
               selectedTheme === theme.value
                 ? 'border-blue-500 bg-blue-50'
                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',

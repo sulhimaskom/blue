@@ -68,7 +68,7 @@ export default function WebhookEventHistory({
           {events.map((event) => (
             <div
               key={event.id}
-              className="border rounded-md p-3 flex justify-between items-center"
+              className="border rounded-md p-3 flex justify-between items-center transition-all duration-200 hover:scale-[1.01] hover:bg-gray-50"
             >
               <div>
                 <p className="font-medium">{event.eventType}</p>

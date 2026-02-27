@@ -50,7 +50,7 @@ export const NotificationFilters = React.memo(
           <button
             onClick={handleClearFilters}
             aria-label="Clear all notification filters"
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-all duration-200 hover:scale-[1.01]"
           >
             Clear All
           </button>

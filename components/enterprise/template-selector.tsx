@@ -54,7 +54,7 @@ export function TemplateSelector({
             key={key}
             onClick={() => onSelectTemplate(key)}
             className={cn(
-              "p-4 rounded-lg border-2 transition-all",
+              "p-4 rounded-lg border-2 transition-all hover:scale-[1.01]",
               selectedTemplate === key
                 ? cn("border-blue-500", getAccentColor("blue", "background"))
                 : cn(

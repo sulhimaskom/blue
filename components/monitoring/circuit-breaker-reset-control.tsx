@@ -143,7 +143,7 @@ export function CircuitBreakerResetControl({
                   <button
                     onClick={handleReset}
                     disabled={loading}
-                    className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.01]"
                     aria-label="Confirm circuit breaker reset"
                   >
                     {loading ? "Resetting..." : "Yes, Reset All"}
@@ -151,7 +151,7 @@ export function CircuitBreakerResetControl({
                   <button
                     onClick={handleCancel}
                     disabled={loading}
-                    className="px-3 py-1 bg-gray-200 text-gray-800 text-sm rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-3 py-1 bg-gray-200 text-gray-800 text-sm rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.01]"
                     aria-label="Cancel circuit breaker reset"
                   >
                     Cancel
@@ -169,7 +169,7 @@ export function CircuitBreakerResetControl({
               onClick={handleReset}
               disabled={loading}
               className={cn(
-                "px-6 py-3 rounded-lg font-medium transition-all",
+                "px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:scale-[1.01]",
                 "focus:outline-none focus:ring-2 focus:ring-offset-2",
                 loading
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -234,7 +234,7 @@ export function CircuitBreakerResetControl({
                   <button
                     onClick={handleReset}
                     disabled={loading}
-                    className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.01]"
                   >
                     {loading ? "Retrying..." : "Retry Reset"}
                   </button>
