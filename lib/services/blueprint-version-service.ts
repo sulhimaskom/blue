@@ -23,7 +23,7 @@
  *
  * const result = await blueprintVersionService.sortVersions(versions, 0, 10);
  * if (result.success) {
- *   console.log('Sorted versions:', result.data.sortedVersions);
+ *   logger.info('Sorted versions', { sortedVersions: result.data.sortedVersions });
  * }
  * ```
  */
