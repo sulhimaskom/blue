@@ -40,6 +40,11 @@ Specialist focused on delivering small, safe, measurable UI/UX improvements.
 ## History of Changes
 
 ## History of Changes
+QM|### 2026-02-27
+
+PR|- **MiniActivityFeed hover enhancement**: Added subtle hover scale animation (hover:scale-[1.01] transition-all duration-200) to activity feed items for tactile feedback
+PV|- **Files modified**: components/activity/mini-activity-feed.tsx
+
 
 QM|### 2026-02-27
 
