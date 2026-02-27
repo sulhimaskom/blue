@@ -88,9 +88,9 @@ export class StripePaymentService {
       );
     }
 
-    // Validate NEXT_PUBLIC_APP_URL for payment redirects
-    // Check process.env directly to allow test to simulate missing env var
-    if (!process.env.NEXT_PUBLIC_APP_URL) {
+
+    // Validate NEXT_PUBLIC_APP_URL for payment redirects via centralized env module
+    if (!env.NEXT_PUBLIC_APP_URL) {
       throw new DatabaseError(
         "NEXT_PUBLIC_APP_URL is not configured. Please set this environment variable for payment redirect URLs."
       );
