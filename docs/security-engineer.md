@@ -1,3 +1,39 @@
+### February 27, 2026 - Remaining Environment Variable Bypass (SEC-006)
+
+**Issue**: Additional services still used `process.env` directly, bypassing centralized Zod validation
+
+**Root Cause**:
+- `lib/services/analytics-service.ts` used `process.env.ANALYTICS_PROVIDER`, `process.env.ANALYTICS_SAMPLE_RATE` directly
+- `lib/db/index.ts` used `process.env.DATABASE_URL` directly
+- `lib/middleware.ts` used `process.env.NODE_ENV` directly
+
+**Solution Implemented**:
+1. Updated `lib/services/analytics-service.ts` to use `env.ANALYTICS_PROVIDER` and `env.ANALYTICS_SAMPLE_RATE`
+2. Updated `lib/db/index.ts` to use `env.DATABASE_URL` (2 locations)
+3. Updated `lib/middleware.ts` to use `env.NODE_ENV` and added centralized env import
+
+**Files Modified**:
+- `lib/services/analytics-service.ts` - Changed process.env.ANALYTICS_PROVIDER → env.ANALYTICS_PROVIDER (+2/-2 lines)
+- `lib/db/index.ts` - Changed process.env.DATABASE_URL → env.DATABASE_URL (+2/-2 lines)
+- `lib/middleware.ts` - Added env import, changed process.env.NODE_ENV → env.NODE_ENV (+2/-1 lines)
+
+**Acceptance Criteria Met**:
+- ✅ All ANALYTICS_PROVIDER access goes through centralized validation
+- ✅ All DATABASE_URL access goes through centralized validation
+- ✅ All NODE_ENV access goes through centralized validation
+- ✅ Zero process.env access for sensitive variables outside env.ts
+
+**PR**: https://github.com/sulhimaskom/blue/pull/840 (Label: security-engineer)
+
+**Verification**:
+- ✅ npm audit: 0 vulnerabilities
+- ✅ npm run build: Pass (59.2s)
+- ✅ npm run lint: 0 warnings/errors
+- ✅ npm run typecheck: 0 TypeScript errors
+- ✅ npm test: 1675/1709 tests passing (pre-existing GitHub API mock failures unrelated to changes)
+
+---
+
 ### February 26, 2026 - Environment Variable Bypass (SEC-005)
 
 **Issue**: Multiple services used `process.env` directly instead of the centralized `env` module, bypassing Zod validation
