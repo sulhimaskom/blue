@@ -5,9 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import type { WebhookConfiguration } from "@/lib/db/schema";
 
+interface WebhookFormData {
+  name?: string;
+  url?: string;
+}
+
 interface WebhookConfigurationFormProps {
   config?: WebhookConfiguration | null;
-  onSubmit: (_data: any) => Promise<void>;
+  onSubmit: (_data: WebhookFormData) => Promise<void>;
   onCancel: () => void;
 }
 

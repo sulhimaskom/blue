@@ -5,8 +5,20 @@
  * Displays OpenAPI 3.0.3 specification with full documentation
  */
 
+import React from "react";
 import Script from "next/script";
 import { generateOpenAPISpec } from "@/lib/services/api-documentation-service";
+
+// Type-safe hover handlers for anchor elements
+function handleMouseOver(e: React.MouseEvent<HTMLAnchorElement>) {
+  e.currentTarget.style.background = "white";
+  e.currentTarget.style.color = "#667eea";
+}
+
+function handleMouseOut(e: React.MouseEvent<HTMLAnchorElement>) {
+  e.currentTarget.style.background = "transparent";
+  e.currentTarget.style.color = "white";
+}
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -62,14 +74,8 @@ export default async function APIDocsPage() {
               fontWeight: 600,
               transition: "all 0.3s ease",
             }}
-            onMouseOver={(e: any) => {
-              e.target.style.background = "white";
-              e.target.style.color = "#667eea";
-            }}
-            onMouseOut={(e: any) => {
-              e.target.style.background = "transparent";
-              e.target.style.color = "white";
-            }}
+            onMouseOver={handleMouseOver}
+            onMouseOut={handleMouseOut}
           >
             Download OpenAPI Spec (JSON)
           </a>
@@ -84,14 +90,8 @@ export default async function APIDocsPage() {
               fontWeight: 600,
               transition: "all 0.3s ease",
             }}
-            onMouseOver={(e: any) => {
-              e.target.style.background = "white";
-              e.target.style.color = "#667eea";
-            }}
-            onMouseOut={(e: any) => {
-              e.target.style.background = "transparent";
-              e.target.style.color = "white";
-            }}
+            onMouseOver={handleMouseOver}
+            onMouseOut={handleMouseOut}
           >
             Get Specification Info
           </a>

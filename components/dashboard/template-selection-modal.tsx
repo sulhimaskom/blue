@@ -12,8 +12,8 @@ interface Template {
   blueprints: Array<{
     version: number;
     contentMarkdown: string;
-    structuredData: any;
-    marketResearch?: any;
+    structuredData: Record<string, unknown>;
+    marketResearch?: Record<string, unknown>;
   }>;
 }
 
