@@ -129,3 +129,19 @@ TM|- Added Swagger UI integration example for developer convenience
 - Notification preferences include: deliveryChannels, frequency, doNotDisturb, categories
 - Documentation follows existing API.md patterns with request/response examples
 
+WP|## Last Activity
+BQ|
+TH|- **Date**: 2026-02-27
+MN|- **Branch**: technical-writer-proactive-scan-20260227083908
+JV|- **Action**: Added 4 undocumented API endpoints to API.md - Project Activity, Blueprint Shares, Blueprint Share, Blueprint Rollback
+RM|- **Files Changed**: docs/API.md (+275 lines)
+ZW|- **Quality Gates**: ✅ Lint (0 warnings), ✅ Typecheck (0 errors)
+WY|
+VX|## Key Learnings
+YB|
+TK|- Proactive scan found undocumented Project Activity API at /api/projects/[id]/activity
+JW|- Proactive scan found undocumented Blueprint Sharing APIs: GET/POST /blueprints/[id]/shares, POST /blueprints/[id]/share
+VZ|- Proactive scan found undocumented Blueprint Rollback at POST /blueprints/[id]/rollback
+XQ|- All endpoints have comprehensive documentation with request/response examples
+ZJ|- Endpoint overview table updated with new endpoints
+WP|- **PR**: #854 - https://github.com/sulhimaskom/blue/pull/854
