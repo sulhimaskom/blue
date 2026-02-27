@@ -91,7 +91,7 @@ export function NotificationPreferences({
         {preferenceItems.map((item) => (
           <div
             key={item.key}
-            className="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:scale-[1.01] transition-all duration-200"
           >
             <div className="flex-1">
               <h4 className="text-sm font-medium text-gray-900">{item.label}</h4>

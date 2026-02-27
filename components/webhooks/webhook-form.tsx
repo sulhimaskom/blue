@@ -102,7 +102,7 @@ export function WebhookForm({
             {WEBHOOK_EVENT_TYPES.map((eventType) => (
               <label
                 key={eventType}
-                className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer transition-colors"
+                className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 hover:scale-[1.01] cursor-pointer transition-all duration-200"
               >
                 <input
                   type="checkbox"

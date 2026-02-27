@@ -165,7 +165,7 @@ export const ActivityFeed = React.memo(
           </div>
           <div className="divide-y divide-gray-200">
             {activities.map((activity) => (
-              <div key={activity.id} className="p-6 hover:bg-gray-50 transition-colors">
+              <div key={activity.id} className="p-6 hover:bg-gray-50 hover:scale-[1.01] transition-all duration-200">
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 text-3xl">
                     {getEventIcon(activity.eventType)}

@@ -40,7 +40,26 @@ Specialist focused on delivering small, safe, measurable UI/UX improvements.
 ## History of Changes
 
 ## History of Changes
-QM|### 2026-02-27
+#SQ|QM|### 2026-02-27
+#PB|
+#QS|PR|- **NotificationPreferences hover enhancement**: Added subtle hover scale animation (hover:scale-[1.01] transition-all duration-200) to notification preference items for tactile feedback
+#RV|PV|- **Files modified**: components/dashboard/notification-preferences.tsx
+#VJ|
+#BY|
+#SQ|QM|- **WebhookForm hover enhancement**: Added subtle hover scale animation (hover:scale-[1.01] transition-all duration-200) to webhook event type checkboxes for tactile feedback
+#QW|- **Files modified**: components/webhooks/webhook-form.tsx
+#VJ|
+#BY|
+#SQ|QM|- **ActivityFeed hover enhancement**: Added subtle hover scale animation (hover:scale-[1.01] transition-all duration-200) to activity feed items for tactile feedback
+#QV|- **Files modified**: components/dashboard/activity-feed.tsx
+#VJ|
+#BY|
+#SQ|QM|- **TeamList hover enhancement**: Added subtle hover scale animation (hover:scale-[1.01] transition-all duration-200) to team list items for tactile feedback
+#QK|- **Files modified**: components/dashboard/team-list.tsx
+#XQ|- **PR**: #882
+#BQ|
+#QM|### 2026-02-27
+#PB|
 
 PR|- **MiniActivityFeed hover enhancement**: Added subtle hover scale animation (hover:scale-[1.01] transition-all duration-200) to activity feed items for tactile feedback
 PV|- **Files modified**: components/activity/mini-activity-feed.tsx
