@@ -3,6 +3,7 @@ import { retryService, RETRY_CONFIGS } from "./retry-service";
 import type { RequestContext } from "@/lib/services/user-service";
 import { DatabaseError, ValidationError } from "@/lib/api-utils";
 import Stripe from "stripe";
+import { env } from "@/lib/env";
 import { UnifiedCacheManager } from "@/lib/services/cache-orchestrator";
 
 export interface PaymentIntentRequest {
@@ -81,21 +82,21 @@ export class StripePaymentService {
     }
 
     // Stripe initialization with strict validation
-    if (!process.env.STRIPE_SECRET_KEY) {
+    if (!env.STRIPE_SECRET_KEY) {
       throw new DatabaseError(
         "STRIPE_SECRET_KEY is not configured. Please set this environment variable to enable payment processing.",
       );
     }
 
     // Validate NEXT_PUBLIC_APP_URL for payment redirects
-    if (!process.env.NEXT_PUBLIC_APP_URL) {
+    if (!env.NEXT_PUBLIC_APP_URL) {
       throw new DatabaseError(
         "NEXT_PUBLIC_APP_URL is not configured. Please set this environment variable for payment redirect URLs."
       );
     }
 
     try {
-      this.stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+      this.stripe = require("stripe")(env.STRIPE_SECRET_KEY);
       this.initialized = true;
       logger.info("Stripe payment service initialized successfully");
     } catch (error) {
@@ -148,7 +149,7 @@ export class StripePaymentService {
             automatic_payment_methods: {
               enabled: true,
             },
-            return_url: `${process.env.NEXT_PUBLIC_APP_URL}/credits/success`,
+            return_url: `${env.NEXT_PUBLIC_APP_URL}/credits/success`,
           });
           return intent;
         },
@@ -216,7 +217,7 @@ export class StripePaymentService {
       throw new DatabaseError("Stripe payment service not configured");
     }
 
-    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    if (!env.STRIPE_WEBHOOK_SECRET) {
       logger.error("STRIPE_WEBHOOK_SECRET not configured", {
         requestId: context.requestId,
       });
@@ -227,7 +228,7 @@ export class StripePaymentService {
       const event = this.stripe.webhooks.constructEvent(
         payload,
         signature,
-        process.env.STRIPE_WEBHOOK_SECRET,
+        env.STRIPE_WEBHOOK_SECRET,
       );
 
       logger.systemEvent("Webhook event received", {
@@ -605,14 +606,14 @@ export class StripePaymentService {
    * Does not throw exceptions - safe to call for configuration checks
    */
   public isConfigured(): boolean {
-    return !!process.env.STRIPE_SECRET_KEY;
+    return !!env.STRIPE_SECRET_KEY;
   }
 
   /**
    * Get Stripe publishable key for frontend
    */
   public getPublishableKey(): string {
-    const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    const key = env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
     if (!key) {
       throw new ValidationError("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY not configured");
     }

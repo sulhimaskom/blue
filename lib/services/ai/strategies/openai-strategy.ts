@@ -1,4 +1,5 @@
 import { logger } from "../../../logger";
+import { env } from "@/lib/env";
 import { monitoringService } from "../../../monitoring";
 import { errorMonitoring } from "../../error-monitoring-service";
 import { circuitBreakerRegistry } from "../../../circuit-breaker";
@@ -299,7 +300,7 @@ export class OpenAIStrategy implements AIProviderStrategy {
 export function createOpenAIStrategy(
   config?: Partial<AIProviderConfig>,
 ): OpenAIStrategy {
-  const apiKey = config?.apiKey || process.env.OPENAI_API_KEY;
+  const apiKey = config?.apiKey || env.OPENAI_API_KEY;
 
   if (!apiKey) {
     logger.warn("OpenAI API key not configured", {

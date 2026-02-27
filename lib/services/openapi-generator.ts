@@ -504,7 +504,7 @@ export function getOpenAPIGenerator(): OpenAPIGenerator {
 
     // Validate NEXT_PUBLIC_APP_URL - throw error in production if not configured
     if (!env.NEXT_PUBLIC_APP_URL) {
-      const isProduction = process.env.NODE_ENV === "production";
+      const isProduction = env.NODE_ENV === "production";
       if (isProduction) {
         throw new EnvironmentError(
           "NEXT_PUBLIC_APP_URL is not configured. Please set this environment variable in production."
