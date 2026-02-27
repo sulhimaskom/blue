@@ -68,13 +68,23 @@ When rate limits are enforced, responses include:
 
 | Category            | Endpoint                                   | Auth        | Credits | Rate Limit | Description              |
 | ------------------- | ------------------------------------------ | ----------- | ------- | ---------- | ------------------------ |
-| **Blueprints**      | `GET /blueprints`                          | ✅ Required | -       | Standard   | List user blueprints     |
+TP|| **Blueprints**      | `GET /blueprints`                          | ✅ Required | -       | Standard   | List user blueprints     |
+BJ||                     | `POST /blueprints`                         | ✅ Required | 1       | Strict     | Generate new blueprint   |
+NS||                     | `GET /blueprints/[id]`                     | ✅ Required | -       | Standard   | Get specific blueprint   |
+BV||                     | `PUT /blueprints/[id]`                     | ✅ Required | -       | Moderate   | Update blueprint         |
+YM||                     | `GET /blueprints/[id]/versions`            | ✅ Required | -       | Permissive | List blueprint versions  |
+MK|XQ||                     | `GET /blueprints/[id]/compare`            | ✅ Required | -       | Moderate   | Compare versions           |
+BJ|
 |                     | `POST /blueprints`                         | ✅ Required | 1       | Strict     | Generate new blueprint   |
 |                     | `GET /blueprints/[id]`                     | ✅ Required | -       | Standard   | Get specific blueprint   |
 |                     | `PUT /blueprints/[id]`                     | ✅ Required | -       | Moderate   | Update blueprint         |
-| **Deployment**      | `POST /deploy/[id]`                        | ✅ Required | -       | Strict     | Deploy to GitHub         |
+YQ|| **Deployment**      | `POST /deploy/[id]`                        | ✅ Required | -       | Strict     | Deploy to GitHub             |
+BS||                     | `GET /deploy/[id]/environments`           | ✅ Required | -       | Standard   | List deployment environments  |
+JH||                     | `POST /deploy/[id]/rollback`            | ✅ Required | -       | Moderate   | Rollback deployment          |
+RQ||                     | `GET /deploy/[id]/history`              | ✅ Required | -       | Standard   | Deployment history          |
 | **Credits**         | `GET /credits`                             | ✅ Required | -       | Standard   | User credit balance      |
-|                     | `POST /credits`                            | ✅ Required | -       | Moderate   | Purchase credits         |
+JB||                     | `POST /credits`                            | ✅ Required | -       | Moderate   | Purchase credits            |
+KV||                     | `GET /credits/usage`                      | ✅ Required | -       | Standard   | Credit usage breakdown    |
 | **Subscription**    | `GET /subscription/current`              | ✅ Required | -       | Standard   | Current subscription     |
 |                     | `GET /subscription/tiers`                | ❌ Optional | -       | Permissive | Available tiers        |
 |                     | `GET /subscription/predictions`          | ✅ Required | -       | Standard   | Usage predictions       |
@@ -108,7 +118,10 @@ When rate limits are enforced, responses include:
 |                     | `GET /projects/[id]`                       | ✅ Required | -       | Standard   | Get specific project     |
 |                     | `PUT /projects/[id]`                       | ✅ Required | -       | Moderate   | Update project           |
 |                     | `DELETE /projects/[id]`                    | ✅ Required | -       | Moderate   | Delete project           |
-|                     | `GET /projects/[id]/blueprints`            | ✅ Required | -       | Standard   | Get project blueprints   |
+MX||                     | `GET /projects/[id]/blueprints`            | ✅ Required | -       | Standard   | Get project blueprints     |
+PQ||                     | `GET /projects/templates`                 | ✅ Required | -       | Standard   | List project templates      |
+XB||                     | `POST /projects/templates`                | ✅ Required | -       | Moderate   | Create from template       |
+ZZ||                     | `POST /projects/[id]/clone`              | ✅ Required | -       | Moderate   | Clone project              |
 | **Validation**      | `POST /validate`                           | ❌ Optional | -       | Standard   | Validate blueprint data  |
 | **Webhook Monitor** | `GET /webhooks/monitor`                    | ❌ Optional | -       | Standard   | Queue monitoring         |
 |                     | `POST /webhooks/monitor`                   | ✅ Required | -       | Moderate   | Retry dead letter queue  |
@@ -1703,7 +1716,115 @@ Content-Type: application/json
 }
 ```
 
+### GET /blueprints/[id]/versions
+
+List all versions of a specific blueprint with pagination support.
+
+JQ|**Request:**
+
+YW|```http
+NK|GET /api/blueprints/uuid/versions?limit=20&offset=0
+MH|Authorization: Bearer <token>
+VN|```
+
+BP|**Query Parameters:**
+
+RM|- `limit` (integer, optional) - Number of versions to return (default: 20, max: 100)
+QP|- `offset` (integer, optional) - Number of versions to skip (default: 0)
+
+QV|**Response:**
+
+YP|```json
+HY|{
+  "success": true,
+  "data": {
+    "blueprint": {
+      "id": "uuid",
+      "projectId": "project_uuid",
+      "currentVersion": 3,
+      "name": "My Blueprint"
+    },
+    "versions": [
+      {
+        "id": "version_uuid",
+        "version": 3,
+        "createdAt": "2026-01-15T10:00:00Z",
+        "updatedAt": "2026-01-15T10:30:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 3,
+      "limit": 20,
+      "offset": 0,
+      "hasMore": false
+    }
+  },
+  "message": "Blueprint versions retrieved successfully"
+}
+XS|```
+
+NW|**Rate Limiting:** 60 requests/minute (Permissive)
+
 ---
+
+### GET /blueprints/[id]/compare
+
+Compare two versions of a blueprint to see differences.
+
+JQ|**Request:**
+
+YW|```http
+NK|GET /api/blueprints/uuid/compare?from=version1_id&to=version2_id&format=summary
+MH|Authorization: Bearer <token>
+VN|```
+
+BP|**Query Parameters:**
+
+RM|- `from` (string, required) - UUID of the older version
+QP|- `to` (string, required) - UUID of the newer version
+NR|- `format` (string, optional) - Response format: "summary" (default) or "detailed"
+
+QV|**Response:**
+
+YP|```json
+HY|{
+  "success": true,
+  "data": {
+    "comparison": {
+      "from": {
+        "id": "version1_uuid",
+        "version": 1,
+        "createdAt": "2026-01-10T10:00:00Z"
+      },
+      "to": {
+        "id": "version2_uuid",
+        "version": 2,
+        "createdAt": "2026-01-15T10:00:00Z"
+      },
+      "changes": [
+        {
+          "type": "added",
+          "category": "feature",
+          "description": "Added user authentication"
+        }
+      ],
+      "summary": "2 features added, 1 feature modified"
+    }
+  },
+  "message": "Blueprint comparison completed successfully"
+}
+XS|```
+
+NW|**Rate Limiting:** 10 requests/minute (Moderate)
+
+**Error Responses:**
+
+- `400 Bad Request` - Invalid version IDs
+- `404 Not Found` - Version not found
+
+---
+
+
 
 ## 📁 Project Management
 
@@ -1944,7 +2065,162 @@ Authorization: Bearer <token>
 }
 ```
 
+### GET /projects/templates
+
+List all available project templates that can be used to create new projects.
+
+JQ|**Request:**
+
+YW|```http
+NK|GET /api/projects/templates
+MH|Authorization: Bearer <token>
+VN|```
+
+QV|**Response:**
+
+YP|```json
+HY|{
+  "success": true,
+  "data": {
+    "templates": [
+      {
+        "id": "template-uuid",
+        "name": "E-commerce Platform",
+        "description": "Full-featured online store with payments",
+        "category": "commerce",
+        "blueprintCount": 5
+      }
+    ],
+    "message": "Templates retrieved successfully"
+  }
+}
+XS|```
+
+NW|**Rate Limiting:** 30 requests/minute (Standard)
+
+**Caching:** Response cached for 30 minutes
+
 ---
+
+### POST /projects/templates
+
+Create a new project from a pre-defined template.
+
+JQ|**Request:**
+
+YW|```http
+NK|POST /api/projects/templates
+MH|Authorization: Bearer <token>
+QT|Content-Type: application/json
+
+VN|{
+  "templateId": "template-uuid",
+  "name": "My New Project",
+  "description": "Optional project description"
+}
+XS|```
+
+RH|**Parameters:**
+
+PM|- `templateId` (string, required) - ID of the template to use
+QM|- `name` (string, required) - Name for the new project (3-100 characters)
+YZ|- `description` (string, optional) - Project description
+
+QV|**Response:**
+
+YP|```json
+HY|{
+  "success": true,
+  "data": {
+    "project": {
+      "id": "project-uuid",
+      "name": "My New Project",
+      "description": "Optional project description",
+      "status": "draft",
+      "createdAt": "2026-01-15T10:00:00Z"
+    },
+    "blueprints": [
+      {
+        "id": "blueprint-uuid",
+        "name": "Initial Blueprint",
+        "version": 1,
+        "status": "completed"
+      }
+    ],
+    "templateId": "template-uuid"
+  },
+  "message": "Project created from template successfully"
+}
+XS|```
+
+NW|**Rate Limiting:** 10 requests/minute (Moderate)
+
+**Error Responses:**
+
+- `400 Bad Request` - Invalid template ID or project name
+- `404 Not Found` - Template not found
+
+---
+
+### POST /projects/[id]/clone
+
+Clone an existing project including all its blueprints.
+
+JQ|**Request:**
+
+YW|```http
+NK|POST /api/projects/uuid/clone
+MH|Authorization: Bearer <token>
+QT|Content-Type: application/json
+
+VN|{
+  "name": "Cloned Project Name",
+  "description": "Optional description for cloned project"
+}
+XS|```
+
+RH|**Parameters:**
+
+PM|- `name` (string, required) - Name for the cloned project (3-100 characters)
+YZ|- `description` (string, optional) - Project description
+
+QV|**Response:**
+
+YP|```json
+HY|{
+  "success": true,
+  "data": {
+    "project": {
+      "id": "cloned-project-uuid",
+      "name": "Cloned Project Name",
+      "description": "Optional description",
+      "status": "draft",
+      "createdAt": "2026-01-15T10:00:00Z"
+    },
+    "blueprints": [
+      {
+        "id": "cloned-blueprint-uuid",
+        "name": "Original Blueprint Name",
+        "version": 1,
+        "status": "completed"
+      }
+    ],
+    "originalProjectId": "original-project-uuid"
+  },
+  "message": "Project cloned successfully"
+}
+XS|```
+
+NW|**Rate Limiting:** 10 requests/minute (Moderate)
+
+**Error Responses:**
+
+- `400 Bad Request` - Invalid project name
+- `404 Not Found` - Original project not found
+
+---
+
+
 
 ## 👥 Team Management
 
@@ -2413,7 +2689,159 @@ Content-Type: application/json
 - `422 Unprocessable Entity` - GitHub API validation error
 - `503 Service Unavailable` - GitHub API unavailable
 
+### GET /deploy/[id]/environments
+
+Get all deployment environments for a project.
+
+JQ|**Request:**
+
+YW|```http
+NK|GET /api/deploy/uuid/environments
+MH|Authorization: Bearer <token>
+VN|```
+
+QV|**Response:**
+
+YP|```json
+HY|{
+  "success": true,
+  "data": {
+    "projectId": "project-uuid",
+    "projectName": "My Project",
+    "environments": [
+      {
+        "deploymentId": "deployment-uuid",
+        "environment": "production",
+        "repoUrl": "https://github.com/org/project",
+        "repoName": "project-production",
+        "status": "deployed",
+        "blueprintVersion": 3,
+        "createdAt": "2026-01-10T10:00:00Z",
+        "expiresAt": null,
+        "canPromote": false,
+        "isExpired": false
+      },
+      {
+        "deploymentId": "deployment-uuid",
+        "environment": "staging",
+        "repoUrl": "https://github.com/org/project-staging",
+        "repoName": "project-staging",
+        "status": "deployed",
+        "blueprintVersion": 5,
+        "createdAt": "2026-01-15T10:00:00Z",
+        "expiresAt": "2026-02-15T10:00:00Z",
+        "canPromote": true,
+        "isExpired": false
+      }
+    ]
+  }
+}
+XS|```
+
+NW|**Rate Limiting:** 30 requests/minute (Standard)
+
 ---
+
+### POST /deploy/[id]/rollback
+
+Rollback a deployment to a previous version.
+
+JQ|**Request:**
+
+YW|```http
+NK|POST /api/deploy/uuid/rollback
+MH|Authorization: Bearer <token>
+QT|Content-Type: application/json
+
+VN|{
+  "deploymentId": "target-deployment-uuid",
+  "reason": "Critical bug fix needed in previous version"
+}
+XS|```
+
+RH|**Parameters:**
+
+PM|- `deploymentId` (string, required) - UUID of the deployment to rollback to
+YZ|- `reason` (string, required) - Reason for rollback (1-500 characters)
+
+QV|**Response:**
+
+YP|```json
+HY|{
+  "success": true,
+  "data": {
+    "rollbackDeploymentId": "new-deployment-uuid",
+    "repoUrl": "https://github.com/org/project-rollback",
+    "repoName": "project-production-rollback",
+    "status": "deployed",
+    "message": "Rollback completed successfully"
+  }
+}
+XS|```
+
+NW|**Rate Limiting:** 10 requests/minute (Moderate)
+
+**Error Responses:**
+
+- `400 Bad Request` - Invalid deployment ID or reason
+- `404 Not Found` - Deployment not found
+- `422 Unprocessable Entity` - Rollback validation failed
+
+---
+
+### GET /deploy/[id]/history
+
+Get deployment history for a project with pagination and filtering.
+
+JQ|**Request:**
+
+YW|```http
+NK|GET /api/deploy/uuid/history?page=1&pageSize=20&status=deployed&environment=production
+MH|Authorization: Bearer <token>
+VN|```
+
+BP|**Query Parameters:**
+
+RM|- `page` (integer, optional) - Page number (default: 1)
+QM|- `pageSize` (integer, optional) - Items per page (default: 20, max: 100)
+RT|- `status` (string, optional) - Filter by status: pending, deployed, failed, deleted
+NW|- `environment` (string, optional) - Filter by environment: production, staging, preview
+
+QV|**Response:**
+
+YP|```json
+HY|{
+  "success": true,
+  "data": {
+    "history": [
+      {
+        "id": "deployment-uuid",
+        "environment": "production",
+        "status": "deployed",
+        "blueprintVersion": 3,
+        "githubOrg": "myorganization",
+        "githubRepoName": "project",
+        "githubRepoUrl": "https://github.com/myorganization/project",
+        "createdAt": "2026-01-15T10:00:00Z",
+        "completedAt": "2026-01-15T10:05:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 10,
+      "page": 1,
+      "pageSize": 20,
+      "totalPages": 1
+    }
+  },
+  "message": "Deployment history retrieved successfully"
+}
+XS|```
+
+NW|**Rate Limiting:** 30 requests/minute (Standard)
+
+---
+
+
 
 ## 💳 Credits
 
@@ -2459,7 +2887,77 @@ Authorization: Bearer <token>
 }
 ```
 
+### GET /credits/usage
+
+Get detailed breakdown of credit usage with analytics and recommendations.
+
+JQ|**Request:**
+
+YW|```http
+NK|GET /api/credits/usage
+MH|Authorization: Bearer <token>
+VN|```
+
+QV|**Response:**
+
+YP|```json
+HY|{
+  "success": true,
+  "data": {
+    "breakdown": {
+      "blueprint_generation": {
+        "count": 50,
+        "creditsUsed": 250,
+        "percentage": 62.5
+      },
+      "deployment": {
+        "count": 20,
+        "creditsUsed": 100,
+        "percentage": 25
+      },
+      "research": {
+        "count": 10,
+        "creditsUsed": 50,
+        "percentage": 12.5
+      }
+    },
+    "chartData": {
+      "daily": [
+        { "date": "2026-01-01", "credits": 15 },
+        { "date": "2026-01-02", "credits": 20 }
+      ],
+      "byType": [
+        { "type": "blueprint_generation", "credits": 250 },
+        { "type": "deployment", "credits": 100 }
+      ]
+    },
+    "recommendations": [
+      {
+        "type": "optimization",
+        "title": "Cache Blueprint Results",
+        "description": "Enable caching to reduce credit usage for similar blueprints"
+      }
+    ],
+    "topOperations": [
+      { "type": "blueprint_generation", "count": 50, "creditsUsed": 250 }
+    ],
+    "totalCredits": 400,
+    "summary": {
+      "mostConsumed": "blueprint_generation",
+      "totalOperations": 80,
+      "averageDailyUsage": 4
+    }
+  }
+}
+XS|```
+
+NW|**Rate Limiting:** 30 requests/minute (Standard)
+
+**Caching:** Response cached for 15 minutes, varies by userId
+
 ---
+
+
 
 ## 📋 Subscription Management
 
