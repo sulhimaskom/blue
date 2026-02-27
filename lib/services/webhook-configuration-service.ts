@@ -1,26 +1,23 @@
-import { randomBytes, createHmac } from "crypto";
-import { db } from "@/lib/db";
-import { webhookConfigurations, webhookEvents } from "@/lib/db/schema";
-import { eq, and, desc, isNull } from "drizzle-orm";
-import { logger } from "@/lib/logger";
-import {
-  DatabaseError,
-  NotFoundError,
-  ValidationError,
-} from "@/lib/api-utils";
+import { randomBytes, createHmac } from 'crypto';
+import { db } from '@/lib/db';
+import { webhookConfigurations, webhookEvents } from '@/lib/db/schema';
+import { eq, and, desc, isNull } from 'drizzle-orm';
+import { logger } from '@/lib/logger';
+import { UnifiedCacheManager } from '@/lib/services/cache-orchestrator';
+import { DatabaseError, NotFoundError, ValidationError } from '@/lib/api-utils';
 import type {
   WebhookConfiguration,
   WebhookEvent,
   NewWebhookConfiguration,
   NewWebhookEvent,
-} from "@/lib/db/schema";
+} from '@/lib/db/schema';
 import type {
   WebhookConfigurationInput,
   WebhookTestInput,
   WebhookConfigurationUpdateInput,
   WebhookEventType,
   WebhookStatus,
-} from "@/lib/schemas/webhook-schema";
+} from '@/lib/schemas/webhook-schema';
 
 export interface WebhookConfigurationWithEvents extends WebhookConfiguration {
   events: WebhookEvent[];
@@ -48,10 +45,10 @@ export class WebhookConfigurationService {
 
   static async createConfiguration(
     userId: number,
-    input: WebhookConfigurationInput,
+    input: WebhookConfigurationInput
   ): Promise<WebhookConfiguration> {
     try {
-      logger.info("Creating webhook configuration", {
+      logger.info('Creating webhook configuration', {
         userId,
         name: input.name,
       });
@@ -75,53 +72,49 @@ export class WebhookConfigurationService {
         .values(newConfiguration)
         .returning();
 
-      logger.info("Webhook configuration created", {
+      logger.info('Webhook configuration created', {
         webhookId: created.id,
         userId,
         name: created.name,
       });
 
+      // Invalidate webhook cache
+      await UnifiedCacheManager.invalidateByTag('webhooks');
+
       return created;
     } catch (error) {
-      logger.error("Failed to create webhook configuration", {
+      logger.error('Failed to create webhook configuration', {
         userId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new DatabaseError(
-        "Failed to create webhook configuration",
-      );
+      throw new DatabaseError('Failed to create webhook configuration');
     }
   }
 
-  static async getConfigurations(
-    userId: number,
-  ): Promise<WebhookConfiguration[]> {
+  static async getConfigurations(userId: number): Promise<WebhookConfiguration[]> {
     try {
       const database = db();
       const configurations = await database
         .select()
         .from(webhookConfigurations)
         .where(
-          and(
-            eq(webhookConfigurations.userId, userId),
-            isNull(webhookConfigurations.deletedAt),
-          ),
+          and(eq(webhookConfigurations.userId, userId), isNull(webhookConfigurations.deletedAt))
         )
         .orderBy(desc(webhookConfigurations.createdAt));
 
       return configurations;
     } catch (error) {
-      logger.error("Failed to get webhook configurations", {
+      logger.error('Failed to get webhook configurations', {
         userId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new DatabaseError("Failed to get webhook configurations");
+      throw new DatabaseError('Failed to get webhook configurations');
     }
   }
 
   static async getConfigurationById(
     userId: number,
-    webhookId: string,
+    webhookId: string
   ): Promise<WebhookConfiguration | null> {
     try {
       const database = db();
@@ -132,30 +125,30 @@ export class WebhookConfigurationService {
           and(
             eq(webhookConfigurations.id, webhookId),
             eq(webhookConfigurations.userId, userId),
-            isNull(webhookConfigurations.deletedAt),
-          ),
+            isNull(webhookConfigurations.deletedAt)
+          )
         );
 
       return configuration || null;
     } catch (error) {
-      logger.error("Failed to get webhook configuration", {
+      logger.error('Failed to get webhook configuration', {
         userId,
         webhookId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new DatabaseError("Failed to get webhook configuration");
+      throw new DatabaseError('Failed to get webhook configuration');
     }
   }
 
   static async updateConfiguration(
     userId: number,
     webhookId: string,
-    input: WebhookConfigurationUpdateInput,
+    input: WebhookConfigurationUpdateInput
   ): Promise<WebhookConfiguration> {
     try {
       const existing = await this.getConfigurationById(userId, webhookId);
       if (!existing) {
-        throw new NotFoundError("Webhook configuration not found");
+        throw new NotFoundError('Webhook configuration not found');
       }
 
       const updateData = {
@@ -170,35 +163,38 @@ export class WebhookConfigurationService {
         .where(eq(webhookConfigurations.id, webhookId))
         .returning();
 
-      logger.info("Webhook configuration updated", {
+      logger.info('Webhook configuration updated', {
         webhookId,
         userId,
         name: updated.name,
       });
 
+      // Invalidate webhook cache
+      await UnifiedCacheManager.invalidateByTag('webhooks');
+
       return updated;
     } catch (error) {
-      if (error instanceof DatabaseError || error instanceof NotFoundError || error instanceof ValidationError) throw error;
+      if (
+        error instanceof DatabaseError ||
+        error instanceof NotFoundError ||
+        error instanceof ValidationError
+      )
+        throw error;
 
-      logger.error("Failed to update webhook configuration", {
+      logger.error('Failed to update webhook configuration', {
         userId,
         webhookId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new DatabaseError(
-        "Failed to update webhook configuration",
-      );
+      throw new DatabaseError('Failed to update webhook configuration');
     }
   }
 
-  static async deleteConfiguration(
-    userId: number,
-    webhookId: string,
-  ): Promise<boolean> {
+  static async deleteConfiguration(userId: number, webhookId: string): Promise<boolean> {
     try {
       const existing = await this.getConfigurationById(userId, webhookId);
       if (!existing) {
-        throw new NotFoundError("Webhook configuration not found");
+        throw new NotFoundError('Webhook configuration not found');
       }
 
       const database = db();
@@ -207,36 +203,42 @@ export class WebhookConfigurationService {
         .set({ deletedAt: new Date() })
         .where(eq(webhookConfigurations.id, webhookId));
 
-      logger.info("Webhook configuration deleted", {
+      logger.info('Webhook configuration deleted', {
         webhookId,
         userId,
         name: existing.name,
       });
 
+      // Invalidate webhook cache
+      await UnifiedCacheManager.invalidateByTag('webhooks');
+
       return true;
     } catch (error) {
-      if (error instanceof DatabaseError || error instanceof NotFoundError || error instanceof ValidationError) throw error;
+      if (
+        error instanceof DatabaseError ||
+        error instanceof NotFoundError ||
+        error instanceof ValidationError
+      )
+        throw error;
 
-      logger.error("Failed to delete webhook configuration", {
+      logger.error('Failed to delete webhook configuration', {
         userId,
         webhookId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new DatabaseError(
-        "Failed to delete webhook configuration",
-      );
+      throw new DatabaseError('Failed to delete webhook configuration');
     }
   }
 
   static async testWebhook(
     userId: number,
     webhookId: string,
-    input: WebhookTestInput,
+    input: WebhookTestInput
   ): Promise<WebhookTestResult> {
     try {
       const configuration = await this.getConfigurationById(userId, webhookId);
       if (!configuration) {
-        throw new NotFoundError("Webhook configuration not found");
+        throw new NotFoundError('Webhook configuration not found');
       }
 
       const startTime = Date.now();
@@ -250,7 +252,7 @@ export class WebhookConfigurationService {
         configuration.secret,
         input.eventType,
         testPayload,
-        configuration.timeoutSeconds * 1000,
+        configuration.timeoutSeconds * 1000
       );
 
       const responseTime = Date.now() - startTime;
@@ -259,7 +261,7 @@ export class WebhookConfigurationService {
         webhookConfigurationId: webhookId,
         eventType: input.eventType,
         payload: testPayload,
-        status: response.ok ? "success" : "failed",
+        status: response.ok ? 'success' : 'failed',
         responseStatus: response.status,
         responseBody: await response.text(),
         attemptCount: 1,
@@ -276,7 +278,7 @@ export class WebhookConfigurationService {
         error: response.ok ? undefined : `HTTP ${response.status}`,
       };
 
-      logger.info("Webhook test completed", {
+      logger.info('Webhook test completed', {
         webhookId,
         userId,
         success: result.success,
@@ -286,34 +288,37 @@ export class WebhookConfigurationService {
 
       return result;
     } catch (error) {
-      if (error instanceof DatabaseError || error instanceof NotFoundError || error instanceof ValidationError) throw error;
+      if (
+        error instanceof DatabaseError ||
+        error instanceof NotFoundError ||
+        error instanceof ValidationError
+      )
+        throw error;
 
-      logger.error("Failed to test webhook", {
+      logger.error('Failed to test webhook', {
         userId,
         webhookId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new DatabaseError("Failed to test webhook");
+      throw new DatabaseError('Failed to test webhook');
     }
   }
 
   static async getEventHistory(
     userId: number,
     webhookId: string,
-    options: WebhookEventHistoryOptions = {},
+    options: WebhookEventHistoryOptions = {}
   ): Promise<WebhookEvent[]> {
     try {
       const configuration = await this.getConfigurationById(userId, webhookId);
       if (!configuration) {
-        throw new NotFoundError("Webhook configuration not found");
+        throw new NotFoundError('Webhook configuration not found');
       }
 
       const database = db();
 
       // Build the where conditions
-      const whereConditions = [
-        eq(webhookEvents.webhookConfigurationId, webhookId),
-      ];
+      const whereConditions = [eq(webhookEvents.webhookConfigurationId, webhookId)];
 
       if (options.status) {
         whereConditions.push(eq(webhookEvents.status, options.status));
@@ -333,14 +338,19 @@ export class WebhookConfigurationService {
 
       return events;
     } catch (error) {
-      if (error instanceof DatabaseError || error instanceof NotFoundError || error instanceof ValidationError) throw error;
+      if (
+        error instanceof DatabaseError ||
+        error instanceof NotFoundError ||
+        error instanceof ValidationError
+      )
+        throw error;
 
-      logger.error("Failed to get webhook event history", {
+      logger.error('Failed to get webhook event history', {
         userId,
         webhookId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new DatabaseError("Failed to get webhook event history");
+      throw new DatabaseError('Failed to get webhook event history');
     }
   }
 
@@ -355,24 +365,24 @@ export class WebhookConfigurationService {
         .from(webhookEvents)
         .innerJoin(
           webhookConfigurations,
-          eq(webhookEvents.webhookConfigurationId, webhookConfigurations.id),
+          eq(webhookEvents.webhookConfigurationId, webhookConfigurations.id)
         )
         .where(
           and(
             eq(webhookEvents.id, eventId),
             eq(webhookConfigurations.userId, userId),
-            eq(webhookEvents.status, "failed"),
-          ),
+            eq(webhookEvents.status, 'failed')
+          )
         );
 
       if (!event) {
-        throw new NotFoundError("Failed webhook event not found");
+        throw new NotFoundError('Failed webhook event not found');
       }
 
       const { event: webhookEvent, configuration } = event;
 
       if (webhookEvent.attemptCount >= configuration.retryCount) {
-        throw new ValidationError("Maximum retry attempts exceeded");
+        throw new ValidationError('Maximum retry attempts exceeded');
       }
 
       const response = await this.sendWebhookRequest(
@@ -380,13 +390,13 @@ export class WebhookConfigurationService {
         configuration.secret,
         webhookEvent.eventType,
         webhookEvent.payload,
-        configuration.timeoutSeconds * 1000,
+        configuration.timeoutSeconds * 1000
       );
 
       await database
         .update(webhookEvents)
         .set({
-          status: response.ok ? "success" : "retrying",
+          status: response.ok ? 'success' : 'retrying',
           responseStatus: response.status,
           responseBody: await response.text(),
           attemptCount: webhookEvent.attemptCount + 1,
@@ -397,7 +407,7 @@ export class WebhookConfigurationService {
         })
         .where(eq(webhookEvents.id, eventId));
 
-      logger.info("Webhook retry completed", {
+      logger.info('Webhook retry completed', {
         eventId,
         webhookId: configuration.id,
         userId,
@@ -407,25 +417,27 @@ export class WebhookConfigurationService {
 
       return response.ok;
     } catch (error) {
-      if (error instanceof DatabaseError || error instanceof NotFoundError || error instanceof ValidationError) throw error;
+      if (
+        error instanceof DatabaseError ||
+        error instanceof NotFoundError ||
+        error instanceof ValidationError
+      )
+        throw error;
 
-      logger.error("Failed to retry webhook", {
+      logger.error('Failed to retry webhook', {
         userId,
         eventId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new DatabaseError("Failed to retry webhook");
+      throw new DatabaseError('Failed to retry webhook');
     }
   }
 
-  static async rotateSecret(
-    userId: number,
-    webhookId: string,
-  ): Promise<string> {
+  static async rotateSecret(userId: number, webhookId: string): Promise<string> {
     try {
       const configuration = await this.getConfigurationById(userId, webhookId);
       if (!configuration) {
-        throw new NotFoundError("Webhook configuration not found");
+        throw new NotFoundError('Webhook configuration not found');
       }
 
       const newSecret = this.generateSecureSecret();
@@ -439,54 +451,56 @@ export class WebhookConfigurationService {
         })
         .where(eq(webhookConfigurations.id, webhookId));
 
-      logger.info("Webhook secret rotated", {
+      logger.info('Webhook secret rotated', {
         webhookId,
         userId,
         name: configuration.name,
       });
 
+      // Invalidate webhook cache
+      await UnifiedCacheManager.invalidateByTag('webhooks');
+
       return newSecret;
     } catch (error) {
-      if (error instanceof DatabaseError || error instanceof NotFoundError || error instanceof ValidationError) throw error;
+      if (
+        error instanceof DatabaseError ||
+        error instanceof NotFoundError ||
+        error instanceof ValidationError
+      )
+        throw error;
 
-      logger.error("Failed to rotate webhook secret", {
+      logger.error('Failed to rotate webhook secret', {
         userId,
         webhookId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new DatabaseError("Failed to rotate webhook secret");
+      throw new DatabaseError('Failed to rotate webhook secret');
     }
   }
 
-  static verifySignature(
-    payload: string,
-    signature: string,
-    secret: string,
-  ): boolean {
+  static verifySignature(payload: string, signature: string, secret: string): boolean {
     try {
-      const [hashAlgorithm, signatureValue] = signature.split("=");
-      if (hashAlgorithm !== "sha256") {
+      const [hashAlgorithm, signatureValue] = signature.split('=');
+      if (hashAlgorithm !== 'sha256') {
         return false;
       }
 
-      const expectedSignature = createHmac("sha256", secret)
-        .update(payload)
-        .digest("hex");
+      const expectedSignature = createHmac('sha256', secret).update(payload).digest('hex');
 
       return timingSafeEqual(
-        Buffer.from(signatureValue, "hex"),
-        Buffer.from(expectedSignature, "hex"),
+        Buffer.from(signatureValue, 'hex'),
+        Buffer.from(expectedSignature, 'hex')
       );
     } catch (error) {
-      logger.error("Failed to verify webhook signature", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      logger.error('Failed to verify webhook signature', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       return false;
     }
   }
 
   private static generateSecureSecret(): string {
-    return randomBytes(32).toString("hex");
+    return randomBytes(32).toString('hex');
   }
 
   private static async sendWebhookRequest(
@@ -494,22 +508,22 @@ export class WebhookConfigurationService {
     secret: string,
     eventType: string,
     payload: any,
-    timeout: number,
+    timeout: number
   ): Promise<Response> {
     const payloadString = JSON.stringify(payload);
-    const signature = `sha256=${createHmac("sha256", secret).update(payloadString).digest("hex")}`;
+    const signature = `sha256=${createHmac('sha256', secret).update(payloadString).digest('hex')}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
       const response = await fetch(url, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "User-Agent": "Webhooks-Platform/1.0",
-          "X-Webhook-Event": eventType,
-          "X-Webhook-Signature": signature,
+          'Content-Type': 'application/json',
+          'User-Agent': 'Webhooks-Platform/1.0',
+          'X-Webhook-Event': eventType,
+          'X-Webhook-Signature': signature,
         },
         body: payloadString,
         signal: controller.signal,
