@@ -85,7 +85,7 @@ if (!dev) {
 
 ### 2. Ultra-Fast Build Script
 
-**File**: `scripts/ultra-build-optimizer-v3.js`
+**File**: `scripts/ultra-fast-build-optimizer-v3.js`
 
 **Advanced Features**:
 
@@ -103,8 +103,8 @@ if (!dev) {
 
 ```json
 {
-  "build": "node scripts/ultra-build-optimizer-v3.js",
-  "build:fast": "node scripts/ultra-build-optimizer-v3.js",
+  "build": "node scripts/fixed-build-232.js",
+  "build:fast": "node scripts/ultra-fast-build-optimizer-v3.js",
   "build:standard": "NEXT_BUILD_WORKERS=4 NODE_OPTIONS='--max-old-space-size=4096' npx next build"
 }
 ```
