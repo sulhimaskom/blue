@@ -3,6 +3,7 @@ import { automatedCacheWarmingService } from './automated-cache-warming';
 import { logger } from '../logger';
 import { Features } from '../utils/environment';
 import { type AIPatternType } from './ai-pattern-types';
+import { analytics as analyticsService } from './analytics-service';
 
 /**
  * Session Prediction Engine
@@ -75,6 +76,18 @@ class SessionPredictionEngine {
 
       this.metrics.predictionsMade++;
 
+      // Track prediction attempt via analytics
+      try {
+        analyticsService.track('prediction_made', {
+          currentPage,
+          predictedCount: predictedPages.length,
+          confidence: 0, // Will be calculated below
+          timestamp: Date.now(),
+        });
+      } catch (e) {
+        // Analytics failure should not block prediction
+      }
+
       if (predictedPages.length === 0) {
         logger.debug('No predictions available for page', { currentPage });
         return {
@@ -107,6 +120,18 @@ class SessionPredictionEngine {
 
       if (triggered) {
         this.metrics.cacheWarmingTriggered++;
+        // Track cache warming via analytics
+        try {
+          analyticsService.track('cache_warming_triggered', {
+            currentPage,
+            predictedPages,
+            cacheKeysCount: cacheKeysToWarm.length,
+            confidence,
+            timestamp: Date.now(),
+          });
+        } catch (e) {
+          // Analytics failure should not block prediction
+        }
       }
 
       this.metrics.lastPrediction = Date.now();
@@ -198,6 +223,46 @@ class SessionPredictionEngine {
     }
 
     return Array.from(patterns);
+  }
+
+  /**
+   * Track when a user visits a page - used to validate predictions
+   * Call this when a page view occurs to measure prediction accuracy
+   */
+  static async validatePrediction(userId: string, visitedPage: string): Promise<boolean> {
+    if (!Features.predictiveCacheWarming) {
+      return false;
+    }
+
+    try {
+      // Get recent predictions for this user's session
+      const predictions = await userBehaviorTracker.getPredictedNextPages(visitedPage, 5);
+
+      if (predictions.length === 0) {
+        return false;
+      }
+
+      // Check if the visited page was predicted
+      const wasPredicted = predictions.includes(visitedPage);
+
+      // Track prediction accuracy via analytics
+      try {
+        analyticsService.track('prediction_validated', {
+          visitedPage,
+          wasPredicted,
+          predictions,
+          predictionCount: predictions.length,
+          timestamp: Date.now(),
+        });
+      } catch (e) {
+        // Analytics failure should not block functionality
+      }
+
+      return wasPredicted;
+    } catch (error) {
+      logger.debug('Failed to validate prediction', { visitedPage, error });
+      return false;
+    }
   }
 
   /**

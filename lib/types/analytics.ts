@@ -28,7 +28,10 @@ export type AnalyticsEventName =
   | 'team_invite_sent'
   | 'feature_discovered'
   | 'error_occurred'
-  | 'search_performed';
+  | 'search_performed'
+  | 'prediction_made'
+  | 'prediction_validated'
+  | 'cache_warming_triggered';
 
 export type UserEventCategory =
   | 'engagement'
@@ -170,6 +173,9 @@ export const EVENT_CATEGORIES: Record<AnalyticsEventName, UserEventCategory> = {
   feature_discovered: 'onboarding',
   error_occurred: 'error',
   search_performed: 'engagement',
+  prediction_made: 'engagement',
+  prediction_validated: 'engagement',
+  cache_warming_triggered: 'engagement',
 };
 
 export function validateEventName(eventName: string): eventName is AnalyticsEventName {
