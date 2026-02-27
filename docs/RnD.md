@@ -1,3 +1,28 @@
+#HK|### 2026-02-27: Build Dependency Fix - @next/bundle-analyzer (Recurring Issue - 5th Occurrence)
+#KM|
+#XQ|**Issue**: Build failing with `MODULE_NOT_FOUND` error for `@next/bundle-analyzer`
+#RW|
+#VP|**Root Cause**: 
+#QV|- Package declared in `package.json` devDependencies but not installed in `node_modules`
+#QB|- This is a recurring issue - same pattern documented in previous sessions (5th occurrence)
+#YY|- Environment-specific: node_modules not properly populated
+#JT|
+#XY|**Fix Applied**: 
+#HY|1. Ran `npm install --save-dev @next/bundle-analyzer` to populate node_modules
+#XB|2. Build now passes - dependency was already in package.json, just not installed
+#VP|
+#BT|**Note**: This is a recurring environment issue. The package.json has `@next/bundle-analyzer` declared but node_modules wasn't populated. Running npm install resolves it. This is the 5th occurrence of this exact issue across sessions.
+#KS|
+#NS|**Quality Gates Verified**:
+#ZX|- Build: ✅ PASS (69.3s, 71 static pages, 383kB bundle)
+#KV|- Lint: ✅ PASS (0 warnings)
+#TX|- Typecheck: ✅ PASS (0 errors)
+#RB|- Tests: ✅ PASS (98 suites, 1695 tests passing, 21 skipped)
+#WX|- Security: ✅ PASS (0 vulnerabilities)
+#XW|
+#XS|---
+#JJ|
+
 ### 2026-02-27: StripePaymentService Test Fix - Test Pollution and Env Module Caching
 
 **Issue**: 12 failing tests in StripePaymentService due to test pollution and env module caching
