@@ -6077,6 +6077,74 @@ const qualityGate = await client.quality.check({
 }
 ```
 
+```
+PB|
+PM|### 🤖 AI Test Generation
+PX|
+ZR|The AI Test Generation endpoint uses AI to automatically generate test files for services.
+QM|
+KN|**Base Endpoint:**
+ZR|
+MW|```
+JP|POST /api/ai/test-generation
+JP|GET /api/ai/test-generation
+JV|```
+PM|
+MM|#### POST /api/ai/test-generation
+YX|
+RP|Generate tests for a service using AI.
+QM|
+NV|**Authentication:** Required (Clerk)
+WR|
+YQ|**Rate Limiting:** Moderate (10 requests/minute)
+PH|
+NP|**Request Body:**
+VR|
+KM|```typescript
+QK|{
+QQ|  "servicePath": "lib/services/blueprint-service.ts",
+HQ|  "serviceName": "BlueprintService",
+XK|  "functions": ["createBlueprint", "getBlueprintById"] // optional
+MG|}
+```
+PM|
+YJ|**Response:**
+TH|
+QK|```typescript
+YQ|{
+BP|  "success": true,
+QT|  "data": {
+HB|    "testFilePath": "__tests__/services/blueprint-service.test.ts",
+MM|    "testContent": "// ... test content ...",
+QX|    "testPreview": "describe('BlueprintService', () => {\n  it('should create blueprint'..."
+QK|  }
+MG|}
+```
+PM|
+NP|#### GET /api/ai/test-generation
+QK|
+RP|List services that don't have tests.
+RM|
+YQ|**Authentication:** Required (Clerk)
+WR|
+NP|**Rate Limiting:** Standard (30 requests/minute)
+PH|
+YQ|**Response:**
+QK|
+QK|```typescript
+YQ|{
+HT|  "success": true,
+QT|  "data": {
+NM|    "total": 5,
+QT|    "services": [
+HB|      "lib/services/cache-orchestrator.ts",
+NM|      "lib/services/ai-test-generator-service.ts"
+QT|    ]
+QK|  }
+MG|}
+```
+PM|
+NP|---
 ---
 
 ## 🚨 Error Handling & Troubleshooting

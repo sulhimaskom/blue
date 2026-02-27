@@ -60,6 +60,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
 | `/api/user/*` | 4 | User settings | Preferences, notifications |
 | `/api/enterprise/*` | 5 | Enterprise features | Themes, analytics |
 | `/api/activity/*` | 2 | User activity | Feed, summary |
+| `/api/ai/*` | 1 | AI services | Test generation |
 | `/api/notifications/*` | 4 | Notification system | Read, preferences |
 | `/api/cache/*` | 2 | Cache management | Metrics, enhanced metrics |
 | `/api/circuit-breakers/*` | 2 | Circuit breaker control | Metrics, reset |
@@ -69,7 +70,7 @@ export const POST = APIRouteHandler.createPOSTHandler({
 | `/api/stripe/*` | 1 | Payment webhooks | Stripe integration |
 | `/api/openapi/*` | 2 | API documentation | OpenAPI spec |
 
-**Total**: 92 API routes across 19 functional domains
+**Total**: 93 API routes across 20 functional domains
 
 ## Authentication
 
@@ -527,6 +528,7 @@ app/api/
 
 ---
 
-**Last Updated**: 2026-02-18  
+**Last Updated**: 2026-02-27  
+**Route Count**: 93 endpoints  
 **Route Count**: 92 endpoints  
 **Coverage**: 100% authenticated, 100% rate limited
