@@ -5,7 +5,7 @@
  * Prevents interval drift, reduces memory usage, and provides centralized control
  */
 
-import { logger } from "../logger";
+import { logger } from "@/lib/logger";
 
 interface IntervalConfig {
   id: string;
