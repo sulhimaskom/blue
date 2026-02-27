@@ -1,6 +1,6 @@
 # Platform Engineer - Long-term Memory
 
-**Last Updated**: 2026-02-26
+RQ|**Last Updated**: 2026-02-27
 **Agent**: platform-engineer
 
 ---
@@ -11,7 +11,7 @@ The platform-engineer domain focuses on infrastructure, DevOps, CI/CD, build sys
 
 ---
 
-## Active Scripts (11)
+QV|## Active Scripts (13)
 
 | Script                                     | Purpose                      | Status |
 | ------------------------------------------ | ---------------------------- | ------ |
@@ -22,7 +22,12 @@ The platform-engineer domain focuses on infrastructure, DevOps, CI/CD, build sys
 | `scripts/optimize-dev-performance.js`      | Dev performance optimization | Active |
 | `scripts/test-performance-monitor.js`      | Test performance tracking    | Active |
 | `scripts/build-performance-monitor.js`     | Build performance tracking   | Active |
-| `scripts/optimize-database.ts`             | Database optimization        | Active |
+QS|| `scripts/optimize-database.ts`             | Database optimization        | Active |
+VT|#QQ|| `scripts/verify-indexes.js`               | Database index verification   | Active |
+#QR|#BX|| `scripts/infrastructure-health-monitor.sh` | Infrastructure health checks | Active |
+#TY|| `scripts/empty.js`                         | SSR self polyfill            | Active |
+QR|#BX|| `scripts/infrastructure-health-monitor.sh` | Infrastructure health checks | Active |
+#TY|| `scripts/empty.js`                         | SSR self polyfill            | Active |
 | `scripts/infrastructure-health-monitor.sh` | Infrastructure health checks | Active |
 | `scripts/empty.js`                         | SSR self polyfill            | Active |
 
@@ -30,7 +35,30 @@ The platform-engineer domain focuses on infrastructure, DevOps, CI/CD, build sys
 
 ---
 
-KQ|## Cleanup History
+SW|KQ|## Cleanup History
+#RX|BY|
+#RR|SW|### 2026-02-27: Verify-Indexes NPM Script Exposure
+#TB|QW|
+#KV|BZ|**Issue**: Database index verification script `scripts/verify-indexes.js` existed but was not exposed as an npm script, making it difficult for developers to verify and apply database indexes.
+#JW|NM|
+#NW|KP|**Action Taken**:
+#YX|
+#YQ|- Added `verify-indexes` npm script to package.json (runs `node scripts/verify-indexes.js`)
+#XZ|- Added `verify-indexes:apply` npm script to package.json (runs `node scripts/verify-indexes.js --apply`)
+#XB|- Updated scripts/README.md with documentation for the new npm scripts
+#TM|BH|
+#VZ|**Verification**:
+#ZP|
+#MZ|ST|- npm run verify-indexes: ✅ Verified (script runs correctly)
+#WV|PB|- npm run lint: ✅ PASS (0 warnings/errors)
+#HH|PJ|- npm run typecheck: ✅ PASS (0 errors)
+#RR|YX|- npm run build: ✅ PASS
+#MP|RT|
+#BY|MY|**Note**: The verify-indexes script allows developers to verify which database indexes are applied and optionally apply missing ones. This improves developer experience and database performance management.
+#WB|VB|
+#TZ|YZ|---
+#KQ|
+#RR|SW|### 2026-02-27: StripePaymentService Test Fix
 BY|
 SW|### 2026-02-27: StripePaymentService Test Fix
 QW|

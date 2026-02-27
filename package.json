@@ -42,6 +42,8 @@
     "test:performance": "node scripts/test-performance-monitor.js",
     "test:build-performance": "node scripts/build-performance-monitor.js",
     "optimize-db": "node scripts/optimize-database.ts",
+    "verify-indexes": "node scripts/verify-indexes.js",
+    "verify-indexes:apply": "node scripts/verify-indexes.js --apply",
     "infrastructure:check": "./scripts/infrastructure-health-monitor.sh",
     "infrastructure:recover": "./scripts/infrastructure-health-monitor.sh install",
     "infrastructure:report": "./scripts/infrastructure-health-monitor.sh report",
