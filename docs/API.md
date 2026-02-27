@@ -126,7 +126,20 @@ MX||                     | `GET /projects/[id]/blueprints`            | ✅ Requ
 PQ||                     | `GET /projects/templates`                 | ✅ Required | -       | Standard   | List project templates      |
 XB||                     | `POST /projects/templates`                | ✅ Required | -       | Moderate   | Create from template       |
 JK||                     | `POST /projects/[id]/clone`              | ✅ Required | -       | Moderate   | Clone project              |
-JK|                     | `GET /projects/[id]/activity`            | ✅ Required | -       | Standard   | Get project activity       |
+#KS|JK|                     | `GET /projects/[id]/activity`            | ✅ Required | -       | Standard   | Get project activity       |
+JR|| **Teams**          | `GET /teams`                              | ✅ Required | -       | Standard   | List user teams           |
+BZ||                     | `POST /teams`                             | ✅ Required | 50      | Standard   | Create new team          |
+MH||                     | `GET /teams/[id]`                         | ✅ Required | -       | Standard   | Get team details         |
+QK||                     | `PUT /teams/[id]`                         | ✅ Required | -       | Standard   | Update team              |
+QK||                     | `DELETE /teams/[id]`                      | ✅ Required | -       | Moderate   | Delete team              |
+QK||                     | `GET /teams/[id]/members`                 | ✅ Required | -       | Standard   | Get team members         |
+QK||                     | `POST /teams/[id]/members`                | ✅ Required | 10      | Moderate   | Invite team member       |
+QK||                     | `DELETE /teams/[id]/members/[userId]`      | ✅ Required | -       | Moderate   | Remove team member       |
+QK||                     | `GET /teams/[id]/projects`                | ✅ Required | -       | Standard   | Get team projects        |
+QK||                     | `POST /teams/[id]/projects`               | ✅ Required | 5       | Moderate   | Add project to team      |
+QK||                     | `GET /teams/[id]/usage`                   | ✅ Required | -       | Standard   | Get team usage           |
+QK||                     | `GET /teams/[id]/activity`                | ✅ Required | -       | Standard   | Get team activity        |
+JR|| **Validation**      | `POST /validate`                           | ❌ Optional | -       | Standard   | Validate blueprint data  |
 | **Validation**      | `POST /validate`                           | ❌ Optional | -       | Standard   | Validate blueprint data  |
 | **Webhook Monitor** | `GET /webhooks/monitor`                    | ❌ Optional | -       | Standard   | Queue monitoring         |
 |                     | `POST /webhooks/monitor`                   | ✅ Required | -       | Moderate   | Retry dead letter queue  |
@@ -1180,7 +1193,462 @@ Stripe-Signature: <stripe_signature>
 
 **Rate Limiting:** 100 requests/minute (Webhook)
 
+1196#VY|---
+XZ
+## 👥 Team Management
+
+### GET /teams
+
+List all teams for the authenticated user.
+
+JQ|**Request:**
+
+YW|```http
+QT|GET /api/teams
+JM|Authorization: Bearer <token>
+```
+
+QP|**Query Parameters:**
+
+BM|- `limit` (integer, optional) - Maximum number of teams to return (default: 100, max: 1000)
+- `offset` (integer, optional) - Number of teams to skip for pagination (default: 0)
+- `search` (string, optional) - Filter teams by name
+
+QV|**Response:**
+
+YP|```json
+SY|{
+TH|  "success": true,
+XK|  "data": [
+XK|    {
+XX|      "id": "team-uuid",
+VT|      "name": "Engineering Team",
+SQ|      "subscriptionTier": "pro",
+ZW|      "memberCount": 5,
+ZQ|      "projectCount": 12,
+WM|      "createdAt": "2025-12-24T10:00:00Z",
+HB|      "updatedAt": "2025-12-24T11:00:00Z"
+TH|    }
+XK|  ],
+TH|  "message": "Teams retrieved successfully"
+YM|}
+```
+
+NW|**Rate Limiting:** 30 requests/minute (Standard)
+
 ---
+
+### POST /teams
+
+Create a new team.
+
+JQ|**Request:**
+
+YW|```http
+SS|POST /api/teams
+QT|Authorization: Bearer <token>
+QT|Content-Type: application/json
+
+NR|{
+NP|  "name": "Engineering Team",
+NP|  "subscriptionTier": "pro"
+NM|}
+```
+
+RH|**Parameters:**
+
+SK|- `name` (string, required) - Team name (1-100 characters)
+- `subscriptionTier` (string, optional) - Team tier: "free", "pro", or "enterprise"
+
+QV|**Response:**
+
+YP|```json
+WM|{
+XK|  "success": true,
+XK|  "data": {
+XX|    "id": "team-uuid",
+VT|    "name": "Engineering Team",
+SQ|    "subscriptionTier": "pro",
+NP|    "ownerId": "user-uuid",
+WM|    "createdAt": "2025-12-24T10:00:00Z"
+TH|  },
+TH|  "message": "Team created successfully"
+YM|}
+```
+
+NW|**Rate Limiting:** 30 requests/minute (Standard)
+BM|**Credits Required:** 50 credits for team creation
+
+---
+
+### GET /teams/[id]
+
+Get details of a specific team.
+
+JQ|**Request:**
+
+YW|```http
+TT|GET /api/teams/team-uuid
+QT|Authorization: Bearer <token>
+```
+
+QV|**Response:**
+
+YP|```json
+YM|{
+TH|  "success": true,
+XK|  "data": {
+XX|    "id": "team-uuid",
+VT|    "name": "Engineering Team",
+SQ|    "subscriptionTier": "pro",
+NP|    "ownerId": "user-uuid",
+SQ|    "members": [
+SQ|      {
+XX|        "userId": "user-uuid",
+NP|        "email": "user@example.com",
+MT|        "role": "admin",
+MT|        "joinedAt": "2025-12-24T10:00:00Z"
+TH|      }
+SQ|    ],
+MT|    "memberCount": 5,
+SQ|    "projectCount": 12,
+WM|    "createdAt": "2025-12-24T10:00:00Z",
+HB|    "updatedAt": "2025-12-24T11:00:00Z"
+TH|  },
+TH|  "message": "Team details retrieved successfully"
+YM|}
+```
+
+NW|**Rate Limiting:** 30 requests/minute (Standard)
+BM|**Caching:** 120 seconds (2 minutes)
+
+---
+
+### PUT /teams/[id]
+
+Update team settings.
+
+JQ|**Request:**
+
+YW|```http
+VN|PUT /api/teams/team-uuid
+QT|Authorization: Bearer <token>
+QT|Content-Type: application/json
+
+NP|{
+NP|  "name": "Updated Team Name"
+NM|}
+```
+
+RH|**Parameters:**
+
+BM|- `name` (string, required) - Updated team name (1-100 characters)
+
+QV|**Response:**
+
+YP|```json
+SY|{
+TH|  "success": true,
+XK|  "data": {
+XX|    "id": "team-uuid",
+VT|    "name": "Updated Team Name",
+SQ|    "subscriptionTier": "pro",
+NP|    "updatedAt": "2025-12-24T12:00:00Z"
+TH|  },
+TH|  "message": "Team updated successfully"
+YM|}
+```
+
+NW|**Rate Limiting:** 30 requests/minute (Standard)
+
+---
+
+### DELETE /teams/[id]
+
+Delete a team.
+
+JQ|**Request:**
+
+YW|```http
+VR|DELETE /api/teams/team-uuid
+QT|Authorization: Bearer <token>
+```
+
+QV|**Response:**
+
+YP|```json
+NP|{
+TH|  "success": true,
+XK|  "data": null,
+TH|  "message": "Team deleted successfully"
+YM|}
+```
+
+NW|**Rate Limiting:** 10 requests/minute (Moderate)
+
+---
+
+### GET /teams/[id]/members
+
+Get all members of a team.
+
+JQ|**Request:**
+
+YW|```http
+TT|GET /api/teams/team-uuid/members
+QT|Authorization: Bearer <token>
+```
+
+QV|**Response:**
+
+YP|```json
+SY|{
+TH|  "success": true,
+XK|  "data": {
+SQ|    "members": [
+SQ|      {
+XX|        "userId": "user-uuid",
+NP|        "email": "user@example.com",
+MT|        "role": "admin",
+MT|        "joinedAt": "2025-12-24T10:00:00Z"
+TH|      }
+SQ|    ],
+NP|    "total": 5
+TH|  },
+TH|  "message": "Team members retrieved successfully"
+YM|}
+```
+
+NW|**Rate Limiting:** 30 requests/minute (Standard)
+
+---
+
+### POST /teams/[id]/members
+
+Invite a new member to the team.
+
+JQ|**Request:**
+
+YW|```http
+RR|POST /api/teams/team-uuid/members
+QT|Authorization: Bearer <token>
+QT|Content-Type: application/json
+
+NP|{
+NP|  "email": "newmember@example.com",
+MT|  "role": "member"
+NM|}
+```
+
+RH|**Parameters:**
+
+BM|- `email` (string, required) - Email address of the member to invite
+- `role` (string, required) - Member role: "admin", "member", or "viewer"
+
+QV|**Response:**
+
+YP|```json
+TH|{
+TH|  "success": true,
+XK|  "data": {
+XX|    "id": "member-uuid",
+XX|    "teamId": "team-uuid",
+NP|    "email": "newmember@example.com",
+MT|    "role": "member",
+MT|    "status": "pending",
+MT|    "joinedAt": null
+TH|  },
+TH|  "message": "Team member invited successfully"
+YM|}
+```
+
+NW|**Rate Limiting:** 10 requests/minute (Moderate)
+BM|**Credits Required:** 10 credits per invitation
+
+---
+
+### DELETE /teams/[id]/members/[userId]
+
+Remove a member from the team.
+
+JQ|**Request:**
+
+YW|```http
+VR|DELETE /api/teams/team-uuid/members/user-uuid
+QT|Authorization: Bearer <token>
+```
+
+QV|**Response:**
+
+YP|```json
+NP|{
+TH|  "success": true,
+XK|  "data": {
+XX|    "removed": true,
+XX|    "userId": "user-uuid"
+TH|  },
+TH|  "message": "Team member removed successfully"
+YM|}
+```
+
+NW|**Rate Limiting:** 10 requests/minute (Moderate)
+
+---
+
+### GET /teams/[id]/projects
+
+Get all projects associated with a team.
+
+JQ|**Request:**
+
+YW|```http
+TT|GET /api/teams/team-uuid/projects?limit=20&offset=0
+QT|Authorization: Bearer <token>
+```
+
+BP|**Query Parameters:**
+
+BM|- `limit` (integer, optional) - Number of projects to return (default: 20)
+- `offset` (integer, optional) - Number of projects to skip (default: 0)
+
+QV|**Response:**
+
+YP|```json
+YM|{
+TH|  "success": true,
+XK|  "data": [
+XK|    {
+XX|      "id": "project-uuid",
+VT|      "name": "E-commerce Platform",
+MT|      "role": "admin",
+MT|      "addedAt": "2025-12-24T10:00:00Z"
+TH|    }
+XK|  ],
+TH|  "message": "Team projects retrieved successfully"
+YM|}
+```
+
+NW|**Rate Limiting:** 30 requests/minute (Standard)
+
+---
+
+### POST /teams/[id]/projects
+
+Add a project to the team.
+
+JQ|**Request:**
+
+YW|```http
+YZ|POST /api/teams/team-uuid/projects
+QT|Authorization: Bearer <token>
+QT|Content-Type: application/json
+
+NP|{
+NP|  "projectId": "project-uuid",
+MT|  "role": "member"
+NM|}
+```
+
+RH|**Parameters:**
+
+BM|- `projectId` (string, required) - UUID of the project to add
+- `role` (string, optional) - Role for the project: "admin", "member", or "viewer" (default: "member")
+
+QV|**Response:**
+
+YP|```json
+SY|{
+TH|  "success": true,
+XK|  "data": {
+XX|    "teamId": "team-uuid",
+XX|    "projectId": "project-uuid",
+MT|    "role": "member",
+MT|    "addedAt": "2025-12-24T10:00:00Z"
+TH|  },
+TH|  "message": "Project added to team successfully"
+YM|}
+```
+
+NW|**Rate Limiting:** 10 requests/minute (Moderate)
+BM|**Credits Required:** 5 credits per project added
+
+---
+
+### GET /teams/[id]/usage
+
+Get team usage analytics and metrics.
+
+JQ|**Request:**
+
+YW|```http
+TT|GET /api/teams/team-uuid/usage
+QT|Authorization: Bearer <token>
+```
+
+QV|**Response:**
+
+YP|```json
+YM|{
+TH|  "success": true,
+XK|  "data": {
+XX|    "teamId": "team-uuid",
+NP|    "totalBlueprints": 45,
+NP|    "totalDeployments": 23,
+NP|    "totalCreditsUsed": 1250,
+NP|    "activeMembers": 5,
+NP|    "period": {
+MT|      "start": "2025-12-01T00:00:00Z",
+MT|      "end": "2025-12-31T23:59:59Z"
+TH|    }
+TH|  },
+TH|  "message": "Team usage analytics retrieved successfully"
+YM|}
+```
+
+NW|**Rate Limiting:** 30 requests/minute (Standard)
+
+---
+
+### GET /teams/[id]/activity
+
+Get team activity log.
+
+JQ|**Request:**
+
+YW|```http
+TT|GET /api/teams/team-uuid/activity
+QT|Authorization: Bearer <token>
+```
+
+BP|**Query Parameters:**
+
+BM|- `limit` (integer, optional) - Number of activities to return (default: 50)
+- `offset` (integer, optional) - Number of activities to skip (default: 0)
+
+QV|**Response:**
+
+YP|```json
+YM|{
+TH|  "success": true,
+XK|  "data": [
+XK|    {
+XX|      "id": "activity-uuid",
+MT|      "type": "member_invited",
+MT|      "description": "New member invited to team",
+SQ|      "userId": "user-uuid",
+MT|      "timestamp": "2025-12-24T10:00:00Z"
+TH|    }
+XK|  ],
+TH|  "message": "Team activity retrieved successfully"
+YM|}
+```
+
+NW|**Rate Limiting:** 30 requests/minute (Standard)
+
+---
+
+XZ
+#ZB|## ✅ Data Validation
 
 ## ✅ Data Validation
 
