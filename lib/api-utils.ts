@@ -1,3 +1,4 @@
+import { env } from "./env";
 import { NextRequest, NextResponse } from "next/server";
 import { ZodSchema, ZodError } from "zod";
 import { redisManager } from "./redis";
@@ -184,30 +185,31 @@ export function RateLimiter(maxRequests: number, windowMs: number, failClosed: b
  */
 export function getAllowedOrigin(requestedOrigin?: string): string {
   // In production, restrict CORS to approved domains only
-  if (process.env.NODE_ENV === "production") {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  if (env.NODE_ENV === "production") {
+    const allowedOriginsList = env.ALLOWED_ORIGINS
+      ? env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
       : [];
 
     // If no allowed origins configured, default to same-origin for security
-    if (allowedOrigins.length === 0) {
-      return process.env.NEXT_PUBLIC_APP_URL || "same-origin";
+    if (allowedOriginsList.length === 0) {
+      return env.NEXT_PUBLIC_APP_URL || "same-origin";
     }
 
     // If specific origin requested and it's in allowed list, use it
-    if (requestedOrigin && allowedOrigins.includes(requestedOrigin)) {
+    if (requestedOrigin && allowedOriginsList.includes(requestedOrigin)) {
       return requestedOrigin;
     }
 
     // Otherwise, use the first allowed origin or same-origin
     return (
-      allowedOrigins[0] || process.env.NEXT_PUBLIC_APP_URL || "same-origin"
+      allowedOriginsList[0] || env.NEXT_PUBLIC_APP_URL || "same-origin"
     );
   }
 
   // In development, allow all origins for convenience
   return "*";
 }
+
 
 // CORS middleware helper with production security restrictions
 export function createCorsResponse(
