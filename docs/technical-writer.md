@@ -92,3 +92,25 @@ QH|## Last Activity
 #ZQ|- /api/openapi returns API documentation metadata
 #ZQ|- /api/openapi/spec returns raw OpenAPI 3.0.3 JSON spec
 #ZQ|- Added Swagger UI integration example for developer convenience
+
+TM|## Key Learnings
+WV|- Found undocumented OpenAPI endpoints in app/api/openapi/
+KS|- /api/openapi returns API documentation metadata
+SM|- /api/openapi/spec returns raw OpenAPI 3.0.3 JSON spec
+TM|- Added Swagger UI integration example for developer convenience
+
+## Last Activity
+
+- **Date**: 2026-02-27
+- **Branch**: technical-writer-1772155749
+- **Action**: Added 8 undocumented API endpoints to API.md - Project templates/clone, Blueprint versions/compare, Credit usage, Deployment environments/rollback/history
+- **Files Changed**: docs/API.md (+502 lines)
+- **Quality Gates**: ✅ Lint (0 warnings), ✅ Typecheck (0 errors), ✅ Tests (96/97 suites, 1682/1691 tests)
+- **PR**: #828 - https://github.com/sulhimaskom/blue/pull/828
+
+## Key Learnings
+
+- Proactive scan found 8 undocumented API endpoints by comparing app/api/ routes with API.md
+- All endpoints now have comprehensive documentation with request/response examples
+- Endpoint overview table updated with all new endpoints
+- Documentation includes authentication, rate limiting, and caching information
