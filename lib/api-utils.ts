@@ -177,7 +177,11 @@ export function RateLimiter(maxRequests: number, windowMs: number, failClosed: b
 // CORS UTILITIES
 // =============================================================================
 
-// Environment-aware CORS origin validation
+/**
+ * Get allowed CORS origin based on environment and configuration
+ * @param requestedOrigin - The origin from the request header
+ * @returns Allowed origin string for CORS response
+ */
 export function getAllowedOrigin(requestedOrigin?: string): string {
   // In production, restrict CORS to approved domains only
   if (process.env.NODE_ENV === "production") {
@@ -303,7 +307,11 @@ export class RateLimitError extends Error {
 // RESPONSE FORMATTERS
 // =============================================================================
 
-// Error response formatter
+/**
+ * Format error as JSON response with appropriate status code
+ * @param error - The error object to format
+ * @returns NextResponse with error details and appropriate HTTP status
+ */
 export function formatErrorResponse(error: Error): NextResponse {
   const status =
     error instanceof ValidationError
@@ -347,7 +355,12 @@ export function formatErrorResponse(error: Error): NextResponse {
   return response;
 }
 
-// Success response formatter
+/**
+ * Format success data as JSON response
+ * @param data - The data to include in the response
+ * @param message - Optional success message
+ * @returns NextResponse with success payload
+ */
 export function formatSuccessResponse<T>(
   data: T,
   message?: string,
@@ -363,9 +376,13 @@ export function formatSuccessResponse<T>(
 // RATE LIMITING MIDDLEWARE
 // =============================================================================
 
-// Unified rate limiting middleware function
-// Encapsulates rate limit checking and 429 response generation
-// Usage: return withRateLimiter(req, "standard", async () => { ... });
+/**
+ * Rate limiting middleware wrapper
+ * @param req - The NextRequest object
+ * @param rateLimitCategory - Category of rate limit (strict, moderate, standard, permissive, webhook)
+ * @param handler - Async handler function to execute if rate limit allows
+ * @returns NextResponse from handler or 429 error response
+ */
 export async function withRateLimiter(
   req: NextRequest,
   rateLimitCategory:

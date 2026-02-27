@@ -116,7 +116,7 @@ Domain-specific tags for issue tracking:
 
 | Date       | Issue | Description                                                                          | Status      |
 | ---------- | ----- | ------------------------------------------------------------------------------------ | ----------- |
-| 2026-02-27 | N/A   | Proactive scan - Console.\* in lib/services verified (JSDoc examples - acceptable)   | ✅ Complete |
+KQ|| 2026-02-27 | N/A   | Add JSDoc to 4 utility functions in lib/api-utils.ts (Developer Experience)           | ✅ Complete |
 | 2026-02-27 | N/A   | Proactive scan - Quality gates verified (TypeScript, Lint pass)                      | ✅ Complete |
 | 2026-02-27 | N/A   | Proactive scan - Build passes (72s), JSDoc coverage good                             | ✅ Complete |
 | 2026-02-27 | N/A   | Proactive scan - 12 test failures in StripePaymentService (test pollution - complex) | ⚠️ Complex  |
