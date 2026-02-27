@@ -41,7 +41,22 @@ Specialist focused on delivering small, safe, measurable UI/UX improvements.
 
 ## History of Changes
 
+QM|### 2026-02-27
+
+- **BaseCard hover enhancement**: Added hover:scale-[1.01] to CARD_VARIANTS.hover to match Card component's tactile feedback
+- **Files modified**: lib/constants/ui-themes.ts
+
+- **Breadcrumb hover enhancement**: Added hover:bg-gray-100 hover:scale-[1.02] transition-all duration-200 for better navigation affordance
+- **Files modified**: components/navigation/breadcrumb.tsx
+
+- **BlueprintCreateModal loading state**: Added loading prop to show spinner on submit button during async operations
+- **Files modified**: components/dashboard/blueprint-create-modal.tsx
+- **PR**: #836
+
 ### 2026-02-27
+
+- **WebhookCard hover enhancement**: Added subtle hover scale animation (hover:scale-[1.01] transition-all duration-200) to webhook card component for tactile feedback
+- **Files modified**: components/webhooks/webhook-card.tsx
 
 ### 2026-02-27
 
