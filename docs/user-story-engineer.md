@@ -38,7 +38,26 @@ All changes must pass:
 
 ## Knowledge Base
 
-### Current Test Status (as of 2026-02-25)
+### Current Test Status (as of 2026-02-27)
+
+- **Test Suites**: 98/99 passing (1 skipped)
+- **Tests**: 1695 passed, 21 skipped
+- **Analysis Completed**: Issue #873 - Restore 21 Skipped Tests
+- **Finding**: 21 skipped tests identified across 2 test files
+  - stripe-payment-service.test.ts: 12 skipped tests
+  - billing-history-api.test.ts: 9 tests (entire describe block skipped)
+- **Root Cause**: env.ts provides fallback values in test mode (NODE_ENV='test')
+- **Impact**: Cannot restore tests that verify error scenarios when env vars are missing
+- **Restorable**: ~10 webhook processing tests can be enabled
+- **Recommendation**: Requires careful refactoring of test environment setup
+
+### Previous Status (2026-02-25)
+
+- **Test Suites**: 79/80 passing (1 skipped)
+- **Tests**: 1404 passed, 25 TODO, 19 skipped
+- **Coverage Focus Areas**:
+  - AI Service: 5 new tests implemented (healthCheck, getModels, circuit breaker)
+  - 25 remaining TODO tests for AIService
 
 - **Test Suites**: 79/80 passing (1 skipped)
 - **Tests**: 1404 passed, 25 TODO, 19 skipped
