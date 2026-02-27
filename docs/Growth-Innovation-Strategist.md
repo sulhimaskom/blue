@@ -1,5 +1,25 @@
 ## Implementation Log
 
+### 2026-02-27 - Webhooks & Enterprise Themes Analytics Instrumentation
+
+- **Scope**: Add analytics tracking to uninstrumented dashboard pages
+- **Files Modified**:
+  - `app/dashboard/webhooks/page.tsx` - Added tracking for: page_view, webhook_tab_click, webhook_manual_refresh, webhook_auto_refresh_toggle, webhook_quick_actions
+  - `app/dashboard/enterprise/themes/page.tsx` - Added tracking for: page_view, enterprise_theme_activate, enterprise_theme_reset, enterprise_theme_edit, enterprise_theme_create
+- **Impact**:
+  - Now can measure webhook page engagement (tabs, refresh, quick actions)
+  - Track enterprise theme management actions (create, activate, edit, reset)
+  - Enable funnel analysis for infrastructure tool usage
+- **Verification**:
+  - ✅ Build passes (73.9s)
+  - ✅ Lint passes (0 warnings)
+  - ✅ Typecheck passes (0 errors)
+
+---
+## Implementation Log
+
+### 2026-02-27 - Predictive Cache Warming Analytics (PR #853)
+
 ### 2026-02-27 - Predictive Cache Warming Analytics (PR #853)
 
 - **Scope**: Issue #763 - Add analytics tracking for predictive cache warming
@@ -315,6 +335,12 @@ WP|**Pages to Instrument Next:**
 1. Credits page - track credit purchases
 2. Subscription page - track upgrade attempts
 3. Settings page - track preference changes
-4. Project pages - track project creation/deployment
+BN|4. Project pages - track project creation/deployment
+SQ|
+XH|This continues the instrumentation work from PR #704, building a complete picture of user behavior.
+
+## Pages Instrumented (2026-02-27):
+- Webhooks page - track tabs, refresh, quick actions ✅
+- Enterprise Themes page - track create, activate, edit, reset ✅
 
 This continues the instrumentation work from PR #704, building a complete picture of user behavior.

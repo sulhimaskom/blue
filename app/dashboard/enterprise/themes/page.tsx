@@ -14,36 +14,32 @@
  * @page Enterprise Themes Dashboard
  */
 
-"use client";
+'use client';
 
-import React, { useState, useEffect, Suspense, lazy } from "react";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { enterpriseThemeService } from "@/lib/services/enterprise-theme-service";
-import type { EnterpriseThemeConfig } from "@/lib/constants/enterprise-themes";
-import type { EnterpriseThemeStats } from "@/lib/services/service-types";
-import { DashboardSkeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/constants/ui-themes";
-import { Button } from "@/components/ui/button";
-import { StatusIndicator } from "@/components/ui/status-indicator";
-import { MetricCard } from "@/components/ui/metric-card";
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { enterpriseThemeService } from '@/lib/services/enterprise-theme-service';
+import type { EnterpriseThemeConfig } from '@/lib/constants/enterprise-themes';
+import type { EnterpriseThemeStats } from '@/lib/services/service-types';
+import { DashboardSkeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/constants/ui-themes';
+import { Button } from '@/components/ui/button';
+import { StatusIndicator } from '@/components/ui/status-indicator';
+import { MetricCard } from '@/components/ui/metric-card';
+import { analytics } from '@/lib/services/analytics-service';
 
 // Dynamic import for performance optimization - reduces initial bundle size
 const EnterpriseThemeCustomizer = lazy(() =>
-  import("@/components/enterprise/enterprise-theme-customizer").then(
-    (module) => ({
-      default: module.EnterpriseThemeCustomizer,
-    }),
-  ),
+  import('@/components/enterprise/enterprise-theme-customizer').then(module => ({
+    default: module.EnterpriseThemeCustomizer,
+  }))
 );
 
 export default function EnterpriseThemesPage() {
   // Presentation state only - business logic is in service layer
   const [themes, setThemes] = useState<EnterpriseThemeConfig[]>([]);
-  const [activeTheme, setActiveTheme] = useState<EnterpriseThemeConfig | null>(
-    null,
-  );
-  const [selectedTheme, setSelectedTheme] =
-    useState<EnterpriseThemeConfig | null>(null);
+  const [activeTheme, setActiveTheme] = useState<EnterpriseThemeConfig | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState<EnterpriseThemeConfig | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [stats, setStats] = useState<EnterpriseThemeStats>({
     totalThemes: 0,
@@ -57,6 +53,7 @@ export default function EnterpriseThemesPage() {
   // Load themes and stats using service layer
   useEffect(() => {
     loadThemeData();
+    analytics.pageView({ path: '/dashboard/enterprise/themes', title: 'Enterprise Themes Page' });
   }, []);
 
   /**
@@ -76,11 +73,10 @@ export default function EnterpriseThemesPage() {
         setStats(result.data.stats);
       } else {
         // Handle service failure but maintain UI stability
-        setError(result.error || "Failed to load theme data");
+        setError(result.error || 'Failed to load theme data');
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Unknown error occurred";
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -92,6 +88,7 @@ export default function EnterpriseThemesPage() {
    * Business logic delegated to enterpriseThemeService
    */
   const handleActivateTheme = async (themeId: string) => {
+    analytics.trackButtonClick('enterprise_theme_activate', 'enterprise-themes', { themeId });
     try {
       const result = await enterpriseThemeService.activateTheme(themeId);
 
@@ -99,11 +96,10 @@ export default function EnterpriseThemesPage() {
         // Refresh data after successful activation
         await loadThemeData();
       } else {
-        setError(result.error || "Failed to activate theme");
+        setError(result.error || 'Failed to activate theme');
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Unknown error occurred";
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
     }
   };
@@ -113,6 +109,7 @@ export default function EnterpriseThemesPage() {
    * Business logic delegated to enterpriseThemeService
    */
   const handleResetTheme = async () => {
+    analytics.trackButtonClick('enterprise_theme_reset', 'enterprise-themes', {});
     try {
       const result = await enterpriseThemeService.resetTheme();
 
@@ -120,11 +117,10 @@ export default function EnterpriseThemesPage() {
         // Refresh data after successful reset
         await loadThemeData();
       } else {
-        setError(result.error || "Failed to reset theme");
+        setError(result.error || 'Failed to reset theme');
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Unknown error occurred";
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
     }
   };
@@ -134,6 +130,9 @@ export default function EnterpriseThemesPage() {
    * This is UI logic - business logic for theme updates is handled by the customizer component
    */
   const handleSelectTheme = (theme: EnterpriseThemeConfig) => {
+    analytics.trackButtonClick('enterprise_theme_edit', 'enterprise-themes', {
+      themeId: theme.customerId,
+    });
     setSelectedTheme(theme);
     setIsEditing(true);
     setError(null); // Clear any previous errors when entering edit mode
@@ -154,6 +153,7 @@ export default function EnterpriseThemesPage() {
    * Enters editing mode with no selected theme
    */
   const handleCreateNewTheme = () => {
+    analytics.trackButtonClick('enterprise_theme_create', 'enterprise-themes', {});
     setSelectedTheme(null);
     setIsEditing(true);
     setError(null);
@@ -179,12 +179,7 @@ export default function EnterpriseThemesPage() {
           <div className="flex items-center">
             <StatusIndicator status="unhealthy" />
             <span className="ml-2 text-red-700">{error}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setError(null)}
-              className="ml-auto"
-            >
+            <Button variant="outline" size="sm" onClick={() => setError(null)} className="ml-auto">
               Dismiss
             </Button>
           </div>
@@ -195,20 +190,14 @@ export default function EnterpriseThemesPage() {
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Enterprise Themes
-            </h1>
-            <p className="mt-1 text-gray-600">
-              Manage white-label themes for enterprise customers
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900">Enterprise Themes</h1>
+            <p className="mt-1 text-gray-600">Manage white-label themes for enterprise customers</p>
           </div>
           <div className="flex items-center gap-4">
             {activeTheme && (
               <div className="flex items-center gap-2">
                 <StatusIndicator status="healthy" />
-                <span className="text-sm text-green-600">
-                  Active: {activeTheme.brandName}
-                </span>
+                <span className="text-sm text-green-600">Active: {activeTheme.brandName}</span>
               </div>
             )}
             <Button onClick={handleResetTheme} variant="outline">
@@ -225,7 +214,7 @@ export default function EnterpriseThemesPage() {
           <MetricCard
             title="Total Themes"
             value={stats.totalThemes}
-            trend={{ value: 0, direction: "neutral" }}
+            trend={{ value: 0, direction: 'neutral' }}
             icon="activity"
           />
           <MetricCard
@@ -233,14 +222,14 @@ export default function EnterpriseThemesPage() {
             value={stats.activeThemes}
             trend={{
               value: stats.activeThemes,
-              direction: stats.activeThemes > 0 ? "up" : "neutral",
+              direction: stats.activeThemes > 0 ? 'up' : 'neutral',
             }}
             icon="server"
           />
           <MetricCard
             title="Enterprise Customers"
             value={stats.enterpriseCustomers}
-            trend={{ value: 0, direction: "neutral" }}
+            trend={{ value: 0, direction: 'neutral' }}
             icon="chart"
           />
           <MetricCard
@@ -248,7 +237,7 @@ export default function EnterpriseThemesPage() {
             value={`${stats.customizationRate.toFixed(1)}%`}
             trend={{
               value: Math.round(stats.customizationRate),
-              direction: "up",
+              direction: 'up',
             }}
             icon="activity"
           />
@@ -297,17 +286,15 @@ export default function EnterpriseThemesPage() {
             <div>
               <h2 className="text-xl font-semibold mb-4">All Themes</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {themes.map((theme) => {
+                {themes.map(theme => {
                   const isActive = activeTheme?.customerId === theme.customerId;
 
                   return (
                     <div
                       key={theme.customerId}
                       className={cn(
-                        "bg-white border rounded-lg p-6 hover:shadow-md transition-shadow",
-                        isActive
-                          ? "border-blue-500 shadow-md"
-                          : "border-gray-200",
+                        'bg-white border rounded-lg p-6 hover:shadow-md transition-shadow',
+                        isActive ? 'border-blue-500 shadow-md' : 'border-gray-200'
                       )}
                     >
                       <div className="space-y-4">
@@ -340,22 +327,15 @@ export default function EnterpriseThemesPage() {
 
                         {/* Theme Info */}
                         <div>
-                          <h3 className="font-semibold text-gray-900">
-                            {theme.brandName}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {theme.customerId}
-                          </p>
+                          <h3 className="font-semibold text-gray-900">{theme.brandName}</h3>
+                          <p className="text-sm text-gray-600">{theme.customerId}</p>
                         </div>
 
                         {/* Status */}
                         <div className="flex items-center gap-2">
-                          <StatusIndicator
-                            status={isActive ? "healthy" : "unhealthy"}
-                            size="sm"
-                          />
+                          <StatusIndicator status={isActive ? 'healthy' : 'unhealthy'} size="sm" />
                           <span className="text-sm text-gray-600">
-                            {isActive ? "Active" : "Inactive"}
+                            {isActive ? 'Active' : 'Inactive'}
                           </span>
                         </div>
 
@@ -364,9 +344,7 @@ export default function EnterpriseThemesPage() {
                           {!isActive ? (
                             <Button
                               size="sm"
-                              onClick={() =>
-                                handleActivateTheme(theme.customerId)
-                              }
+                              onClick={() => handleActivateTheme(theme.customerId)}
                               className="flex-1"
                             >
                               Activate
