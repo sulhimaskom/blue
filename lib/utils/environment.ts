@@ -69,4 +69,10 @@ export const Features = {
    * Feature: Issue #763 - Predictive Cache Warming
    */
   predictiveCacheWarming: isProduction() || isDevelopment(),
+
+  /**
+   * Enable UX simplification features: breadcrumbs and smart defaults
+   * Feature: Issue #764 - Dashboard Navigation Simplification
+   */
+  uxSimplification: isProduction() || isDevelopment(),
 } as const;
