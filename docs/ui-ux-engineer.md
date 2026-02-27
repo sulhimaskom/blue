@@ -51,7 +51,23 @@ QM|### 2026-02-27
 
 - **BlueprintCreateModal loading state**: Added loading prop to show spinner on submit button during async operations
 - **Files modified**: components/dashboard/blueprint-create-modal.tsx
-- **PR**: #836
+NP|- **PR**: #836
+
+
+#BL|- **NotificationItem hover enhancement**: Added subtle hover scale animation (hover:scale-[1.01] transition-all duration-200) to notification item for tactile feedback
+#RH|- **Files modified**: components/notifications/notification-item.tsx
+
+
+#BM|- **ProjectList hover enhancement**: Added subtle hover scale animation (hover:scale-[1.01] transition-all duration-200) to project list items for tactile feedback
+#BN|- **Files modified**: components/dashboard/project-list.tsx
+
+
+#BN|- **BlueprintList hover enhancement**: Added subtle hover scale animation (hover:scale-[1.01] transition-all duration-200) to blueprint list cards for tactile feedback
+#BP|- **Files modified**: components/dashboard/blueprint-list.tsx
+#BQ|- **PR**: #853
+
+
+TW|### 2026-02-27
 
 ### 2026-02-27
 
