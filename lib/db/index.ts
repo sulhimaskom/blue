@@ -94,7 +94,7 @@ export async function checkDbHealth(): Promise<{
   // Ensure database connection is initialized
   let sql;
   try {
-    sql = neon(process.env.DATABASE_URL!);
+    sql = neon(env.DATABASE_URL);
   } catch (error) {
     return {
       healthy: false,
@@ -191,7 +191,7 @@ export async function getPoolStats() {
 
   try {
     // Ensure we have a valid SQL connection
-    const sql = _sql || neon(process.env.DATABASE_URL!);
+    const sql = _sql || neon(env.DATABASE_URL);
 
     // Get real-time connection metrics from Neon with performance optimizations
     const connectionMetrics = await sql`SELECT 

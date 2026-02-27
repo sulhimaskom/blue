@@ -366,8 +366,8 @@ class AnalyticsService {
 const analyticsConfig: AnalyticsConfig = {
   enabled: env.NODE_ENV === 'production',
   debug: env.NODE_ENV !== 'production',
-  provider: (process.env.ANALYTICS_PROVIDER as AnalyticsConfig['provider']) || 'noop',
-  sampleRate: parseFloat(process.env.ANALYTICS_SAMPLE_RATE || '1.0'),
+  provider: (env.ANALYTICS_PROVIDER as AnalyticsConfig['provider']) || 'noop',
+  sampleRate: parseFloat(env.ANALYTICS_SAMPLE_RATE || '1.0'),
 };
 
 export const analytics = new AnalyticsService(analyticsConfig);
