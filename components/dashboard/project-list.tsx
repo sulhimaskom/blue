@@ -52,7 +52,7 @@ export const ProjectList = React.memo(
               <div
                 key={project.id}
                 className={cn(
-                  "p-4 cursor-pointer hover:bg-gray-50",
+                  "p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 hover:scale-[1.01]",
                   selectedProject?.id === project.id ? "bg-blue-50" : "",
                 )}
                 onClick={() => onProjectSelect(project)}

@@ -103,7 +103,7 @@ export const NotificationItem = React.memo(
     const content = (
       <div
         className={cn(
-          "p-6 hover:bg-gray-50 transition-colors cursor-pointer border-l-4",
+          "p-6 hover:bg-gray-50 transition-all duration-200 cursor-pointer border-l-4 hover:scale-[1.01]",
           isUnread ? "border-blue-500" : "border-transparent"
         )}
       >
