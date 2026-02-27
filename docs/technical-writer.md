@@ -185,5 +185,28 @@ ZJ|- Endpoint overview table updated with new endpoints
 - Prioritize consistency in documentation
 - Fix formatting/typos when found
 - Ensure code examples work and are up-to-date
+XH|
+## Last Activity
+TH|
+- **Date**: 2026-02-27
+- **Branch**: technical-writer-ai-test-gen-docs-20260227203322
+- **Action**: Added AI Test Generation endpoint documentation - documented POST/GET /api/ai/test-generation in API.md
+- **Files Changed**: docs/API.md (+72 lines), app/api/README.md (+2 lines)
+- **Quality Gates**: ✅ Lint (0 warnings), ✅ Typecheck (0 errors), ✅ Tests (98/99 suites, 1695/1716 tests)
+- **PR**: #890 - https://github.com/sulhimaskom/blue/pull/890
 
+## Key Learnings
+
+- Proactive scan found undocumented AI Test Generation endpoint at /api/ai/test-generation
+- Added comprehensive documentation with request/response schemas
+- Updated app/api/README.md route count to 93 endpoints across 20 functional domains
+
+## Preferences
+
+- Focus on small, measurable improvements
+- Prioritize consistency in documentation
+- Fix formatting/typos when found
+- Ensure code examples work and are up-to-date
+
+(End of file)
 (End of file)
