@@ -383,7 +383,7 @@ export class PerformanceWebhookService {
     try {
       // Enqueue webhook event for reliable delivery
       const result = await webhookQueueService.enqueueWebhook(
-        "PerformanceMonitor" as any,
+        "PerformanceMonitor" as "Clerk" | "Stripe" | "GitHub" | "PerformanceMonitor",
         payload.eventType,
         payload,
         {}, // Empty headers for system-generated webhooks
