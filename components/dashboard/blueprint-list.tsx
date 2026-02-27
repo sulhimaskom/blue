@@ -64,7 +64,7 @@ export const BlueprintList = React.memo(
                 {blueprints.map((blueprint) => (
                   <div
                     key={blueprint.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-all duration-200 hover:scale-[1.01]"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                       <div className="flex-1">
