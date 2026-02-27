@@ -1,3 +1,11 @@
+### 2026-02-27: Clean Up Unnecessary ESLint Override
+
+- Removed legacy ESLint override for `components/dashboard/blueprint-create-modal.tsx`
+- Override disabled `no-unused-vars` rule but file now passes lint without it
+- Simplified `.eslintrc.json` - removed entire `overrides` section
+- Result: All quality gates pass - audit (0), typecheck (0), lint (0)
+
+
 # DX-Engineer Agent Documentation
 
 > Long-term memory and guidelines for the DX-engineer autonomous agent.
