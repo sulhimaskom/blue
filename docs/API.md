@@ -2580,6 +2580,702 @@ The system supports the following notification types:
 | `deployment_status`   | Deployment succeeded/failed                 | deploymentId, environment, status  |
 | `credit_warning`      | Low credits warning                        | remainingCredits                  |
 | `blueprint_shared`    | Blueprint shared                           | blueprintId, sharerName           |
+## 👤 User Settings
+
+Manage user preferences, UI settings, and notification configurations.
+
+### GET /user/settings
+
+Retrieve the authenticated user's preferences and settings.
+
+**Request:**
+
+```http
+GET /api/user/settings
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "settings": {
+      "id": "uuid",
+      "userId": "user_uuid",
+      "theme": "light",
+      "language": "en",
+      "timezone": "UTC",
+      "uiPreferences": {
+        "compactView": false,
+        "sidebarPosition": "left",
+        "dashboardLayout": "grid",
+        "showMetrics": true
+      },
+      "notificationPreferences": {
+        "blueprintGeneration": true,
+        "deployment": true,
+        "credits": true,
+        "teamInvites": true,
+        "projectShares": true,
+        "blueprintShares": true,
+        "marketing": false
+      },
+      "createdAt": "2026-01-15T10:30:00Z",
+      "updatedAt": "2026-02-27T14:22:00Z"
+    },
+    "message": "Settings retrieved successfully"
+  }
+}
+```
+
+**Rate Limiting:** 30 requests/minute (Standard)
+
+---
+
+### PUT /user/settings
+
+Update the authenticated user's preferences and settings.
+
+**Request:**
+
+```http
+PUT /api/user/settings
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "theme": "dark",
+  "language": "en",
+  "timezone": "America/New_York",
+  "uiPreferences": {
+    "compactView": true,
+    "sidebarPosition": "right"
+  },
+  "notificationPreferences": {
+    "blueprintGeneration": true,
+    "deployment": false
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "settings": {
+      "id": "uuid",
+      "userId": "user_uuid",
+      "theme": "dark",
+      "language": "en",
+      "timezone": "America/New_York",
+      "uiPreferences": {
+        "compactView": true,
+        "sidebarPosition": "right",
+        "dashboardLayout": "grid",
+        "showMetrics": true
+      },
+      "notificationPreferences": {
+        "blueprintGeneration": true,
+        "deployment": false,
+        "credits": true,
+        "teamInvites": true,
+        "projectShares": true,
+        "blueprintShares": true,
+        "marketing": false
+      },
+      "createdAt": "2026-01-15T10:30:00Z",
+      "updatedAt": "2026-02-27T15:00:00Z"
+    },
+    "message": "Settings updated successfully"
+  }
+}
+```
+
+**Rate Limiting:** 10 requests/minute (Moderate)
+
+**Error Responses:**
+
+- `400 Bad Request` - Invalid settings data
+- `401 Unauthorized` - Invalid authentication
+- `500 Internal Server Error` - Database error
+
+---
+
+### PATCH /user/settings
+
+Partially update the authenticated user's settings.
+
+**Request:**
+
+```http
+PATCH /api/user/settings
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "theme": "dark"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "settings": {
+      "id": "uuid",
+      "userId": "user_uuid",
+      "theme": "dark",
+      "language": "en",
+      "timezone": "UTC",
+      "uiPreferences": {
+        "compactView": false,
+        "sidebarPosition": "left",
+        "dashboardLayout": "grid",
+        "showMetrics": true
+      },
+      "notificationPreferences": {
+        "blueprintGeneration": true,
+        "deployment": true,
+        "credits": true,
+        "teamInvites": true,
+        "projectShares": true,
+        "blueprintShares": true,
+        "marketing": false
+      },
+      "createdAt": "2026-01-15T10:30:00Z",
+      "updatedAt": "2026-02-27T15:05:00Z"
+    },
+    "message": "Settings partially updated successfully"
+  }
+}
+```
+
+**Rate Limiting:** 10 requests/minute (Moderate)
+
+---
+
+### POST /user/settings
+
+Reset user settings to default values.
+
+**Request:**
+
+```http
+POST /api/user/settings
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "reset": true
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "settings": {
+      "id": "uuid",
+      "userId": "user_uuid",
+      "theme": "light",
+      "language": "en",
+      "timezone": "UTC",
+      "uiPreferences": {
+        "compactView": false,
+        "sidebarPosition": "left",
+        "dashboardLayout": "grid",
+        "showMetrics": true
+      },
+      "notificationPreferences": {
+        "blueprintGeneration": true,
+        "deployment": true,
+        "credits": true,
+        "teamInvites": true,
+        "projectShares": true,
+        "blueprintShares": true,
+        "marketing": false
+      },
+      "createdAt": "2026-01-15T10:30:00Z",
+      "updatedAt": "2026-02-27T15:10:00Z"
+    },
+    "message": "Settings reset to defaults successfully"
+  }
+}
+```
+
+**Rate Limiting:** 10 requests/minute (Moderate)
+
+---
+
+### GET /user/settings/ui
+
+Retrieve UI preferences for the authenticated user.
+
+**Request:**
+
+```http
+GET /api/user/settings/ui
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "uiPreferences": {
+      "compactView": false,
+      "sidebarPosition": "left",
+      "dashboardLayout": "grid",
+      "showMetrics": true
+    },
+    "message": "UI preferences retrieved successfully"
+  }
+}
+```
+
+**Rate Limiting:** 30 requests/minute (Standard)
+
+---
+
+### PUT /user/settings/ui
+
+Update UI preferences for the authenticated user.
+
+**Request:**
+
+```http
+PUT /api/user/settings/ui
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "compactView": true,
+  "sidebarPosition": "right",
+  "dashboardLayout": "cards",
+  "showMetrics": false
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "uiPreferences": {
+      "compactView": true,
+      "sidebarPosition": "right",
+      "dashboardLayout": "cards",
+      "showMetrics": false
+    },
+    "message": "UI preferences updated successfully"
+  }
+}
+```
+
+**Rate Limiting:** 10 requests/minute (Moderate)
+
+**Error Responses:**
+
+- `400 Bad Request` - Invalid UI preference values
+- `401 Unauthorized` - Invalid authentication
+
+---
+
+### GET /user/settings/notifications
+
+Retrieve notification preferences for the authenticated user.
+
+**Request:**
+
+```http
+GET /api/user/settings/notifications
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "notificationPreferences": {
+      "blueprintGeneration": true,
+      "deployment": true,
+      "credits": true,
+      "teamInvites": true,
+      "projectShares": true,
+      "blueprintShares": true,
+      "marketing": false,
+      "deliveryChannels": {
+        "email": true,
+        "inApp": true,
+        "push": false,
+        "webhook": false
+      },
+      "frequency": "immediate",
+      "doNotDisturb": {
+        "enabled": false,
+        "startTime": "22:00",
+        "endTime": "08:00",
+        "timezone": "UTC"
+      },
+      "categories": {
+        "critical": {
+          "enabled": true,
+          "overrideDnd": true
+        },
+        "important": {
+          "enabled": true,
+          "overrideDnd": false
+        },
+        "informational": {
+          "enabled": true,
+          "overrideDnd": false
+        }
+      }
+    },
+    "message": "Notification preferences retrieved successfully"
+  }
+}
+```
+
+**Rate Limiting:** 30 requests/minute (Standard)
+
+---
+
+### PUT /user/settings/notifications
+
+Update notification preferences for the authenticated user.
+
+**Request:**
+
+```http
+PUT /api/user/settings/notifications
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "blueprintGeneration": true,
+  "deployment": false,
+  "credits": true,
+  "deliveryChannels": {
+    "email": true,
+    "inApp": true,
+    "push": true
+  },
+  "frequency": "batched",
+  "doNotDisturb": {
+    "enabled": true,
+    "startTime": "22:00",
+    "endTime": "08:00",
+    "timezone": "America/New_York"
+  },
+  "categories": {
+    "critical": {
+      "enabled": true,
+      "overrideDnd": true
+    },
+    "important": {
+      "enabled": true,
+      "overrideDnd": false
+    },
+    "informational": {
+      "enabled": false,
+      "overrideDnd": false
+    }
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "notificationPreferences": {
+      "blueprintGeneration": true,
+      "deployment": false,
+      "credits": true,
+      "teamInvites": true,
+      "projectShares": true,
+      "blueprintShares": true,
+      "marketing": false,
+      "deliveryChannels": {
+        "email": true,
+        "inApp": true,
+        "push": true,
+        "webhook": false
+      },
+      "frequency": "batched",
+      "doNotDisturb": {
+        "enabled": true,
+        "startTime": "22:00",
+        "endTime": "08:00",
+        "timezone": "America/New_York"
+      },
+      "categories": {
+        "critical": {
+          "enabled": true,
+          "overrideDnd": true
+        },
+        "important": {
+          "enabled": true,
+          "overrideDnd": false
+        },
+        "informational": {
+          "enabled": false,
+          "overrideDnd": false
+        }
+      }
+    },
+    "message": "Notification preferences updated successfully"
+  }
+}
+```
+
+**Rate Limiting:** 10 requests/minute (Moderate)
+
+**Error Responses:**
+
+- `400 Bad Request` - Invalid notification preference values
+- `401 Unauthorized` - Invalid authentication
+- `500 Internal Server Error` - Database error
+
+---
+
+### POST /user/settings/notifications
+
+Reset notification preferences to default values.
+
+**Request:**
+
+```http
+POST /api/user/settings/notifications
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "action": "reset"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "notificationPreferences": {
+      "blueprintGeneration": true,
+      "deployment": true,
+      "credits": true,
+      "teamInvites": true,
+      "projectShares": true,
+      "blueprintShares": true,
+      "marketing": false,
+      "deliveryChannels": {
+        "email": true,
+        "inApp": true,
+        "push": false,
+        "webhook": false
+      },
+      "frequency": "immediate",
+      "doNotDisturb": {
+        "enabled": false,
+        "startTime": "22:00",
+        "endTime": "08:00",
+        "timezone": "UTC"
+      },
+      "categories": {
+        "critical": {
+          "enabled": true,
+          "overrideDnd": true
+        },
+        "important": {
+          "enabled": true,
+          "overrideDnd": false
+        },
+        "informational": {
+          "enabled": true,
+          "overrideDnd": false
+        }
+      }
+    },
+    "message": "Notification preferences reset to defaults successfully"
+  }
+}
+```
+
+**Rate Limiting:** 10 requests/minute (Moderate)
+
+---
+
+### GET /user/settings/notifications/categories
+
+Retrieve available notification categories.
+
+**Request:**
+
+```http
+GET /api/user/settings/notifications/categories
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "categories": [
+      {
+        "id": "critical",
+        "name": "Critical",
+        "description": "Critical notifications that require immediate attention",
+        "defaultEnabled": true,
+        "defaultOverrideDnd": true
+      },
+      {
+        "id": "important",
+        "name": "Important",
+        "description": "Important notifications about your activity",
+        "defaultEnabled": true,
+        "defaultOverrideDnd": false
+      },
+      {
+        "id": "informational",
+        "name": "Informational",
+        "description": "Informational updates and summaries",
+        "defaultEnabled": true,
+        "defaultOverrideDnd": false
+      }
+    ],
+    "message": "Notification categories retrieved successfully"
+  }
+}
+```
+
+**Rate Limiting:** 30 requests/minute (Standard)
+
+---
+
+### PUT /user/settings/notifications/categories
+
+Update notification category preferences.
+
+**Request:**
+
+```http
+PUT /api/user/settings/notifications/categories
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "critical": {
+    "enabled": true,
+    "overrideDnd": true
+  },
+  "important": {
+    "enabled": true,
+    "overrideDnd": false
+  },
+  "informational": {
+    "enabled": false,
+    "overrideDnd": false
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "categories": {
+      "critical": {
+        "enabled": true,
+        "overrideDnd": true
+      },
+      "important": {
+        "enabled": true,
+        "overrideDnd": false
+      },
+      "informational": {
+        "enabled": false,
+        "overrideDnd": false
+      }
+    },
+    "message": "Notification categories updated successfully"
+  }
+}
+```
+
+**Rate Limiting:** 10 requests/minute (Moderate)
+
+**Error Responses:**
+
+- `400 Bad Request` - Invalid category preference values
+- `401 Unauthorized` - Invalid authentication
+
+---
+
+### User Settings Schema
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `theme` | string | UI theme: "light", "dark", or "system" |
+| `language` | string | Preferred language code (e.g., "en") |
+| `timezone` | string | User's timezone (e.g., "UTC", "America/New_York") |
+| `uiPreferences.compactView` | boolean | Enable compact view mode |
+| `uiPreferences.sidebarPosition` | string | Sidebar position: "left", "right", or "hidden" |
+| `uiPreferences.dashboardLayout` | string | Dashboard layout: "grid", "list", or "cards" |
+| `uiPreferences.showMetrics` | boolean | Show performance metrics on dashboard |
+| `notificationPreferences.*` | boolean | Enable/disable notification types |
+| `notificationPreferences.deliveryChannels` | object | Preferred delivery channels |
+| `notificationPreferences.frequency` | string | Notification frequency: "immediate", "batched", "hourly", "daily", "weekly" |
+| `notificationPreferences.doNotDisturb` | object | Do Not Disturb configuration |
+| `notificationPreferences.categories` | object | Category-specific preferences |
 
 ---
 

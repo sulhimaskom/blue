@@ -113,4 +113,19 @@ TM|- Added Swagger UI integration example for developer convenience
 - Proactive scan found 8 undocumented API endpoints by comparing app/api/ routes with API.md
 - All endpoints now have comprehensive documentation with request/response examples
 - Endpoint overview table updated with all new endpoints
-- Documentation includes authentication, rate limiting, and caching information
+## Last Activity
+
+- **Date**: 2026-02-27
+- **Branch**: technical-writer-1772169576
+- **Action**: Added 10 undocumented User Settings API endpoints to API.md - settings (GET/PUT/PATCH/POST), settings/ui (GET/PUT), settings/notifications (GET/PUT/POST), settings/notifications/categories (GET/PUT)
+- **Files Changed**: docs/API.md (+565 lines)
+- **Quality Gates**: ✅ Lint (0 warnings), ✅ Typecheck (0 errors), ✅ Build (73.7s)
+
+## Key Learnings
+
+- Proactive scan found 10 undocumented User Settings API endpoints in app/api/user/settings/
+- Documented full CRUD operations: GET (retrieve), PUT (update), PATCH (partial update), POST (reset)
+- UI preferences include: compactView, sidebarPosition, dashboardLayout, showMetrics
+- Notification preferences include: deliveryChannels, frequency, doNotDisturb, categories
+- Documentation follows existing API.md patterns with request/response examples
+
