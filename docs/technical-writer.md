@@ -162,4 +162,28 @@ ZJ|- Endpoint overview table updated with new endpoints
 - Endpoint overview table updated with all Teams endpoints
 - Teams endpoints include: create/list teams, team CRUD, members (invite/remove), projects, usage analytics, activity
 
-(End of file - total 167 lines)
+## Last Activity
+
+- **Date**: 2026-02-27
+- **Branch**: technical-writer-teams-api-docs-20260227163843
+- **Action**: Added complete Teams API documentation to api-reference.md - 12 endpoints documented (teams CRUD, members, projects, usage)
+- **Files Changed**: docs/api-reference.md (+521 lines)
+- **Quality Gates**: ✅ Build (75.3s, 72 static pages), ✅ Lint (0 warnings), ✅ Typecheck (0 errors)
+- **PR**: #881 - https://github.com/sulhimaskom/blue/pull/881
+
+## Key Learnings
+
+- Proactive scan found Teams API endpoints not documented in api-reference.md
+- Teams API has 7 route files representing 12 endpoints
+- Added comprehensive documentation with full request/response examples
+- Documentation includes: authentication, rate limiting, validation, credit costs
+- Teams endpoints: GET/POST /teams, GET/PUT/DELETE /teams/{id}, GET/POST /teams/{id}/members, PUT/DELETE /teams/{id}/members/{userId}, GET/POST /teams/{id}/projects, GET /teams/{id}/usage
+
+## Preferences
+
+- Focus on small, measurable improvements
+- Prioritize consistency in documentation
+- Fix formatting/typos when found
+- Ensure code examples work and are up-to-date
+
+(End of file)
