@@ -51,11 +51,20 @@ export const ProjectList = React.memo(
             projects.map((project) => (
               <div
                 key={project.id}
+                role="button"
+                tabIndex={0}
                 className={cn(
                   "p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 hover:scale-[1.01]",
                   selectedProject?.id === project.id ? "bg-blue-50" : "",
                 )}
                 onClick={() => onProjectSelect(project)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onProjectSelect(project);
+                  }
+                }}
+                aria-label={`Select project: ${project.name}`}
               >
                 <h3 className="font-medium text-gray-900">{project.name}</h3>
                 <p className="text-sm text-gray-600 mt-1">
