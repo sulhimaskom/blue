@@ -1,34 +1,34 @@
-"use client";
+'use client';
 
-import { useState, lazy, Suspense } from "react";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { useTeamsData } from "@/lib/hooks/use-teams-data";
-import { DashboardSkeleton } from "@/components/ui/skeleton";
+import { useState, lazy, Suspense } from 'react';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { useTeamsData } from '@/lib/hooks/use-teams-data';
+import { DashboardSkeleton } from '@/components/ui/skeleton';
+import { analytics } from '@/lib/services/analytics-service';
 
 const TeamList = lazy(() =>
-  import("@/components/dashboard/team-list").then((m) => ({
+  import('@/components/dashboard/team-list').then(m => ({
     default: m.TeamList,
-  })),
+  }))
 );
 
 const TeamCreateModal = lazy(() =>
-  import("@/components/dashboard/team-create-modal").then((m) => ({
+  import('@/components/dashboard/team-create-modal').then(m => ({
     default: m.TeamCreateModal,
-  })),
+  }))
 );
 
 const TeamDetails = lazy(() =>
-  import("@/components/dashboard/team-details").then((m) => ({
+  import('@/components/dashboard/team-details').then(m => ({
     default: m.TeamDetails,
-  })),
+  }))
 );
 
 const TeamMemberList = lazy(() =>
-  import("@/components/dashboard/team-member-list").then((m) => ({
+  import('@/components/dashboard/team-member-list').then(m => ({
     default: m.TeamMemberList,
-  })),
+  }))
 );
-
 
 export default function TeamsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -51,34 +51,37 @@ export default function TeamsPage() {
   const handleCreateTeam = async (e: React.FormEvent) => {
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
-    const teamName = formData.get("teamName") as string;
-    const description = formData.get("description") as string;
+    const teamName = formData.get('teamName') as string;
+    const description = formData.get('description') as string;
 
     await createTeam({
       name: teamName,
       description: description || undefined,
     });
     setShowCreateModal(false);
+    analytics.trackButtonClick('team-created', 'teams', { teamName });
   };
 
-  const handleUpdateTeam = async (
-    id: string,
-    data: { name: string; description?: string },
-  ) => {
+  const handleUpdateTeam = async (id: string, data: { name: string; description?: string }) => {
     try {
       const response = await fetch(`/api/teams/${id}`, {
-        method: "PUT",
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
       });
       const result = await response.json();
       if (!result.success) {
-        throw new Error(result.error || "Failed to update team");
+        throw new Error(result.error || 'Failed to update team');
       }
       await handleTeamSelect(selectedTeam!);
+      analytics.trackButtonClick('team-updated', 'teams', { teamId: id });
     } catch (err) {
+      analytics.trackError('team-update-failed', {
+        teamId: id,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
       throw err;
     }
   };
@@ -86,6 +89,7 @@ export default function TeamsPage() {
   const handleDeleteTeam = async (id: string) => {
     await deleteTeam(id);
     setShowTeamDetails(false);
+    analytics.trackButtonClick('team-deleted', 'teams', { teamId: id });
   };
 
   if (loading) {
@@ -104,9 +108,7 @@ export default function TeamsPage() {
     <DashboardLayout>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Team Management
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Team Management</h1>
           <p className="mt-2 text-gray-600">
             Manage your teams, invite members, and collaborate on projects.
           </p>
@@ -116,14 +118,10 @@ export default function TeamsPage() {
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-red-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
                   <path
                     fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 016 0zm1-13a1 1 0 00-1 1v4a1 1 0 001 1v1a1 1 0 00-2 0v-1a1 1 0 00-1-1zm0 9a1 1 0 011-1 1 1 0 01-1 1v-1a1 1 0 00-2 0v1a1 1 0 011 1zM10 2a8 8 0 00-8 8 8 0 000 16 8 8 0 000-16zM9 9a1 1 0 011-1V7a1 1 0 10-2h2a1 1 0 110 2v2a1 1 0 110 1z"
+                    d="M10 18a8 8 0 100-16 8 8 0 016 0zm1-13a1 1 0 00-1 1v4a1 1 0 001 1v1a1 1 0 00-2 0v-1a1 1 0 00-1-1zm0 9a1 1 0 011-1 1 1 0 01-1 1v-1a1 1 0 00-2 0v1a1 1 0 011 1zM10 2a8 8 0 00-8 8 8 8 0 000 16 8 8 0 000-16zM9 9a1 1 0 011-1V7a1 1 0 10-2h2a1 1 0 110 2v2a1 1 0 110 1z"
                     clipRule="evenodd"
                   />
                 </svg>
@@ -144,11 +142,18 @@ export default function TeamsPage() {
               <TeamList
                 teams={teams}
                 selectedTeam={selectedTeam}
-                onTeamSelect={(team) => {
+                onTeamSelect={team => {
                   handleTeamSelect(team);
                   setShowTeamDetails(true);
+                  analytics.trackButtonClick('team-selected', 'teams', {
+                    teamId: team?.id,
+                    teamName: team?.name,
+                  });
                 }}
-                onCreateTeam={() => setShowCreateModal(true)}
+                onCreateTeam={() => {
+                  setShowCreateModal(true);
+                  analytics.trackButtonClick('create-team-opened', 'teams', {});
+                }}
               />
             </Suspense>
           </div>
@@ -169,9 +174,18 @@ export default function TeamsPage() {
                     members={teamMembers}
                     onAddMember={async (email, role) => {
                       await addTeamMember(selectedTeam.id, email, role);
+                      analytics.trackButtonClick('team-member-added', 'teams', {
+                        teamId: selectedTeam.id,
+                        email,
+                        role,
+                      });
                     }}
-                    onRemoveMember={async (userId) => {
+                    onRemoveMember={async userId => {
                       await removeTeamMember(selectedTeam.id, userId);
+                      analytics.trackButtonClick('team-member-removed', 'teams', {
+                        teamId: selectedTeam.id,
+                        userId,
+                      });
                     }}
                     loading={creating}
                   />
@@ -192,9 +206,7 @@ export default function TeamsPage() {
                     d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v-1m0 0a6 6 0 00-12 0v1m3.17-5a2 2 0 00-1.11-1.82l-3.39-3.14A6 6 0 006 13H4a6 6 0 00-6 6v1a6 6 0 0012 0v-1M20 15v1a2 2 0 002 2h-1.37m0-6.83l-2.89 2.68"
                   />
                 </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  Select a team
-                </h3>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">Select a team</h3>
                 <p className="mt-1 text-sm text-gray-500">
                   Choose a team from list to view details and manage members
                 </p>
