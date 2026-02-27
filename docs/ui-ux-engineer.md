@@ -39,6 +39,17 @@ Specialist focused on delivering small, safe, measurable UI/UX improvements.
 
 ## History of Changes
 
+## History of Changes
+
+### 2026-02-27
+
+### 2026-02-27
+
+### 2026-02-27
+
+- **WebhookCard hover enhancement**: Added subtle hover scale animation (hover:scale-[1.01] transition-all duration-200) to webhook card component for tactile feedback
+- **Files modified**: components/webhooks/webhook-card.tsx
+
 ### 2026-02-26
 
 ### 2026-02-26

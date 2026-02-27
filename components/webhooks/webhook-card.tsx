@@ -40,7 +40,7 @@ export function WebhookCard({
   onDelete,
 }: WebhookCardProps) {
   return (
-    <article className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
+    <article className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-200">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="flex-1 min-w-0">
