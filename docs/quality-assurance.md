@@ -17,7 +17,7 @@
 | Gate                 | Status  | Details                                                |
 | -------------------- | ------- | ------------------------------------------------------ |
 | Security (npm audit) | ✅ PASS | 0 vulnerabilities                                      |
-| Build                | ✅ PASS | 72.5s compile, 71 static pages                         |
+| Build                | ✅ PASS | 70.3s compile, 71 static pages                         |
 | TypeScript           | ✅ PASS | 0 errors                                               |
 | Lint                 | ✅ PASS | 0 warnings/errors                                      |
 | Tests                | ✅ PASS | 98/99 suites (1 skipped), 1695/1716 tests (21 skipped) |
@@ -33,7 +33,7 @@
 
 | Issue                        | Status            | Details                           |
 | ---------------------------- | ----------------- | --------------------------------- |
-| stripe-payment-service tests | ✅ Resolved       | 34 tests now passing (12 skipped) |
+| stripe-payment-service tests | ⚠️ Partial       | 12 tests skipped (env mock issues)                    |
 | billing-history-api tests    | 📋 Technical Debt | Complex mock setup required       |
 
 ### Skipped Tests Analysis
