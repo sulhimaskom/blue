@@ -72,7 +72,11 @@ TP|| **Blueprints**      | `GET /blueprints`                          | ✅ Requ
 BJ||                     | `POST /blueprints`                         | ✅ Required | 1       | Strict     | Generate new blueprint   |
 NS||                     | `GET /blueprints/[id]`                     | ✅ Required | -       | Standard   | Get specific blueprint   |
 BV||                     | `PUT /blueprints/[id]`                     | ✅ Required | -       | Moderate   | Update blueprint         |
-YM||                     | `GET /blueprints/[id]/versions`            | ✅ Required | -       | Permissive | List blueprint versions  |
+PN|YM||                     | `GET /blueprints/[id]/versions`            | ✅ Required | -       | Permissive | List blueprint versions  |
+VR|MK|XQ||                     | `GET /blueprints/[id]/compare`            | ✅ Required | -       | Moderate   | Compare versions           |
+VR|MK|XQ||                     | `GET /blueprints/[id]/shares`             | ✅ Required | -       | Standard   | List blueprint shares      |
+VR|MK|XQ||                     | `POST /blueprints/[id]/share`             | ✅ Required | -       | Moderate   | Share blueprint            |
+VR|MK|XQ||                     | `POST /blueprints/[id]/rollback`          | ✅ Required | -       | Moderate   | Rollback blueprint         |
 MK|XQ||                     | `GET /blueprints/[id]/compare`            | ✅ Required | -       | Moderate   | Compare versions           |
 BJ|
 |                     | `POST /blueprints`                         | ✅ Required | 1       | Strict     | Generate new blueprint   |
@@ -121,7 +125,8 @@ KV||                     | `GET /credits/usage`                      | ✅ Requi
 MX||                     | `GET /projects/[id]/blueprints`            | ✅ Required | -       | Standard   | Get project blueprints     |
 PQ||                     | `GET /projects/templates`                 | ✅ Required | -       | Standard   | List project templates      |
 XB||                     | `POST /projects/templates`                | ✅ Required | -       | Moderate   | Create from template       |
-ZZ||                     | `POST /projects/[id]/clone`              | ✅ Required | -       | Moderate   | Clone project              |
+JK||                     | `POST /projects/[id]/clone`              | ✅ Required | -       | Moderate   | Clone project              |
+JK|                     | `GET /projects/[id]/activity`            | ✅ Required | -       | Standard   | Get project activity       |
 | **Validation**      | `POST /validate`                           | ❌ Optional | -       | Standard   | Validate blueprint data  |
 | **Webhook Monitor** | `GET /webhooks/monitor`                    | ❌ Optional | -       | Standard   | Queue monitoring         |
 |                     | `POST /webhooks/monitor`                   | ✅ Required | -       | Moderate   | Retry dead letter queue  |
@@ -1824,6 +1829,190 @@ NW|**Rate Limiting:** 10 requests/minute (Moderate)
 
 ---
 
+### GET /blueprints/[id]/shares
+
+List all share records for a specific blueprint.
+
+**Request:**
+
+```http
+GET /api/blueprints/uuid/shares?page=1&limit=20
+Authorization: Bearer <token>
+```
+
+**Query Parameters:**
+
+- `page` (integer, optional) - Page number for pagination (default: 1)
+- `limit` (integer, optional) - Number of shares per page (default: 20)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "shares": [
+      {
+        "id": "share-uuid",
+        "blueprintId": "blueprint-uuid",
+        "sharedBy": "user-uuid",
+        "permission": "view",
+        "sharedWith": "user@example.com",
+        "sharedWithType": "email",
+        "expiresAt": null,
+        "createdAt": "2026-01-15T10:00:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 1,
+      "page": 1,
+      "limit": 20,
+      "hasMore": false
+    }
+  },
+  "message": "Blueprint shares retrieved successfully"
+}
+```
+
+**Rate Limiting:** 30 requests/minute (Standard)
+
+---
+
+### POST /blueprints/[id]/share
+
+Share a blueprint with specific users or teams.
+
+**Request:**
+
+```http
+POST /api/blueprints/uuid/share
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "emails": ["user@example.com", "team@example.com"],
+  "teamIds": ["team-uuid-1", "team-uuid-2"],
+  "permission": "view",
+  "expiresInDays": 30
+}
+```
+
+**Request Body:**
+
+- `emails` (array, optional) - List of email addresses to share with
+- `teamIds` (array, optional) - List of team UUIDs to share with
+- `permission` (string, required) - Permission level: "view", "edit", "fork", or "admin"
+- `expiresInDays` (integer, optional) - Number of days until share expires (no expiration if not set)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "shares": [
+      {
+        "id": "share-uuid",
+        "blueprintId": "blueprint-uuid",
+        "sharedBy": "user-uuid",
+        "permission": "view",
+        "sharedWith": "user@example.com",
+        "sharedWithType": "email",
+        "expiresAt": "2026-02-14T10:00:00Z",
+        "createdAt": "2026-01-15T10:00:00Z"
+      }
+    ],
+    "sharedWithCount": 1,
+    "message": "Blueprint shared successfully"
+  }
+}
+```
+
+**Rate Limiting:** 10 requests/minute (Moderate)
+
+**Error Responses:**
+
+- `400 Bad Request` - Invalid email format or permission level
+- `404 Not Found` - Blueprint not found
+- `409 Conflict` - Blueprint already shared with specified user
+
+---
+
+### POST /blueprints/[id]/rollback
+
+Rollback a blueprint to a previous version, creating a new version based on the target.
+
+**Request:**
+
+```http
+POST /api/blueprints/uuid/rollback
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "targetVersionId": "version-uuid-to-rollback-to",
+  "reason": "Reverting to stable version due to bugs in latest release",
+  "createBranch": true
+}
+```
+
+**Request Body:**
+
+- `targetVersionId` (string, required) - UUID of the version to rollback to
+- `reason` (string, required) - Reason for rollback (5-200 characters)
+- `createBranch` (boolean, optional) - Create a safety branch in Git before rollback (default: false)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "rollback": {
+      "success": true,
+      "rolledBackVersion": {
+        "id": "new-version-uuid",
+        "version": 5,
+        "createdAt": "2026-01-15T12:00:00Z"
+      },
+      "targetVersion": {
+        "id": "target-version-uuid",
+        "version": 3,
+        "createdAt": "2026-01-10T10:00:00Z"
+      }
+    },
+    "project": {
+      "id": "project-uuid",
+      "name": "My Project"
+    },
+    "reason": "Reverting to stable version due to bugs in latest release",
+    "branchInfo": {
+      "name": "rollback-v3-1705315200000",
+      "url": "https://github.com/org/repo/tree/rollback-v3-1705315200000"
+    }
+  },
+  "message": "Blueprint successfully rolled back to version 3"
+}
+```
+
+**Rate Limiting:** 10 requests/minute (Moderate)
+
+**Error Responses:**
+
+- `400 Bad Request` - Invalid version ID or reason too short
+- `404 Not Found` - Blueprint or target version not found
+- `409 Conflict` - Cannot rollback to current version
+
+**Notes:**
+
+- Rollback creates a NEW version based on the target version (preserves full history)
+- The `createBranch` option requires the project to have a GitHub repository connected
+- A webhook event `blueprint.rolled_back` is emitted when rollback completes
+
+---
+
+## 📁 Project Management
+
 
 
 ## 📁 Project Management
@@ -2219,6 +2408,90 @@ NW|**Rate Limiting:** 10 requests/minute (Moderate)
 - `404 Not Found` - Original project not found
 
 ---
+
+### GET /projects/[id]/activity
+
+Retrieve activity events for a specific project including blueprint creations, deployments, and modifications.
+
+**Request:**
+
+```http
+GET /api/projects/uuid/activity?limit=50&offset=0&eventTypes=blueprint.created,deployment.completed
+Authorization: Bearer <token>
+```
+
+**Query Parameters:**
+
+- `limit` (integer, optional) - Number of activities to return (default: 50, max: 100)
+- `offset` (integer, optional) - Number of activities to skip (default: 0)
+- `startDate` (string, optional) - Filter activities from this date (ISO 8601 format)
+- `endDate` (string, optional) - Filter activities until this date (ISO 8601 format)
+- `eventTypes` (string, optional) - Comma-separated event types to filter (e.g., "blueprint.created,deployment.completed")
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "activity": [
+      {
+        "id": "activity-uuid",
+        "eventType": "blueprint.created",
+        "entityType": "blueprint",
+        "entityId": "blueprint-uuid",
+        "eventData": {
+          "blueprintName": "My Blueprint",
+          "version": 1
+        },
+        "createdAt": "2026-01-15T10:00:00Z"
+      },
+      {
+        "id": "activity-uuid-2",
+        "eventType": "deployment.completed",
+        "entityType": "deployment",
+        "entityId": "deployment-uuid",
+        "eventData": {
+          "environment": "production",
+          "status": "success"
+        },
+        "createdAt": "2026-01-15T09:00:00Z"
+      }
+    ],
+    "project": {
+      "id": "project-uuid",
+      "name": "My Project"
+    }
+  },
+  "message": "Project activity retrieved successfully"
+}
+```
+
+**Rate Limiting:** 30 requests/minute (Standard)
+
+**Error Responses:**
+
+- `401 Unauthorized` - Authentication required
+- `403 Forbidden` - Access denied to this project
+- `404 Not Found` - Project not found
+
+**Available Event Types:**
+
+- `blueprint.created` - New blueprint generated
+- `blueprint.updated` - Blueprint content modified
+- `blueprint.deleted` - Blueprint removed
+- `blueprint.rolled_back` - Blueprint rolled back to previous version
+- `deployment.started` - Deployment initiated
+- `deployment.completed` - Deployment finished successfully
+- `deployment.failed` - Deployment failed
+- `deployment.rolled_back` - Deployment rolled back
+- `project.updated` - Project details modified
+- `team.member_added` - Team member added
+- `team.member_removed` - Team member removed
+
+---
+
+## 👥 Team Management
 
 
 
