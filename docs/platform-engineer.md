@@ -35,6 +35,31 @@ QR|#BX|| `scripts/infrastructure-health-monitor.sh` | Infrastructure health chec
 
 ---
 
+## Cleanup History
+
+### 2026-02-27: GitHub Actions Cache Version Standardization
+
+**Issue**: CI/CD workflows used inconsistent versions of `actions/cache` - some used v4 while others used v5, creating maintenance confusion and potential compatibility issues.
+
+**Action Taken**:
+- Updated all 5 GitHub Actions workflow files to use `actions/cache@v5` consistently:
+  - `.github/workflows/oc standarizer.yml`
+  - `.github/workflows/ci-check.yml`
+  - `.github/workflows/oc smart-ci.yml`
+  - `.github/workflows/parallel.yml`
+  - `.github/workflows/on-push.yml` (already v5)
+
+**Verification**:
+- npm audit: ✅ PASS (0 vulnerabilities)
+- npm run lint: ✅ PASS (0 warnings/errors)
+- npm run typecheck: ✅ PASS (0 errors)
+- npm run test: ✅ PASS (98/99 suites, 1695/1716 tests)
+- npm run build: ✅ PASS (60.4s, 72 static pages)
+
+**Note**: Standardizing to `actions/cache@v5` ensures all workflows benefit from the latest cache performance improvements and bug fixes. This is a small but important consistency improvement for the CI/CD infrastructure.
+
+---
+
 SW|KQ|## Cleanup History
 #RX|BY|
 #RR|SW|### 2026-02-27: Verify-Indexes NPM Script Exposure
