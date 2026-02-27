@@ -1,9 +1,10 @@
-import { NextRequest } from "next/server";
-import { z } from "zod";
-import { logger } from "@/lib/logger";
-import { APIRouteHandler } from "@/lib/services/api-route-handler";
-import { ProjectDataService } from "@/lib/services/project-data-service";
-import { RateLimiters } from "@/lib/rate-limit-config";
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { logger } from '@/lib/logger';
+import { APIRouteHandler } from '@/lib/services/api-route-handler';
+import { ProjectDataService } from '@/lib/services/project-data-service';
+import { RateLimiters } from '@/lib/rate-limit-config';
+import { blueprintVersionService } from '@/lib/services/blueprint-version-service';
 
 const versionsListSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -35,44 +36,57 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       // Get blueprint details with all versions (already optimized)
       const blueprintDetails = await ProjectDataService.getBlueprintWithProjectAndVersions(
         id,
-        user!.clerkId,
+        user!.clerkId
       );
-      const { blueprint, project, allVersions } = blueprintDetails;
 
-      // Sort versions by created_at (newest first) and apply pagination
-      const sortedVersions = allVersions
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(offset, offset + limit);
+      // Use service for version sorting and pagination
+      const versionResult = blueprintVersionService.getPaginatedVersions(
+        blueprintDetails,
+        offset,
+        limit
+      );
 
-      logger.userAction("Blueprint versions listed", user!.clerkId, {
+      if (!versionResult.success || !versionResult.data) {
+        logger.apiError(
+          'Failed to get blueprint versions',
+          context.requestId,
+          new Error(versionResult.error || 'Unknown error'),
+          { blueprintId: id }
+        );
+        return {
+          blueprint: {
+            id: blueprintDetails.blueprint.id,
+            projectId: blueprintDetails.blueprint.projectId,
+            currentVersion: blueprintDetails.blueprint.version,
+            name: blueprintDetails.project.name,
+          },
+          versions: [],
+          pagination: {
+            total: 0,
+            limit,
+            offset,
+            hasMore: false,
+          },
+          message: 'Failed to retrieve versions',
+        };
+      }
+
+      const { sortedVersions, pagination, blueprintSummary } = versionResult.data;
+
+      logger.userAction('Blueprint versions listed', user!.clerkId, {
         requestId: context.requestId,
         blueprintId: id,
-        totalVersions: allVersions.length,
+        totalVersions: pagination.total,
         returnedVersions: sortedVersions.length,
         limit,
         offset,
       });
 
       return {
-        blueprint: {
-          id: blueprint.id,
-          projectId: blueprint.projectId,
-          currentVersion: blueprint.version,
-          name: project.name,
-        },
-        versions: sortedVersions.map((version) => ({
-          id: version.id,
-          version: version.version,
-          createdAt: version.createdAt,
-          updatedAt: version.updatedAt,
-        })),
-        pagination: {
-          total: allVersions.length,
-          limit,
-          offset,
-          hasMore: offset + sortedVersions.length < allVersions.length,
-        },
-        message: "Blueprint versions retrieved successfully",
+        blueprint: blueprintSummary,
+        versions: sortedVersions,
+        pagination,
+        message: 'Blueprint versions retrieved successfully',
       };
     },
   })(req);

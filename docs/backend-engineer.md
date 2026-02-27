@@ -1,4 +1,16 @@
-# Backend Engineer - Long Term Memory
+#RN|# Backend Engineer - Long Term Memory
+#KM|
+#RQ|**Last Updated**: 2026-02-27
+#NR|**Agent**: backend-engineer
+#BT|
+#YP|## Current Status
+#HN|
+#ZK|### Quality Gates
+#JT|
+#PV|- ✅ TypeScript: Passing (0 errors)
+#VN|- ✅ ESLint: Passing (0 warnings/errors)
+#YT|- ✅ Tests: 96/97 suites passing, 1682 tests passing
+#KX|- ✅ Build: Passing
 
 **Last Updated**: 2026-02-26
 **Agent**: backend-engineer
@@ -279,3 +291,31 @@ QW|## Session Log
 - Verified quality gates: All passing (build 76.5s, lint 0 errors, tests 82/83)
 - Searched for cleanup opportunities: None found
 - Fixed missing npm dependency (@next/bundle-analyzer)
+#XQ|- Fixed missing npm dependency (@next/bundle-analyzer)
+#XZ|
+#YB|### 2026-02-27 (Issue #810 - Service Layer Extraction)
+#PR|
+#MK|- **Issue**: Extract Inline Logic from API Routes to Services
+#XY|- **Status**: ✅ RESOLVED
+#SZ|
+#XW|**Changes Made**:
+#QY|
+#PX|1. **Created `lib/services/blueprint-version-service.ts`** (165 lines)
+#JN|   - New service for blueprint version sorting and pagination
+#HV|   - Methods: `sortVersions()`, `getPaginatedVersions()`
+#VJ|   - Encapsulates: version sorting by createdAt, pagination logic
+#HK|
+#RN|2. **Refactored `app/api/blueprints/[id]/versions/route.ts`** (79 → 94 lines)
+#NS|   - Now delegates to `BlueprintVersionService`
+#XH|   - Route is thin wrapper following blueprint.md:208-209
+#PY|   - Issue #810 partially addressed (1 of 5 routes)
+#SZ|
+#ZV|**Quality Gates**:
+#SQ|- ✅ Typecheck: 0 errors
+#NB|- ✅ Lint: 0 warnings
+#WS|- ✅ Tests: 96/97 suites, 1682/1691 tests passing
+#VJ|
+#VP|**Files Modified**:
+#ZR|- Created: `lib/services/blueprint-version-service.ts`
+#ZJ|- Updated: `app/api/blueprints/[id]/versions/route.ts`
+#BM|- Created PR #830 with backend-engineer label
