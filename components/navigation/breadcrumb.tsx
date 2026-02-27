@@ -118,7 +118,7 @@ export function Breadcrumbs({ className, showHome = true, separator = '/' }: Bre
             ) : (
               <Link
                 href={item.href}
-                className="text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded px-1"
+                className="text-muted-foreground hover:text-foreground hover:bg-gray-100 hover:scale-[1.02] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded px-1"
               >
                 {item.label}
               </Link>

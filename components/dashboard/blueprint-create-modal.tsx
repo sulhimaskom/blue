@@ -1,11 +1,8 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
-import { useBlueprintValidation } from "@/lib/hooks/use-blueprint-validation";
-import {
-  ValidatedInput,
-  FormProgress,
-} from "@/components/ui/validation-feedback";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { useBlueprintValidation } from '@/lib/hooks/use-blueprint-validation';
+import { ValidatedInput, FormProgress } from '@/components/ui/validation-feedback';
 
 type FormSubmitHandler = (_e: React.FormEvent) => Promise<void>;
 
@@ -14,10 +11,11 @@ export interface BlueprintCreateModalProps {
   onClose: () => void;
   onSubmit: FormSubmitHandler;
   credits: number;
+  loading?: boolean;
 }
 
 export const BlueprintCreateModal = React.memo(
-  ({ isOpen, onClose, onSubmit, credits }: BlueprintCreateModalProps) => {
+  ({ isOpen, onClose, onSubmit, credits, loading = false }: BlueprintCreateModalProps) => {
     const { formData, resetValidation, getFieldProps, canSubmit, fieldStates } =
       useBlueprintValidation(
         {
@@ -25,7 +23,7 @@ export const BlueprintCreateModal = React.memo(
           enableRealtimeValidation: true,
           enableSuggestions: true,
         },
-        {},
+        {}
       );
 
     const handleClose = () => {
@@ -47,9 +45,9 @@ export const BlueprintCreateModal = React.memo(
             formData={{
               projectName: formData.projectName,
               input: formData.input,
-              projectDescription: formData.projectDescription || "",
+              projectDescription: formData.projectDescription || '',
             }}
-            requiredFields={["projectName", "input"]}
+            requiredFields={['projectName', 'input']}
           />
           <div className="space-y-6">
             <ValidatedInput
@@ -60,15 +58,15 @@ export const BlueprintCreateModal = React.memo(
               required
               maxLength={50}
               validationProps={{
-                value: getFieldProps("projectName").value || "",
-                onChange: getFieldProps("projectName").onChange,
-                onBlur: getFieldProps("projectName").onBlur,
-                error: getFieldProps("projectName").error,
-                warning: getFieldProps("projectName").warning,
-                isValid: getFieldProps("projectName").isValid,
-                isTouched: getFieldProps("projectName").isTouched,
-                isValidating: getFieldProps("projectName").isValidating,
-                suggestions: getFieldProps("projectName").suggestions,
+                value: getFieldProps('projectName').value || '',
+                onChange: getFieldProps('projectName').onChange,
+                onBlur: getFieldProps('projectName').onBlur,
+                error: getFieldProps('projectName').error,
+                warning: getFieldProps('projectName').warning,
+                isValid: getFieldProps('projectName').isValid,
+                isTouched: getFieldProps('projectName').isTouched,
+                isValidating: getFieldProps('projectName').isValidating,
+                suggestions: getFieldProps('projectName').suggestions,
               }}
               helperText="Use clear, descriptive naming (3-50 characters)"
             />
@@ -81,15 +79,15 @@ export const BlueprintCreateModal = React.memo(
               maxLength={1000}
               rows={6}
               validationProps={{
-                value: getFieldProps("input").value || "",
-                onChange: getFieldProps("input").onChange,
-                onBlur: getFieldProps("input").onBlur,
-                error: getFieldProps("input").error,
-                warning: getFieldProps("input").warning,
-                isValid: getFieldProps("input").isValid,
-                isTouched: getFieldProps("input").isTouched,
-                isValidating: getFieldProps("input").isValidating,
-                suggestions: getFieldProps("input").suggestions,
+                value: getFieldProps('input').value || '',
+                onChange: getFieldProps('input').onChange,
+                onBlur: getFieldProps('input').onBlur,
+                error: getFieldProps('input').error,
+                warning: getFieldProps('input').warning,
+                isValid: getFieldProps('input').isValid,
+                isTouched: getFieldProps('input').isTouched,
+                isValidating: getFieldProps('input').isValidating,
+                suggestions: getFieldProps('input').suggestions,
               }}
               helperText="Be specific about features, target users, and purpose"
             />
@@ -114,14 +112,13 @@ export const BlueprintCreateModal = React.memo(
                 <div className="text-sm text-blue-800">
                   <p className="font-medium">Real-time Validation Active</p>
                   <p>
-                    Creating a blueprint will deduct 1 credit from your account.
-                    You currently have {credits} credits available. Your form is
-                    validated in real-time to help create better blueprints.
+                    Creating a blueprint will deduct 1 credit from your account. You currently have{' '}
+                    {credits} credits available. Your form is validated in real-time to help create
+                    better blueprints.
                   </p>
                   {!canSubmit && (
                     <p className="mt-2 text-yellow-700" role="alert">
-                      Complete all required fields and fix validation errors to
-                      submit.
+                      Complete all required fields and fix validation errors to submit.
                     </p>
                   )}
                 </div>
@@ -134,14 +131,11 @@ export const BlueprintCreateModal = React.memo(
             </Button>
             <Button
               type="submit"
-              disabled={credits < 1 || !canSubmit}
-              aria-disabled={credits < 1 || !canSubmit}
+              loading={loading}
+              disabled={credits < 1 || !canSubmit || loading}
+              aria-disabled={credits < 1 || !canSubmit || loading}
               aria-describedby={
-                credits < 1
-                  ? "insufficient-credits"
-                  : !canSubmit
-                    ? "validation-errors"
-                    : undefined
+                credits < 1 ? 'insufficient-credits' : !canSubmit ? 'validation-errors' : undefined
               }
             >
               Create Blueprint (1 Credit)
@@ -149,20 +143,18 @@ export const BlueprintCreateModal = React.memo(
           </div>
           {credits < 1 && (
             <p id="insufficient-credits" className="sr-only" role="alert">
-              You do not have enough credits to create a blueprint. Please
-              purchase more credits.
+              You do not have enough credits to create a blueprint. Please purchase more credits.
             </p>
           )}
           {!canSubmit && credits >= 1 && (
             <p id="validation-errors" className="sr-only" role="alert">
-              Please complete all required fields and fix validation errors to
-              submit.
+              Please complete all required fields and fix validation errors to submit.
             </p>
           )}
         </form>
       </Modal>
     );
-  },
+  }
 );
 
-BlueprintCreateModal.displayName = "BlueprintCreateModal";
+BlueprintCreateModal.displayName = 'BlueprintCreateModal';

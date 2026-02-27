@@ -76,7 +76,7 @@ export const ANIMATION_STATES = {
  */
 export const CARD_VARIANTS = {
   default: "border-gray-200 bg-white",
-  hover: "hover:border-gray-300 hover:shadow-md transition-all duration-200",
+  hover: "hover:border-gray-300 hover:shadow-md hover:scale-[1.01] transition-all duration-200",
   error: "border-red-200 bg-red-50",
   success: "border-green-200 bg-green-50",
   warning: "border-yellow-200 bg-yellow-50",
