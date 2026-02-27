@@ -3,6 +3,7 @@ import { webhookSubscriptions, webhookConfigurations } from "@/lib/db/schema";
 import { eq, and, desc, isNull } from "drizzle-orm";
 import { DatabaseError, NotFoundError, ValidationError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+import { UnifiedCacheManager } from "./cache-orchestrator";
 
 export interface CreateSubscriptionRequest {
   webhookConfigurationId: string;
@@ -160,6 +161,9 @@ export class WebhookSubscriptionService {
         },
       );
 
+      // Invalidate cache after subscription creation
+      await UnifiedCacheManager.invalidateByTag("webhooks");
+
       return {
         ...subscriptions[0],
         webhookConfiguration: webhookConfig[0],
@@ -298,6 +302,9 @@ export class WebhookSubscriptionService {
         },
       );
 
+      // Invalidate cache after subscription update
+      await UnifiedCacheManager.invalidateByTag("webhooks");
+
       // Get full subscription with webhook config
       return this.getSubscriptionById(userId, subscriptionId);
 
@@ -352,6 +359,9 @@ export class WebhookSubscriptionService {
           subscriptionId,
         },
       );
+
+      // Invalidate cache after subscription deletion
+      await UnifiedCacheManager.invalidateByTag("webhooks");
 
     } catch (error) {
       logger.error("Failed to delete webhook subscription", {
