@@ -165,8 +165,8 @@ export interface BlueprintRefinementRequest {
  *   projectDescription: "Marketplace connecting sneaker collectors with verified rare items"
  * });
  *
- * console.log(`Blueprint created: ${response.blueprintId}`);
- * console.log(`Generation time: ${response.estimatedDuration}ms`);
+ * logger.info(`Blueprint created: ${response.blueprintId}`, { blueprintId: response.blueprintId });
+ * logger.info(`Generation time: ${response.estimatedDuration}ms`, { duration: response.estimatedDuration });
  * ```
  *
  * ### Blueprint Refinement
@@ -181,8 +181,8 @@ export interface BlueprintRefinementRequest {
  * ### Retrieving User Statistics
  * ```typescript
  * const stats = await blueprintEngine.getUserBlueprintStats(123);
- * console.log(`Total blueprints: ${stats.total}`);
- * console.log(`Completion rate: ${(stats.completed / stats.total * 100).toFixed(1)}%`);
+ * logger.info(`Total blueprints: ${stats.total}`, { total: stats.total });
+ * logger.info(`Completion rate: ${(stats.completed / stats.total * 100).toFixed(1)}%`, { completionRate: (stats.completed / stats.total * 100).toFixed(1) });
  * ```
  *
  * ## Future Extensibility

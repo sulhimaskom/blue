@@ -55,7 +55,7 @@ interface EnterpriseThemeData {
  *
  * const result = await enterpriseThemeService.loadThemeData();
  * if (result.success) {
- *   console.log('Loaded themes:', result.data.themes.length);
+ *   logger.info('Loaded themes:', { count: result.data.themes.length });
  * }
  * ```
  */
@@ -172,7 +172,7 @@ export class EnterpriseThemeService {
    * ```typescript
    * const customerId = await enterpriseThemeService.detectAndApplyTheme();
    * if (customerId) {
-   *   console.log(`Applied theme for customer: ${customerId}`);
+   *   logger.info(`Applied theme for customer: ${customerId}`, { customerId });
    * }
    * ```
    */
@@ -454,7 +454,7 @@ export class EnterpriseThemeService {
    * @example
    * ```typescript
    * const stats = enterpriseThemeService.calculateThemeStats(themes, activeTheme);
-   * console.log(`Customization rate: ${stats.customizationRate}%`);
+   * logger.info(`Customization rate: ${stats.customizationRate}%`, { customizationRate: stats.customizationRate });
    * ```
    */
   calculateThemeStats(
@@ -740,7 +740,7 @@ export class EnterpriseThemeService {
    * ```typescript
    * const isValid = enterpriseThemeService.validateTheme(themeConfig);
    * if (!isValid) {
-   *   console.error('Invalid theme configuration');
+   *   logger.error('Invalid theme configuration');
    * }
    * ```
    */
@@ -805,7 +805,7 @@ export class EnterpriseThemeService {
    * @example
    * ```typescript
    * const summary = enterpriseThemeService.getThemeSummary(themeData);
-   * console.log(`Active theme: ${summary.activeThemeName}`);
+   * logger.info(`Active theme: ${summary.activeThemeName}`, { activeThemeName: summary.activeThemeName });
    * ```
    */
   getThemeSummary(data: EnterpriseThemeData): {

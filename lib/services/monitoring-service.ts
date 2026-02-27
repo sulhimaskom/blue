@@ -387,7 +387,7 @@ export class MonitoringService {
    * ```typescript
    * const isValid = monitoringService.validateMonitoringData(data);
    * if (!isValid) {
-   *   console.error('Invalid monitoring data structure');
+   *   logger.error('Invalid monitoring data structure');
    * }
    * ```
    */
