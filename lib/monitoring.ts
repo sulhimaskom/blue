@@ -1,3 +1,4 @@
+import { env } from "./env";
 import { logger } from "./logger";
 import {
   MONITORING_REFRESH_INTERVAL,
@@ -104,8 +105,9 @@ class MonitoringService {
       const startTime = Date.now();
       try {
         // Simple health check - verify configuration
-        const iflowConfigured = !!process.env.IFLOW_API_KEY;
-        const tavilyConfigured = !!process.env.TAVILY_API_KEY;
+        const iflowConfigured = !!env.IFLOW_API_KEY && env.IFLOW_API_KEY !== 'placeholder';
+        const tavilyConfigured = !!env.TAVILY_API_KEY && env.TAVILY_API_KEY !== 'placeholder';
+
 
         return {
           service: "ai-services",

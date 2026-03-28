@@ -412,4 +412,42 @@ All 5 routes mentioned in the issue were audited:
 
 **Recommendation**: No immediate security fixes required. Continue regular security monitoring.
 
-**Next Scan**: Schedule within 30 days or after significant infrastructure changes.
+
+---
+
+### February 27, 2026 - Additional process.env Bypasses (SEC-008)
+
+**Issue**: Additional services used `process.env` directly instead of centralized `env` module
+
+**Root Cause**: 
+- `lib/monitoring.ts` used `process.env.IFLOW_API_KEY` and `process.env.TAVILY_API_KEY`
+- `lib/api-utils.ts` used `process.env.ALLOWED_ORIGINS`, `process.env.NEXT_PUBLIC_APP_URL`, and `process.env.NODE_ENV`
+
+**Solution Implemented**:
+1. Added import for centralized `env` module in both files
+2. Changed all process.env.* usages to env.*
+3. Proper handling of optional values (ALLOWED_ORIGINS)
+
+**Files Modified**:
+- `lib/monitoring.ts` - Changed process.env.IFLOW_API_KEY/TAVILY_API_KEY → env.* (+2/-2 lines)
+- `lib/api-utils.ts` - Changed process.env.ALLOWED_ORIGINS/NEXT_PUBLIC_APP_URL/NODE_ENV → env.* (+8/-10 lines)
+
+**Security Impact**:
+- All environment variables now go through centralized Zod validation
+- Configuration errors caught at startup rather than runtime
+- Eliminates potential security bypass through direct process.env access
+
+**Verification**:
+- ✅ npm audit: 0 vulnerabilities
+- ✅ npm run build: Pass (68.5s)
+- ✅ npm run lint: 0 warnings/errors
+- ✅ npm run typecheck: 0 TypeScript errors
+
+---
+
+## Notes
+
+- Security-engineer agent should check for npm audit vulnerabilities during INITIATE phase
+- All fixes must be verified with full build/test suite
+- PR must include "security-engineer" label
+- Proactively scan for direct process.env usage that bypasses centralized env module
